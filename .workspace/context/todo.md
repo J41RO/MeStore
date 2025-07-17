@@ -68,14 +68,14 @@
     ✅ 0.1.2.7 Crear .env.template con variables mínimas
     ✅ 0.1.2.8 Verificar Hello World FastAPI (uvicorn app.main:app --reload)
     ✅ 0.1.2.9 Commit y push de configuración completa
-⬜ 0.1.3 Configurar entorno Node.js 18+ para frontend React con TypeScript
-    ⬜ 0.1.3.1 Instalar Node.js 18+ usando nvm
-    ⬜ 0.1.3.2 Crear proyecto React con Vite + TypeScript template
-    ⬜ 0.1.3.3 Instalar Tailwind CSS y configurar purge/JIT
-    ⬜ 0.1.3.4 Configurar ESLint + Prettier con reglas específicas
-    ⬜ 0.1.3.5 Instalar React Router, Axios, Zustand para estado
-    ⬜ 0.1.3.6 Verificar build y hot-reload funcionando
-⬜ 0.1.4 Crear estructura modular y escalable de carpetas backend/frontend
+✅ 0.1.3 Configurar entorno Node.js 18+ para frontend React con TypeScript
+    ✅ 0.1.3.1 Instalar Node.js 18+ usando nvm
+    ✅ 0.1.3.2 Crear proyecto React con Vite + TypeScript template
+    ✅ 0.1.3.3 Instalar Tailwind CSS y configurar purge/JIT
+    ✅ 0.1.3.4 Configurar ESLint + Prettier con reglas específicas
+    ✅ 0.1.3.5 Instalar React Router, Axios, Zustand para estado
+    ✅ 0.1.3.6 Verificar build y hot-reload funcionando
+🔄 0.1.4 Crear estructura modular y escalable de carpetas backend/frontend
     ⬜ 0.1.4.1 Diseñar estructura backend: app/models/services/api/tests
     ⬜ 0.1.4.2 Diseñar estructura frontend: components/pages/hooks/utils
     ⬜ 0.1.4.3 Crear carpetas específicas: agents/, fulfillment/, marketplace/
