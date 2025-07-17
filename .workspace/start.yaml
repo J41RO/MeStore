@@ -1,0 +1,150 @@
+# SMART DEV SYSTEM v1.5.0 - CONFIGURACIÓN MAESTRA
+# Este archivo contiene TODA la información que cualquier IA necesita
+# para entrar inmediatamente en contexto del proyecto
+
+system:
+  version: "1.5.0"
+  created: "2025-07-17T12:31:59.025880"
+  last_updated: "2025-07-17T12:31:59.025880"
+  last_ai: "setup-script"
+  
+project:
+  name: "MeStore"
+  type: "web_api"
+  description: "Proyecto web_api usando fastapi"
+  technologies:
+    language: "python"
+    framework: "fastapi"
+    database: "pendiente_detectar"
+    testing: "pytest"
+    deployment: "pendiente_detectar"
+  
+structure:
+  root_dir: "/home/admin-jairo/MeStore"
+  main_file: "main.py"
+  config_files: []
+  important_dirs: []
+  
+user:
+  # Información básica
+  name: "Jairo"
+  email: "admin@mestore"
+  technical_level: "beginner"
+  work_mode: "solo"
+  timezone: "America/Bogota"
+  
+  # Preferencias de comunicación
+  communication:
+    language: "spanish"
+    feedback_mode: "detailed"
+    explanation_style: "technical_only"
+    encouragement_frequency: "moderate"
+    technical_depth: "comprehensive"
+    
+  # Preferencias de trabajo
+  workflow:
+    commit_frequency: "per_task"
+    test_strategy: "comprehensive"
+    documentation_level: "automatic"
+    validation_strictness: "maximum"
+    
+  # Modos especiales
+  modes:
+    ultra_didactic_mode: false
+    minimal_explanations: false
+    commands_only: false
+    show_reasoning: true
+    auto_suggestions: true
+    
+  # Aprendizaje y evolución
+  learning:
+    track_progress: true
+    learned_concepts: []
+    skill_evolution: {}
+    preferred_learning_style: "hands_on"
+    
+  # Configuración de análisis de código
+  code_analysis_preferences:
+    auto_suggest_analysis: true
+    quality_gate_strictness: "moderate"
+    security_focus: true
+    performance_monitoring: true
+    coverage_threshold: 80
+    max_complexity_warning: 10
+    max_file_lines_warning: 200
+    
+  # Configuración de memoria híbrida
+  hybrid_memory:
+    local_memory_enabled: true
+    api_enrichment_enabled: false  # Deshabilitado por defecto
+    enrichment_triggers:
+      complexity_threshold: "high"
+      message_length_threshold: 500
+      importance_keywords: ["important", "remember", "crítico"]
+    consolidation_schedule: "nightly"
+    
+  # Configuración de modelos
+  model_preferences:
+    local_model_enabled: false  # Deshabilitado por defecto
+    preferred_local_model: "not_configured"
+    api_fallback_enabled: false  # Deshabilitado por defecto
+    model_routing_strategy: "local_first"
+    
+status:
+  pending_tasks: true
+  current_phase: "FASE 0"
+  current_task: "0.1 Configurar entorno de desarrollo"
+  current_command: "setup.py ejecutado exitosamente"
+  blocking_issues: []
+  next_session_action: "Ejecutar /start/ para revisar plan y continuar desarrollo"
+  
+modules:
+  education: true
+  validation: true
+  documentation: true
+  context: true
+  error_detection: true
+  error_learning: true
+  hybrid_memory: true
+  quality_analysis: true
+  recovery: true
+
+scripts:
+  available:
+    - "session_recovery.sh"
+    - "smart_commit.sh" 
+    - "context_validator.sh"
+    - "project_sync_check.sh"
+    - "pre_commit_validation.sh"
+
+environment:
+  os: "unix"
+  python_version: "Python 3.11.9"
+  node_version: "not_detected"
+  docker_available: false
+  git_configured: false
+  virtual_env: "not_detected"
+
+workspace:
+  setup_completed: true
+  files_created: true
+  project_detected: true
+  dependencies_installed: false
+  error_knowledge_created: true
+  hybrid_memory_configured: true
+  scripts_generated: true
+  
+sessions:
+  total_sessions: 0
+  total_commands: 0
+  last_session_duration: ""
+  avg_session_tasks: 0
+  total_errors_encountered: 0
+  total_errors_resolved: 0
+  error_resolution_rate: 0
+
+learning:
+  patterns_detected: []
+  preventive_rules: []
+  success_techniques: []
+  avoided_mistakes: []
