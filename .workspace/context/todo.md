@@ -66,8 +66,8 @@
     ✅ 0.1.2.5 Instalar dependencias auth: python-jose[cryptography], passlib[bcrypt]
     ✅ 0.1.2.6 Generar requirements.txt (pip freeze > requirements.txt)
     ✅ 0.1.2.7 Crear .env.template con variables mínimas
-    🔄 0.1.2.8 Verificar Hello World FastAPI (uvicorn app.main:app --reload)
-    🔄 0.1.2.9 Commit y push de configuración completa
+    ✅ 0.1.2.8 Verificar Hello World FastAPI (uvicorn app.main:app --reload)
+    ✅ 0.1.2.9 Commit y push de configuración completa
 ⬜ 0.1.3 Configurar entorno Node.js 18+ para frontend React con TypeScript
     ⬜ 0.1.3.1 Instalar Node.js 18+ usando nvm
     ⬜ 0.1.3.2 Crear proyecto React con Vite + TypeScript template
