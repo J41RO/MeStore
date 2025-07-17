@@ -88,7 +88,7 @@
     ✅ 0.1.5.3 Crear .gitignore para Python + Node.js + secrets
     ✅ 0.1.5.4 Instalar y configurar pre-commit hooks
     ✅ 0.1.5.5 Configurar hooks: black, isort, eslint, prettier
-    ⬜ 0.1.5.6 Crear primer commit con estructura base
+    ✅ 0.1.5.6 Crear primer commit con estructura base
 ⬜ 0.1.6 Setup Docker containers para desarrollo con docker-compose
     ⬜ 0.1.6.1 Crear Dockerfile para backend Python/FastAPI
     ⬜ 0.1.6.2 Crear Dockerfile para frontend React con nginx
