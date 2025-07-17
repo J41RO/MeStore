@@ -1,3 +1,4 @@
+# RUTA: MeStore/.workspace/context/todo.md
 # PLAN MAESTRO DEL PROYECTO - MeStocker.com
 
 # MeStocker = PLATAFORMA WEB (OPCIÓN 1) - FastAPI + React + PostgreSQL
@@ -49,21 +50,24 @@
   ✅ 0.1.1.2 Identificar requerimientos por dominio  
   ✅ 0.1.1.3 Diseñar arquitectura híbrida
   ✅ 0.1.1.4 Documentar roadmap de implementación
-    🔁 0.1.1.1 Identificar requerimientos de fulfillment (almacén, inventario)
-    🔄 0.1.1.1.1 Documentar requisitos funcionales y no funcionales de Fulfillment
-    🔁 0.1.1.2 Identificar requerimientos de marketplace (catálogo, pagos)
-    🔄 0.1.1.2.1 Documentar requisitos funcionales y no funcionales de Marketplace
-    🔁 0.1.1.3 Identificar requerimientos de agentes IA (chat, automatización)
-    🔄 0.1.1.3.1 Documentar requisitos funcionales y no funcionales de Agentes IA
-    🔁 0.1.1.4 Definir arquitectura híbrida fulfillment + marketplace + IA
-    🔄 0.1.1.4.1 Documentar componentes y flujos de la arquitectura híbrida
-⬜ 0.1.2 Configurar entorno Python 3.11+ con FastAPI y dependencias core
-    ⬜ 0.1.2.1 Instalar Python 3.11+ usando pyenv en sistema
-    ⬜ 0.1.2.2 Crear virtual environment dedicado para MeStocker
-    ⬜ 0.1.2.3 Instalar FastAPI, Uvicorn, Pydantic, SQLAlchemy
-    ⬜ 0.1.2.4 Configurar requirements.txt con versiones fijas
-    ⬜ 0.1.2.5 Crear archivo .env template con variables de entorno
-    ⬜ 0.1.2.6 Verificar instalación con hello world FastAPI
+    ✅ 0.1.1.1 Identificar requerimientos de fulfillment (almacén, inventario)
+    ✅ 0.1.1.1.1 Documentar requisitos funcionales y no funcionales de Fulfillment
+    ✅ 0.1.1.2 Identificar requerimientos de marketplace (catálogo, pagos)
+    ✅ 0.1.1.2.1 Documentar requisitos funcionales y no funcionales de Marketplace
+    ✅ 0.1.1.3 Identificar requerimientos de agentes IA (chat, automatización)
+    ✅ 0.1.1.3.1 Documentar requisitos funcionales y no funcionales de Agentes IA
+    ✅ 0.1.1.4 Definir arquitectura híbrida fulfillment + marketplace + IA
+    ✅ 0.1.1.4.1 Documentar componentes y flujos de la arquitectura híbrida
+🔄 0.1.2 Configurar entorno Python 3.11+ con FastAPI y dependencias core
+    ✅ 0.1.2.1 Crear rama de trabajo feature/0.1.2-setup-python
+    ✅ 0.1.2.2 Instalar Python 3.11+ con pyenv (pyenv install 3.11.5)
+    ✅ 0.1.2.3 Crear virtualenv (.venv) y activar
+    ✅ 0.1.2.4 Instalar dependencias core: FastAPI, Uvicorn, Pydantic, SQLAlchemy, Alembic
+    ✅ 0.1.2.5 Instalar dependencias auth: python-jose[cryptography], passlib[bcrypt]
+    ✅ 0.1.2.6 Generar requirements.txt (pip freeze > requirements.txt)
+    🔄 0.1.2.7 Crear .env.template con variables mínimas
+    🔄 0.1.2.8 Verificar Hello World FastAPI (uvicorn app.main:app --reload)
+    🔄 0.1.2.9 Commit y push de configuración completa
 ⬜ 0.1.3 Configurar entorno Node.js 18+ para frontend React con TypeScript
     ⬜ 0.1.3.1 Instalar Node.js 18+ usando nvm
     ⬜ 0.1.3.2 Crear proyecto React con Vite + TypeScript template
