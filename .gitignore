@@ -393,3 +393,12 @@ docker-compose.override.yml
 .workspace/backups/
 .workspace/temp/
 .workspace/cache/
+
+# === ENTORNO VIRTUAL - EXCLUSIÓN COMPLETA ===
+venv/
+.venv/
+pyvenv.cfg
+pip-selfcheck.json
+
+# === ENTORNO VIRTUAL - ARCHIVOS ESPECÍFICOS PROBLEMÁTICOS ===
+venv/lib/python*/site-packages/uvicorn/supervisors/

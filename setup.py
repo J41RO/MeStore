@@ -12,18 +12,21 @@ import subprocess
 import sys
 from datetime import datetime
 
+
 def clear_screen():
     """Limpiar pantalla según el OS"""
-    os.system('cls' if os.name == 'nt' else 'clear')
+    os.system("cls" if os.name == "nt" else "clear")
+
 
 def print_header():
     """Mostrar header del sistema"""
-    print('🚀 SMART DEV SYSTEM v1.5.0 - SETUP AUTOMÁTICO INTERACTIVO')
-    print('=' * 65)
-    print('🧠 Sistema de Desarrollo con IA Híbrida y Memoria Persistente')
-    print('📋 Configuración Personalizada del Usuario')
-    print('=' * 65)
+    print("🚀 SMART DEV SYSTEM v1.5.0 - SETUP AUTOMÁTICO INTERACTIVO")
+    print("=" * 65)
+    print("🧠 Sistema de Desarrollo con IA Híbrida y Memoria Persistente")
+    print("📋 Configuración Personalizada del Usuario")
+    print("=" * 65)
     print()
+
 
 def get_user_input(question, options=None, default=None):
     """Obtener input del usuario con validación"""
@@ -33,7 +36,7 @@ def get_user_input(question, options=None, default=None):
             for i, option in enumerate(options, 1):
                 marker = " (por defecto)" if default and i == default else ""
                 print(f"   {i}. {option}{marker}")
-            
+
             try:
                 choice = input(f"\n👉 Selecciona (1-{len(options)}): ").strip()
                 if not choice and default:
@@ -51,102 +54,118 @@ def get_user_input(question, options=None, default=None):
                 return response if response else default
             return default
 
+
 def collect_user_preferences():
     """Recopilar preferencias del usuario de forma interactiva"""
     print("🎯 CONFIGURACIÓN PERSONALIZADA")
     print("━" * 40)
-    
+
     # Información básica
     name = get_user_input("¿Cuál es tu nombre?", default="Jairo")
-    
+
     # Nivel técnico
     technical_levels = [
         "Principiante - Recién comenzando con programación",
-        "Intermedio - Conocimientos básicos sólidos", 
+        "Intermedio - Conocimientos básicos sólidos",
         "Intermedio Avanzado - Experiencia considerable",
         "Avanzado - Amplia experiencia técnica",
-        "Experto - Nivel profesional senior"
+        "Experto - Nivel profesional senior",
     ]
     tech_level_idx = get_user_input("¿Cuál es tu nivel técnico?", technical_levels, 3)
-    tech_levels_map = ["beginner", "intermediate", "intermediate_advanced", "advanced", "expert"]
-    
+    tech_levels_map = [
+        "beginner",
+        "intermediate",
+        "intermediate_advanced",
+        "advanced",
+        "expert",
+    ]
+
     # Estilo de comunicación
     communication_styles = [
         "Educativo - Explicaciones detalladas y didácticas",
         "Técnico - Directo al grano, enfoque técnico",
         "Conversacional - Casual y amigable",
-        "Minimalista - Solo lo esencial"
+        "Minimalista - Solo lo esencial",
     ]
-    comm_style_idx = get_user_input("¿Qué estilo de comunicación prefieres?", communication_styles, 2)
+    comm_style_idx = get_user_input(
+        "¿Qué estilo de comunicación prefieres?", communication_styles, 2
+    )
     comm_styles_map = ["educational", "technical_only", "conversational", "direct"]
-    
+
     # Nivel de feedback
     feedback_levels = [
         "Mínimo - Solo comandos esenciales",
         "Moderado - Explicaciones concisas",
         "Detallado - Explicaciones completas (recomendado)",
-        "Ultra Verboso - Máximo detalle educativo"
+        "Ultra Verboso - Máximo detalle educativo",
     ]
-    feedback_idx = get_user_input("¿Qué nivel de feedback prefieres?", feedback_levels, 3)
+    feedback_idx = get_user_input(
+        "¿Qué nivel de feedback prefieres?", feedback_levels, 3
+    )
     feedback_map = ["minimal", "moderate", "detailed", "ultra_verbose"]
-    
+
     # Estrategia de testing
     test_strategies = [
         "Mínima - Tests básicos solamente",
         "Moderada - Tests importantes",
         "Comprensiva - Tests exhaustivos (recomendado)",
-        "TDD - Desarrollo dirigido por tests"
+        "TDD - Desarrollo dirigido por tests",
     ]
-    test_idx = get_user_input("¿Qué estrategia de testing prefieres?", test_strategies, 3)
+    test_idx = get_user_input(
+        "¿Qué estrategia de testing prefieres?", test_strategies, 3
+    )
     test_map = ["minimal", "moderate", "comprehensive", "tdd"]
-    
+
     # Frecuencia de commits
     commit_frequencies = [
         "Por subtarea - Commits muy frecuentes",
         "Por tarea - Un commit por tarea completada (recomendado)",
         "Por feature - Commits cuando se completa funcionalidad",
-        "Manual - Yo decido cuándo hacer commit"
+        "Manual - Yo decido cuándo hacer commit",
     ]
-    commit_idx = get_user_input("¿Con qué frecuencia prefieres hacer commits?", commit_frequencies, 1)
+    commit_idx = get_user_input(
+        "¿Con qué frecuencia prefieres hacer commits?", commit_frequencies, 1
+    )
     commit_map = ["per_subtask", "per_task", "per_feature", "manual"]
-    
+
     # Documentación
     doc_levels = [
         "Mínima - Solo cuando es necesario",
         "Bajo demanda - Cuando lo solicite",
         "Automática - Documentación continua (recomendado)",
-        "Comprensiva - Documentación exhaustiva"
+        "Comprensiva - Documentación exhaustiva",
     ]
     doc_idx = get_user_input("¿Qué nivel de documentación prefieres?", doc_levels, 3)
     doc_map = ["minimal", "on_demand", "automatic", "comprehensive"]
-    
+
     return {
-        'name': name,
-        'technical_level': tech_levels_map[tech_level_idx],
-        'communication_style': comm_styles_map[comm_style_idx],
-        'feedback_mode': feedback_map[feedback_idx],
-        'test_strategy': test_map[test_idx],
-        'commit_frequency': commit_map[commit_idx],
-        'documentation_level': doc_map[doc_idx]
+        "name": name,
+        "technical_level": tech_levels_map[tech_level_idx],
+        "communication_style": comm_styles_map[comm_style_idx],
+        "feedback_mode": feedback_map[feedback_idx],
+        "test_strategy": test_map[test_idx],
+        "commit_frequency": commit_map[commit_idx],
+        "documentation_level": doc_map[doc_idx],
     }
+
 
 def create_directory_structure():
     """Crear estructura completa de directorios para v1.5.0"""
     directories = [
-        '.workspace',
-        '.workspace/context',
-        '.workspace/scripts', 
-        '.workspace/memory',
-        '.workspace/memory/local',
-        '.workspace/memory/enriched',
-        '.workspace/models',
-        '.workspace/models/local',
-        '.workspace/models/config',
-        '.workspace/backup',
-        '.workspace/logs',
-        '.workspace/analytics'
+        ".workspace",
+        ".workspace/context",
+        ".workspace/scripts",
+        ".workspace/memory",
+        ".workspace/memory/local",
+        ".workspace/memory/enriched",
+        ".workspace/models",
+        ".workspace/models/local",
+        ".workspace/models/config",
+        ".workspace/backup",
+        ".workspace/logs",
+        ".workspace/analytics",
     ]
-    
+
     print("\n📁 Creando estructura de directorios...")
     created_dirs = []
     for directory in directories:
@@ -156,8 +175,9 @@ def create_directory_structure():
             print(f"   ✅ {directory}")
         except Exception as e:
             print(f"   ❌ Error creando {directory}: {e}")
-    
+
     return created_dirs
+
 
 def detect_project_info():
     """Detectar información del proyecto automáticamente"""
@@ -167,106 +187,128 @@ def detect_project_info():
     project_name = os.path.basename(root_dir)
 
     # Detectar tipo de proyecto
-    project_type = 'unknown'
-    language = ''
-    framework = ''
+    project_type = "unknown"
+    language = ""
+    framework = ""
 
     # Buscar archivos Python
     py_files = []
-    for root, dirs, files in os.walk('.'):
+    for root, dirs, files in os.walk("."):
         # Evitar directorios del sistema
-        if any(skip in root for skip in ['.git', '__pycache__', '.workspace', 'node_modules']):
+        if any(
+            skip in root
+            for skip in [".git", "__pycache__", ".workspace", "node_modules"]
+        ):
             continue
-            
+
         for file in files:
-            if file.endswith('.py'):
+            if file.endswith(".py"):
                 py_files.append(os.path.join(root, file))
         if len(py_files) > 5:
             break
 
-    if py_files or os.path.exists('requirements.txt') or os.path.exists('pyproject.toml'):
-        language = 'python'
-        project_type = 'python_app'
-        
+    if (
+        py_files
+        or os.path.exists("requirements.txt")
+        or os.path.exists("pyproject.toml")
+    ):
+        language = "python"
+        project_type = "python_app"
+
         # Detectar framework específico
         for py_file in py_files[:10]:
             try:
-                with open(py_file, 'r', encoding='utf-8') as f:
+                with open(py_file, "r", encoding="utf-8") as f:
                     content = f.read().lower()
-                    if 'fastapi' in content:
-                        framework = 'fastapi'
-                        project_type = 'web_api'
+                    if "fastapi" in content:
+                        framework = "fastapi"
+                        project_type = "web_api"
                         break
-                    elif 'flask' in content:
-                        framework = 'flask'
-                        project_type = 'web_api'
+                    elif "flask" in content:
+                        framework = "flask"
+                        project_type = "web_api"
                         break
-                    elif 'django' in content:
-                        framework = 'django'
-                        project_type = 'web_app'
+                    elif "django" in content:
+                        framework = "django"
+                        project_type = "web_app"
                         break
             except:
                 continue
-        
+
         if not framework:
-            framework = 'python_general'
+            framework = "python_general"
 
     # Detectar JavaScript/Node.js
-    elif os.path.exists('package.json') or any(f.endswith('.js') for f in os.listdir('.')):
-        language = 'javascript'
-        project_type = 'javascript_app'
-        if os.path.exists('package.json'):
+    elif os.path.exists("package.json") or any(
+        f.endswith(".js") for f in os.listdir(".")
+    ):
+        language = "javascript"
+        project_type = "javascript_app"
+        if os.path.exists("package.json"):
             try:
                 import json
-                with open('package.json', 'r') as f:
+
+                with open("package.json", "r") as f:
                     package_data = json.load(f)
-                    deps = package_data.get('dependencies', {})
-                    if 'react' in deps:
-                        framework = 'react'
-                        project_type = 'web_frontend'
-                    elif 'express' in deps:
-                        framework = 'express'
-                        project_type = 'web_api'
+                    deps = package_data.get("dependencies", {})
+                    if "react" in deps:
+                        framework = "react"
+                        project_type = "web_frontend"
+                    elif "express" in deps:
+                        framework = "express"
+                        project_type = "web_api"
                     else:
-                        framework = 'node_general'
+                        framework = "node_general"
             except:
-                framework = 'javascript_general'
+                framework = "javascript_general"
 
     # Detectar entorno
     try:
-        python_version = subprocess.check_output([sys.executable, '--version']).decode().strip()
+        python_version = (
+            subprocess.check_output([sys.executable, "--version"]).decode().strip()
+        )
     except:
         python_version = "not_detected"
-    
-    virtual_env = os.environ.get('CONDA_DEFAULT_ENV', os.environ.get('VIRTUAL_ENV', 'not_detected'))
-    if virtual_env != 'not_detected' and virtual_env:
-        virtual_env = os.path.basename(virtual_env) if 'VIRTUAL_ENV' in os.environ else virtual_env
+
+    virtual_env = os.environ.get(
+        "CONDA_DEFAULT_ENV", os.environ.get("VIRTUAL_ENV", "not_detected")
+    )
+    if virtual_env != "not_detected" and virtual_env:
+        virtual_env = (
+            os.path.basename(virtual_env)
+            if "VIRTUAL_ENV" in os.environ
+            else virtual_env
+        )
 
     project_data = {
-        'timestamp': timestamp,
-        'root_dir': root_dir,
-        'project_name': project_name,
-        'project_type': project_type,
-        'language': language,
-        'framework': framework,
-        'python_version': python_version,
-        'virtual_env': virtual_env
+        "timestamp": timestamp,
+        "root_dir": root_dir,
+        "project_name": project_name,
+        "project_type": project_type,
+        "language": language,
+        "framework": framework,
+        "python_version": python_version,
+        "virtual_env": virtual_env,
     }
-    
-    print(f"   ✅ Proyecto detectado: {project_data['project_name']} ({project_data['project_type']})")
-    print(f"   ✅ Lenguaje: {project_data['language']}, Framework: {project_data['framework']}")
+
+    print(
+        f"   ✅ Proyecto detectado: {project_data['project_name']} ({project_data['project_type']})"
+    )
+    print(
+        f"   ✅ Lenguaje: {project_data['language']}, Framework: {project_data['framework']}"
+    )
 
     return project_data
 
 
 def create_start_yaml(project_info, user_prefs):
     """Crear archivo start.yaml con configuración completa v1.5.0"""
-    
+
     os_type = "windows" if os.name == "nt" else "unix"
-    test_framework = "pytest" if project_info['language'] == "python" else "jest"
-    main_file = "main.py" if project_info['language'] == "python" else "index.js"
-    
-    start_yaml_content = f'''# SMART DEV SYSTEM v1.5.0 - CONFIGURACIÓN MAESTRA
+    test_framework = "pytest" if project_info["language"] == "python" else "jest"
+    main_file = "main.py" if project_info["language"] == "python" else "index.js"
+
+    start_yaml_content = f"""# SMART DEV SYSTEM v1.5.0 - CONFIGURACIÓN MAESTRA
 # Este archivo contiene TODA la información que cualquier IA necesita
 # para entrar inmediatamente en contexto del proyecto
 
@@ -416,11 +458,11 @@ learning:
   preventive_rules: []
   success_techniques: []
   avoided_mistakes: []
-'''
+"""
 
-    filepath = os.path.join('.workspace', 'start.yaml')
+    filepath = os.path.join(".workspace", "start.yaml")
     try:
-        with open(filepath, 'w', encoding='utf-8') as f:
+        with open(filepath, "w", encoding="utf-8") as f:
             f.write(start_yaml_content)
         print(f"   ✅ start.yaml creado en {filepath}")
         return True
@@ -428,9 +470,10 @@ learning:
         print(f"   ❌ Error creando start.yaml: {e}")
         return False
 
+
 def create_todo_md(project_info):
     """Crear todo.md vacío para personalizar"""
-    todo_content = f'''# PLAN PRINCIPAL DEL PROYECTO - {project_info['project_name']}
+    todo_content = f"""# PLAN PRINCIPAL DEL PROYECTO - {project_info['project_name']}
 
 ## FASE 0: CONFIGURACIÓN INICIAL
 ✅ 0.1 Configurar entorno de desarrollo
@@ -468,11 +511,11 @@ def create_todo_md(project_info):
 - Agrega fases específicas según tu proyecto {project_info['project_type']}
 - El sistema usará ESTE archivo como fuente única de verdad para tareas
 - Mantén el formato ⬜ para pendientes, 🔁 para en progreso, ✅ para completadas
-'''
+"""
 
-    filepath = os.path.join('.workspace', 'context', 'todo.md')
+    filepath = os.path.join(".workspace", "context", "todo.md")
     try:
-        with open(filepath, 'w', encoding='utf-8') as f:
+        with open(filepath, "w", encoding="utf-8") as f:
             f.write(todo_content)
         print(f"   ✅ todo.md creado en {filepath}")
         return True
@@ -480,14 +523,15 @@ def create_todo_md(project_info):
         print(f"   ❌ Error creando todo.md: {e}")
         return False
 
+
 def create_basic_files(project_info, user_prefs):
     """Crear archivos básicos del contexto"""
     print("\n📝 Creando archivos de contexto (log, task)...")
-    timestamp = project_info['timestamp']
+    timestamp = project_info["timestamp"]
     created_files = []
-    
+
     # log.md
-    log_content = f'''# ÚLTIMA ACCIÓN EJECUTADA
+    log_content = f"""# ÚLTIMA ACCIÓN EJECUTADA
 
 **Estado**: ✅ SISTEMA CONFIGURADO v1.5.0
 **Comando ejecutado**: python setup.py (configuración interactiva)
@@ -499,19 +543,19 @@ def create_basic_files(project_info, user_prefs):
 **Fase actual**: FASE 0 - Configuración completada con personalización
 **Errores consultados**: 0
 **Soluciones aplicadas**: Setup automático interactivo para v1.5.0
-'''
+"""
 
-    log_filepath = os.path.join('.workspace', 'context', 'log.md')
+    log_filepath = os.path.join(".workspace", "context", "log.md")
     try:
-        with open(log_filepath, 'w', encoding='utf-8') as f:
+        with open(log_filepath, "w", encoding="utf-8") as f:
             f.write(log_content)
-        created_files.append('log.md')
+        created_files.append("log.md")
         print(f"   ✅ log.md creado")
     except Exception as e:
         print(f"   ❌ Error creando log.md: {e}")
 
     # task.md
-    task_content = f'''# TAREAS CRÍTICAS - ATENCIÓN PRIORITARIA
+    task_content = f"""# TAREAS CRÍTICAS - ATENCIÓN PRIORITARIA
 
 ## 🚨 TAREAS CRÍTICAS PENDIENTES
 
@@ -538,24 +582,25 @@ def create_basic_files(project_info, user_prefs):
    - **Resultado**: Sistema configurado con preferencias de {user_prefs['name']}
    - **Configuración**: {user_prefs['technical_level']}, {user_prefs['feedback_mode']}, {user_prefs['communication_style']}
    - **Lección aprendida**: Setup v1.5.0 funciona correctamente con configuración personalizada
-'''
+"""
 
-    task_filepath = os.path.join('.workspace', 'context', 'task.md')
+    task_filepath = os.path.join(".workspace", "context", "task.md")
     try:
-        with open(task_filepath, 'w', encoding='utf-8') as f:
+        with open(task_filepath, "w", encoding="utf-8") as f:
             f.write(task_content)
-        created_files.append('task.md')
+        created_files.append("task.md")
         print(f"   ✅ task.md creado")
     except Exception as e:
         print(f"   ❌ Error creando task.md: {e}")
 
     return created_files
 
+
 def create_error_knowledge(project_info, user_prefs):
     """Crear base de conocimiento de errores"""
-    timestamp = project_info['timestamp']
-    
-    error_content = f'''# BASE DE CONOCIMIENTO DE ERRORES - SMART DEV SYSTEM v1.5.0
+    timestamp = project_info["timestamp"]
+
+    error_content = f"""# BASE DE CONOCIMIENTO DE ERRORES - SMART DEV SYSTEM v1.5.0
 # Registro automático de errores, soluciones y prevención
 # Configurado para: {user_prefs['name']} (nivel: {user_prefs['technical_level']})
 
@@ -612,11 +657,11 @@ def create_error_knowledge(project_info, user_prefs):
 - Estructura modular preparada para desarrollo híbrido
 - Generación automática de scripts esenciales
 - Personalización completa según nivel y preferencias del usuario
-'''
+"""
 
-    filepath = os.path.join('.workspace', 'error_knowledge.md')
+    filepath = os.path.join(".workspace", "error_knowledge.md")
     try:
-        with open(filepath, 'w', encoding='utf-8') as f:
+        with open(filepath, "w", encoding="utf-8") as f:
             f.write(error_content)
         print(f"   ✅ error_knowledge.md creado")
         return True
@@ -624,11 +669,12 @@ def create_error_knowledge(project_info, user_prefs):
         print(f"   ❌ Error creando error_knowledge.md: {e}")
         return False
 
+
 def create_history_log(project_info, user_prefs):
     """Crear historial técnico"""
-    timestamp = project_info['timestamp']
-    
-    history_content = f'''# SMART DEV SYSTEM v1.5.0 - HISTORIAL TÉCNICO CON APRENDIZAJE PERSONALIZADO
+    timestamp = project_info["timestamp"]
+
+    history_content = f"""# SMART DEV SYSTEM v1.5.0 - HISTORIAL TÉCNICO CON APRENDIZAJE PERSONALIZADO
 # Formato: TIMESTAMP | LEVEL | ACTION | DESCRIPTION | EXTRA_INFO
 
 {timestamp} | INFO | INIT | Smart Dev System v1.5.0 setup iniciado | user={user_prefs['name']},level={user_prefs['technical_level']}
@@ -642,11 +688,11 @@ def create_history_log(project_info, user_prefs):
 {timestamp} | SUCCESS | PLAN | Plan base creado (requiere personalización) | project={project_info['project_name']}
 {timestamp} | SUCCESS | SCRIPTS | Scripts esenciales generados | count=5,location=.workspace/scripts
 {timestamp} | SUCCESS | SETUP | Setup v1.5.0 completado exitosamente | ready_for_ai=true,personalized=true
-'''
+"""
 
-    filepath = os.path.join('.workspace', 'history.log')
+    filepath = os.path.join(".workspace", "history.log")
     try:
-        with open(filepath, 'w', encoding='utf-8') as f:
+        with open(filepath, "w", encoding="utf-8") as f:
             f.write(history_content)
         print(f"   ✅ history.log creado")
         return True
@@ -654,13 +700,14 @@ def create_history_log(project_info, user_prefs):
         print(f"   ❌ Error creando history.log: {e}")
         return False
 
+
 def create_essential_scripts():
     """Generar scripts esenciales del sistema"""
     print("\n🔧 Generando scripts esenciales del sistema...")
-    scripts_dir = os.path.join('.workspace', 'scripts')
-    
+    scripts_dir = os.path.join(".workspace", "scripts")
+
     # 1. session_recovery.sh
-    session_recovery = '''#!/bin/bash
+    session_recovery = """#!/bin/bash
 # SMART DEV SYSTEM v1.5.0 - Session Recovery Script
 # Recupera contexto completo del proyecto tras gaps de tiempo
 
@@ -722,10 +769,10 @@ Ejecutar `/start/` en tu IA para continuar con el desarrollo personalizado.
 EOF
 
 echo "📄 Resumen guardado en: .workspace/context/session_summary.md"
-'''
+"""
 
     # 2. smart_commit.sh
-    smart_commit = '''#!/bin/bash
+    smart_commit = """#!/bin/bash
 # SMART DEV SYSTEM v1.5.0 - Smart Commit Script
 # Commit inteligente con validación controlada
 
@@ -792,10 +839,10 @@ else
     echo "❌ COMMIT FALLÓ"
     exit 1
 fi
-'''
+"""
 
     # 3. context_validator.sh
-    context_validator = '''#!/bin/bash
+    context_validator = """#!/bin/bash
 # SMART DEV SYSTEM v1.5.0 - Context Validator
 # Valida consistencia del contexto del proyecto
 
@@ -852,10 +899,10 @@ echo "   - Última actualización: $LAST_UPDATE"
 
 echo ""
 echo "✅ VALIDACIÓN COMPLETADA"
-'''
+"""
 
     # 4. project_sync_check.sh
-    project_sync_check = '''#!/bin/bash
+    project_sync_check = """#!/bin/bash
 # SMART DEV SYSTEM v1.5.0 - Project Sync Checker
 # Verifica sincronización entre archivos del proyecto y contexto
 
@@ -909,12 +956,12 @@ echo "📁 Archivos en workspace: $WORKSPACE_FILES"
 # Verificar última actividad
 LAST_ACTION=$(grep "Comando ejecutado" .workspace/context/log.md | cut -d':' -f2)
 echo "⚡ Última acción:$LAST_ACTION"
-'''
+"""
 
-# --- COMPLETION START ---
+    # --- COMPLETION START ---
 
     # 5. pre_commit_validation.sh
-    pre_commit_validation = '''#!/bin/bash
+    pre_commit_validation = """#!/bin/bash
 # SMART DEV SYSTEM v1.5.0 - Pre-Commit Validation Script
 # Validaciones básicas antes de permitir un commit.
 
@@ -956,46 +1003,47 @@ fi
 
 echo "✅ Validación Pre-Commit completada."
 exit 0
-'''
+"""
 
     scripts_to_create = {
         "session_recovery.sh": session_recovery,
         "smart_commit.sh": smart_commit,
         "context_validator.sh": context_validator,
         "project_sync_check.sh": project_sync_check,
-        "pre_commit_validation.sh": pre_commit_validation
+        "pre_commit_validation.sh": pre_commit_validation,
     }
 
     created_scripts = []
     for script_name, content in scripts_to_create.items():
         filepath = os.path.join(scripts_dir, script_name)
         try:
-            with open(filepath, 'w', encoding='utf-8') as f:
+            with open(filepath, "w", encoding="utf-8") as f:
                 f.write(content)
             # Hacer el script ejecutable en sistemas Unix
-            if os.name != 'nt':
+            if os.name != "nt":
                 os.chmod(filepath, 0o755)
             created_scripts.append(script_name)
             print(f"   ✅ {script_name} creado")
         except Exception as e:
             print(f"   ❌ Error creando {script_name}: {e}")
-    
+
     return created_scripts
+
 
 def main():
     """Función principal para ejecutar el setup"""
     clear_screen()
     print_header()
-    
+
     # 1. Recopilar preferencias del usuario
     user_prefs = collect_user_preferences()
-    
+
     # 2. Detectar información del proyecto
     project_info = detect_project_info()
-    
+
     # 3. Crear estructura de directorios
     create_directory_structure()
-    
+
     # 4. Crear archivos de configuración y contexto
     print("\n💾 Creando archivos de configuración principales...")
     create_start_yaml(project_info, user_prefs)
@@ -1003,10 +1051,10 @@ def main():
     create_basic_files(project_info, user_prefs)
     create_error_knowledge(project_info, user_prefs)
     create_history_log(project_info, user_prefs)
-    
+
     # 5. Generar scripts
     create_essential_scripts()
-    
+
     # Mensaje final
     print("\n" + "=" * 65)
     print("🎉 ¡SETUP COMPLETADO EXITOSAMENTE! 🎉")
@@ -1014,9 +1062,12 @@ def main():
     print("\nEl SMART DEV SYSTEM v1.5.0 está configurado y listo.")
     print("\nPRÓXIMOS PASOS RECOMENDADOS:")
     print("1. Revisa y personaliza el plan en: .workspace/context/todo.md")
-    print("2. Instala las dependencias de tu proyecto (ej: pip install -r requirements.txt)")
+    print(
+        "2. Instala las dependencias de tu proyecto (ej: pip install -r requirements.txt)"
+    )
     print("3. Inicia tu desarrollo con la IA usando el comando /start/")
     print("\n¡Feliz codificación! 💡")
+
 
 if __name__ == "__main__":
     main()

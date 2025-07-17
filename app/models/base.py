@@ -30,7 +30,7 @@ Proporciona:
 """
 
 from datetime import datetime
-from typing import Dict, Any
+from typing import Any, Dict
 
 
 class BaseModel:
@@ -43,8 +43,8 @@ class BaseModel:
     def to_dict(self) -> Dict[str, Any]:
         """Convertir modelo a diccionario"""
         return {
-            'created_at': self.created_at.isoformat(),
-            'updated_at': self.updated_at.isoformat()
+            "created_at": self.created_at.isoformat(),
+            "updated_at": self.updated_at.isoformat(),
         }
 
     def update_timestamp(self):

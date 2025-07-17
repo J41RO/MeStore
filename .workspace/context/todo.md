@@ -84,30 +84,30 @@
     ✅ 0.1.4.6 Documentar estructura en README.md
 ✅ 0.1.5 Configurar Git repository con GitFlow y pre-commit hooks
     ✅ 0.1.5.1 Inicializar Git repo y conectar con GitHub/GitLab
-    ⬜ 0.1.5.2 Configurar GitFlow con ramas: main, develop, feature/\*
+    ✅ 0.1.5.2 Configurar GitFlow con ramas: main, develop, feature
     ✅ 0.1.5.3 Crear .gitignore para Python + Node.js + secrets
     ✅ 0.1.5.4 Instalar y configurar pre-commit hooks
     ✅ 0.1.5.5 Configurar hooks: black, isort, eslint, prettier
     ✅ 0.1.5.6 Crear primer commit con estructura base
-⬜ 0.1.6 Setup Docker containers para desarrollo con docker-compose
+✅ 0.1.6 Setup Docker containers para desarrollo con docker-compose
     ✅ 0.1.6.1 Crear Dockerfile para backend Python/FastAPI
     ✅ 0.1.6.2 Crear Dockerfile para frontend React con nginx
-    ⬜ 0.1.6.3 Configurar docker-compose.yml con servicios base
-    ⬜ 0.1.6.4 Incluir PostgreSQL y Redis containers
-    ⬜ 0.1.6.5 Configurar volumes para desarrollo hot-reload
-    ⬜ 0.1.6.6 Verificar que toda la stack levanta correctamente
+    ✅ 0.1.6.3 Configurar docker-compose.yml con servicios base
+    ✅ 0.1.6.4 Incluir PostgreSQL y Redis containers
+    ✅ 0.1.6.5 Configurar volumes para desarrollo hot-reload
+    ✅ 0.1.6.6 Verificar que toda la stack levanta correctamente
 
 ---
 
 ## 0.2 Configurar Base de Datos y Herramientas
 
-⬜ 0.2.1 Setup PostgreSQL 15+ para datos transaccionales con async SQLAlchemy
-    ⬜ 0.2.1.1 Instalar PostgreSQL 15+ localmente o via Docker
-    ⬜ 0.2.1.2 Crear database 'mestocker_dev' y usuario dedicado
-    ⬜ 0.2.1.3 Configurar SQLAlchemy con async engine y sessions
-    ⬜ 0.2.1.4 Instalar y configurar Alembic para migrations
-    ⬜ 0.2.1.5 Crear primera migration con tabla base 'users'
-    ⬜ 0.2.1.6 Verificar conexión async funcionando desde FastAPI
+✅ 0.2.1 Setup PostgreSQL 15+ para datos transaccionales con async SQLAlchemy
+    ✅ 0.2.1.1 Instalar PostgreSQL 15+ localmente o via Docker
+    ✅ 0.2.1.2 Crear database 'mestocker_dev' y usuario dedicado
+    ✅ 0.2.1.3 Configurar SQLAlchemy con async engine y sessions
+    ✅ 0.2.1.4 Instalar y configurar Alembic para migrations
+    ✅ 0.2.1.5 Crear primera migration con tabla base 'users'
+    ✅ 0.2.1.6 Verificar conexión async funcionando desde FastAPI
 ⬜ 0.2.2 Setup Redis para cache, sesiones y message queuing
     ⬜ 0.2.2.1 Instalar Redis 7+ localmente o via Docker
     ⬜ 0.2.2.2 Configurar redis-py con async support

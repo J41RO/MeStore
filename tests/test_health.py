@@ -24,36 +24,40 @@ Tests para endpoint de health check
 Verifica que la API responda correctamente en el endpoint /health
 """
 
+import os
+import sys
+
 import pytest
 from fastapi.testclient import TestClient
-import sys
-import os
 
 # Agregar directorio app al path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'app'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "app"))
 
 from main import app
 
 client = TestClient(app)
 
+
 def test_health_endpoint():
     """Test del endpoint /health"""
     response = client.get("/health")
     assert response.status_code == 200
-    
+
     data = response.json()
     assert data["status"] == "healthy"
     assert data["version"] == "1.0.0"
+
 
 def test_root_endpoint():
     """Test del endpoint raíz /"""
     response = client.get("/")
     assert response.status_code == 200
-    
+
     data = response.json()
     assert "message" in data
     assert "status" in data
     assert data["status"] == "running"
+
 
 @pytest.mark.api
 def test_api_documentation():
@@ -61,12 +65,13 @@ def test_api_documentation():
     response = client.get("/docs")
     assert response.status_code == 200
 
-@pytest.mark.api 
+
+@pytest.mark.api
 def test_openapi_schema():
     """Test que el schema OpenAPI esté disponible"""
     response = client.get("/openapi.json")
     assert response.status_code == 200
-    
+
     schema = response.json()
     assert "openapi" in schema
     assert "info" in schema
