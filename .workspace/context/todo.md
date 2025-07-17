@@ -76,12 +76,12 @@
     ✅ 0.1.3.5 Instalar React Router, Axios, Zustand para estado
     ✅ 0.1.3.6 Verificar build y hot-reload funcionando
 🔄 0.1.4 Crear estructura modular y escalable de carpetas backend/frontend
-    ⬜ 0.1.4.1 Diseñar estructura backend: app/models/services/api/tests
-    ⬜ 0.1.4.2 Diseñar estructura frontend: components/pages/hooks/utils
-    ⬜ 0.1.4.3 Crear carpetas específicas: agents/, fulfillment/, marketplace/
-    ⬜ 0.1.4.4 Establecer convenciones de naming para archivos
-    ⬜ 0.1.4.5 Crear archivos init.py y index.ts base
-    ⬜ 0.1.4.6 Documentar estructura en README.md
+    ✅ 0.1.4.1 Diseñar estructura backend: app/models/services/api/tests
+    ✅ 0.1.4.2 Diseñar estructura frontend: components/pages/hooks/utils
+    ✅ 0.1.4.3 Crear carpetas específicas: agents/, fulfillment/, marketplace/
+    ✅ 0.1.4.4 Establecer convenciones de naming para archivos
+    ✅ 0.1.4.5 Crear archivos init.py y index.ts base
+    ✅ 0.1.4.6 Documentar estructura en README.md
 ⬜ 0.1.5 Configurar Git repository con GitFlow y pre-commit hooks
     ⬜ 0.1.5.1 Inicializar Git repo y conectar con GitHub/GitLab
     ⬜ 0.1.5.2 Configurar GitFlow con ramas: main, develop, feature/\*
