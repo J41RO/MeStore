@@ -53,7 +53,8 @@
     🔄 0.1.1.1.1 Documentar requisitos funcionales y no funcionales de Fulfillment
     🔁 0.1.1.2 Identificar requerimientos de marketplace (catálogo, pagos)
     🔄 0.1.1.2.1 Documentar requisitos funcionales y no funcionales de Marketplace
-    ⬜ 0.1.1.3 Identificar requerimientos de agentes IA (chat, automatización)
+    🔁 0.1.1.3 Identificar requerimientos de agentes IA (chat, automatización)
+    🔄 0.1.1.3.1 Documentar requisitos funcionales y no funcionales de Agentes IA
     ⬜ 0.1.1.4 Definir arquitectura híbrida fulfillment + marketplace + IA
 ⬜ 0.1.2 Configurar entorno Python 3.11+ con FastAPI y dependencias core
     ⬜ 0.1.2.1 Instalar Python 3.11+ usando pyenv en sistema
