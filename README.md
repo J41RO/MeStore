@@ -99,6 +99,137 @@ from app.api.v1.users import users_router
 
 ## 🚀 Desarrollo
 
+## 🐳 Desarrollo con Docker
+
+### Prerequisitos
+- Docker 20.10+
+- Docker Compose 2.0+
+
+### Comandos Rápidos
+
+#### Iniciar entorno completo
+```bash
+# Iniciar todos los servicios
+./scripts/dev.sh start
+
+# O manualmente
+docker-compose up -d
+```
+
+#### Acceso a servicios
+- **Backend API**: http://localhost:8000
+- **Documentación API**: http://localhost:8000/docs
+- **Frontend**: http://localhost:5173
+- **Base de datos**: localhost:5432
+- **Redis**: localhost:6379
+
+#### Comandos útiles
+```bash
+# Ver logs
+./scripts/dev.sh logs
+
+# Rebuild containers
+./scripts/dev.sh build
+
+# Shell en backend
+./scripts/dev.sh shell-be
+
+# Shell en base de datos
+./scripts/dev.sh shell-db
+
+# Ejecutar tests
+./scripts/dev.sh test
+
+# Limpiar todo
+./scripts/dev.sh clean
+```
+
+### Estructura de Containers
+
+```
+Services:
+├── backend (FastAPI)    → :8000
+├── frontend (React)     → :5173  
+├── db (PostgreSQL)      → :5432
+├── redis (Cache)        → :6379
+└── nginx (Proxy)        → :80 [opcional]
+```
+
+### Variables de Entorno
+
+Copiar `.env.template` a `.env` y personalizar:
+
+```bash
+cp .env.template .env
+# Editar .env con tus configuraciones
+```
+
+## 🐳 Desarrollo con Docker
+
+### Prerequisitos
+- Docker 20.10+
+- Docker Compose 2.0+
+
+### Comandos Rápidos
+
+#### Iniciar entorno completo
+```bash
+# Iniciar todos los servicios
+./scripts/dev.sh start
+
+# O manualmente
+docker-compose up -d
+```
+
+#### Acceso a servicios
+- **Backend API**: http://localhost:8000
+- **Documentación API**: http://localhost:8000/docs
+- **Frontend**: http://localhost:5173
+- **Base de datos**: localhost:5432
+- **Redis**: localhost:6379
+
+#### Comandos útiles
+```bash
+# Ver logs
+./scripts/dev.sh logs
+
+# Rebuild containers
+./scripts/dev.sh build
+
+# Shell en backend
+./scripts/dev.sh shell-be
+
+# Shell en base de datos
+./scripts/dev.sh shell-db
+
+# Ejecutar tests
+./scripts/dev.sh test
+
+# Limpiar todo
+./scripts/dev.sh clean
+```
+
+### Estructura de Containers
+
+```
+Services:
+├── backend (FastAPI)    → :8000
+├── frontend (React)     → :5173  
+├── db (PostgreSQL)      → :5432
+├── redis (Cache)        → :6379
+└── nginx (Proxy)        → :80 [opcional]
+```
+
+### Variables de Entorno
+
+Copiar `.env.template` a `.env` y personalizar:
+
+```bash
+cp .env.template .env
+# Editar .env con tus configuraciones
+```
+
+
 ### Backend
 ```bash
 # Activar entorno virtual

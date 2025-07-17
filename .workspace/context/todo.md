@@ -82,7 +82,7 @@
     ✅ 0.1.4.4 Establecer convenciones de naming para archivos
     ✅ 0.1.4.5 Crear archivos init.py y index.ts base
     ✅ 0.1.4.6 Documentar estructura en README.md
-🔄 0.1.5 Configurar Git repository con GitFlow y pre-commit hooks
+✅ 0.1.5 Configurar Git repository con GitFlow y pre-commit hooks
     ✅ 0.1.5.1 Inicializar Git repo y conectar con GitHub/GitLab
     ⬜ 0.1.5.2 Configurar GitFlow con ramas: main, develop, feature/\*
     ✅ 0.1.5.3 Crear .gitignore para Python + Node.js + secrets
@@ -90,8 +90,8 @@
     ✅ 0.1.5.5 Configurar hooks: black, isort, eslint, prettier
     ✅ 0.1.5.6 Crear primer commit con estructura base
 ⬜ 0.1.6 Setup Docker containers para desarrollo con docker-compose
-    ⬜ 0.1.6.1 Crear Dockerfile para backend Python/FastAPI
-    ⬜ 0.1.6.2 Crear Dockerfile para frontend React con nginx
+    ✅ 0.1.6.1 Crear Dockerfile para backend Python/FastAPI
+    ✅ 0.1.6.2 Crear Dockerfile para frontend React con nginx
     ⬜ 0.1.6.3 Configurar docker-compose.yml con servicios base
     ⬜ 0.1.6.4 Incluir PostgreSQL y Redis containers
     ⬜ 0.1.6.5 Configurar volumes para desarrollo hot-reload
