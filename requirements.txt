@@ -58,4 +58,6 @@ virtualenv==20.31.2
 # === DATABASE ASYNC ===
 asyncpg==0.29.0          # PostgreSQL async driver
 alembic==1.13.1          # Database migrations
+redis[hiredis]==5.0.1  # Redis async client with hiredis for performance
+pydantic-settings==2.2.1  # Settings management for FastAPI
 psycopg2-binary==2.9.9   # PostgreSQL sync driver (fallback)

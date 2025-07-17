@@ -108,7 +108,7 @@
     ✅ 0.2.1.4 Instalar y configurar Alembic para migrations
     ✅ 0.2.1.5 Crear primera migration con tabla base 'users'
     ✅ 0.2.1.6 Verificar conexión async funcionando desde FastAPI
-⬜ 0.2.2 Setup Redis para cache, sesiones y message queuing
+✅ 0.2.2 Setup Redis para cache, sesiones y message queuing
     ⬜ 0.2.2.1 Instalar Redis 7+ localmente o via Docker
     ⬜ 0.2.2.2 Configurar redis-py con async support
     ⬜ 0.2.2.3 Crear configuración para diferentes DBs (cache=0, sessions=1)
