@@ -1,153 +1,125 @@
-name: Run MeStore Tests
-# Triggers: ejecutar en push y pull requests
+name: Test Pipeline
+
 on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main, develop ]
-# Jobs del pipeline
+ push:
+   branches: [ main, develop ]
+ pull_request:
+   branches: [ main, develop ]
+
 jobs:
-  build:
-    name: Build and Test
-    runs-on: ubuntu-latest
-    
-    # Services para testing con PostgreSQL y Redis
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_PASSWORD: testpassword
-          POSTGRES_USER: testuser
-          POSTGRES_DB: testdb
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-      
-      redis:
-        image: redis:7
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-    
-    # Variables de entorno para servicios
-    env:
-      POSTGRES_HOST: localhost
-      POSTGRES_PORT: 5432
-      POSTGRES_USER: testuser
-      POSTGRES_PASSWORD: testpassword
-      POSTGRES_DB: testdb
-      REDIS_HOST: localhost
-      REDIS_PORT: 6379
-      DATABASE_URL: postgresql://testuser:testpassword@localhost:5432/testdb
-      REDIS_URL: redis://localhost:6379
-    
-    # Matrix strategy para múltiples versiones
-    strategy:
-      matrix:
-        python-version: ['3.11']
-        node-version: ['18.x']
-    
-    steps:
-      # Step 1: Checkout del código
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      # Wait for services to be ready
-      - name: Wait for PostgreSQL and Redis
-        run: |
-          echo "⏳ Waiting for PostgreSQL to be ready..."
-          timeout 60s bash -c 'until pg_isready -h localhost -p 5432 -U testuser; do sleep 2; done'
-          echo "✅ PostgreSQL is ready"
-          echo "⏳ Waiting for Redis to be ready..."
-          timeout 60s bash -c 'until redis-cli -h localhost -p 6379 ping; do sleep 2; done'
-          echo "✅ Redis is ready"
-          echo "🎉 All services are ready for testing"
-      
-      # Setup Python environment
-      - name: Setup Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-      
-      # Setup Node.js environment
-      - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-      
-      # Verificar versiones instaladas
-      - name: Verify Python version
-        run: |
-          echo "🐍 Python version installed:"
-          python --version
-          python -c "import sys; print(f'Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}')"
-      
-      - name: Verify Node.js version
-        run: |
-          echo "🟢 Node.js version installed:"
-          node --version
-          npm --version
-      
-      # Step 2: Inicialización del CI
-      - name: CI Initialized
-        run: |
-          echo "🚀 CI ready - MeStore pipeline starting"
-          echo "📊 Matrix combination: Python ${{ matrix.python-version }} + Node ${{ matrix.node-version }}"
-          echo "🖥️ Runner: ${{ runner.os }}"
-          echo "📅 Timestamp: $(date)"
-          echo "🔧 GitHub Actions environment ready"
-      
-      # Step 3: Verificar estructura del proyecto
-      - name: Verify project structure
-        run: |
-          echo "📂 Verificando estructura del proyecto:"
-          ls -la
-          echo ""
-          echo "🔍 Archivos encontrados:"
-          find . -name "*.py" -o -name "*.js" -o -name "*.ts" -o -name "*.tsx" | head -10
-      
-      # Step 4: Install Backend Dependencies
-      - name: Install Python dependencies
-        run: |
-          echo "🐍 Installing Python dependencies..."
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest pytest-cov
-          echo "✅ Python dependencies installed"
-      
-      # Step 5: Install Frontend Dependencies
-      - name: Install Node.js dependencies
-        run: |
-          echo "🟢 Installing Node.js dependencies..."
-          npm ci
-          echo "✅ Node.js dependencies installed"
-      
-      # Step 6: Run Backend Tests
-      - name: Run Python tests with coverage
-        run: |
-          echo "🧪 Running Python tests with pytest..."
-          pytest --cov=app --cov-report=term-missing --cov-report=xml
-          echo "✅ Python tests completed"
-      
-      # Step 7: Run Frontend Tests
-      - name: Run Node.js tests with coverage
-        run: |
-          echo "🧪 Running Node.js tests..."
-          npm run test:ci || npm test -- --coverage || echo "⚠️ Frontend tests not configured yet"
-          echo "✅ Node.js tests completed"
-      
-      # Step 8: Generate Coverage Reports
-      - name: Generate coverage reports
-        run: |
-          echo "📊 Generating coverage reports..."
-          echo "Backend coverage: coverage.xml generated"
-          echo "Frontend coverage: coverage reports in coverage/ directory"
-          echo "✅ Coverage reports generated"
+ test:
+   runs-on: ubuntu-latest
+   
+   services:
+     postgres:
+       image: postgres:15
+       env:
+         POSTGRES_PASSWORD: testpassword
+         POSTGRES_USER: testuser
+         POSTGRES_DB: testdb
+       options: >-
+         --health-cmd pg_isready
+         --health-interval 10s
+         --health-timeout 5s
+         --health-retries 5
+       ports:
+         - 5432:5432
+     
+     redis:
+       image: redis:7-alpine
+       options: >-
+         --health-cmd "redis-cli ping"
+         --health-interval 10s
+         --health-timeout 5s
+         --health-retries 5
+       ports:
+         - 6379:6379
+
+   steps:
+     # Step 1: Checkout code
+     - name: Checkout code
+       uses: actions/checkout@v4
+       with:
+         fetch-depth: 0
+
+     # Step 2: Set up Python
+     - name: Set up Python 3.11
+       uses: actions/setup-python@v4
+       with:
+         python-version: '3.11'
+         cache: 'pip'
+     
+     # Step 3: Set up Node.js
+     - name: Set up Node.js 20
+       uses: actions/setup-node@v4
+       with:
+         node-version: '20'
+         cache: 'npm'
+         cache-dependency-path: frontend/package-lock.json
+
+     # Step 4: Install Python dependencies
+     - name: Install Python dependencies
+       run: |
+         echo "🟢 Installing Python dependencies..."
+         python -m pip install --upgrade pip
+         pip install -r requirements.txt
+         echo "✅ Python dependencies installed"
+
+     # Step 5: Install Node.js dependencies
+     - name: Install Node.js dependencies
+       working-directory: ./frontend
+       run: |
+         echo "🟢 Installing Node.js dependencies..."
+         npm ci
+         echo "✅ Node.js dependencies installed"
+
+     # Step 6: Run Backend Tests with Coverage
+     - name: Run Python tests with coverage
+       env:
+         DATABASE_URL: postgresql://testuser:testpassword@localhost:5432/testdb
+         REDIS_URL: redis://localhost:6379/0
+         ENVIRONMENT: testing
+       run: |
+         echo "🧪 Running Python tests with pytest..."
+         pytest --cov=app --cov-report=term-missing --cov-report=xml --cov-config=.coveragerc
+         echo "✅ Python tests completed"
+
+     # Step 7: Run Frontend Tests with Coverage
+     - name: Run Node.js tests with coverage
+       working-directory: ./frontend
+       run: |
+         echo "🧪 Running Node.js tests with coverage..."
+         npm run test:ci
+         echo "✅ Node.js tests completed"
+
+     # Step 8: Verify Coverage Files Generated
+     - name: Verify coverage files
+       run: |
+         echo "📊 Verifying coverage files..."
+         echo "Backend coverage.xml:"
+         ls -la coverage.xml || echo "❌ coverage.xml not found"
+         echo "Frontend lcov.info:"
+         ls -la frontend/coverage/lcov.info || echo "❌ frontend/coverage/lcov.info not found"
+         echo "✅ Coverage files verification completed"
+
+     # Step 9: Upload Coverage to Codecov
+     - name: Upload coverage to Codecov
+       uses: codecov/codecov-action@v4
+       with:
+         token: ${{ secrets.CODECOV_TOKEN }}
+         files: ./coverage.xml,./frontend/coverage/lcov.info
+         flags: backend,frontend
+         name: mestore-ci
+         fail_ci_if_error: false
+         verbose: true
+
+     # Step 10: Upload Coverage Reports as Artifacts
+     - name: Upload coverage artifacts
+       uses: actions/upload-artifact@v4
+       if: always()
+       with:
+         name: coverage-reports
+         path: |
+           coverage.xml
+           frontend/coverage/
+         retention-days: 30
