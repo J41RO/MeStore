@@ -13,14 +13,50 @@ jobs:
     name: Build and Test
     runs-on: ubuntu-latest
     
+    # Matrix strategy para múltiples versiones
+    strategy:
+      matrix:
+        python-version: ['3.11']
+        node-version: ['18.x']
+    
     steps:
       # Step 1: Checkout del código
       - name: Checkout code
         uses: actions/checkout@v4
       
+      # Setup Python environment
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      
+      # Setup Node.js environment
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      
+      # Verificar versiones instaladas
+      - name: Verify Python version
+        run: |
+          echo "🐍 Python version installed:"
+          python --version
+          python -c "import sys; print(f'Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}')"
+      
+      - name: Verify Node.js version
+        run: |
+          echo "🟢 Node.js version installed:"
+          node --version
+          npm --version
+      
       # Step 2: Inicialización del CI
       - name: CI Initialized
-        run: echo "🚀 CI ready - MeStore pipeline starting"
+        run: |
+          echo "🚀 CI ready - MeStore pipeline starting"
+          echo "📊 Matrix combination: Python ${{ matrix.python-version }} + Node ${{ matrix.node-version }}"
+          echo "🖥️ Runner: ${{ runner.os }}"
+          echo "📅 Timestamp: $(date)"
+          echo "🔧 GitHub Actions environment ready"
       
       # Step 3: Verificar estructura del proyecto
       - name: Verify project structure
