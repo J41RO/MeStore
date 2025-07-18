@@ -122,18 +122,18 @@
     ✅ 0.2.3.4 Configurar embedding model (sentence-transformers)
     ✅ 0.2.3.5 Implementar funciones básicas add/query/update embeddings
     ✅ 0.2.3.6 Verificar con query de prueba y similarity search
-⬜ 0.2.4 Configurar testing framework (pytest para backend + jest para frontend)
+✅ 0.2.4 Configurar testing framework (pytest para backend + jest para frontend)
     ✅ 0.2.4.1 Instalar pytest, pytest-asyncio, pytest-cov para backend - COMPLETADO (2025-07-18)
-    ⬜ 0.2.4.2 Configurar pytest.ini con paths y configuraciones
-    ⬜ 0.2.4.3 Crear database de testing separada con fixtures
-    ⬜ 0.2.4.4 Instalar jest, @testing-library/react para frontend
-    ⬜ 0.2.4.5 Configurar jest.config.js con setup y coverage
-    ⬜ 0.2.4.6 Crear primer test básico en backend y frontend
-⬜ 0.2.5 Setup CI/CD pipeline básico con GitHub Actions
-    ⬜ 0.2.5.1 Crear workflow .github/workflows/test.yml
-    ⬜ 0.2.5.2 Configurar matrix testing para Python 3.11+ y Node 18+
-    ⬜ 0.2.5.3 Incluir steps: checkout, setup, install, test, coverage
-    ⬜ 0.2.5.4 Configurar servicios PostgreSQL y Redis en CI
+    ✅ 0.2.4.2 Configurar pytest.ini con paths y configuraciones
+    ✅ 0.2.4.3 Crear database de testing separada con fixtures
+    ✅ 0.2.4.4 Instalar jest, @testing-library/react para frontend
+    ✅ 0.2.4.5 Configurar jest.config.js con setup y coverage
+    ✅ 0.2.4.6 Crear primer test básico en backend y frontend
+✅ 0.2.5 Setup CI/CD pipeline básico con GitHub Actions
+    ✅ 0.2.5.1 Crear workflow .github/workflows/test.yml
+    ✅ 0.2.5.2 Configurar matrix testing para Python 3.11+ y Node 18+
+    ✅ 0.2.5.3 Incluir steps: checkout, setup, install, test, coverage
+    ✅ 0.2.5.4 Configurar servicios PostgreSQL y Redis en CI
     ⬜ 0.2.5.5 Añadir upload de coverage reports a codecov
     ⬜ 0.2.5.6 Verificar que pipeline pasa en pull requests
 ⬜ 0.2.6 Configurar monitoring básico y logging estructurado

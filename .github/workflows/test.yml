@@ -1,17 +1,53 @@
 name: Run MeStore Tests
-
 # Triggers: ejecutar en push y pull requests
 on:
   push:
     branches: [ main, develop ]
   pull_request:
     branches: [ main, develop ]
-
 # Jobs del pipeline
 jobs:
   build:
     name: Build and Test
     runs-on: ubuntu-latest
+    
+    # Services para testing con PostgreSQL y Redis
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_USER: testuser
+          POSTGRES_DB: testdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    # Variables de entorno para servicios
+    env:
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: testuser
+      POSTGRES_PASSWORD: testpassword
+      POSTGRES_DB: testdb
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+      DATABASE_URL: postgresql://testuser:testpassword@localhost:5432/testdb
+      REDIS_URL: redis://localhost:6379
     
     # Matrix strategy para múltiples versiones
     strategy:
@@ -23,6 +59,17 @@ jobs:
       # Step 1: Checkout del código
       - name: Checkout code
         uses: actions/checkout@v4
+      
+      # Wait for services to be ready
+      - name: Wait for PostgreSQL and Redis
+        run: |
+          echo "⏳ Waiting for PostgreSQL to be ready..."
+          timeout 60s bash -c 'until pg_isready -h localhost -p 5432 -U testuser; do sleep 2; done'
+          echo "✅ PostgreSQL is ready"
+          echo "⏳ Waiting for Redis to be ready..."
+          timeout 60s bash -c 'until redis-cli -h localhost -p 6379 ping; do sleep 2; done'
+          echo "✅ Redis is ready"
+          echo "🎉 All services are ready for testing"
       
       # Setup Python environment
       - name: Setup Python ${{ matrix.python-version }}
@@ -87,7 +134,7 @@ jobs:
       - name: Run Python tests with coverage
         run: |
           echo "🧪 Running Python tests with pytest..."
-          pytest --cov=backend --cov-report=term-missing --cov-report=xml
+          pytest --cov=app --cov-report=term-missing --cov-report=xml
           echo "✅ Python tests completed"
       
       # Step 7: Run Frontend Tests

@@ -1,3 +1,2 @@
-// Mock for SVG files in Jest tests
-export default 'svg-mock-content';
-export const ReactComponent = () => 'svg-component-mock';
+// Mock para archivos SVG en tests - CommonJS syntax
+module.exports = 'test-file-stub';

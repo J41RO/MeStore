@@ -58,3 +58,18 @@
   - Cache inteligente: speedup >7000x para embeddings repetidos
   - Documentación técnica completa con ejemplos de uso
   - READY FOR: Integración con agentes IA y colecciones ChromaDB
+
+## 📋 ACTIVIDAD: 2025-07-18 - Tarea 0.2.5.4 Completada
+
+**🎯 Tarea**: 0.2.5.4 - Configurar servicios PostgreSQL y Redis en CI
+**📊 Estado**: ✅ COMPLETADA EXITOSAMENTE
+**⏱️ Duración**: ~45 minutos
+**🔧 Trabajos realizados**:
+- Consolidación de estructura del proyecto (eliminación de `/backend/` duplicado)
+- Configuración de servicios Docker en GitHub Actions (PostgreSQL 15 + Redis 7)
+- Variables de entorno para conexión a servicios
+- Health checks automáticos para servicios
+- Verificación de tests funcionando (16/16 pasando)
+
+**🚀 Próxima acción**: Tarea 0.2.5.5 - Añadir upload de coverage reports a codecov
+

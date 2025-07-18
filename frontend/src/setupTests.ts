@@ -42,3 +42,6 @@ beforeEach(() => {
   // Reset de mocks antes de cada test
   jest.clearAllMocks();
 });
+
+// Mock para SVGs globalmente
+jest.mock('*.svg', () => 'mocked-svg');
