@@ -58,9 +58,20 @@ virtualenv==20.31.2
 # === DATABASE ASYNC ===
 asyncpg==0.29.0          # PostgreSQL async driver
 alembic==1.13.1          # Database migrations
-redis[hiredis]==5.0.1  # Redis async client with hiredis for performance
 pydantic-settings==2.2.1  # Settings management for FastAPI
 psycopg2-binary==2.9.9   # PostgreSQL sync driver (fallback)
 # ChromaDB y embeddings para vector search
 chromadb>=0.4.15  # Vector database para embeddings
 sentence-transformers>=2.3.0  # Modelos de embeddings
+coverage==7.9.2
+httpx==0.28.1
+pytest==8.4.1
+pytest-asyncio==1.1.0
+pytest-cov==6.2.1
+coverage==7.9.2
+httpx==0.28.1
+pytest==8.4.1
+pytest-asyncio==1.1.0
+pytest-cov==6.2.1
+hiredis==3.2.1
+redis==5.0.1

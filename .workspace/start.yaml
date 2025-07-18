@@ -1,103 +1,88 @@
-# SMART DEV SYSTEM v1.5.0 - CONFIGURACIÓN MAESTRA
-# Este archivo contiene TODA la información que cualquier IA necesita
-# para entrar inmediatamente en contexto del proyecto
-
 system:
-  version: "1.5.0"
-  created: "2025-07-17T12:31:59.025880"
-  last_updated: "2025-07-17T12:31:59.025880"
-  last_ai: "setup-script"
-  
+  version: 1.6.0
+  created: '2025-07-17T12:31:59.025880'
+  last_updated: '2025-07-18T03:10:03.442765+00:00'
+  last_ai: claude-sonnet-4
 project:
-  name: "MeStore"
-  type: "web_api"
-  description: "Proyecto web_api usando fastapi"
+  name: MeStore
+  type: fullstack
+  description: E-commerce platform with AI agents and vector search
   technologies:
-    language: "python"
-    framework: "fastapi"
-    database: "pendiente_detectar"
-    testing: "pytest"
-    deployment: "pendiente_detectar"
-  
+    language: python+javascript
+    framework: fastapi+react
+    database: postgresql+chromadb
+    testing: pytest+jest
+    deployment: docker
 structure:
-  root_dir: "/home/admin-jairo/MeStore"
-  main_file: "main.py"
+  root_dir: /home/admin-jairo/MeStore
+  main_file: main.py
   config_files: []
   important_dirs: []
-  
 user:
-  # Información básica
-  name: "Jairo"
-  email: "admin@mestore"
-  technical_level: "beginner"
-  work_mode: "solo"
-  timezone: "America/Bogota"
-  
-  # Preferencias de comunicación
+  name: Jairo
+  email: admin@mestore
+  technical_level: beginner
+  work_mode: solo
+  timezone: America/Bogota
   communication:
-    language: "spanish"
-    feedback_mode: "detailed"
-    explanation_style: "technical_only"
-    encouragement_frequency: "moderate"
-    technical_depth: "comprehensive"
-    
-  # Preferencias de trabajo
+    language: spanish
+    feedback_mode: detailed
+    explanation_style: technical_only
+    encouragement_frequency: moderate
+    technical_depth: comprehensive
   workflow:
-    commit_frequency: "per_task"
-    test_strategy: "comprehensive"
-    documentation_level: "automatic"
-    validation_strictness: "maximum"
-    
-  # Modos especiales
+    commit_frequency: per_task
+    test_strategy: comprehensive
+    documentation_level: automatic
+    validation_strictness: maximum
   modes:
     ultra_didactic_mode: false
     minimal_explanations: false
     commands_only: false
     show_reasoning: true
     auto_suggestions: true
-    
-  # Aprendizaje y evolución
   learning:
     track_progress: true
     learned_concepts: []
     skill_evolution: {}
-    preferred_learning_style: "hands_on"
-    
-  # Configuración de análisis de código
+    preferred_learning_style: hands_on
   code_analysis_preferences:
     auto_suggest_analysis: true
-    quality_gate_strictness: "moderate"
+    quality_gate_strictness: moderate
     security_focus: true
     performance_monitoring: true
     coverage_threshold: 80
     max_complexity_warning: 10
     max_file_lines_warning: 200
-    
-  # Configuración de memoria híbrida
   hybrid_memory:
     local_memory_enabled: true
-    api_enrichment_enabled: false  # Deshabilitado por defecto
+    api_enrichment_enabled: false
     enrichment_triggers:
-      complexity_threshold: "high"
+      complexity_threshold: high
       message_length_threshold: 500
-      importance_keywords: ["important", "remember", "crítico"]
-    consolidation_schedule: "nightly"
-    
-  # Configuración de modelos
+      importance_keywords:
+      - important
+      - remember
+      - crítico
+    consolidation_schedule: nightly
   model_preferences:
-    local_model_enabled: false  # Deshabilitado por defecto
-    preferred_local_model: "not_configured"
-    api_fallback_enabled: false  # Deshabilitado por defecto
-    model_routing_strategy: "local_first"
-    
+    local_model_enabled: false
+    preferred_local_model: not_configured
+    api_fallback_enabled: false
+    model_routing_strategy: local_first
 status:
-  pending_tasks: true
-  current_phase: "FASE 0"
-  current_task: "0.1 Configurar entorno de desarrollo"
-  current_command: "setup.py ejecutado exitosamente"
-  blocking_issues: []
-  next_session_action: "Ejecutar /start/ para revisar plan y continuar desarrollo"
-  
+  current_task: '0.2.3.3 Crear colecciones base para agentes: products, docs, chat'
+  task_status: ready_to_start
+  last_commit: 'efc19e2 feat: Tarea 0.2.3 - ChromaDB Setup Completado ✅ CHROMADB Y
+    VECTOR SEARCH IMPLEMENTADO: - ChromaDB 1.0.15 con persistencia local en ./data/chroma
+    - SentenceTransformers 5.0.0 con modelo all-MiniLM-L6-v2 - Cliente ChromaDB singleton
+    con colecciones base (products, documents, chat) - Servicio completo de embeddings
+    con CRUD operations - API REST con 6 endpoints: add, query, update, delete, stats,
+    collections'
+  branch: feature/0.2.2.2-redis-async
+  next_session_action: Continuar con 0.2.3.3 - Crear colecciones base para agentes
+  testing_status: chromadb_persistence_verified
+  phase_completed: 0.2.3.2 - ChromaDB Client Setup
 modules:
   education: true
   validation: true
@@ -108,23 +93,20 @@ modules:
   hybrid_memory: true
   quality_analysis: true
   recovery: true
-
 scripts:
   available:
-    - "session_recovery.sh"
-    - "smart_commit.sh" 
-    - "context_validator.sh"
-    - "project_sync_check.sh"
-    - "pre_commit_validation.sh"
-
+  - session_recovery.sh
+  - smart_commit.sh
+  - context_validator.sh
+  - project_sync_check.sh
+  - pre_commit_validation.sh
 environment:
-  os: "unix"
-  python_version: "Python 3.11.9"
-  node_version: "not_detected"
+  os: unix
+  python_version: Python 3.11.9
+  node_version: not_detected
   docker_available: false
   git_configured: false
-  virtual_env: "not_detected"
-
+  virtual_env: not_detected
 workspace:
   setup_completed: true
   files_created: true
@@ -133,16 +115,14 @@ workspace:
   error_knowledge_created: true
   hybrid_memory_configured: true
   scripts_generated: true
-  
 sessions:
   total_sessions: 0
   total_commands: 0
-  last_session_duration: ""
+  last_session_duration: ''
   avg_session_tasks: 0
   total_errors_encountered: 0
   total_errors_resolved: 0
   error_resolution_rate: 0
-
 learning:
   patterns_detected: []
   preventive_rules: []

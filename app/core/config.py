@@ -7,6 +7,22 @@ class Settings(BaseSettings):
     )
     REDIS_URL: str = "redis://:dev-redis-password@localhost:6379/0"
 
+    # Redis Database Configuration (múltiples DBs para separación de concerns)
+    REDIS_CACHE_DB: int = 0  # Database 0 para cache general
+    REDIS_SESSION_DB: int = 1  # Database 1 para sesiones de usuario
+    REDIS_QUEUE_DB: int = 2  # Database 2 para message queues
+
+    # URLs específicas por tipo de operación
+    REDIS_CACHE_URL: str = "redis://:dev-redis-password@localhost:6379/0"
+    REDIS_SESSION_URL: str = "redis://:dev-redis-password@localhost:6379/1"
+    REDIS_QUEUE_URL: str = "redis://:dev-redis-password@localhost:6379/2"
+
+    # TTL Configuration (Time To Live) - valores por defecto en segundos
+    REDIS_CACHE_TTL: int = 3600  # 1 hora para cache general
+    REDIS_SESSION_TTL: int = 86400  # 24 horas para sesiones
+    REDIS_TEMP_CACHE_TTL: int = 300  # 5 minutos para cache temporal
+    REDIS_LONG_CACHE_TTL: int = 604800  # 7 días para cache de larga duración
+
     # ChromaDB Configuration
     CHROMA_PERSIST_DIR: str = "./data/chroma"
     DEBUG: bool = True

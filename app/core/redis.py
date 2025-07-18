@@ -2,7 +2,7 @@
 # ---------------------------------------------------------------------------------------------
 # MESTOCKER - Redis Async Configuration
 # Copyright (c) 2025 Jairo. Todos los derechos reservados.
-# Licensed under the proprietary license detailed in a LICENSE file in the root of this project.
+# Licensed under the proprietary license detailed in a LICENSE file.
 # ---------------------------------------------------------------------------------------------
 #
 # Nombre del Archivo: redis.py
@@ -24,17 +24,20 @@ Redis Async Configuration for MeStock
 
 Provides async Redis client with connection pooling for:
 - Application caching
-- User sessions storage  
+- User sessions storage
 - Message queuing system
 - Rate limiting
 """
 
-import redis.asyncio as redis
-from typing import Optional
 import logging
+from typing import Optional
+
+import redis.asyncio as redis
+
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
 
 class RedisManager:
     """Redis connection manager with singleton pattern"""
@@ -53,7 +56,7 @@ class RedisManager:
                     max_connections=20,
                     retry_on_timeout=True,
                     decode_responses=True,
-                    encoding='utf-8'
+                    encoding="utf-8",
                 )
 
                 # Create Redis client with pool
@@ -87,8 +90,84 @@ class RedisManager:
             await self.connect()
         return self._redis
 
-# Global Redis manager instance
+
+# === MANAGERS ESPECÍFICOS POR DATABASE ===
+
+
+class RedisCacheManager(RedisManager):
+    """Redis manager específico para cache (DB 0)"""
+
+    async def connect(self) -> redis.Redis:
+        if self._redis is None:
+            try:
+                self._pool = redis.ConnectionPool.from_url(
+                    settings.REDIS_CACHE_URL,
+                    max_connections=10,
+                    retry_on_timeout=True,
+                    decode_responses=True,
+                    encoding="utf-8",
+                )
+                self._redis = redis.Redis(connection_pool=self._pool)
+                await self._redis.ping()
+                logger.info("✅ Redis Cache (DB 0) connection established")
+            except Exception as e:
+                logger.error(f"❌ Redis Cache connection failed: {e}")
+                raise
+        return self._redis
+
+
+class RedisSessionManager(RedisManager):
+    """Redis manager específico para sesiones (DB 1)"""
+
+    async def connect(self) -> redis.Redis:
+        if self._redis is None:
+            try:
+                self._pool = redis.ConnectionPool.from_url(
+                    settings.REDIS_SESSION_URL,
+                    max_connections=10,
+                    retry_on_timeout=True,
+                    decode_responses=True,
+                    encoding="utf-8",
+                )
+                self._redis = redis.Redis(connection_pool=self._pool)
+                await self._redis.ping()
+                logger.info("✅ Redis Sessions (DB 1) connection established")
+            except Exception as e:
+                logger.error(f"❌ Redis Sessions connection failed: {e}")
+                raise
+        return self._redis
+
+
+class RedisQueueManager(RedisManager):
+    """Redis manager específico para message queues (DB 2)"""
+
+    async def connect(self) -> redis.Redis:
+        if self._redis is None:
+            try:
+                self._pool = redis.ConnectionPool.from_url(
+                    settings.REDIS_QUEUE_URL,
+                    max_connections=15,  # Más conexiones para queues
+                    retry_on_timeout=True,
+                    decode_responses=True,
+                    encoding="utf-8",
+                )
+                self._redis = redis.Redis(connection_pool=self._pool)
+                await self._redis.ping()
+                logger.info("✅ Redis Queues (DB 2) connection established")
+            except Exception as e:
+                logger.error(f"❌ Redis Queues connection failed: {e}")
+                raise
+        return self._redis
+
+
+# === INSTANCIAS GLOBALES ===
 redis_manager = RedisManager()
+cache_manager = RedisCacheManager()
+session_manager = RedisSessionManager()
+queue_manager = RedisQueueManager()
+
+# === DEPENDENCIES GENERALES ===
+
 
 async def get_redis() -> redis.Redis:
     """
@@ -102,7 +181,48 @@ async def get_redis() -> redis.Redis:
     return await redis_manager.get_redis()
 
 
-# Redis utility functions for common operations
+# === DEPENDENCIES ESPECÍFICAS POR DATABASE ===
+
+
+async def get_redis_cache() -> redis.Redis:
+    """
+    FastAPI dependency para Redis Cache (DB 0)
+
+    Usage:
+        @app.get("/endpoint")
+        async def endpoint(cache = Depends(get_redis_cache)):
+            await cache.set("key", "value")
+    """
+    return await cache_manager.get_redis()
+
+
+async def get_redis_sessions() -> redis.Redis:
+    """
+    FastAPI dependency para Redis Sessions (DB 1)
+
+    Usage:
+        @app.post("/login")
+        async def login(sessions = Depends(get_redis_sessions)):
+            await sessions.setex("session:uuid", 3600, user_data)
+    """
+    return await session_manager.get_redis()
+
+
+async def get_redis_queues() -> redis.Redis:
+    """
+    FastAPI dependency para Redis Queues (DB 2)
+
+    Usage:
+        @app.post("/task")
+        async def create_task(queues = Depends(get_redis_queues)):
+            await queues.xadd("task_queue", {"data": task_data})
+    """
+    return await queue_manager.get_redis()
+
+
+# === REDIS SERVICE ===
+
+
 class RedisService:
     """High-level Redis operations for application use"""
 
@@ -135,10 +255,13 @@ class RedisService:
             return False
 
     # === SESSION OPERATIONS ===
-    async def session_set(self, session_id: str, data: dict, expire: int = 86400) -> bool:
+    async def session_set(
+        self, session_id: str, data: dict, expire: int = 86400
+    ) -> bool:
         """Store session data (default 24 hours)"""
         try:
             import json
+
             session_key = f"session:{session_id}"
             return await self.redis.setex(session_key, expire, json.dumps(data))
         except Exception as e:
@@ -149,6 +272,7 @@ class RedisService:
         """Get session data"""
         try:
             import json
+
             session_key = f"session:{session_id}"
             data = await self.redis.get(session_key)
             return json.loads(data) if data else None
@@ -170,31 +294,44 @@ class RedisService:
         """Push message to queue using Redis Streams"""
         try:
             import json
+
             stream_key = f"queue:{queue_name}"
-            message_id = await self.redis.xadd(stream_key, {"data": json.dumps(message)})
+            message_id = await self.redis.xadd(
+                stream_key, {"data": json.dumps(message)}
+            )
             return bool(message_id)
         except Exception as e:
             logger.error(f"Queue push error: {e}")
             return False
 
-    async def queue_pop(self, queue_name: str, consumer_group: str = "workers", 
-                       consumer_name: str = "worker-1", count: int = 1) -> list:
+    async def queue_pop(
+        self,
+        queue_name: str,
+        consumer_group: str = "workers",
+        consumer_name: str = "worker-1",
+        count: int = 1,
+    ) -> list:
         """Pop messages from queue using Redis Streams"""
         try:
             import json
+
             stream_key = f"queue:{queue_name}"
 
             # Ensure consumer group exists
             try:
-                await self.redis.xgroup_create(stream_key, consumer_group, id="0", mkstream=True)
-            except:
+                await self.redis.xgroup_create(
+                    stream_key, consumer_group, id="0", mkstream=True
+                )
+            except Exception:
                 pass  # Group already exists
 
             # Read messages
             messages = await self.redis.xreadgroup(
-                consumer_group, consumer_name, 
-                {stream_key: ">"}, 
-                count=count, block=1000
+                consumer_group,
+                consumer_name,
+                {stream_key: ">"},
+                count=count,
+                block=1000,
             )
 
             result = []
@@ -208,12 +345,13 @@ class RedisService:
             logger.error(f"Queue pop error: {e}")
             return []
 
+
 async def get_redis_service() -> RedisService:
     """
     FastAPI dependency for Redis service
 
     Usage in endpoints:
-        @app.get("/endpoint")  
+        @app.get("/endpoint")
         async def endpoint(redis_svc = Depends(get_redis_service)):
             await redis_svc.cache_set("key", "value")
     """

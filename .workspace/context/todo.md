@@ -109,15 +109,15 @@
     ✅ 0.2.1.5 Crear primera migration con tabla base 'users'
     ✅ 0.2.1.6 Verificar conexión async funcionando desde FastAPI
 ✅ 0.2.2 Setup Redis para cache, sesiones y message queuing
-    ⬜ 0.2.2.1 Instalar Redis 7+ localmente o via Docker
-    ⬜ 0.2.2.2 Configurar redis-py con async support
-    ⬜ 0.2.2.3 Crear configuración para diferentes DBs (cache=0, sessions=1)
-    ⬜ 0.2.2.4 Implementar wrapper básico para operaciones Redis
-    ⬜ 0.2.2.5 Configurar TTL por defecto para cache entries
-    ⬜ 0.2.2.6 Verificar conectividad y operaciones básicas set/get
+    ✅ 0.2.2.1 Instalar Redis 7+ localmente o via Docker
+    ✅ 0.2.2.2 Configurar redis-py con async support
+    ✅ 0.2.2.3 Crear configuración para diferentes DBs (cache=0, sessions=1)
+    ✅ 0.2.2.4 Implementar wrapper básico para operaciones Redis
+    ✅ 0.2.2.5 Configurar TTL por defecto para cache entries
+    ✅ 0.2.2.6 Verificar conectividad y operaciones básicas set/get
 ✅ 0.2.3 Setup ChromaDB para embeddings de agentes IA y vector search - COMPLETADO
-    ⬜ 0.2.3.1 Instalar ChromaDB y dependencias de embedding
-    ⬜ 0.2.3.2 Configurar cliente ChromaDB con persistencia local
+    ✅ 0.2.3.1 Instalar ChromaDB y dependencias de embedding
+    ✅ 0.2.3.2 Configurar cliente ChromaDB con persistencia local
     ⬜ 0.2.3.3 Crear colecciones base para agentes: products, docs, chat
     ⬜ 0.2.3.4 Configurar embedding model (sentence-transformers)
     ⬜ 0.2.3.5 Implementar funciones básicas add/query/update embeddings
