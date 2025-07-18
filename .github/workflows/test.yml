@@ -1,0 +1,41 @@
+name: Run MeStore Tests
+
+# Triggers: ejecutar en push y pull requests
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+# Jobs del pipeline
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      # Step 1: Checkout del código
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      # Step 2: Inicialización del CI
+      - name: CI Initialized
+        run: echo "🚀 CI ready - MeStore pipeline starting"
+      
+      # Step 3: Verificar estructura del proyecto
+      - name: Verify project structure
+        run: |
+          echo "📂 Verificando estructura del proyecto:"
+          ls -la
+          echo ""
+          echo "🔍 Archivos encontrados:"
+          find . -name "*.py" -o -name "*.js" -o -name "*.ts" -o -name "*.tsx" | head -10
+      
+      # Step 4: Placeholder para futuros tests
+      - name: Placeholder for tests
+        run: |
+          echo "🧪 Tests placeholder - próximamente:"
+          echo "  ✅ Backend tests (pytest)"
+          echo "  ✅ Frontend tests (jest/vitest)"
+          echo "  ✅ Linting y formateo"
+          echo "  ✅ Coverage reports"
