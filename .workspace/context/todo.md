@@ -118,7 +118,7 @@
 ✅ 0.2.3 Setup ChromaDB para embeddings de agentes IA y vector search - COMPLETADO
     ✅ 0.2.3.1 Instalar ChromaDB y dependencias de embedding
     ✅ 0.2.3.2 Configurar cliente ChromaDB con persistencia local
-    ⬜ 0.2.3.3 Crear colecciones base para agentes: products, docs, chat
+    ✅ 0.2.3.3 Crear colecciones base para agentes: products, docs, chat
     ⬜ 0.2.3.4 Configurar embedding model (sentence-transformers)
     ⬜ 0.2.3.5 Implementar funciones básicas add/query/update embeddings
     ⬜ 0.2.3.6 Verificar con query de prueba y similarity search
