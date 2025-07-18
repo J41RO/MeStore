@@ -123,7 +123,7 @@
     ✅ 0.2.3.5 Implementar funciones básicas add/query/update embeddings
     ✅ 0.2.3.6 Verificar con query de prueba y similarity search
 ⬜ 0.2.4 Configurar testing framework (pytest para backend + jest para frontend)
-    ⬜ 0.2.4.1 Instalar pytest, pytest-asyncio, pytest-cov para backend
+    ✅ 0.2.4.1 Instalar pytest, pytest-asyncio, pytest-cov para backend - COMPLETADO (2025-07-18)
     ⬜ 0.2.4.2 Configurar pytest.ini con paths y configuraciones
     ⬜ 0.2.4.3 Crear database de testing separada con fixtures
     ⬜ 0.2.4.4 Instalar jest, @testing-library/react para frontend
