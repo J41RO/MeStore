@@ -134,8 +134,8 @@
     ✅ 0.2.5.2 Configurar matrix testing para Python 3.11+ y Node 18+
     ✅ 0.2.5.3 Incluir steps: checkout, setup, install, test, coverage
     ✅ 0.2.5.4 Configurar servicios PostgreSQL y Redis en CI
-    ⬜ 0.2.5.5 Añadir upload de coverage reports a codecov
-    ⬜ 0.2.5.6 Verificar que pipeline pasa en pull requests
+    ✅ 0.2.5.5 Añadir upload de coverage reports a codecov
+    🔁 0.2.5.6 Verificar que pipeline pasa en pull requests - EN VALIDACIÓN
 ⬜ 0.2.6 Configurar monitoring básico y logging estructurado
     ⬜ 0.2.6.1 Configurar logging con structlog para backend
     ⬜ 0.2.6.2 Implementar middleware de logging para requests FastAPI
