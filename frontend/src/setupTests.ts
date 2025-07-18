@@ -44,4 +44,4 @@ beforeEach(() => {
 });
 
 // Mock para SVGs globalmente
-jest.mock('*.svg', () => 'mocked-svg');
+// SVG mock configurado en jest.config.js
