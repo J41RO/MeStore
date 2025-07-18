@@ -61,3 +61,6 @@ alembic==1.13.1          # Database migrations
 redis[hiredis]==5.0.1  # Redis async client with hiredis for performance
 pydantic-settings==2.2.1  # Settings management for FastAPI
 psycopg2-binary==2.9.9   # PostgreSQL sync driver (fallback)
+# ChromaDB y embeddings para vector search
+chromadb>=0.4.15  # Vector database para embeddings
+sentence-transformers>=2.3.0  # Modelos de embeddings
