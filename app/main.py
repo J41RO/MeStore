@@ -5,6 +5,7 @@ from app.core.database import get_db
 from app.models.user import User, UserType
 from app.api.v1.health import router as health_router
 from app.api.v1.embeddings import router as embeddings_router
+from app.core.logger import get_logger, log_startup_info, log_shutdown_info, log_error
 
 app = FastAPI(
     title="MeStore API",
@@ -15,6 +16,38 @@ app = FastAPI(
 # Registrar routers
 app.include_router(health_router, prefix="/api/v1")
 app.include_router(embeddings_router, prefix="/api/v1")
+
+
+# Event handlers para logging
+@app.on_event("startup")
+async def startup_event():
+    """Log información de startup de la aplicación."""
+    log_startup_info()
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Log información de shutdown de la aplicación."""
+    log_shutdown_info()
+
+
+# Exception handler global para logging de errores
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    """Handler global para capturar y loggear todas las excepciones."""
+    log_error(
+        exc,
+        context={
+            "url": str(request.url),
+            "method": request.method,
+            "headers": dict(request.headers),
+        },
+        logger_name="app.exceptions"
+    )
+    return {
+        "error": "Internal server error",
+        "detail": "An unexpected error occurred",
+        "status_code": 500
+    }
 
 @app.get("/")
 async def root():

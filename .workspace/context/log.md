@@ -196,3 +196,43 @@ Pipeline PASARÍA en pull request real. Core functionality 100% operativa, cover
 **🚀 ESTADO FINAL**: ✅ PIPELINE READY FOR PRS - Tarea completada exitosamente
 
 
+
+## 📋 ACTIVIDAD: 2025-07-18 - Tarea 0.2.6.1 COMPLETADA
+
+**🎯 Tarea**: 0.2.6.1 - Configurar logging con structlog para backend
+**📊 Estado**: ✅ COMPLETADA EXITOSAMENTE
+**⏱️ Duración**: ~90 minutos
+**🔧 Trabajos realizados**:
+- Instalación de structlog 25.4.0 y colorama para logging estructurado
+- Creación de app/core/logger.py con configuración dual (desarrollo/producción)
+- Agregada variable ENVIRONMENT a app/core/config.py
+- Integración completa en FastAPI: startup, shutdown y exception handlers
+- Corrección de referencias de variables (mayúsculas/minúsculas)
+- Testing exhaustivo de ambos modos de logging
+
+**📊 Archivos entregados**:
+- `app/core/logger.py`: Módulo principal (177 líneas)
+- `app/core/config.py`: Variable ENVIRONMENT agregada
+- `app/main.py`: Event handlers integrados
+- `LOGGING_GUIDE.md`: Documentación completa
+- `test_logging_demo.py`: Script de demostración
+- `test_exception_handler.py`: Script de prueba
+
+**🎯 Features implementadas**:
+- Logging estructurado con formato dual automático por entorno
+- Logs legibles y coloreados para desarrollo
+- Logs JSON estructurados para producción
+- Event handlers automáticos (startup/shutdown)
+- Exception handler global con contexto de request
+- Funciones especializadas (log_request_info, log_error)
+- Metadata automática (timestamp, nivel, módulo, contexto)
+
+**📋 Evidencia de funcionamiento**:
+- FastAPI inicia correctamente con logs de startup
+- Formato development: `2025-07-18T18:57:39.681424Z [info] Test de log legible [test.fixed] component=testing status=success`
+- Formato production: `{"event": "MeStore API iniciando", "environment": "testing", "version": "0.2.6", "level": "info"}`
+- Exception handler captura errores automáticamente
+- URLs de database/redis ofuscadas por seguridad
+
+**🚀 Próxima acción**: Tarea 0.2.6.2 - Implementar middleware de logging para requests FastAPI
+

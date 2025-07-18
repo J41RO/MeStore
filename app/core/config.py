@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     # ChromaDB Configuration
     CHROMA_PERSIST_DIR: str = "./data/chroma"
     DEBUG: bool = True
+    ENVIRONMENT: str = "development"  # development, production, testing
     TESTING: bool = False
     SECRET_KEY: str = "dev-secret-key-change-in-production"
 

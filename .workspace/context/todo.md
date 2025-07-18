@@ -136,8 +136,8 @@
     ✅ 0.2.5.4 Configurar servicios PostgreSQL y Redis en CI
     ✅ 0.2.5.5 Añadir upload de coverage reports a codecov
     ✅ 0.2.5.6 Verificar que pipeline pasa en pull requests
-⬜ 0.2.6 Configurar monitoring básico y logging estructurado
-    ⬜ 0.2.6.1 Configurar logging con structlog para backend
+🔁 0.2.6 Configurar monitoring básico y logging estructurado
+    ✅ 0.2.6.1 Configurar logging con structlog para backend
     ⬜ 0.2.6.2 Implementar middleware de logging para requests FastAPI
     ⬜ 0.2.6.3 Configurar loguru para logs más legibles en desarrollo
     ⬜ 0.2.6.4 Crear sistema de logging frontend con console + remote
@@ -155,7 +155,7 @@
     ⬜ 1.1.1.4 Crear estructura app/api/v1/ con versioning de API
     ⬜ 1.1.1.5 Implementar exception handlers personalizados
     ⬜ 1.1.1.6 Configurar metadata de API (title, description, docs)
-🔁 1.1.2 Crear sistema de autenticación JWT
+⬜ 1.1.2 Crear sistema de autenticación JWT
     ⬜ 1.1.2.1 Instalar python-jose y passlib para JWT y passwords
     ⬜ 1.1.2.2 Crear utilities para hash/verify passwords con bcrypt
     ⬜ 1.1.2.3 Implementar create/verify JWT tokens con refresh
