@@ -138,7 +138,7 @@
     ✅ 0.2.5.6 Verificar que pipeline pasa en pull requests
 🔁 0.2.6 Configurar monitoring básico y logging estructurado
     ✅ 0.2.6.1 Configurar logging con structlog para backend
-    ⬜ 0.2.6.2 Implementar middleware de logging para requests FastAPI
+    ✅ 0.2.6.2 Implementar middleware de logging para requests FastAPI
     ⬜ 0.2.6.3 Configurar loguru para logs más legibles en desarrollo
     ⬜ 0.2.6.4 Crear sistema de logging frontend con console + remote
     ⬜ 0.2.6.5 Configurar rotación de logs y levels por ambiente

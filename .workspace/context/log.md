@@ -236,3 +236,34 @@ Pipeline PASARÍA en pull request real. Core functionality 100% operativa, cover
 
 **🚀 Próxima acción**: Tarea 0.2.6.2 - Implementar middleware de logging para requests FastAPI
 
+
+## 🎯 SESIÓN DE DESARROLLO: 2025-07-19
+### TAREA COMPLETADA: 0.2.6.2 - Middleware de logging para requests FastAPI
+
+**Estado:** ✅ COMPLETADA EXITOSAMENTE
+**Duración:** ~2 horas
+**Complejidad:** Media-Alta (problemas de configuración resueltos)
+
+### 🛠️ IMPLEMENTACIÓN REALIZADA:
+- ✅ Middleware de logging con BaseHTTPMiddleware
+- ✅ Captura completa de metadata (método, path, IP, User-Agent, duración)
+- ✅ Logging estructurado con structlog (formato JSON)
+- ✅ Manejo de errores con logging detallado
+- ✅ Integración correcta en main.py
+- ✅ Headers X-Process-Time agregados automáticamente
+
+### 📁 ARCHIVOS CREADOS/MODIFICADOS:
+- 📝 `app/middleware/logging.py` (6,915 bytes) - Middleware principal
+- 📝 `app/middleware/__init__.py` - Exports del módulo
+- 📝 `app/middleware/logging_example.md` - Documentación
+- 🔧 `app/main.py` - Integración del middleware
+
+### 🧪 VERIFICACIÓN:
+- ✅ 10/10 criterios de aceptación cumplidos
+- ✅ Servidor funcional en http://192.168.1.137:8000
+- ✅ Logs estructurados JSON generados correctamente
+- ✅ Sin errores de importación o ejecución
+
+### 🎯 PRÓXIMA TAREA SUGERIDA:
+Continuar con siguiente tarea de logging o infraestructura según TODO.MD
+

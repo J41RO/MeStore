@@ -60,3 +60,62 @@ Archivos persistidos: 3 archivos en ./chroma_db/
 
 ChromaDB completamente funcional y validado para uso por agentes IA.
 
+
+# 📋 MIDDLEWARE DE LOGGING - DOCUMENTACIÓN TÉCNICA
+
+## 🎯 TAREA 0.2.6.2: Middleware de logging para requests FastAPI
+**Estado:** ✅ COMPLETADA (2025-07-19)
+
+### 📖 DESCRIPCIÓN
+Middleware personalizado que registra automáticamente cada request HTTP usando structlog con metadata completa.
+
+### 🏗️ ARQUITECTURA IMPLEMENTADA
+
+#### Clase Principal: `RequestLoggingMiddleware`
+- **Hereda de:** `BaseHTTPMiddleware`
+- **Ubicación:** `app/middleware/logging.py`
+- **Función:** Interceptar todas las requests HTTP para logging
+
+#### Datos Capturados por Request:
+- **Método HTTP:** GET, POST, PUT, DELETE, etc.
+- **URL/Path:** Ruta completa de la request
+- **IP del Cliente:** Con soporte para proxies (X-Forwarded-For, X-Real-IP)
+- **User-Agent:** Identificación del cliente
+- **Duración:** Tiempo de procesamiento en milisegundos
+- **Status Code:** Código de respuesta HTTP
+- **Usuario Autenticado:** Desde `request.state.user` (si existe)
+
+### 🔧 INTEGRACIÓN
+
+#### En main.py:
+```python
+from app.middleware import RequestLoggingMiddleware
+app.add_middleware(RequestLoggingMiddleware)
+Ejemplo de Log Generado:
+json{
+  "method": "GET",
+  "path": "/api/v1/health",
+  "client_ip": "192.168.1.100",
+  "user_agent": "curl/7.81.0",
+  "status_code": 200,
+  "duration_ms": 15.23,
+  "event": "HTTP request completed successfully",
+  "logger": "app.middleware.logging",
+  "level": "info",
+  "timestamp": "2025-07-19T05:52:48.203865Z"
+}
+🎯 BENEFICIOS
+
+Observabilidad: Visibilidad completa de todas las requests
+Performance: Medición automática de tiempos de respuesta
+Debugging: Logs detallados para troubleshooting
+Seguridad: Tracking de IPs y usuarios
+Producción: Formato JSON para herramientas de análisis
+
+🔍 VERIFICACIÓN
+
+✅ Funcionando en servidor: http://192.168.1.137:8000
+✅ Logs estructurados visibles en consola
+✅ Headers X-Process-Time agregados a responses
+✅ Manejo correcto de errores y excepciones
+
