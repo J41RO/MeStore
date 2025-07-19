@@ -33,6 +33,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from typing import Dict, Any
 import time
 import asyncio
+from sqlalchemy import text
 from datetime import datetime
 
 from app.core.redis import get_redis, RedisService, get_redis_service
@@ -189,11 +190,11 @@ async def database_health(db = Depends(get_db)):
         start_time = time.time()
 
         # Test basic connectivity
-        result = await db.execute("SELECT 1 as health_check")
+        result = await db.execute(text("SELECT 1 as health_check"))
         health_value = result.scalar()
 
         # Test current timestamp (ensures DB is responsive)
-        result = await db.execute("SELECT NOW() as current_time")
+        result = await db.execute(text("SELECT NOW() as current_time"))
         current_time = result.scalar()
 
         response_time = time.time() - start_time

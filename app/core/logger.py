@@ -16,9 +16,13 @@ import structlog
 from structlog.typing import FilteringBoundLogger
 
 from app.core.config import settings
+from loguru import logger as loguru_logger
 
 
 def configure_logging() -> FilteringBoundLogger:
+
+
+
     """
     Configura structlog según el entorno (desarrollo/producción).
     
@@ -65,6 +69,49 @@ def configure_logging() -> FilteringBoundLogger:
     )
     
     return structlog.get_logger()
+
+
+def configure_loguru() -> None:
+    """
+    Configura loguru para logs más legibles en desarrollo.
+    Solo se activa si ENVIRONMENT=development.
+    """
+    if settings.ENVIRONMENT.lower() != "development":
+        return
+
+    # Remover handler por defecto de loguru
+    loguru_logger.remove()
+
+    # Configurar loguru con formato elegante para desarrollo
+    loguru_logger.add(
+        sys.stderr,
+        colorize=True,
+        format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "
+               "<level>{level: <8}</level> | "
+               "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | "
+               "<level>{message}</level>",
+        level="DEBUG" if settings.DEBUG else "INFO",
+    )
+
+    # Interceptar logs de bibliotecas de terceros
+    class InterceptHandler(logging.Handler):
+        def emit(self, record):
+            # Obtener nivel de loguru correspondiente
+            try:
+                level = loguru_logger.level(record.levelname).name
+            except ValueError:
+                level = record.levelno
+
+            # Encontrar caller desde donde se originó el log
+            frame, depth = sys._getframe(6), 6
+            while frame and frame.f_code.co_filename == logging.__file__:
+                frame = frame.f_back
+                depth += 1
+
+            loguru_logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
+
+    # Configurar interceptor para bibliotecas de terceros
+    logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
 
 
 def get_logger(name: str = None) -> FilteringBoundLogger:
@@ -175,3 +222,6 @@ configure_logging()
 
 # Logger por defecto para uso general
 logger = get_logger("app")
+
+# Configurar loguru para development (solo si ENVIRONMENT=development)
+configure_loguru()

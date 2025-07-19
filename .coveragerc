@@ -1,11 +1,14 @@
 [run]
 source = app
 omit = 
-    */migrations/*
+    app/__init__.py
+    app/middleware/__init__.py
+    app/models/__init__.py
+    app/core/__init__.py
+    app/api/__init__.py
     */tests/*
-    */venv/*
     */__pycache__/*
-    */site-packages/*
+    .venv/*
 
 [report]
 exclude_lines =
@@ -13,9 +16,9 @@ exclude_lines =
     def __repr__
     raise AssertionError
     raise NotImplementedError
-
-[xml]
-output = coverage.xml
-
-[html]
-directory = htmlcov
+    if __name__ == .__main__.:
+    pass
+    
+skip_covered = false
+precision = 2
+show_missing = true

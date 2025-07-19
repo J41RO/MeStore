@@ -84,7 +84,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             log_context["authenticated_user"] = user_info
 
         # Log de request iniciado
-        logger.bind(**log_context).info("HTTP request started", event="request_started")
+        logger.bind(**log_context).info("HTTP request started")
 
         try:
             # Procesar request a través de la cadena
@@ -103,7 +103,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
             # Log de request completado exitosamente
             logger.bind(**response_context).info(
-                "HTTP request completed successfully", event="request_completed"
+                "HTTP request completed successfully"
             )
 
             # Agregar header con tiempo de procesamiento
@@ -127,10 +127,8 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             # Log detallado del error
             logger.bind(**error_context).error(
                 "HTTP request failed with exception",
-                event="request_error",
                 exc_info=True,
             )
-
             # Re-lanzar excepción para que sea manejada por FastAPI
             raise
 

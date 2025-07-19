@@ -74,11 +74,20 @@ async def db_test(db: AsyncSession = Depends(get_db)):
 
         return {
             "status": "success",
-            "message": "Conexión a base de datos exitosa",
-            "user_count": user_count,
+            "database": {
+            "status": "connected",
+                "message": "Conexión a base de datos exitosa",
+            "user_count": user_count
+            }
         }
     except Exception as e:
-        return {"status": "error", "message": f"Error de conexión: {str(e)}"}
+        return {
+            "status": "error", 
+            "database": {
+                "status": "error",
+                "message": f"Error de conexión: {str(e)}"
+            }
+        }
 
 
 @app.get("/users/test")

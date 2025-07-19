@@ -10,6 +10,7 @@ import asyncio
 from typing import AsyncGenerator, Generator
 
 import pytest
+from unittest.mock import AsyncMock
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -204,3 +205,19 @@ def test_db_url() -> str:
     Returns: URL de SQLite en memoria para logging/debugging.
     """
     return SQLALCHEMY_TEST_DATABASE_URL
+
+
+@pytest.fixture(autouse=True)
+async def mock_redis_for_testing(monkeypatch):
+    """Mock Redis para tests sin autenticación"""
+    mock_redis = AsyncMock()
+    mock_redis.ping.return_value = True
+    mock_redis.get.return_value = None
+    mock_redis.set.return_value = True
+    mock_redis.delete.return_value = 1
+
+    async def mock_get_redis():
+        return mock_redis
+
+    monkeypatch.setattr("app.core.redis.redis_manager.get_redis", mock_get_redis)
+    return mock_redis

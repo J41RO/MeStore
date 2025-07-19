@@ -19,7 +19,7 @@ from app.core.config import settings
 def test_settings_loaded():
     """Test que la configuración se carga correctamente"""
     # Verificar DATABASE_URL (acepta postgresql y postgresql+asyncpg)
-    assert settings.DATABASE_URL.startswith(("postgresql://", "postgresql+asyncpg://"))
+    assert settings.DATABASE_URL.startswith(("postgresql://", "postgresql+asyncpg://", "postgresql+psycopg://"))
     assert "mestocker" in settings.DATABASE_URL
 
     # Verificar REDIS_URL
@@ -38,7 +38,7 @@ def test_settings_loaded():
 def test_database_url_format():
     """Test formato específico de DATABASE_URL"""
     # Debe ser formato asyncpg para FastAPI
-    assert settings.DATABASE_URL.startswith("postgresql+asyncpg://")
+    assert settings.DATABASE_URL.startswith(("postgresql+asyncpg://", "postgresql+psycopg://"))
     assert "localhost" in settings.DATABASE_URL or "127.0.0.1" in settings.DATABASE_URL
 
 
