@@ -3,7 +3,7 @@
 -------------------------------------------------------------------------------------
 MeStore - Módulo de Middleware
 Copyright (c) 2025 Jairo. Todos los derechos reservados.
-Licensed under the proprietary license detailed in a LICENSE file in the root of this project.
+Licensed under proprietary license in LICENSE file.
 -------------------------------------------------------------------------------------
 
 Nombre del Archivo: __init__.py
@@ -23,6 +23,5 @@ from .logging import RequestLoggingMiddleware
 
 # Exports públicos del módulo
 __all__ = [
-    
     "RequestLoggingMiddleware",
 ]
