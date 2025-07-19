@@ -1,0 +1,103 @@
+{
+  "main_file": {
+    "file_path": "/home/admin-jairo/MeStore/app/middleware/logging.py",
+    "relative_path": "app/middleware/logging.py",
+    "local_imports": [
+      "app.core.logger"
+    ],
+    "external_imports": [
+      "fastapi",
+      "starlette.middleware.base",
+      "time",
+      "typing"
+    ],
+    "missing_local_files": [],
+    "suggested_test_path": {
+      "option_1": "/home/admin-jairo/MeStore/tests/test_logging.py",
+      "option_2": "/home/admin-jairo/MeStore/app/middleware/test_logging.py",
+      "recommended": "/home/admin-jairo/MeStore/tests/test_logging.py"
+    }
+  },
+  "related_files": [
+    "/home/admin-jairo/MeStore/app/core/config.py",
+    "/home/admin-jairo/MeStore/app/core/logger.py",
+    "/home/admin-jairo/MeStore/app/middleware/logging.py"
+  ],
+  "files_analysis": {
+    "/home/admin-jairo/MeStore/app/core/config.py": {
+      "file_path": "/home/admin-jairo/MeStore/app/core/config.py",
+      "relative_path": "app/core/config.py",
+      "local_imports": [],
+      "external_imports": [
+        "pydantic_settings"
+      ],
+      "missing_local_files": [],
+      "suggested_test_path": {
+        "option_1": "/home/admin-jairo/MeStore/tests/test_config.py",
+        "option_2": "/home/admin-jairo/MeStore/app/core/test_config.py",
+        "recommended": "/home/admin-jairo/MeStore/tests/test_config.py"
+      }
+    },
+    "/home/admin-jairo/MeStore/app/core/logger.py": {
+      "file_path": "/home/admin-jairo/MeStore/app/core/logger.py",
+      "relative_path": "app/core/logger.py",
+      "local_imports": [
+        "app.core.config"
+      ],
+      "external_imports": [
+        "inspect",
+        "logging",
+        "loguru",
+        "structlog",
+        "structlog.typing",
+        "sys",
+        "typing"
+      ],
+      "missing_local_files": [],
+      "suggested_test_path": {
+        "option_1": "/home/admin-jairo/MeStore/tests/test_logger.py",
+        "option_2": "/home/admin-jairo/MeStore/app/core/test_logger.py",
+        "recommended": "/home/admin-jairo/MeStore/tests/test_logger.py"
+      }
+    },
+    "/home/admin-jairo/MeStore/app/middleware/logging.py": {
+      "file_path": "/home/admin-jairo/MeStore/app/middleware/logging.py",
+      "relative_path": "app/middleware/logging.py",
+      "local_imports": [
+        "app.core.logger"
+      ],
+      "external_imports": [
+        "fastapi",
+        "starlette.middleware.base",
+        "time",
+        "typing"
+      ],
+      "missing_local_files": [],
+      "suggested_test_path": {
+        "option_1": "/home/admin-jairo/MeStore/tests/test_logging.py",
+        "option_2": "/home/admin-jairo/MeStore/app/middleware/test_logging.py",
+        "recommended": "/home/admin-jairo/MeStore/tests/test_logging.py"
+      }
+    }
+  },
+  "summary": {
+    "total_local_files": 3,
+    "external_dependencies": [
+      "fastapi",
+      "inspect",
+      "logging",
+      "loguru",
+      "pydantic_settings",
+      "starlette.middleware.base",
+      "structlog",
+      "structlog.typing",
+      "sys",
+      "time",
+      "typing"
+    ],
+    "files_to_provide_to_ai": [
+      "/home/admin-jairo/MeStore/app/core/config.py",
+      "/home/admin-jairo/MeStore/app/core/logger.py"
+    ]
+  }
+}

@@ -133,6 +133,9 @@ async def add_items_to_collection(
         else:
             raise HTTPException(status_code=500, detail="Error agregando items")
 
+    except HTTPException:
+        # Re-lanzar HTTPException sin modificar (mantiene status code correcto)
+        raise
     except Exception as e:
         logger.error(f"Error en add_items_to_collection: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -154,6 +157,13 @@ async def query_collection(
     """
     try:
         logger.info(f"Consultando '{collection}' con: '{request.query_text}'")
+
+        # Validar que query_text no esté vacío
+        if not request.query_text.strip():
+            raise HTTPException(
+                status_code=422,
+                detail="Query text cannot be empty"
+            )
 
         results = query_similar(
             collection_name=collection,
@@ -193,6 +203,9 @@ async def query_collection(
             "results": formatted_results
         }
 
+    except HTTPException:
+        # Re-lanzar HTTPException sin modificar (mantiene status code correcto)
+        raise
     except Exception as e:
         logger.error(f"Error en query_collection: {e}")
         raise HTTPException(status_code=500, detail=str(e))

@@ -9,13 +9,14 @@
 # Ruta: ~/app/models/base.py
 # Autor: Jairo
 # Fecha de Creación: 2025-07-17
-# Última Actualización: 2025-07-17
-# Versión: 1.0.0
+# Última Actualización: 2025-07-19
+# Versión: 1.0.1
 # Propósito: Definir clase base para todos los modelos del sistema
 #            Proporciona funcionalidad común y patrones consistentes
 #
 # Modificaciones:
 # 2025-07-17 - Creación inicial de BaseModel
+# 2025-07-19 - Corrección de timestamps para tests robustos
 #
 # ---------------------------------------------------------------------------------------------
 
@@ -37,8 +38,9 @@ class BaseModel:
     """Clase base para todos los modelos del sistema"""
 
     def __init__(self):
-        self.created_at = datetime.utcnow()
-        self.updated_at = datetime.utcnow()
+        now = datetime.utcnow()
+        self.created_at = now
+        self.updated_at = now
 
     def to_dict(self) -> Dict[str, Any]:
         """Convertir modelo a diccionario"""

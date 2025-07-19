@@ -41,12 +41,17 @@ _embedding_model = None
 
 def get_embedding_model() -> SentenceTransformer:
     """
-    Obtener modelo de embeddings configurado.
+    # Early return si no hay cambios que hacer
+    if new_text is None and new_metadata is None:
+        logger.info(f"No hay cambios para actualizar en item {item_id}")
+        return True
 
-    Usa all-MiniLM-L6-v2: modelo ligero y eficiente para propósito general.
-    Implementa patrón singleton para reutilizar modelo cargado.
 
     Returns:
+        bool: True si se actualizó exitosamente
+
+    Raises:
+        Exception: Si ocurre error durante la actualización
         SentenceTransformer: Modelo listo para generar embeddings
     """
     global _embedding_model
@@ -171,8 +176,14 @@ def query_similar(
             where=where
         )
 
-        logger.info(f"Consulta en '{collection_name}': {len(results['ids'][0])} resultados")
-        return results
+        logger.info(f"Consulta en '{collection_name}': {len(results['ids'][0] if results['ids'] and results['ids'][0] else [])} resultados")
+        # Aplanar resultados para facilitar uso
+        return {
+            'ids': results['ids'][0] if results['ids'] and results['ids'][0] else [],
+            'documents': results['documents'][0] if results['documents'] and results['documents'][0] else [],
+            'distances': results['distances'][0] if results['distances'] and results['distances'][0] else [],
+            'metadatas': results['metadatas'][0] if results['metadatas'] and results['metadatas'][0] else []
+        }
 
     except Exception as e:
         logger.error(f"Error en consulta a {collection_name}: {e}")
@@ -196,6 +207,11 @@ def update_item(
     Returns:
         bool: True si se actualizó exitosamente
     """
+    # Early return si no hay cambios que hacer
+    if new_text is None and new_metadata is None:
+        logger.info(f"No hay cambios para actualizar en item {item_id}")
+        return True
+    
     try:
         client = get_chroma_client()
         collection = client.get_collection(name=collection_name)

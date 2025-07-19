@@ -79,7 +79,7 @@ class TestEmbeddingsOperations:
         assert "ids" in results
         assert "documents" in results
         assert "distances" in results
-        assert len(results["ids"][0]) <= 2
+        assert len(results["ids"]) <= 2
 
 class TestSemanticSearch:
     """Tests específicos de búsqueda semántica."""
@@ -102,5 +102,5 @@ class TestSemanticSearch:
         results = query_similar("products", "fruta dulce", n_results=3)
         
         # El resultado debería incluir la manzana
-        top_result = results["documents"][0][0]
+        top_result = results["documents"][0]
         assert "manzana" in top_result.lower()

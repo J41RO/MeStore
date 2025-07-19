@@ -1,0 +1,700 @@
+{
+  "main_file": {
+    "file_path": "/home/admin-jairo/MeStore/app/main.py",
+    "relative_path": "app/main.py",
+    "local_imports": [
+      "app.api.v1.embeddings",
+      "app.api.v1.health",
+      "app.core.database",
+      "app.core.logger",
+      "app.middleware",
+      "app.models.user"
+    ],
+    "external_imports": [
+      "fastapi",
+      "sqlalchemy",
+      "sqlalchemy.ext.asyncio",
+      "uvicorn"
+    ],
+    "missing_local_files": [],
+    "suggested_test_path": {
+      "option_1": "/home/admin-jairo/MeStore/tests/test_main.py",
+      "option_2": "/home/admin-jairo/MeStore/app/test_main.py",
+      "recommended": "/home/admin-jairo/MeStore/tests/test_main.py"
+    },
+    "detected_frameworks": [
+      "fastapi",
+      "asyncio",
+      "database"
+    ],
+    "domain_type": "web_middleware",
+    "edge_cases": [
+      "Colecciones vacías",
+      "Operaciones asíncronas y timeouts",
+      "Manejo de excepciones"
+    ],
+    "performance_considerations": [
+      "Operaciones asíncronas - testear timeouts y concurrencia",
+      "Consultas de base de datos - testear con datos grandes"
+    ],
+    "error_patterns": [],
+    "integration_points": [
+      "Base de datos SQL"
+    ],
+    "testing_strategies": [
+      "Tests de middleware con requests simulados",
+      "Verificación de headers y modificación de request/response",
+      "Tests de performance con carga simulada",
+      "Tests asíncronos con pytest-asyncio",
+      "Fixtures de BD/vectorial con datos de prueba",
+      "Tests parametrizados para casos edge",
+      "Tests de integración con servicios externos mockeados"
+    ]
+  },
+  "related_files": [
+    "/home/admin-jairo/MeStore/app/api/v1/embeddings.py",
+    "/home/admin-jairo/MeStore/app/api/v1/health.py",
+    "/home/admin-jairo/MeStore/app/core/chromadb.py",
+    "/home/admin-jairo/MeStore/app/core/config.py",
+    "/home/admin-jairo/MeStore/app/core/database.py",
+    "/home/admin-jairo/MeStore/app/core/logger.py",
+    "/home/admin-jairo/MeStore/app/core/redis.py",
+    "/home/admin-jairo/MeStore/app/main.py",
+    "/home/admin-jairo/MeStore/app/middleware/__init__.py",
+    "/home/admin-jairo/MeStore/app/middleware/logging.py",
+    "/home/admin-jairo/MeStore/app/models/__init__.py",
+    "/home/admin-jairo/MeStore/app/models/user.py",
+    "/home/admin-jairo/MeStore/app/services/embeddings.py"
+  ],
+  "files_analysis": {
+    "/home/admin-jairo/MeStore/app/api/v1/embeddings.py": {
+      "file_path": "/home/admin-jairo/MeStore/app/api/v1/embeddings.py",
+      "relative_path": "app/api/v1/embeddings.py",
+      "local_imports": [
+        "app.core.chromadb",
+        "app.services.embeddings"
+      ],
+      "external_imports": [
+        "fastapi",
+        "logging",
+        "pydantic",
+        "typing"
+      ],
+      "missing_local_files": [],
+      "suggested_test_path": {
+        "option_1": "/home/admin-jairo/MeStore/tests/test_embeddings.py",
+        "option_2": "/home/admin-jairo/MeStore/app/api/v1/test_embeddings.py",
+        "recommended": "/home/admin-jairo/MeStore/tests/test_embeddings.py"
+      },
+      "detected_frameworks": [
+        "fastapi",
+        "database",
+        "logging",
+        "config",
+        "validation"
+      ],
+      "domain_type": "web_api",
+      "edge_cases": [
+        "Colecciones vacías",
+        "Valores límite y rangos",
+        "Operaciones asíncronas y timeouts",
+        "Manejo de excepciones"
+      ],
+      "performance_considerations": [
+        "Operaciones asíncronas - testear timeouts y concurrencia",
+        "Consultas de base de datos - testear con datos grandes"
+      ],
+      "error_patterns": [
+        "Excepciones específicas: HTTPException"
+      ],
+      "integration_points": [
+        "Base de datos vectorial (ChromaDB)"
+      ],
+      "testing_strategies": [
+        "Tests de endpoints con diferentes payloads",
+        "Validación de schemas de request/response",
+        "Tests de autenticación y autorización",
+        "Fixtures de BD/vectorial con datos de prueba",
+        "Tests parametrizados para casos edge",
+        "Tests de integración con servicios externos mockeados"
+      ]
+    },
+    "/home/admin-jairo/MeStore/app/api/v1/health.py": {
+      "file_path": "/home/admin-jairo/MeStore/app/api/v1/health.py",
+      "relative_path": "app/api/v1/health.py",
+      "local_imports": [
+        "app.core.database",
+        "app.core.redis"
+      ],
+      "external_imports": [
+        "asyncio",
+        "datetime",
+        "fastapi",
+        "sqlalchemy",
+        "time",
+        "typing"
+      ],
+      "missing_local_files": [],
+      "suggested_test_path": {
+        "option_1": "/home/admin-jairo/MeStore/tests/test_health.py",
+        "option_2": "/home/admin-jairo/MeStore/app/api/v1/test_health.py",
+        "recommended": "/home/admin-jairo/MeStore/tests/test_health.py"
+      },
+      "detected_frameworks": [
+        "fastapi",
+        "asyncio",
+        "database"
+      ],
+      "domain_type": "web_api",
+      "edge_cases": [
+        "Valores None/null",
+        "Colecciones vacías",
+        "Valores límite y rangos",
+        "Operaciones asíncronas y timeouts",
+        "Manejo de excepciones"
+      ],
+      "performance_considerations": [
+        "Operaciones asíncronas - testear timeouts y concurrencia",
+        "Consultas de base de datos - testear con datos grandes"
+      ],
+      "error_patterns": [
+        "Excepciones específicas: HTTPException"
+      ],
+      "integration_points": [
+        "Base de datos SQL"
+      ],
+      "testing_strategies": [
+        "Tests de endpoints con diferentes payloads",
+        "Validación de schemas de request/response",
+        "Tests de autenticación y autorización",
+        "Tests asíncronos con pytest-asyncio",
+        "Fixtures de BD/vectorial con datos de prueba",
+        "Tests parametrizados para casos edge",
+        "Tests de integración con servicios externos mockeados"
+      ]
+    },
+    "/home/admin-jairo/MeStore/app/core/chromadb.py": {
+      "file_path": "/home/admin-jairo/MeStore/app/core/chromadb.py",
+      "relative_path": "app/core/chromadb.py",
+      "local_imports": [
+        "app.core.config",
+        "chromadb"
+      ],
+      "external_imports": [
+        "chromadb.config",
+        "logging"
+      ],
+      "missing_local_files": [],
+      "suggested_test_path": {
+        "option_1": "/home/admin-jairo/MeStore/tests/test_chromadb.py",
+        "option_2": "/home/admin-jairo/MeStore/app/core/test_chromadb.py",
+        "recommended": "/home/admin-jairo/MeStore/tests/test_chromadb.py"
+      },
+      "detected_frameworks": [
+        "database",
+        "logging"
+      ],
+      "domain_type": "data_access",
+      "edge_cases": [
+        "Valores None/null",
+        "Colecciones vacías",
+        "Valores límite y rangos",
+        "Manejo de excepciones"
+      ],
+      "performance_considerations": [],
+      "error_patterns": [],
+      "integration_points": [
+        "Base de datos vectorial (ChromaDB)"
+      ],
+      "testing_strategies": [
+        "Tests con base de datos en memoria",
+        "Mocking de conexiones de BD",
+        "Tests de transacciones y rollback",
+        "Fixtures de BD/vectorial con datos de prueba",
+        "Tests parametrizados para casos edge",
+        "Tests de integración con servicios externos mockeados"
+      ]
+    },
+    "/home/admin-jairo/MeStore/app/core/config.py": {
+      "file_path": "/home/admin-jairo/MeStore/app/core/config.py",
+      "relative_path": "app/core/config.py",
+      "local_imports": [],
+      "external_imports": [
+        "pydantic_settings"
+      ],
+      "missing_local_files": [],
+      "suggested_test_path": {
+        "option_1": "/home/admin-jairo/MeStore/tests/test_config.py",
+        "option_2": "/home/admin-jairo/MeStore/app/core/test_config.py",
+        "recommended": "/home/admin-jairo/MeStore/tests/test_config.py"
+      },
+      "detected_frameworks": [
+        "config",
+        "validation"
+      ],
+      "domain_type": "general",
+      "edge_cases": [],
+      "performance_considerations": [
+        "Operaciones asíncronas - testear timeouts y concurrencia"
+      ],
+      "error_patterns": [],
+      "integration_points": [],
+      "testing_strategies": []
+    },
+    "/home/admin-jairo/MeStore/app/core/database.py": {
+      "file_path": "/home/admin-jairo/MeStore/app/core/database.py",
+      "relative_path": "app/core/database.py",
+      "local_imports": [
+        "app.models"
+      ],
+      "external_imports": [
+        "os",
+        "sqlalchemy.ext.asyncio",
+        "sqlalchemy.ext.declarative",
+        "sqlalchemy.pool",
+        "typing"
+      ],
+      "missing_local_files": [],
+      "suggested_test_path": {
+        "option_1": "/home/admin-jairo/MeStore/tests/test_database.py",
+        "option_2": "/home/admin-jairo/MeStore/app/core/test_database.py",
+        "recommended": "/home/admin-jairo/MeStore/tests/test_database.py"
+      },
+      "detected_frameworks": [
+        "asyncio",
+        "database"
+      ],
+      "domain_type": "data_access",
+      "edge_cases": [
+        "Valores límite y rangos",
+        "Operaciones asíncronas y timeouts",
+        "Manejo de excepciones"
+      ],
+      "performance_considerations": [
+        "Operaciones asíncronas - testear timeouts y concurrencia"
+      ],
+      "error_patterns": [],
+      "integration_points": [],
+      "testing_strategies": [
+        "Tests con base de datos en memoria",
+        "Mocking de conexiones de BD",
+        "Tests de transacciones y rollback",
+        "Tests asíncronos con pytest-asyncio",
+        "Fixtures de BD/vectorial con datos de prueba",
+        "Tests parametrizados para casos edge"
+      ]
+    },
+    "/home/admin-jairo/MeStore/app/core/logger.py": {
+      "file_path": "/home/admin-jairo/MeStore/app/core/logger.py",
+      "relative_path": "app/core/logger.py",
+      "local_imports": [
+        "app.core.config"
+      ],
+      "external_imports": [
+        "inspect",
+        "logging",
+        "loguru",
+        "structlog",
+        "structlog.typing",
+        "sys",
+        "typing"
+      ],
+      "missing_local_files": [],
+      "suggested_test_path": {
+        "option_1": "/home/admin-jairo/MeStore/tests/test_logger.py",
+        "option_2": "/home/admin-jairo/MeStore/app/core/test_logger.py",
+        "recommended": "/home/admin-jairo/MeStore/tests/test_logger.py"
+      },
+      "detected_frameworks": [
+        "logging"
+      ],
+      "domain_type": "general",
+      "edge_cases": [
+        "Valores None/null",
+        "Valores límite y rangos",
+        "Manejo de excepciones"
+      ],
+      "performance_considerations": [
+        "Consultas de base de datos - testear con datos grandes"
+      ],
+      "error_patterns": [],
+      "integration_points": [],
+      "testing_strategies": [
+        "Tests parametrizados para casos edge"
+      ]
+    },
+    "/home/admin-jairo/MeStore/app/core/redis.py": {
+      "file_path": "/home/admin-jairo/MeStore/app/core/redis.py",
+      "relative_path": "app/core/redis.py",
+      "local_imports": [
+        "app.core.config"
+      ],
+      "external_imports": [
+        "json",
+        "logging",
+        "redis.asyncio",
+        "typing"
+      ],
+      "missing_local_files": [],
+      "suggested_test_path": {
+        "option_1": "/home/admin-jairo/MeStore/tests/test_redis.py",
+        "option_2": "/home/admin-jairo/MeStore/app/core/test_redis.py",
+        "recommended": "/home/admin-jairo/MeStore/tests/test_redis.py"
+      },
+      "detected_frameworks": [
+        "asyncio",
+        "database",
+        "logging"
+      ],
+      "domain_type": "data_access",
+      "edge_cases": [
+        "Valores None/null",
+        "Valores límite y rangos",
+        "Operaciones asíncronas y timeouts",
+        "Manejo de excepciones"
+      ],
+      "performance_considerations": [
+        "Loops anidados (profundidad: 2) - testear con datasets grandes",
+        "Operaciones asíncronas - testear timeouts y concurrencia",
+        "Consultas de base de datos - testear con datos grandes"
+      ],
+      "error_patterns": [
+        "Errores de conexión y timeouts"
+      ],
+      "integration_points": [],
+      "testing_strategies": [
+        "Tests con base de datos en memoria",
+        "Mocking de conexiones de BD",
+        "Tests de transacciones y rollback",
+        "Tests asíncronos con pytest-asyncio",
+        "Fixtures de BD/vectorial con datos de prueba",
+        "Tests parametrizados para casos edge"
+      ]
+    },
+    "/home/admin-jairo/MeStore/app/main.py": {
+      "file_path": "/home/admin-jairo/MeStore/app/main.py",
+      "relative_path": "app/main.py",
+      "local_imports": [
+        "app.api.v1.embeddings",
+        "app.api.v1.health",
+        "app.core.database",
+        "app.core.logger",
+        "app.middleware",
+        "app.models.user"
+      ],
+      "external_imports": [
+        "fastapi",
+        "sqlalchemy",
+        "sqlalchemy.ext.asyncio",
+        "uvicorn"
+      ],
+      "missing_local_files": [],
+      "suggested_test_path": {
+        "option_1": "/home/admin-jairo/MeStore/tests/test_main.py",
+        "option_2": "/home/admin-jairo/MeStore/app/test_main.py",
+        "recommended": "/home/admin-jairo/MeStore/tests/test_main.py"
+      },
+      "detected_frameworks": [
+        "fastapi",
+        "asyncio",
+        "database"
+      ],
+      "domain_type": "web_middleware",
+      "edge_cases": [
+        "Colecciones vacías",
+        "Operaciones asíncronas y timeouts",
+        "Manejo de excepciones"
+      ],
+      "performance_considerations": [
+        "Operaciones asíncronas - testear timeouts y concurrencia",
+        "Consultas de base de datos - testear con datos grandes"
+      ],
+      "error_patterns": [],
+      "integration_points": [
+        "Base de datos SQL"
+      ],
+      "testing_strategies": [
+        "Tests de middleware con requests simulados",
+        "Verificación de headers y modificación de request/response",
+        "Tests de performance con carga simulada",
+        "Tests asíncronos con pytest-asyncio",
+        "Fixtures de BD/vectorial con datos de prueba",
+        "Tests parametrizados para casos edge",
+        "Tests de integración con servicios externos mockeados"
+      ]
+    },
+    "/home/admin-jairo/MeStore/app/middleware/__init__.py": {
+      "file_path": "/home/admin-jairo/MeStore/app/middleware/__init__.py",
+      "relative_path": "app/middleware/__init__.py",
+      "local_imports": [
+        "logging"
+      ],
+      "external_imports": [],
+      "missing_local_files": [],
+      "suggested_test_path": {
+        "option_1": "/home/admin-jairo/MeStore/tests/test___init__.py",
+        "option_2": "/home/admin-jairo/MeStore/app/middleware/test___init__.py",
+        "recommended": "/home/admin-jairo/MeStore/tests/test___init__.py"
+      },
+      "detected_frameworks": [
+        "logging"
+      ],
+      "domain_type": "general",
+      "edge_cases": [],
+      "performance_considerations": [],
+      "error_patterns": [],
+      "integration_points": [],
+      "testing_strategies": []
+    },
+    "/home/admin-jairo/MeStore/app/middleware/logging.py": {
+      "file_path": "/home/admin-jairo/MeStore/app/middleware/logging.py",
+      "relative_path": "app/middleware/logging.py",
+      "local_imports": [
+        "app.core.logger"
+      ],
+      "external_imports": [
+        "fastapi",
+        "starlette.middleware.base",
+        "time",
+        "typing"
+      ],
+      "missing_local_files": [],
+      "suggested_test_path": {
+        "option_1": "/home/admin-jairo/MeStore/tests/test_logging.py",
+        "option_2": "/home/admin-jairo/MeStore/app/middleware/test_logging.py",
+        "recommended": "/home/admin-jairo/MeStore/tests/test_logging.py"
+      },
+      "detected_frameworks": [
+        "fastapi"
+      ],
+      "domain_type": "web_middleware",
+      "edge_cases": [
+        "Valores límite y rangos",
+        "Operaciones asíncronas y timeouts",
+        "Manejo de excepciones"
+      ],
+      "performance_considerations": [
+        "Operaciones asíncronas - testear timeouts y concurrencia",
+        "Consultas de base de datos - testear con datos grandes"
+      ],
+      "error_patterns": [],
+      "integration_points": [],
+      "testing_strategies": [
+        "Tests de middleware con requests simulados",
+        "Verificación de headers y modificación de request/response",
+        "Tests de performance con carga simulada",
+        "Tests parametrizados para casos edge"
+      ]
+    },
+    "/home/admin-jairo/MeStore/app/models/__init__.py": {
+      "file_path": "/home/admin-jairo/MeStore/app/models/__init__.py",
+      "relative_path": "app/models/__init__.py",
+      "local_imports": [],
+      "external_imports": [],
+      "missing_local_files": [],
+      "suggested_test_path": {
+        "option_1": "/home/admin-jairo/MeStore/tests/test___init__.py",
+        "option_2": "/home/admin-jairo/MeStore/app/models/test___init__.py",
+        "recommended": "/home/admin-jairo/MeStore/tests/test___init__.py"
+      },
+      "detected_frameworks": [],
+      "domain_type": "general",
+      "edge_cases": [],
+      "performance_considerations": [],
+      "error_patterns": [],
+      "integration_points": [],
+      "testing_strategies": []
+    },
+    "/home/admin-jairo/MeStore/app/models/user.py": {
+      "file_path": "/home/admin-jairo/MeStore/app/models/user.py",
+      "relative_path": "app/models/user.py",
+      "local_imports": [
+        "app.core.database"
+      ],
+      "external_imports": [
+        "datetime",
+        "enum",
+        "sqlalchemy",
+        "sqlalchemy.dialects.postgresql",
+        "uuid"
+      ],
+      "missing_local_files": [],
+      "suggested_test_path": {
+        "option_1": "/home/admin-jairo/MeStore/tests/test_user.py",
+        "option_2": "/home/admin-jairo/MeStore/app/models/test_user.py",
+        "recommended": "/home/admin-jairo/MeStore/tests/test_user.py"
+      },
+      "detected_frameworks": [
+        "database"
+      ],
+      "domain_type": "data_access",
+      "edge_cases": [
+        "Valores límite y rangos"
+      ],
+      "performance_considerations": [
+        "Operaciones asíncronas - testear timeouts y concurrencia",
+        "Consultas de base de datos - testear con datos grandes"
+      ],
+      "error_patterns": [],
+      "integration_points": [
+        "Base de datos SQL"
+      ],
+      "testing_strategies": [
+        "Tests con base de datos en memoria",
+        "Mocking de conexiones de BD",
+        "Tests de transacciones y rollback",
+        "Fixtures de BD/vectorial con datos de prueba",
+        "Tests parametrizados para casos edge",
+        "Tests de integración con servicios externos mockeados"
+      ]
+    },
+    "/home/admin-jairo/MeStore/app/services/embeddings.py": {
+      "file_path": "/home/admin-jairo/MeStore/app/services/embeddings.py",
+      "relative_path": "app/services/embeddings.py",
+      "local_imports": [
+        "app.core.chromadb"
+      ],
+      "external_imports": [
+        "logging",
+        "sentence_transformers",
+        "typing"
+      ],
+      "missing_local_files": [],
+      "suggested_test_path": {
+        "option_1": "/home/admin-jairo/MeStore/tests/test_embeddings.py",
+        "option_2": "/home/admin-jairo/MeStore/app/services/test_embeddings.py",
+        "recommended": "/home/admin-jairo/MeStore/tests/test_embeddings.py"
+      },
+      "detected_frameworks": [
+        "database",
+        "ml_ai",
+        "logging"
+      ],
+      "domain_type": "data_access",
+      "edge_cases": [
+        "Valores inválidos o tipos incorrectos",
+        "Valores None/null",
+        "Colecciones vacías",
+        "Valores límite y rangos",
+        "Manejo de excepciones"
+      ],
+      "performance_considerations": [
+        "Consultas de base de datos - testear con datos grandes"
+      ],
+      "error_patterns": [
+        "Excepciones específicas: ValueError"
+      ],
+      "integration_points": [
+        "Base de datos vectorial (ChromaDB)"
+      ],
+      "testing_strategies": [
+        "Tests con base de datos en memoria",
+        "Mocking de conexiones de BD",
+        "Tests de transacciones y rollback",
+        "Fixtures de BD/vectorial con datos de prueba",
+        "Mocking de sentence_transformers",
+        "Tests unitarios para transformaciones de embeddings",
+        "Validación de similitudes coseno",
+        "Tests parametrizados para casos edge",
+        "Tests de integración con servicios externos mockeados"
+      ]
+    }
+  },
+  "advanced_analysis": {
+    "edge_cases": [
+      "Colecciones vacías",
+      "Manejo de excepciones",
+      "Operaciones asíncronas y timeouts",
+      "Valores None/null",
+      "Valores inválidos o tipos incorrectos",
+      "Valores límite y rangos"
+    ],
+    "performance_considerations": [
+      "Consultas de base de datos - testear con datos grandes",
+      "Loops anidados (profundidad: 2) - testear con datasets grandes",
+      "Operaciones asíncronas - testear timeouts y concurrencia"
+    ],
+    "error_patterns": [
+      "Errores de conexión y timeouts",
+      "Excepciones específicas: HTTPException",
+      "Excepciones específicas: ValueError"
+    ],
+    "integration_points": [
+      "Base de datos SQL",
+      "Base de datos vectorial (ChromaDB)"
+    ],
+    "testing_strategies": [
+      "Fixtures de BD/vectorial con datos de prueba",
+      "Mocking de conexiones de BD",
+      "Mocking de sentence_transformers",
+      "Tests asíncronos con pytest-asyncio",
+      "Tests con base de datos en memoria",
+      "Tests de autenticación y autorización",
+      "Tests de endpoints con diferentes payloads",
+      "Tests de integración con servicios externos mockeados",
+      "Tests de middleware con requests simulados",
+      "Tests de performance con carga simulada",
+      "Tests de transacciones y rollback",
+      "Tests parametrizados para casos edge",
+      "Tests unitarios para transformaciones de embeddings",
+      "Validación de schemas de request/response",
+      "Validación de similitudes coseno",
+      "Verificación de headers y modificación de request/response"
+    ],
+    "detected_frameworks": [
+      "asyncio",
+      "config",
+      "database",
+      "fastapi",
+      "logging",
+      "ml_ai",
+      "validation"
+    ]
+  },
+  "summary": {
+    "total_local_files": 13,
+    "external_dependencies": [
+      "asyncio",
+      "chromadb.config",
+      "datetime",
+      "enum",
+      "fastapi",
+      "inspect",
+      "json",
+      "logging",
+      "loguru",
+      "os",
+      "pydantic",
+      "pydantic_settings",
+      "redis.asyncio",
+      "sentence_transformers",
+      "sqlalchemy",
+      "sqlalchemy.dialects.postgresql",
+      "sqlalchemy.ext.asyncio",
+      "sqlalchemy.ext.declarative",
+      "sqlalchemy.pool",
+      "starlette.middleware.base",
+      "structlog",
+      "structlog.typing",
+      "sys",
+      "time",
+      "typing",
+      "uuid",
+      "uvicorn"
+    ],
+    "files_to_provide_to_ai": [
+      "/home/admin-jairo/MeStore/app/api/v1/embeddings.py",
+      "/home/admin-jairo/MeStore/app/api/v1/health.py",
+      "/home/admin-jairo/MeStore/app/core/chromadb.py",
+      "/home/admin-jairo/MeStore/app/core/config.py",
+      "/home/admin-jairo/MeStore/app/core/database.py",
+      "/home/admin-jairo/MeStore/app/core/logger.py",
+      "/home/admin-jairo/MeStore/app/core/redis.py",
+      "/home/admin-jairo/MeStore/app/middleware/__init__.py",
+      "/home/admin-jairo/MeStore/app/middleware/logging.py",
+      "/home/admin-jairo/MeStore/app/models/__init__.py",
+      "/home/admin-jairo/MeStore/app/models/user.py",
+      "/home/admin-jairo/MeStore/app/services/embeddings.py"
+    ]
+  }
+}
