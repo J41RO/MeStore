@@ -1,4 +1,5 @@
 from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -6,6 +7,9 @@ from app.api.v1.embeddings import router as embeddings_router
 from app.api.v1.health import router as health_router
 from app.api.v1.endpoints.health import router as health_simple_router
 from app.api.v1.logs import router as logs_router
+from app.api.v1.endpoints.fulfillment import router as fulfillment_router
+from app.api.v1.endpoints.marketplace import router as marketplace_router
+from app.api.v1.endpoints.agents import router as agents_router
 from app.core.database import get_db
 from app.core.logger import (get_logger, log_error, log_shutdown_info,
 
@@ -20,6 +24,15 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# Configurar CORS para desarrollo
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://192.168.1.137:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Configurar middleware de logging CORRECTAMENTE
 app.add_middleware(RequestLoggingMiddleware)
 
@@ -28,6 +41,9 @@ app.include_router(health_router, prefix="/api/v1")
 app.include_router(health_simple_router)
 app.include_router(logs_router, prefix="/api/v1")
 app.include_router(embeddings_router, prefix="/api/v1")
+app.include_router(fulfillment_router, prefix="/api/v1/fulfillment")
+app.include_router(marketplace_router, prefix="/marketplace")
+app.include_router(agents_router, prefix="/agents")
 
 
 # Event handlers para logging
@@ -66,7 +82,7 @@ async def global_exception_handler(request, exc):
 @app.get("/")
 async def root():
     """Endpoint raíz de la API."""
-    return {"message": "Bienvenido a MeStore API", "status": "running"}
+    return {"status": "ok"}
 
 
 @app.get("/db-test")
