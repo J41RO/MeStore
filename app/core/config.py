@@ -27,6 +27,15 @@ class Settings(BaseSettings):
     CHROMA_PERSIST_DIR: str = "./data/chroma"
     DEBUG: bool = True
     ENVIRONMENT: str = "development"  # development, production, testing
+
+    # Logging Configuration - Tarea 0.2.6.5
+    LOG_LEVEL: str = "DEBUG"
+    LOG_DIR: str = "logs"
+    LOG_FILE_PREFIX: str = "mestocker"
+    LOG_ROTATION_SIZE: str = "10MB"
+    LOG_ROTATION_COUNT: int = 5
+    LOG_ROTATION_TIME: str = "midnight"
+    LOG_ROTATION_INTERVAL: int = 1
     TESTING: bool = False
     SECRET_KEY: str = "dev-secret-key-change-in-production"
 

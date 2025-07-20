@@ -14,3 +14,12 @@
 
 // Placeholder - se llenará conforme se agreguen utilidades
 export {}
+
+
+// Sistema de logging frontend
+export { default as logger } from './logger';
+export type { LogLevel, LogContext, LogEntry } from './logger';
+
+// Sistema de logging frontend
+export { default as logger } from './logger';
+export type { LogLevel, LogContext, LogEntry } from './logger';

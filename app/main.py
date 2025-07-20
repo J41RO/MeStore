@@ -4,11 +4,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.embeddings import router as embeddings_router
 from app.api.v1.health import router as health_router
+from app.api.v1.logs import router as logs_router
 from app.core.database import get_db
 from app.core.logger import (get_logger, log_error, log_shutdown_info,
+
                              log_startup_info)
 from app.middleware import RequestLoggingMiddleware
 from app.models.user import User
+from app.core.logging_rotation import setup_log_rotation
 
 app = FastAPI(
     title="MeStore API",
@@ -21,12 +24,15 @@ app.add_middleware(RequestLoggingMiddleware)
 
 # Registrar routers
 app.include_router(health_router, prefix="/api/v1")
+app.include_router(logs_router, prefix="/api/v1")
 app.include_router(embeddings_router, prefix="/api/v1")
 
 
 # Event handlers para logging
 @app.on_event("startup")
 async def startup_event():
+    # Configurar sistema de rotación de logs
+    setup_log_rotation()
     log_startup_info()
 
 

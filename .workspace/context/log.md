@@ -284,3 +284,48 @@ Continuar con siguiente tarea de logging o infraestructura según TODO.MD
 - ✅ API endpoints operativos sin errores
 - ✅ Sistema de logging híbrido (structlog + loguru) funcional
 
+
+## 📋 ACTIVIDAD: 2025-07-20 - Tarea 0.2.6.5 COMPLETADA
+
+**🎯 Tarea**: 0.2.6.5 - Configurar rotación de logs y levels por ambiente
+**📊 Estado**: ✅ COMPLETADA EXITOSAMENTE
+**⏱️ Duración**: ~2.5 horas
+**🔧 Trabajos realizados**:
+- Sistema completo de rotación de logs implementado
+- Configuración diferenciada por ambiente (development/staging/production)
+- Variables de entorno para LOG_LEVEL y ENVIRONMENT
+- Handlers de rotación por tamaño (10MB) y tiempo (diario)
+- Integración completa con FastAPI existente
+- Script de pruebas exhaustivo
+- Documentación técnica completa
+
+**📊 Archivos entregados**:
+- `app/core/logging_rotation.py`: Módulo principal (302 líneas)
+- `app/core/config.py`: Variables de configuración 
+- `app/main.py`: Integración con startup
+- `.env`: Variables de entorno de logging
+- `logs/`: Directorio estructurado con README
+- `test_log_rotation.py`: Suite de pruebas
+- `LOGGING_ROTATION_GUIDE.md`: Documentación completa
+
+**🎯 Features implementadas**:
+- Rotación automática por tamaño (RotatingFileHandler)
+- Rotación temporal diaria (TimedRotatingFileHandler)
+- Configuración dinámica por ambiente:
+  * Development: DEBUG+ (consola + archivo)
+  * Staging: INFO+ (solo archivo)
+  * Production: WARNING+ (solo archivo)
+- Archivos nombrados: `mestocker-{env}.log`
+- Formato JSON estructurado para prod/staging
+- Sistema de backup automático (5 archivos)
+
+**📋 Evidencia de funcionamiento**:
+- Sistema integrado con FastAPI startup exitosamente
+- Logs de diferentes niveles por ambiente verificados
+- Archivos de log generados por ambiente
+- Servidor respondiendo en 192.168.1.137:8000
+- Middleware de logging capturando client_ip correctamente
+- Coexistencia con sistema anterior (backend.log preservado)
+
+**🚀 Próxima acción**: Sistema de logging completamente implementado - Ready for monitoring y observabilidad avanzada
+
