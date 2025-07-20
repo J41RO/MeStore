@@ -42,7 +42,7 @@ class TestHealthEndpoints:
     async def test_health_endpoint_always_healthy(self):
         """Test that /health always returns 200 OK with correct JSON"""
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            response = await client.get("/api/v1/health/health")
+            response = await client.get("/health")
 
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
@@ -54,7 +54,7 @@ class TestHealthEndpoints:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             responses = []
             for _ in range(5):
-                response = await client.get("/api/v1/health/health")
+                response = await client.get("/health")
                 responses.append(response)
 
             # All responses should be 200 OK
@@ -142,7 +142,7 @@ class TestHealthEndpoints:
             # Create concurrent requests
             tasks = []
             for _ in range(10):
-                tasks.append(client.get("/api/v1/health/health"))
+                tasks.append(client.get("/health"))
                 tasks.append(client.get("/ready"))
 
             responses = await asyncio.gather(*tasks, return_exceptions=True)
@@ -176,7 +176,7 @@ class TestHealthEndpointsErrorScenarios:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             # Multiple attempts to ensure consistency
             for _ in range(3):
-                response = await client.get("/api/v1/health/health")
+                response = await client.get("/health")
                 assert response.status_code == status.HTTP_200_OK
                 data = response.json()
                 assert data["status"] == "healthy"
@@ -216,7 +216,7 @@ class TestHealthEndpointsIntegration:
         """Test both endpoints work together correctly"""
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             # Health should always work
-            health_response = await client.get("/api/v1/health/health")
+            health_response = await client.get("/health")
             assert health_response.status_code == status.HTTP_200_OK
 
             # Ready depends on dependencies
@@ -232,7 +232,7 @@ class TestHealthEndpointsIntegration:
         """Test that health endpoints generate logs (integration with logging system)"""
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             # Make requests that should generate logs
-            await client.get("/api/v1/health/health")
+            await client.get("/health")
             await client.get("/ready")
 
             # Note: In real integration test, we would verify log files

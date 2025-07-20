@@ -59,11 +59,11 @@ def test_mock_database_fixture(mock_database):
 def test_client_health_endpoint(client):
     """Test más específico usando client fixture para endpoint de salud."""
     try:
-        response = client.get("/api/v1/health/health")
+        response = client.get("/health")
         print(f"✅ Health endpoint - Status: {response.status_code}")
         # Endpoint puede existir o no, verificamos que client funciona
         assert isinstance(response.status_code, int)
     except Exception:
         # Si falla, verificamos que al menos client está disponible
         assert client is not None
-        print(f"✅ Client disponible (endpoint /api/v1/health/health no existe): {type(client)}")
+        print(f"✅ Client disponible (endpoint /health no existe): {type(client)}")

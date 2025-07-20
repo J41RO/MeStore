@@ -11,7 +11,7 @@
 # Fecha de Creación: 2025-07-17
 # Última Actualización: 2025-07-17
 # Versión: 1.0.0
-# Propósito: Test de verificación del endpoint /api/v1/health/health de la API
+# Propósito: Test de verificación del endpoint /health de la API
 #
 # Modificaciones:
 # 2025-07-17 - Creación inicial con test básico de health check
@@ -21,7 +21,7 @@
 """
 Tests para endpoint de health check
 
-Verifica que la API responda correctamente en el endpoint /api/v1/health/health
+Verifica que la API responda correctamente en el endpoint /health
 """
 
 import os
@@ -39,8 +39,8 @@ client = TestClient(app)
 
 
 def test_health_endpoint():
-    """Test del endpoint /api/v1/health/health"""
-    response = client.get("/api/v1/health/health")
+    """Test del endpoint /health"""
+    response = client.get("/health")
     assert response.status_code == 200
 
     data = response.json()

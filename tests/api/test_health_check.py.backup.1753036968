@@ -43,7 +43,7 @@ class TestHealthEndpoints:
         - Status healthy
         - Versión de la API
         """
-        response = client.get("/api/v1/health/health")
+        response = client.get("/health")
         
         assert response.status_code == 200
         

@@ -134,7 +134,7 @@ class TestAppBoot:
         assert response.status_code == 200
 
         # Test endpoint de health simple
-        response = client.get("/api/v1/health/health")
+        response = client.get("/health")
         assert response.status_code == 200
 
         # Test logs router
@@ -244,8 +244,8 @@ class TestMainPyCoverage:
         assert "status" in data
 
     def test_health_endpoint(self):
-        """Test del endpoint /api/v1/health/health."""
-        response = client.get("/api/v1/health/health")
+        """Test del endpoint /health."""
+        response = client.get("/health")
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "healthy"
