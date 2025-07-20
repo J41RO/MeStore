@@ -149,7 +149,7 @@
 ## 1.1 Backend Core Python (FastAPI)
 
 🔁 1.1.1 Configurar FastAPI con estructura modular
-    ⬜ 1.1.1.1 Crear app principal FastAPI con configuración base
+    ✅ 1.1.1.1 Crear app principal FastAPI con configuración base
     ⬜ 1.1.1.2 Implementar router modular para fulfillment, marketplace, agentes
     ⬜ 1.1.1.3 Configurar dependencias globales (database, redis, auth)
     ⬜ 1.1.1.4 Crear estructura app/api/v1/ con versioning de API

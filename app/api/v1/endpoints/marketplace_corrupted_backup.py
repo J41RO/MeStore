@@ -8,7 +8,8 @@ Este módulo maneja todas las operaciones relacionadas con:
 - Transacciones del marketplace
 """
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
+from fastapi import Depends
 from app.core.auth import get_current_user, require_user_type
 
 router = APIRouter(
@@ -45,7 +46,7 @@ async def marketplace_health():
             "sellers": "operational",
             "transactions": "operational"
         }
-    }
+
 
 
 @router.get("/protected")
@@ -76,4 +77,5 @@ async def sellers_only_endpoint(
         "message": "Welcome seller!",
         "user": current_user,
         "features": ["manage_products", "view_sales", "analytics"]
+    }
     }

@@ -11,6 +11,7 @@ from app.api.v1.endpoints.fulfillment import router as fulfillment_router
 from app.api.v1.endpoints.marketplace import router as marketplace_router
 from app.api.v1.endpoints.agents import router as agents_router
 from app.core.database import get_db
+from app.core.auth import auth_service
 from app.core.logger import (get_logger, log_error, log_shutdown_info,
 
                              log_startup_info)
@@ -48,6 +49,13 @@ app.include_router(agents_router, prefix="/agents")
 
 # Event handlers para logging
 @app.on_event("startup")
+
+@app.on_event("startup")
+async def auth_startup():
+    """Inicialización del sistema de autenticación"""
+    logger = get_logger()
+    logger.info("Sistema de autenticación inicializado", 
+                extra={"auth_service": "ready", "jwt_algorithm": "HS256"})
 async def startup_event():
     # Configurar sistema de rotación de logs
     setup_log_rotation()
