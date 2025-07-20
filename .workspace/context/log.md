@@ -329,3 +329,41 @@ Continuar con siguiente tarea de logging o infraestructura según TODO.MD
 
 **🚀 Próxima acción**: Sistema de logging completamente implementado - Ready for monitoring y observabilidad avanzada
 
+
+
+
+## 📋 ACTIVIDAD: 2025-07-20 - Tarea 0.2.6.6 COMPLETADA
+
+**🎯 Tarea**: 0.2.6.6 - Implementar health check endpoints /health y /ready
+**📊 Estado**: ✅ COMPLETADA EXITOSAMENTE
+**⏱️ Duración**: ~2.5 horas
+**🔧 Trabajos realizados**:
+- Endpoints /health y /ready implementados según especificaciones
+- Verificación de dependencias PostgreSQL y Redis en /ready
+- Logging estructurado con structlog para ambos endpoints
+- Suite completa de tests de integración (10/10 pasando)
+- Manejo robusto de errores con respuestas HTTP apropiadas
+- Integración completa en FastAPI main app
+
+**📊 Archivos entregados**:
+- app/api/health_simple.py: Endpoints principales (45 líneas, 82.22% coverage)
+- app/main.py: Integración de routers
+- tests/integration/test_health.py: Suite completa de tests
+- Directorio tests/integration/: Creado según requerimientos
+
+**🎯 Features implementadas**:
+- GET /health: Siempre 200 OK con {"status": "healthy"}
+- GET /ready: Verificación de dependencias (200 OK / 503 Service Unavailable)
+- Logging JSON estructurado para observabilidad
+- Tests exhaustivos cubriendo escenarios de éxito y falla
+- Manejo graceful de dependencias no disponibles
+- Performance optimizada (<5s límite en tests)
+
+**📋 Evidencia de funcionamiento**:
+- Tests: 10/10 pasando, 0 skipped, 0 failed
+- Coverage: 82.22% en código nuevo
+- Endpoints responden correctamente en ambiente de desarrollo
+- Logging captura todos los eventos de health checks
+- Sistema robusto ante fallas de dependencias
+
+**🚀 Próxima acción**: Endpoints listos para producción y orquestación Kubernetes

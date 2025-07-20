@@ -136,19 +136,19 @@
     ✅ 0.2.5.4 Configurar servicios PostgreSQL y Redis en CI
     ✅ 0.2.5.5 Añadir upload de coverage reports a codecov
     ✅ 0.2.5.6 Verificar que pipeline pasa en pull requests
-🔁 0.2.6 Configurar monitoring básico y logging estructurado
+✅ 0.2.6 Configurar monitoring básico y logging estructurado
     ✅ 0.2.6.1 Configurar logging con structlog para backend
     ✅ 0.2.6.2 Implementar middleware de logging para requests FastAPI
     ✅ 0.2.6.3 Configurar loguru para logs más legibles en desarrollo
     ✅ 0.2.6.4 Crear sistema de logging frontend con console + remote
-    ⬜ 0.2.6.5 Configurar rotación de logs y levels por ambiente
-    ⬜ 0.2.6.6 Implementar health check endpoints /health y /ready
+    ✅ 0.2.6.5 Configurar rotación de logs y levels por ambiente
+    ✅ 0.2.6.6 Implementar health check endpoints /health y /ready
 
 # 🚀 FASE 1: MVP - SISTEMA DE GESTIÓN PARA VENDEDORES
 
 ## 1.1 Backend Core Python (FastAPI)
 
-⬜ 1.1.1 Configurar FastAPI con estructura modular
+🔁 1.1.1 Configurar FastAPI con estructura modular
     ⬜ 1.1.1.1 Crear app principal FastAPI con configuración base
     ⬜ 1.1.1.2 Implementar router modular para fulfillment, marketplace, agentes
     ⬜ 1.1.1.3 Configurar dependencias globales (database, redis, auth)

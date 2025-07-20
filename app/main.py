@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.embeddings import router as embeddings_router
 from app.api.v1.health import router as health_router
+from app.api.health_simple import router as health_simple_router
 from app.api.v1.logs import router as logs_router
 from app.core.database import get_db
 from app.core.logger import (get_logger, log_error, log_shutdown_info,
@@ -24,6 +25,7 @@ app.add_middleware(RequestLoggingMiddleware)
 
 # Registrar routers
 app.include_router(health_router, prefix="/api/v1")
+app.include_router(health_simple_router)
 app.include_router(logs_router, prefix="/api/v1")
 app.include_router(embeddings_router, prefix="/api/v1")
 
