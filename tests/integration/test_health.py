@@ -66,7 +66,7 @@ class TestHealthEndpoints:
     async def test_ready_endpoint_with_healthy_dependencies(self):
         """Test /ready endpoint when all dependencies are healthy"""
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            response = await client.get("/ready")
+            response = await client.get("/api/v1/health/ready")
 
             # Should be 200 OK if dependencies are up
             if response.status_code == status.HTTP_200_OK:
@@ -94,7 +94,7 @@ class TestHealthEndpoints:
     async def test_ready_endpoint_response_structure(self):
         """Test that /ready endpoint has correct response structure"""
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            response = await client.get("/ready")
+            response = await client.get("/api/v1/health/ready")
 
             # Extract data based on status code
             if response.status_code == status.HTTP_200_OK:
@@ -122,7 +122,7 @@ class TestHealthEndpoints:
     async def test_ready_endpoint_performance(self):
         """Test that /ready endpoint responds within reasonable time"""
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            response = await client.get("/ready")
+            response = await client.get("/api/v1/health/ready")
 
             # Extract response time
             if response.status_code == status.HTTP_200_OK:
@@ -143,7 +143,7 @@ class TestHealthEndpoints:
             tasks = []
             for _ in range(10):
                 tasks.append(client.get("/api/v1/health/health"))
-                tasks.append(client.get("/ready"))
+                tasks.append(client.get("/api/v1/health/ready"))
 
             responses = await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -185,7 +185,7 @@ class TestHealthEndpointsErrorScenarios:
     async def test_ready_endpoint_handles_partial_failures(self):
         """Test /ready behavior when some dependencies might be down"""
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            response = await client.get("/ready")
+            response = await client.get("/api/v1/health/ready")
 
             # Should always return valid JSON structure
             assert response.headers["content-type"] == "application/json"
@@ -220,7 +220,7 @@ class TestHealthEndpointsIntegration:
             assert health_response.status_code == status.HTTP_200_OK
 
             # Ready depends on dependencies
-            ready_response = await client.get("/ready")
+            ready_response = await client.get("/api/v1/health/ready")
             assert ready_response.status_code in [status.HTTP_200_OK, status.HTTP_503_SERVICE_UNAVAILABLE]
 
             # Both should be JSON
@@ -233,7 +233,7 @@ class TestHealthEndpointsIntegration:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             # Make requests that should generate logs
             await client.get("/api/v1/health/health")
-            await client.get("/ready")
+            await client.get("/api/v1/health/ready")
 
             # Note: In real integration test, we would verify log files
             # For now, just ensure endpoints don't crash with logging

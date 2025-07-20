@@ -17,13 +17,13 @@ class TestAuthenticatedEndpoints:
     
     def test_protected_endpoint_without_token(self):
         """Test endpoint protegido sin token - debe devolver 403"""
-        response = client.get("/marketplace/protected")
+        response = client.get("/api/v1/marketplace/protected")
         assert response.status_code == 403
     
     def test_protected_endpoint_with_invalid_token(self):
         """Test endpoint protegido con token inválido"""
         headers = {"Authorization": "Bearer invalid_token"}
-        response = client.get("/marketplace/protected", headers=headers)
+        response = client.get("/api/v1/marketplace/protected", headers=headers)
         assert response.status_code == 401
     
     def test_sellers_only_endpoint_with_buyer_token_simple(self):
@@ -43,7 +43,7 @@ class TestAuthenticatedEndpoints:
         app.dependency_overrides[get_current_user] = mock_get_current_user
         
         try:
-            response = client.get("/marketplace/sellers-only")
+            response = client.get("/api/v1/marketplace/sellers-only")
             assert response.status_code == 403
             data = response.json()
             assert "Access denied" in data["detail"]
@@ -66,7 +66,7 @@ class TestAuthenticatedEndpoints:
         app.dependency_overrides[get_current_user] = mock_get_current_user
         
         try:
-            response = client.get("/marketplace/sellers-only")
+            response = client.get("/api/v1/marketplace/sellers-only")
             assert response.status_code == 200
             data = response.json()
             assert data["message"] == "Welcome seller!"
@@ -83,20 +83,20 @@ class TestAuthEndpointsBasic:
     def test_all_marketplace_endpoints_exist(self):
         """Verificar que todos los endpoints existen"""
         # Test endpoint base
-        response = client.get("/marketplace/")
+        response = client.get("/api/v1/marketplace/")
         assert response.status_code == 200
         assert response.json()["module"] == "marketplace"
         
         # Test health endpoint
-        response = client.get("/marketplace/health")
+        response = client.get("/api/v1/marketplace/health")
         assert response.status_code == 200
         assert response.json()["module"] == "marketplace"
     
     def test_protected_endpoints_require_auth(self):
         """Verificar que endpoints protegidos requieren autenticación"""
         protected_endpoints = [
-            "/marketplace/protected",
-            "/marketplace/sellers-only"
+            "/api/v1/marketplace/protected",
+            "/api/v1/marketplace/sellers-only"
         ]
         
         for endpoint in protected_endpoints:

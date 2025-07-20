@@ -26,9 +26,23 @@ class TestAPIVersioning:
         """Verificar que /api/v1/health/ready responde 200 o 503 (servicios no disponibles)."""
         response = client.get("/api/v1/health/ready")
         assert response.status_code in [200, 503], f"Expected 200 or 503, got {response.status_code}: {response.json()}"
-        # Verificar estructura de respuesta independientemente del código
+        # Verificar estructura de respuesta (puede estar anidada en 'detail')
         data = response.json()
-        assert "status" in data, "Response must have 'status' field"
+        if 'detail' in data:
+            # Estructura anidada para respuestas de error/fallo
+            detail = data['detail']
+            assert 'status' in detail, "Response detail must have 'status' field"
+            status = detail['status']
+        else:
+            # Estructura directa para respuestas exitosas
+            assert 'status' in data, "Response must have 'status' field"
+            status = data['status']
+        
+        # Validar valores de status según código de respuesta
+        if response.status_code == 200:
+            assert status == 'ready', f"Status should be 'ready' when services available, got '{status}'"
+        elif response.status_code == 503:
+            assert status in ['not_ready', 'degraded'], f"Status should indicate service issues, got '{status}'"
     
     def test_logs_health_endpoint_v1_responds_200(self):
         """Verificar que /api/v1/logs/logs/health responde 200."""
@@ -66,6 +80,8 @@ class TestAPIVersioning:
             "/logs", 
             "/embeddings",
             "/fulfillment",
+            "/marketplace",
+            "/agents"
         ]
         
         for route_path in legacy_routes:

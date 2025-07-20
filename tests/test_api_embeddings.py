@@ -23,7 +23,7 @@
 Tests Corregidos para API de Embeddings.
 
 Suite profesional basada en el código fuente real:
-- Rutas exactas del API: /api/v1/embeddings/{collection}/action
+- Rutas exactas del API: /api/v1/embeddings/embeddings/{collection}/action
 - Schemas Pydantic reales: AddItemsRequest, QueryRequest, etc.
 - Mocking preciso de app.services.embeddings
 - Validación de StandardResponse y formatos reales
@@ -54,11 +54,11 @@ def client():
 @pytest.fixture
 def mock_embeddings_service():
     """Mock completo del servicio de embeddings con funciones exactas."""
-    with patch('app.api.v1.embeddings.add_items') as mock_add, \
-         patch('app.api.v1.embeddings.query_similar') as mock_query, \
-         patch('app.api.v1.embeddings.update_item') as mock_update, \
-         patch('app.api.v1.embeddings.delete_items') as mock_delete, \
-         patch('app.api.v1.embeddings.get_collection_stats') as mock_stats:
+    with patch('app.api.v1.endpoints.embeddings.add_items') as mock_add, \
+         patch('app.api.v1.endpoints.embeddings.query_similar') as mock_query, \
+         patch('app.api.v1.endpoints.embeddings.update_item') as mock_update, \
+         patch('app.api.v1.endpoints.embeddings.delete_items') as mock_delete, \
+         patch('app.api.v1.endpoints.embeddings.get_collection_stats') as mock_stats:
         
         # Configurar comportamientos por defecto
         mock_add.return_value = True
@@ -123,12 +123,12 @@ def sample_update_request():
 # ================================================================================================
 
 class TestAddItemsEndpoint:
-    """Tests para POST /api/v1/embeddings/{collection}/add."""
+    """Tests para POST /api/v1/embeddings/embeddings/{collection}/add."""
     
     def test_add_items_success(self, client, mock_embeddings_service, sample_add_request):
         """Test: Agregar items exitosamente."""
         # Act
-        response = client.post("/api/v1/embeddings/products/add", json=sample_add_request)
+        response = client.post("/api/v1/embeddings/embeddings/products/add", json=sample_add_request)
         
         # Assert
         assert response.status_code == status.HTTP_200_OK
@@ -155,7 +155,7 @@ class TestAddItemsEndpoint:
         }
         
         # Act
-        response = client.post("/api/v1/embeddings/products/add", json=payload)
+        response = client.post("/api/v1/embeddings/embeddings/products/add", json=payload)
         
         # Assert
         assert response.status_code == status.HTTP_200_OK
@@ -179,7 +179,7 @@ class TestAddItemsEndpoint:
         }
         
         # Act
-        response = client.post("/api/v1/embeddings/products/add", json=payload)
+        response = client.post("/api/v1/embeddings/embeddings/products/add", json=payload)
         
         # Assert
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -196,7 +196,7 @@ class TestAddItemsEndpoint:
         }
         
         # Act
-        response = client.post("/api/v1/embeddings/products/add", json=payload)
+        response = client.post("/api/v1/embeddings/embeddings/products/add", json=payload)
         
         # Assert
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -213,7 +213,7 @@ class TestAddItemsEndpoint:
         }
         
         # Act
-        response = client.post("/api/v1/embeddings/products/add", json=payload)
+        response = client.post("/api/v1/embeddings/embeddings/products/add", json=payload)
         
         # Assert
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -229,7 +229,7 @@ class TestAddItemsEndpoint:
         }
         
         # Act
-        response = client.post("/api/v1/embeddings/products/add", json=payload)
+        response = client.post("/api/v1/embeddings/embeddings/products/add", json=payload)
         
         # Assert
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
@@ -242,12 +242,12 @@ class TestAddItemsEndpoint:
 # ================================================================================================
 
 class TestQuerySimilarEndpoint:
-    """Tests para POST /api/v1/embeddings/{collection}/query."""
+    """Tests para POST /api/v1/embeddings/embeddings/{collection}/query."""
     
     def test_query_similar_success(self, client, mock_embeddings_service, sample_query_request):
         """Test: Consulta exitosa con resultados."""
         # Act
-        response = client.post("/api/v1/embeddings/products/query", json=sample_query_request)
+        response = client.post("/api/v1/embeddings/embeddings/products/query", json=sample_query_request)
         
         # Assert
         assert response.status_code == status.HTTP_200_OK
@@ -283,7 +283,7 @@ class TestQuerySimilarEndpoint:
         }
         
         # Act
-        response = client.post("/api/v1/embeddings/products/query", json=payload)
+        response = client.post("/api/v1/embeddings/embeddings/products/query", json=payload)
         
         # Assert
         assert response.status_code == status.HTTP_200_OK
@@ -307,7 +307,7 @@ class TestQuerySimilarEndpoint:
         payload = {"query_text": "nonexistent", "n_results": 5}
         
         # Act
-        response = client.post("/api/v1/embeddings/products/query", json=payload)
+        response = client.post("/api/v1/embeddings/embeddings/products/query", json=payload)
         
         # Assert
         assert response.status_code == status.HTTP_200_OK
@@ -324,7 +324,7 @@ class TestQuerySimilarEndpoint:
         }
         
         # Act
-        response = client.post("/api/v1/embeddings/products/query", json=payload)
+        response = client.post("/api/v1/embeddings/embeddings/products/query", json=payload)
         
         # Assert
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
@@ -338,7 +338,7 @@ class TestQuerySimilarEndpoint:
         }
         
         # Act
-        response = client.post("/api/v1/embeddings/products/query", json=payload)
+        response = client.post("/api/v1/embeddings/embeddings/products/query", json=payload)
         
         # Assert
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
@@ -350,7 +350,7 @@ class TestQuerySimilarEndpoint:
         payload = {"query_text": "test", "n_results": 5}
         
         # Act
-        response = client.post("/api/v1/embeddings/products/query", json=payload)
+        response = client.post("/api/v1/embeddings/embeddings/products/query", json=payload)
         
         # Assert
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -363,12 +363,12 @@ class TestQuerySimilarEndpoint:
 # ================================================================================================
 
 class TestUpdateItemEndpoint:
-    """Tests para PUT /api/v1/embeddings/{collection}/update."""
+    """Tests para PUT /api/v1/embeddings/embeddings/{collection}/update."""
     
     def test_update_item_success(self, client, mock_embeddings_service, sample_update_request):
         """Test: Actualizar item exitosamente."""
         # Act
-        response = client.put("/api/v1/embeddings/products/update", json=sample_update_request)
+        response = client.put("/api/v1/embeddings/embeddings/products/update", json=sample_update_request)
         
         # Assert
         assert response.status_code == status.HTTP_200_OK
@@ -395,7 +395,7 @@ class TestUpdateItemEndpoint:
         }
         
         # Act
-        response = client.put("/api/v1/embeddings/products/update", json=payload)
+        response = client.put("/api/v1/embeddings/embeddings/products/update", json=payload)
         
         # Assert
         assert response.status_code == status.HTTP_200_OK
@@ -415,7 +415,7 @@ class TestUpdateItemEndpoint:
         }
         
         # Act
-        response = client.put("/api/v1/embeddings/products/update", json=payload)
+        response = client.put("/api/v1/embeddings/embeddings/products/update", json=payload)
         
         # Assert
         assert response.status_code == status.HTTP_200_OK
@@ -436,7 +436,7 @@ class TestUpdateItemEndpoint:
         }
         
         # Act
-        response = client.put("/api/v1/embeddings/products/update", json=payload)
+        response = client.put("/api/v1/embeddings/embeddings/products/update", json=payload)
         
         # Assert
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -449,7 +449,7 @@ class TestUpdateItemEndpoint:
 # ================================================================================================
 
 class TestDeleteItemsEndpoint:
-    """Tests para DELETE /api/v1/embeddings/{collection}/delete."""
+    """Tests para DELETE /api/v1/embeddings/embeddings/{collection}/delete."""
     
     def test_delete_items_success(self, client, mock_embeddings_service):
         """Test: Eliminar items exitosamente."""
@@ -459,7 +459,7 @@ class TestDeleteItemsEndpoint:
         }
         
         # Act
-        response = client.request("DELETE", "/api/v1/embeddings/products/delete", json=payload)
+        response = client.request("DELETE", "/api/v1/embeddings/embeddings/products/delete", json=payload)
         
         # Assert
         assert response.status_code == status.HTTP_200_OK
@@ -481,7 +481,7 @@ class TestDeleteItemsEndpoint:
         payload = {"ids": ["prod_001"]}
         
         # Act
-        response = client.request("DELETE", "/api/v1/embeddings/products/delete", json=payload)
+        response = client.request("DELETE", "/api/v1/embeddings/embeddings/products/delete", json=payload)
         
         # Assert
         assert response.status_code == status.HTTP_200_OK
@@ -495,7 +495,7 @@ class TestDeleteItemsEndpoint:
         payload = {"ids": ["test"]}
         
         # Act
-        response = client.request("DELETE", "/api/v1/embeddings/products/delete", json=payload)
+        response = client.request("DELETE", "/api/v1/embeddings/embeddings/products/delete", json=payload)
         
         # Assert
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -508,12 +508,12 @@ class TestDeleteItemsEndpoint:
 # ================================================================================================
 
 class TestCollectionStatsEndpoint:
-    """Tests para GET /api/v1/embeddings/{collection}/stats."""
+    """Tests para GET /api/v1/embeddings/embeddings/{collection}/stats."""
     
     def test_get_collection_stats_success(self, client, mock_embeddings_service):
         """Test: Obtener estadísticas exitosamente."""
         # Act
-        response = client.get("/api/v1/embeddings/products/stats")
+        response = client.get("/api/v1/embeddings/embeddings/products/stats")
         
         # Assert
         assert response.status_code == status.HTTP_200_OK
@@ -535,7 +535,7 @@ class TestCollectionStatsEndpoint:
         mock_embeddings_service['get_collection_stats'].side_effect = Exception("Collection not found")
         
         # Act
-        response = client.get("/api/v1/embeddings/nonexistent/stats")
+        response = client.get("/api/v1/embeddings/embeddings/nonexistent/stats")
         
         # Assert
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -548,7 +548,7 @@ class TestCollectionStatsEndpoint:
 # ================================================================================================
 
 class TestListCollectionsEndpoint:
-    """Tests para GET /api/v1/embeddings/collections."""
+    """Tests para GET /api/v1/embeddings/embeddings/collections."""
     
     @patch('app.core.chromadb.get_chroma_client')
     def test_list_collections_success(self, mock_get_client, client, mock_embeddings_service):
@@ -563,7 +563,7 @@ class TestListCollectionsEndpoint:
         mock_get_client.return_value = mock_client
         
         # Act
-        response = client.get("/api/v1/embeddings/collections")
+        response = client.get("/api/v1/embeddings/embeddings/collections")
         
         # Assert
         assert response.status_code == status.HTTP_200_OK
@@ -580,7 +580,7 @@ class TestListCollectionsEndpoint:
         mock_get_client.side_effect = Exception("ChromaDB unavailable")
         
         # Act
-        response = client.get("/api/v1/embeddings/collections")
+        response = client.get("/api/v1/embeddings/embeddings/collections")
         
         # Assert
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -605,7 +605,7 @@ class TestEdgeCasesAndRobustness:
         }
         
         # Act
-        response = client.post("/api/v1/embeddings/products/add", json=payload)
+        response = client.post("/api/v1/embeddings/embeddings/products/add", json=payload)
         
         # Assert
         assert response.status_code == status.HTTP_200_OK
@@ -620,7 +620,7 @@ class TestEdgeCasesAndRobustness:
         }
         
         # Act
-        response = client.post("/api/v1/embeddings/products/add", json=payload)
+        response = client.post("/api/v1/embeddings/embeddings/products/add", json=payload)
         
         # Assert
         assert response.status_code == status.HTTP_200_OK
@@ -633,14 +633,14 @@ class TestEdgeCasesAndRobustness:
         collection_names = ["test-collection", "test_collection", "collection123"]
         
         for collection_name in collection_names:
-            response = client.post(f"/api/v1/embeddings/{collection_name}/add", json=payload)
+            response = client.post(f"/api/v1/embeddings/embeddings/{collection_name}/add", json=payload)
             assert response.status_code == status.HTTP_200_OK
     
     def test_malformed_json(self, client):
         """Test: JSON malformado."""
         # Act
         response = client.post(
-            "/api/v1/embeddings/products/add",
+            "/api/v1/embeddings/embeddings/products/add",
             data='{"invalid": json,}',
             headers={"Content-Type": "application/json"}
         )
@@ -665,7 +665,7 @@ class TestSchemaValidation:
         ]
         
         for payload in invalid_payloads:
-            response = client.post("/api/v1/embeddings/products/add", json=payload)
+            response = client.post("/api/v1/embeddings/embeddings/products/add", json=payload)
             assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     
     def test_query_request_validation(self, client):
@@ -678,7 +678,7 @@ class TestSchemaValidation:
         ]
         
         for payload in invalid_payloads:
-            response = client.post("/api/v1/embeddings/products/query", json=payload)
+            response = client.post("/api/v1/embeddings/embeddings/products/query", json=payload)
             assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     
     def test_update_item_request_validation(self, client):
@@ -690,7 +690,7 @@ class TestSchemaValidation:
         ]
         
         for payload in invalid_payloads:
-            response = client.put("/api/v1/embeddings/products/update", json=payload)
+            response = client.put("/api/v1/embeddings/embeddings/products/update", json=payload)
             assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
@@ -700,8 +700,8 @@ class TestSchemaValidation:
 
 def test_api_module_imports():
     """Test: Verificar importaciones del módulo API."""
-    from app.api.v1.embeddings import router
-    from app.api.v1.embeddings import AddItemsRequest, QueryRequest, UpdateItemRequest
+    from app.api.v1.endpoints.embeddings import router
+    from app.api.v1.endpoints.embeddings import AddItemsRequest, QueryRequest, UpdateItemRequest
     
     # Verificar que el router existe
     assert router is not None

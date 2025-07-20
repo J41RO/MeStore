@@ -53,7 +53,7 @@ class TestAppBoot:
         - Endpoint /marketplace/ responde 200
         - Respuesta contiene {"module": "marketplace", "status": "ok"}
         """
-        response = client.get("/marketplace/")
+        response = client.get("/api/v1/marketplace/")
         assert response.status_code == 200
         data = response.json()
         assert data["module"] == "marketplace"
@@ -67,7 +67,7 @@ class TestAppBoot:
         - Endpoint /agents/ responde 200
         - Respuesta contiene {"module": "agents", "status": "ok"}
         """
-        response = client.get("/agents/")
+        response = client.get("/api/v1/agents/")
         assert response.status_code == 200
         data = response.json()
         assert data["module"] == "agents"
@@ -88,7 +88,7 @@ class TestAppBoot:
         assert "services" in data
 
         # Test marketplace health
-        response = client.get("/marketplace/health")
+        response = client.get("/api/v1/marketplace/health")
         assert response.status_code == 200
         data = response.json()
         assert data["module"] == "marketplace"
@@ -96,7 +96,7 @@ class TestAppBoot:
         assert "services" in data
 
         # Test agents health
-        response = client.get("/agents/health")
+        response = client.get("/api/v1/agents/health")
         assert response.status_code == 200
         data = response.json()
         assert data["module"] == "agents"
@@ -130,7 +130,7 @@ class TestAppBoot:
         Verifica que la adición de nuevos routers no rompió los existentes.
         """
         # Test health router existente
-        response = client.get("/api/v1/health/")
+        response = client.get("/api/v1/health/health")
         assert response.status_code == 200
 
         # Test endpoint de health simple
@@ -138,11 +138,11 @@ class TestAppBoot:
         assert response.status_code == 200
 
         # Test logs router
-        response = client.get("/api/v1/logs/health")
+        response = client.get("/api/v1/logs/logs/health")
         assert response.status_code == 200
 
         # Test embeddings router  
-        response = client.get("/api/v1/embeddings/collections")
+        response = client.get("/api/v1/embeddings/embeddings/collections")
         assert response.status_code == 200
 
 
@@ -185,8 +185,8 @@ class TestRouterIntegration:
         """
         test_cases = [
             ("/api/v1/fulfillment/", "fulfillment"),
-            ("/marketplace/", "marketplace"),
-            ("/agents/", "agents")
+            ("/api/v1/marketplace/", "marketplace"),
+            ("/api/v1/agents/", "agents")
         ]
 
         for endpoint, expected_module in test_cases:

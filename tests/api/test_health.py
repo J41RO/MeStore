@@ -66,8 +66,8 @@ def test_available_health_endpoints():
     possible_endpoints = [
         "/api/v1/health/health",
         "/api/v1/health",
-        "/health/redis",
-        "/health/database",
+        "/api/v1/health-complete/health/redis",
+        "/api/v1/health-complete/health/database",
     ]
 
     working_endpoints = []
