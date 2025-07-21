@@ -4,20 +4,22 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1 import api_router
-from app.core.database import get_db
+from app.api.v1.handlers.exceptions import register_exception_handlers
 from app.core.auth import auth_service
-from app.core.logger import (get_logger, log_error, log_shutdown_info,
-
-                             log_startup_info)
+from app.core.database import get_db
+from app.core.logger import get_logger, log_error, log_shutdown_info, log_startup_info
+from app.core.logging_rotation import setup_log_rotation
 from app.middleware import RequestLoggingMiddleware
 from app.models.user import User
-from app.core.logging_rotation import setup_log_rotation
 
 app = FastAPI(
     title="MeStore API",
     description="API para gestión de tienda online",
     version="1.0.0",
 )
+
+# Registrar exception handlers
+register_exception_handlers(app)
 
 # Configurar CORS para desarrollo
 app.add_middleware(
@@ -37,13 +39,16 @@ app.include_router(api_router, prefix="/api/v1")
 
 # Event handlers para logging
 @app.on_event("startup")
-
 @app.on_event("startup")
 async def auth_startup():
     """Inicialización del sistema de autenticación"""
     logger = get_logger()
-    logger.info("Sistema de autenticación inicializado", 
-                extra={"auth_service": "ready", "jwt_algorithm": "HS256"})
+    logger.info(
+        "Sistema de autenticación inicializado",
+        extra={"auth_service": "ready", "jwt_algorithm": "HS256"},
+    )
+
+
 async def startup_event():
     # Configurar sistema de rotación de logs
     setup_log_rotation()
@@ -95,18 +100,15 @@ async def db_test(db: AsyncSession = Depends(get_db)):
         return {
             "status": "success",
             "database": {
-            "status": "connected",
+                "status": "connected",
                 "message": "Conexión a base de datos exitosa",
-            "user_count": user_count
-            }
+                "user_count": user_count,
+            },
         }
     except Exception as e:
         return {
-            "status": "error", 
-            "database": {
-                "status": "error",
-                "message": f"Error de conexión: {str(e)}"
-            }
+            "status": "error",
+            "database": {"status": "error", "message": f"Error de conexión: {str(e)}"},
         }
 
 

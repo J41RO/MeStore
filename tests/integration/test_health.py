@@ -96,27 +96,79 @@ class TestHealthEndpoints:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.get("/api/v1/health/ready")
 
-            # Extract data based on status code
-            if response.status_code == status.HTTP_200_OK:
+            # Accept both 200 (dependencies available) and 503 (dependencies unavailable)
+            assert response.status_code in [200, 503], f"Unexpected status: {response.status_code} → {response.text}"
+            
+            if response.status_code == 200:
+                # Dependencies available - validate direct response
                 data = response.json()
-            else:
-                data = response.json()["detail"]
+                assert isinstance(data, dict), f"Response is not a dict: {data}"
+                
+                # Required fields validation for 200 OK
+                assert "status" in data, f"Missing 'status' field in response: {data}"
+                assert data["status"] == "ready", f"Expected status 'ready', got: {data['status']}"
+                assert "checks" in data, f"Missing 'checks' field in response: {data}"
+                assert "response_time_ms" in data, f"Missing 'response_time_ms' field in response: {data}"
+                assert "timestamp" in data, f"Missing 'timestamp' field in response: {data}"
 
-            # Required fields
-            assert "status" in data
-            assert "checks" in data
-            assert "response_time_ms" in data
-            assert "timestamp" in data
+                # Checks structure validation for 200 OK
+                checks = data["checks"]
+                assert isinstance(checks, dict), f"'checks' is not a dict: {checks}"
+                assert "postgresql" in checks, f"Missing 'postgresql' in checks: {checks}"
+                assert "redis" in checks, f"Missing 'redis' in checks: {checks}"
 
-            # Checks structure
-            checks = data["checks"]
-            assert "postgresql" in checks
-            assert "redis" in checks
+                # Validate each service check structure
+                for service, check in checks.items():
+                    assert isinstance(check, dict), f"Check for {service} is not a dict: {check}"
+                    assert "status" in check, f"Missing 'status' in {service} check: {check}"
+                    assert "error" in check, f"Missing 'error' in {service} check: {check}"
+                    assert check["status"] in ["ready", "not_ready"], f"Invalid status for {service}: {check['status']}"
+                    
+            elif response.status_code == 503:
+                # Dependencies unavailable - validate error response structure
+                response_data = response.json()
+                assert isinstance(response_data, dict), f"Error response is not a dict: {response_data}"
+                assert "detail" in response_data, f"Missing 'detail' field in error response: {response_data}"
+                
+                # Extract the actual health data from detail field
+                detail = response_data["detail"]
+                
+                # Handle case where detail might be a string (Python dict repr) or already a dict
+                if isinstance(detail, str):
+                    import ast
+                    try:
+                        # Try to parse as Python dict representation
+                        data = ast.literal_eval(detail)
+                    except (ValueError, SyntaxError):
+                        # Fallback: try JSON parsing
+                        import json
+                        data = json.loads(detail)
+                elif isinstance(detail, dict):
+                    data = detail
+                else:
+                    raise AssertionError(f"Detail field is neither string nor dict: {type(detail)} = {detail}")
+                
+                assert isinstance(data, dict), f"Parsed detail is not a dict: {data}"
+                
+                # Required fields validation for 503 Service Unavailable
+                assert "status" in data, f"Missing 'status' field in detail: {data}"
+                assert data["status"] == "not_ready", f"Expected status 'not_ready', got: {data['status']}"
+                assert "checks" in data, f"Missing 'checks' field in detail: {data}"
+                assert "response_time_ms" in data, f"Missing 'response_time_ms' field in detail: {data}"
+                assert "timestamp" in data, f"Missing 'timestamp' field in detail: {data}"
 
-            for service, check in checks.items():
-                assert "status" in check
-                assert "error" in check
-                assert check["status"] in ["ready", "not_ready"]
+                # Checks structure validation for 503
+                checks = data["checks"]
+                assert isinstance(checks, dict), f"'checks' is not a dict: {checks}"
+                assert "postgresql" in checks, f"Missing 'postgresql' in checks: {checks}"
+                assert "redis" in checks, f"Missing 'redis' in checks: {checks}"
+
+                # Validate each service check structure
+                for service, check in checks.items():
+                    assert isinstance(check, dict), f"Check for {service} is not a dict: {check}"
+                    assert "status" in check, f"Missing 'status' in {service} check: {check}"
+                    assert "error" in check, f"Missing 'error' in {service} check: {check}"
+                    assert check["status"] in ["ready", "not_ready"], f"Invalid status for {service}: {check['status']}"
 
     @pytest.mark.asyncio
     async def test_ready_endpoint_performance(self):

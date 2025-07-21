@@ -30,17 +30,24 @@ Endpoints disponibles:
 - GET /embeddings/{collection}/stats: Estadísticas de colección
 """
 
-from typing import List, Dict, Any, Optional
+import logging
+from typing import Any, Dict, List, Optional
+
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
+
+from app.api.v1.handlers.exceptions import (
+    EmbeddingNotFoundException,
+    EmbeddingProcessingException,
+    InvalidEmbeddingPayloadException,
+)
 from app.services.embeddings import (
     add_items,
-    query_similar, 
-    update_item,
     delete_items,
-    get_collection_stats
+    get_collection_stats,
+    query_similar,
+    update_item,
 )
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -48,47 +55,52 @@ router = APIRouter(prefix="/embeddings", tags=["Vector Search"])
 
 # Modelos Pydantic para requests/responses
 
+
 class AddItemsRequest(BaseModel):
     """Request para agregar items a colección."""
+
     ids: List[str] = Field(..., description="IDs únicos para cada item")
     texts: List[str] = Field(..., description="Textos para generar embeddings")
     metadatas: Optional[List[Dict[str, Any]]] = Field(
-        None, 
-        description="Metadatos opcionales para cada item"
+        None, description="Metadatos opcionales para cada item"
     )
+
 
 class QueryRequest(BaseModel):
     """Request para búsqueda semántica."""
+
     query_text: str = Field(..., description="Texto de consulta")
     n_results: int = Field(5, description="Número de resultados", ge=1, le=50)
-    where: Optional[Dict[str, Any]] = Field(
-        None, 
-        description="Filtros de metadatos"
-    )
+    where: Optional[Dict[str, Any]] = Field(None, description="Filtros de metadatos")
+
 
 class UpdateItemRequest(BaseModel):
     """Request para actualizar item."""
+
     item_id: str = Field(..., description="ID del item a actualizar")
     new_text: Optional[str] = Field(None, description="Nuevo texto")
     new_metadata: Optional[Dict[str, Any]] = Field(None, description="Nuevos metadatos")
 
+
 class DeleteItemsRequest(BaseModel):
     """Request para eliminar items."""
+
     ids: List[str] = Field(..., description="IDs de items a eliminar")
+
 
 class StandardResponse(BaseModel):
     """Response estándar para operaciones."""
+
     success: bool = Field(..., description="Indica si operación fue exitosa")
     message: str = Field(..., description="Mensaje descriptivo")
     data: Optional[Dict[str, Any]] = Field(None, description="Datos adicionales")
 
+
 # Endpoints de la API
 
+
 @router.post("/{collection}/add", response_model=StandardResponse)
-async def add_items_to_collection(
-    collection: str,
-    request: AddItemsRequest
-):
+async def add_items_to_collection(collection: str, request: AddItemsRequest):
     """
     Agregar items con embeddings a una colección.
 
@@ -105,15 +117,14 @@ async def add_items_to_collection(
         # Validar longitudes
         if len(request.ids) != len(request.texts):
             raise HTTPException(
-                status_code=400,
-                detail="IDs y textos deben tener la misma longitud"
+                status_code=400, detail="IDs y textos deben tener la misma longitud"
             )
 
         # Validar metadatos si se proporcionan
         if request.metadatas and len(request.metadatas) != len(request.texts):
             raise HTTPException(
                 status_code=400,
-                detail="Metadatos deben tener la misma longitud que textos"
+                detail="Metadatos deben tener la misma longitud que textos",
             )
 
         # Agregar items
@@ -121,14 +132,14 @@ async def add_items_to_collection(
             collection_name=collection,
             ids=request.ids,
             texts=request.texts,
-            metadatas=request.metadatas
+            metadatas=request.metadatas,
         )
 
         if success:
             return StandardResponse(
                 success=True,
                 message=f"Agregados {len(request.texts)} items a '{collection}'",
-                data={"collection": collection, "items_added": len(request.texts)}
+                data={"collection": collection, "items_added": len(request.texts)},
             )
         else:
             raise HTTPException(status_code=500, detail="Error agregando items")
@@ -140,11 +151,9 @@ async def add_items_to_collection(
         logger.error(f"Error en add_items_to_collection: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.post("/{collection}/query")
-async def query_collection(
-    collection: str,
-    request: QueryRequest
-):
+async def query_collection(collection: str, request: QueryRequest):
     """
     Buscar items similares por contenido semántico.
 
@@ -160,38 +169,34 @@ async def query_collection(
 
         # Validar que query_text no esté vacío
         if not request.query_text.strip():
-            raise HTTPException(
-                status_code=422,
-                detail="Query text cannot be empty"
-            )
+            raise HTTPException(status_code=422, detail="Query text cannot be empty")
 
         results = query_similar(
             collection_name=collection,
             query_text=request.query_text,
             n_results=request.n_results,
-            where=request.where
+            where=request.where,
         )
 
         # Formatear resultados para respuesta
         formatted_results = []
 
-        if results['ids'][0]:  # Si hay resultados
-            for i, (doc_id, document, distance) in enumerate(zip(
-                results['ids'][0],
-                results['documents'][0], 
-                results['distances'][0]
-            )):
+        if results["ids"][0]:  # Si hay resultados
+            for i, (doc_id, document, distance) in enumerate(
+                zip(results["ids"][0], results["documents"][0], results["distances"][0])
+            ):
                 result_item = {
                     "rank": i + 1,
                     "id": doc_id,
                     "document": document,
-                    "similarity_score": 1.0 - distance,  # Convertir distancia a similitud
-                    "distance": distance
+                    "similarity_score": 1.0
+                    - distance,  # Convertir distancia a similitud
+                    "distance": distance,
                 }
 
                 # Agregar metadatos si existen
-                if results['metadatas'][0] and i < len(results['metadatas'][0]):
-                    result_item["metadata"] = results['metadatas'][0][i]
+                if results["metadatas"][0] and i < len(results["metadatas"][0]):
+                    result_item["metadata"] = results["metadatas"][0][i]
 
                 formatted_results.append(result_item)
 
@@ -200,7 +205,7 @@ async def query_collection(
             "query": request.query_text,
             "collection": collection,
             "total_results": len(formatted_results),
-            "results": formatted_results
+            "results": formatted_results,
         }
 
     except HTTPException:
@@ -210,11 +215,9 @@ async def query_collection(
         logger.error(f"Error en query_collection: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.put("/{collection}/update", response_model=StandardResponse)
-async def update_collection_item(
-    collection: str,
-    request: UpdateItemRequest
-):
+async def update_collection_item(collection: str, request: UpdateItemRequest):
     """
     Actualizar un item existente en la colección.
 
@@ -232,14 +235,14 @@ async def update_collection_item(
             collection_name=collection,
             item_id=request.item_id,
             new_text=request.new_text,
-            new_metadata=request.new_metadata
+            new_metadata=request.new_metadata,
         )
 
         if success:
             return StandardResponse(
                 success=True,
                 message=f"Item {request.item_id} actualizado en '{collection}'",
-                data={"collection": collection, "updated_id": request.item_id}
+                data={"collection": collection, "updated_id": request.item_id},
             )
         else:
             raise HTTPException(status_code=500, detail="Error actualizando item")
@@ -248,11 +251,9 @@ async def update_collection_item(
         logger.error(f"Error en update_collection_item: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.delete("/{collection}/delete", response_model=StandardResponse)
-async def delete_collection_items(
-    collection: str,
-    request: DeleteItemsRequest
-):
+async def delete_collection_items(collection: str, request: DeleteItemsRequest):
     """
     Eliminar items de una colección.
 
@@ -266,16 +267,13 @@ async def delete_collection_items(
     try:
         logger.info(f"Eliminando {len(request.ids)} items de '{collection}'")
 
-        success = delete_items(
-            collection_name=collection,
-            ids=request.ids
-        )
+        success = delete_items(collection_name=collection, ids=request.ids)
 
         if success:
             return StandardResponse(
                 success=True,
                 message=f"Eliminados {len(request.ids)} items de '{collection}'",
-                data={"collection": collection, "deleted_count": len(request.ids)}
+                data={"collection": collection, "deleted_count": len(request.ids)},
             )
         else:
             raise HTTPException(status_code=500, detail="Error eliminando items")
@@ -283,6 +281,7 @@ async def delete_collection_items(
     except Exception as e:
         logger.error(f"Error en delete_collection_items: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/{collection}/stats")
 async def get_collection_statistics(collection: str):
@@ -300,15 +299,12 @@ async def get_collection_statistics(collection: str):
 
         stats = get_collection_stats(collection_name=collection)
 
-        return {
-            "success": True,
-            "collection": collection,
-            "statistics": stats
-        }
+        return {"success": True, "collection": collection, "statistics": stats}
 
     except Exception as e:
         logger.error(f"Error en get_collection_statistics: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 # Endpoint adicional para listar colecciones disponibles
 @router.get("/collections")
@@ -329,23 +325,23 @@ async def list_collections():
         for col in collections:
             try:
                 stats = get_collection_stats(col.name)
-                collection_info.append({
-                    "name": col.name,
-                    "count": stats["count"],
-                    "metadata": col.metadata
-                })
+                collection_info.append(
+                    {
+                        "name": col.name,
+                        "count": stats["count"],
+                        "metadata": col.metadata,
+                    }
+                )
             except Exception as e:
                 logger.warning(f"Error obteniendo stats de {col.name}: {e}")
-                collection_info.append({
-                    "name": col.name,
-                    "count": "unknown",
-                    "metadata": col.metadata
-                })
+                collection_info.append(
+                    {"name": col.name, "count": "unknown", "metadata": col.metadata}
+                )
 
         return {
             "success": True,
             "total_collections": len(collection_info),
-            "collections": collection_info
+            "collections": collection_info,
         }
 
     except Exception as e:
