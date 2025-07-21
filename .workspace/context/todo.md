@@ -159,8 +159,8 @@
     ✅ 1.1.2.1 Instalar python-jose y passlib para JWT y passwords
     ✅ 1.1.2.2 Crear utilities para hash/verify passwords con bcrypt
     ✅ 1.1.2.3 Implementar create/verify JWT tokens con refresh
-    ⬜ 1.1.2.4 Crear dependency get_current_user para endpoints
-    ⬜ 1.1.2.5 Implementar role-based access (superuser, admin, cliente, comprador)
+    ✅ 1.1.2.4 Crear dependency get_current_user para endpoints
+    ✅ 1.1.2.5 Implementar role-based access (superuser, admin, cliente, comprador)
     ⬜ 1.1.2.6 Crear endpoints /login, /refresh-token, /logout
 ⬜ 1.1.3 Implementar middleware de seguridad
     ⬜ 1.1.3.1 Configurar middleware HTTPS redirect y security headers

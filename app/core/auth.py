@@ -151,3 +151,29 @@ def require_user_type(*allowed_types: str):
        return current_user
    
    return check_user_type
+
+
+# Dependencias específicas para cada rol
+require_superuser = require_user_type("SUPERUSER")
+require_superuser.__doc__ = """
+Dependency para endpoints que requieren acceso de SUPERUSER.
+Uso: current_user: dict = Depends(require_superuser)
+"""
+
+require_admin = require_user_type("ADMIN")
+require_admin.__doc__ = """
+Dependency para endpoints que requieren acceso de ADMIN.
+Uso: current_user: dict = Depends(require_admin)
+"""
+
+require_comprador = require_user_type("COMPRADOR")
+require_comprador.__doc__ = """
+Dependency para endpoints que requieren acceso de COMPRADOR.
+Uso: current_user: dict = Depends(require_comprador)
+"""
+
+require_vendedor = require_user_type("VENDEDOR")
+require_vendedor.__doc__ = """
+Dependency para endpoints que requieren acceso de VENDEDOR.
+Uso: current_user: dict = Depends(require_vendedor)
+"""

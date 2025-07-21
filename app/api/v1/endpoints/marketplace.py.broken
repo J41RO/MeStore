@@ -39,12 +39,43 @@ async def marketplace_health():
     return {
         "module": "marketplace",
         "status": "healthy",
-        "services": {
-            "products": "operational",
+    "services": {
+            "products": "operational", 
             "categories": "operational",
             "sellers": "operational",
             "transactions": "operational"
         }
+    }  # ← Esta línea necesita agregarse
+
+@router.get("/protected/admin")
+async def admin_only_endpoint(
+    current_user: dict = Depends(require_user_type("ADMIN", "SUPERUSER"))
+):
+    """
+    Endpoint de ejemplo accesible solo para ADMIN y SUPERUSER.
+    Demuestra el uso de múltiples roles permitidos.
+    """
+    return {
+        "message": "Admin access granted",
+        "user_type": current_user["user_type"],
+        "user_email": current_user["email"],
+        "admin_features": ["user_management", "system_config", "reports"]
+    }
+
+@router.get("/protected/superuser")
+async def superuser_only_endpoint(
+    current_user: dict = Depends(require_user_type("SUPERUSER"))
+):
+    """
+    Endpoint de ejemplo accesible solo para SUPERUSER.
+    Demuestra el control de acceso más restrictivo.
+    """
+    return {
+        "message": "Superuser access granted",
+        "user_type": current_user["user_type"],
+        "user_email": current_user["email"],
+        "superuser_features": ["database_admin", "system_maintenance", "security_config"]
+    }
     }
 
 
@@ -73,6 +104,7 @@ async def sellers_only_endpoint(
         dict: Funcionalidad específica para vendedores
     """
     return {
+        "message": "Welcome seller!",
         "user": current_user,
         "features": ["manage_products", "view_sales", "analytics"]
     }
@@ -92,7 +124,6 @@ async def admin_only_endpoint(
         "user_email": current_user["email"],
         "admin_features": ["user_management", "system_config", "reports"]
     }
-
 
 @router.get("/protected/superuser")
 async def superuser_only_endpoint(
