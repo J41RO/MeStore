@@ -158,7 +158,7 @@
 🔁 1.1.2 Crear sistema de autenticación JWT
     ✅ 1.1.2.1 Instalar python-jose y passlib para JWT y passwords
     ✅ 1.1.2.2 Crear utilities para hash/verify passwords con bcrypt
-    ⬜ 1.1.2.3 Implementar create/verify JWT tokens con refresh
+    ✅ 1.1.2.3 Implementar create/verify JWT tokens con refresh
     ⬜ 1.1.2.4 Crear dependency get_current_user para endpoints
     ⬜ 1.1.2.5 Implementar role-based access (superuser, admin, cliente, comprador)
     ⬜ 1.1.2.6 Crear endpoints /login, /refresh-token, /logout
