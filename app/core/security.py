@@ -90,3 +90,55 @@ def decode_access_token(token: str) -> Union[dict, None]:
         return payload
     except JWTError:
         return None
+
+
+def create_refresh_token(data: dict) -> str:
+   """
+   Crear un token JWT de refresh (larga duración).
+
+   Args:
+       data: Diccionario con los datos a incluir en el token (ej: {"sub": user_email})
+
+   Returns:
+       str: Refresh token JWT firmado
+
+   Example:
+       >>> token = create_refresh_token({"sub": "user@example.com"})
+       >>> len(token) > 100  # Los JWT son largos
+       True
+   """
+   to_encode = data.copy()
+   expire = datetime.now(timezone.utc) + timedelta(
+       minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES
+   )
+   to_encode.update({"exp": expire, "type": "refresh"})
+   encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+   return encoded_jwt
+
+
+def decode_refresh_token(token: str) -> Union[dict, None]:
+   """
+   Decodificar y validar un refresh token JWT.
+
+   Args:
+       token: Refresh token JWT a decodificar
+
+   Returns:
+       dict: Payload del token si es válido y es tipo refresh, None si es inválido o expirado
+
+   Example:
+       >>> token = create_refresh_token({"sub": "user@example.com"})
+       >>> payload = decode_refresh_token(token)
+       >>> payload["sub"]
+       'user@example.com'
+       >>> payload["type"]
+       'refresh'
+   """
+   try:
+       payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        # Verificar que es un refresh token
+       if payload.get("type") != "refresh":
+           return None
+       return payload
+   except JWTError:
+        return None

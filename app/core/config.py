@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     # JWT Configuration - Tarea 1.1.2.1
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 días
 
     class Config:
         env_file = ".env"

@@ -1,98 +1,35 @@
-system:
-  version: 1.6.0
-  created: '2025-07-17T12:31:59.025880'
-  last_updated: '2025-07-18T03:10:03.442765+00:00'
-  last_ai: claude-sonnet-4
-project:
-  name: MeStore
-  type: fullstack
-  description: E-commerce platform with AI agents and vector search
-  technologies:
-    language: python+javascript
-    framework: fastapi+react
-    database: postgresql+chromadb
-    testing: pytest+jest
-    deployment: docker
-structure:
-  root_dir: /home/admin-jairo/MeStore
-  main_file: main.py
-  config_files: []
-  important_dirs: []
-user:
-  name: Jairo
-  email: admin@mestore
-  technical_level: beginner
-  work_mode: solo
-  timezone: America/Bogota
-  communication:
-    language: spanish
-    feedback_mode: detailed
-    explanation_style: technical_only
-    encouragement_frequency: moderate
-    technical_depth: comprehensive
-  workflow:
-    commit_frequency: per_task
-    test_strategy: comprehensive
-    documentation_level: automatic
-    validation_strictness: maximum
-  modes:
-    ultra_didactic_mode: false
-    minimal_explanations: false
-    commands_only: false
-    show_reasoning: true
-    auto_suggestions: true
-  learning:
-    track_progress: true
-    learned_concepts: []
-    skill_evolution: {}
-    preferred_learning_style: hands_on
-  code_analysis_preferences:
-    auto_suggest_analysis: true
-    quality_gate_strictness: moderate
-    security_focus: true
-    performance_monitoring: true
-    coverage_threshold: 80
-    max_complexity_warning: 10
-    max_file_lines_warning: 200
-  hybrid_memory:
-    local_memory_enabled: true
-    api_enrichment_enabled: false
-    enrichment_triggers:
-      complexity_threshold: high
-      message_length_threshold: 500
-      importance_keywords:
-      - important
-      - remember
-      - crítico
-    consolidation_schedule: nightly
-  model_preferences:
-    local_model_enabled: false
-    preferred_local_model: not_configured
-    api_fallback_enabled: false
-    model_routing_strategy: local_first
-status:
-  current_task: '0.2.3.3 Crear colecciones base para agentes: products, docs, chat'
-  task_status: ready_to_start
-  last_commit: 'efc19e2 feat: Tarea 0.2.3 - ChromaDB Setup Completado ✅ CHROMADB Y
-    VECTOR SEARCH IMPLEMENTADO: - ChromaDB 1.0.15 con persistencia local en ./data/chroma
-    - SentenceTransformers 5.0.0 con modelo all-MiniLM-L6-v2 - Cliente ChromaDB singleton
-    con colecciones base (products, documents, chat) - Servicio completo de embeddings
-    con CRUD operations - API REST con 6 endpoints: add, query, update, delete, stats,
-    collections'
-  branch: feature/0.2.2.2-redis-async
-  next_session_action: Continuar con 0.2.3.3 - Crear colecciones base para agentes
-  testing_status: chromadb_persistence_verified
-  phase_completed: 0.2.3.2 - ChromaDB Client Setup
+environment:
+  docker_available: false
+  git_configured: false
+  node_version: not_detected
+  os: unix
+  python_version: Python 3.11.9
+  virtual_env: not_detected
+learning:
+  avoided_mistakes: []
+  patterns_detected: []
+  preventive_rules: []
+  success_techniques: []
 modules:
-  education: true
-  validation: true
-  documentation: true
   context: true
+  documentation: true
+  education: true
   error_detection: true
   error_learning: true
   hybrid_memory: true
   quality_analysis: true
   recovery: true
+  validation: true
+project:
+  description: E-commerce platform with AI agents and vector search
+  name: MeStore
+  technologies:
+    database: postgresql+chromadb
+    deployment: docker
+    framework: fastapi+react
+    language: python+javascript
+    testing: pytest+jest
+  type: fullstack
 scripts:
   available:
   - session_recovery.sh
@@ -100,31 +37,92 @@ scripts:
   - context_validator.sh
   - project_sync_check.sh
   - pre_commit_validation.sh
-environment:
-  os: unix
-  python_version: Python 3.11.9
-  node_version: not_detected
-  docker_available: false
-  git_configured: false
-  virtual_env: not_detected
-workspace:
-  setup_completed: true
-  files_created: true
-  project_detected: true
-  dependencies_installed: false
-  error_knowledge_created: true
-  hybrid_memory_configured: true
-  scripts_generated: true
 sessions:
-  total_sessions: 0
-  total_commands: 0
-  last_session_duration: ''
   avg_session_tasks: 0
+  error_resolution_rate: 0
+  last_session_duration: ''
+  total_commands: 0
   total_errors_encountered: 0
   total_errors_resolved: 0
-  error_resolution_rate: 0
-learning:
-  patterns_detected: []
-  preventive_rules: []
-  success_techniques: []
-  avoided_mistakes: []
+  total_sessions: 0
+status:
+  branch: feature/0.2.2.2-redis-async
+  current_task: 1.1.2.3 - Crear servicio de autenticación JWT
+  last_commit: Password utilities refactor completado
+  last_completed: 1.1.2.2 - Password utilities refactor
+  last_updated: '2025-07-21T12:05:45.218116'
+  next_session_action: Continuar con 0.2.3.3 - Crear colecciones base para agentes
+  phase_completed: 0.2.3.2 - ChromaDB Client Setup
+  task_status: ready_to_start
+  testing_status: chromadb_persistence_verified
+  tests_status: 5 tests pasando, coverage 100% password.py
+structure:
+  config_files: []
+  important_dirs: []
+  main_file: main.py
+  root_dir: /home/admin-jairo/MeStore
+system:
+  created: '2025-07-17T12:31:59.025880'
+  last_ai: claude-sonnet-4
+  last_updated: '2025-07-18T03:10:03.442765+00:00'
+  version: 1.6.0
+user:
+  code_analysis_preferences:
+    auto_suggest_analysis: true
+    coverage_threshold: 80
+    max_complexity_warning: 10
+    max_file_lines_warning: 200
+    performance_monitoring: true
+    quality_gate_strictness: moderate
+    security_focus: true
+  communication:
+    encouragement_frequency: moderate
+    explanation_style: technical_only
+    feedback_mode: detailed
+    language: spanish
+    technical_depth: comprehensive
+  email: admin@mestore
+  hybrid_memory:
+    api_enrichment_enabled: false
+    consolidation_schedule: nightly
+    enrichment_triggers:
+      complexity_threshold: high
+      importance_keywords:
+      - important
+      - remember
+      - crítico
+      message_length_threshold: 500
+    local_memory_enabled: true
+  learning:
+    learned_concepts: []
+    preferred_learning_style: hands_on
+    skill_evolution: {}
+    track_progress: true
+  model_preferences:
+    api_fallback_enabled: false
+    local_model_enabled: false
+    model_routing_strategy: local_first
+    preferred_local_model: not_configured
+  modes:
+    auto_suggestions: true
+    commands_only: false
+    minimal_explanations: false
+    show_reasoning: true
+    ultra_didactic_mode: false
+  name: Jairo
+  technical_level: beginner
+  timezone: America/Bogota
+  work_mode: solo
+  workflow:
+    commit_frequency: per_task
+    documentation_level: automatic
+    test_strategy: comprehensive
+    validation_strictness: maximum
+workspace:
+  dependencies_installed: false
+  error_knowledge_created: true
+  files_created: true
+  hybrid_memory_configured: true
+  project_detected: true
+  scripts_generated: true
+  setup_completed: true
