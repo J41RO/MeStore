@@ -29,8 +29,26 @@ Proporciona funcionalidades de embeddings y búsqueda semántica:
 - Gestión de colecciones por categoría
 """
 
-from typing import List, Dict, Any, Optional
-from sentence_transformers import SentenceTransformer
+from typing import List, Dict, Any, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    # Solo para type hints, no se importa en runtime
+    from sentence_transformers import SentenceTransformer
+# Lazy import: sentence_transformers se importará cuando se necesite
+
+
+def _get_sentence_transformer():
+    """Lazy import de SentenceTransformer para evitar conflictos de PyTorch."""
+    try:
+        from sentence_transformers import SentenceTransformer
+        return SentenceTransformer
+    except ImportError as e:
+        raise ImportError(f"sentence_transformers not available: {e}")
+    except RuntimeError as e:
+        # Capturar error específico de PyTorch docstring
+        if "docstring" in str(e):
+            raise RuntimeError(f"PyTorch docstring conflict: {e}. Try upgrading PyTorch or use Docker environment.")
+        raise
 from app.core.chromadb import get_chroma_client, initialize_base_collections
 import logging
 
@@ -39,7 +57,7 @@ logger = logging.getLogger(__name__)
 # Modelo global de embeddings (singleton pattern)
 _embedding_model = None
 
-def get_embedding_model() -> SentenceTransformer:
+def get_embedding_model() -> 'SentenceTransformer':
     """
     # Early return si no hay cambios que hacer
     if new_text is None and new_metadata is None:
@@ -52,14 +70,14 @@ def get_embedding_model() -> SentenceTransformer:
 
     Raises:
         Exception: Si ocurre error durante la actualización
-        SentenceTransformer: Modelo listo para generar embeddings
+        object: Modelo de embeddings listo para generar vectores
     """
     global _embedding_model
 
     if _embedding_model is None:
         logger.info("Cargando modelo de embeddings: all-MiniLM-L6-v2")
         try:
-            _embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+            _embedding_model = _get_sentence_transformer()("all-MiniLM-L6-v2")
             logger.info("Modelo de embeddings cargado exitosamente")
         except Exception as e:
             logger.error(f"Error cargando modelo de embeddings: {e}")

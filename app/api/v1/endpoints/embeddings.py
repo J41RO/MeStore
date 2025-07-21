@@ -169,7 +169,7 @@ async def query_collection(collection: str, request: QueryRequest):
 
         # Validar que query_text no esté vacío
         if not request.query_text.strip():
-            raise HTTPException(status_code=422, detail="Query text cannot be empty")
+            raise InvalidEmbeddingPayloadException("Query text cannot be empty")
 
         results = query_similar(
             collection_name=collection,
@@ -180,6 +180,10 @@ async def query_collection(collection: str, request: QueryRequest):
 
         # Formatear resultados para respuesta
         formatted_results = []
+
+        # Verificar si no hay resultados y lanzar excepción personalizada
+        if not results["ids"][0]:
+            raise EmbeddingNotFoundException(f"No se encontraron embeddings similares para la consulta en la colección '{collection}'")
 
         if results["ids"][0]:  # Si hay resultados
             for i, (doc_id, document, distance) in enumerate(
