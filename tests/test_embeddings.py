@@ -136,20 +136,24 @@ def sample_metadatas():
 class TestGetEmbeddingModel:
     """Tests para la función get_embedding_model()."""
 
-    @patch('app.services.embeddings.SentenceTransformer')
-    def test_get_embedding_model_first_call_success(self, mock_st_class, mock_sentence_transformer):
+    @patch("app.services.embeddings._get_sentence_transformer")
+    def test_get_embedding_model_first_call_success(self, mock_get_transformer):
         """Test: Primera llamada carga el modelo exitosamente."""
-        # Arrange
-        mock_st_class.return_value = mock_sentence_transformer
+        # Arrange - mock debe retornar clase que cuando se llama retorna instancia
+        mock_transformer_class = Mock()
+        mock_instance = Mock()
+        mock_transformer_class.return_value = mock_instance
+        mock_get_transformer.return_value = mock_transformer_class
 
         # Act
         model = get_embedding_model()
 
         # Assert
-        assert model is mock_sentence_transformer
-        mock_st_class.assert_called_once_with('all-MiniLM-L6-v2')
+        assert model is mock_instance
+        mock_get_transformer.assert_called_once()
+        mock_transformer_class.assert_called_once_with("all-MiniLM-L6-v2")
 
-    @patch('app.services.embeddings.SentenceTransformer')
+    @patch("app.services.embeddings._get_sentence_transformer")
     def test_get_embedding_model_singleton_behavior(self, mock_st_class, mock_sentence_transformer):
         """Test: Llamadas subsecuentes retornan la misma instancia (singleton)."""
         # Arrange
@@ -163,7 +167,7 @@ class TestGetEmbeddingModel:
         assert model1 is model2
     # Test del comportamiento singleton (sin verificar mock por conflicto con fixture)
 
-    @patch('app.services.embeddings.SentenceTransformer')
+    @patch("app.services.embeddings._get_sentence_transformer")
     @patch('app.services.embeddings.logger')
     def test_get_embedding_model_loading_error(self, mock_logger, mock_st_class):
         """Test: Error al cargar el modelo se propaga correctamente."""
@@ -515,7 +519,7 @@ class TestEmbeddingsIntegration:
 
     @patch('app.services.embeddings.initialize_base_collections')
     @patch('app.services.embeddings.get_chroma_client')
-    @patch('app.services.embeddings.SentenceTransformer')
+    @patch("app.services.embeddings._get_sentence_transformer")
     def test_full_workflow_simulation(self, mock_st_class, mock_get_client, mock_init,
                                     mock_chroma_client, sample_texts, sample_metadatas):
         """Test: Flujo completo de agregar → consultar → actualizar → eliminar."""
@@ -557,7 +561,7 @@ class TestEmbeddingsIntegration:
         assert delete_items('products', ['2', '3']) is True
 
     @patch('app.services.embeddings.get_chroma_client')
-    @patch('app.services.embeddings.SentenceTransformer')
+    @patch("app.services.embeddings._get_sentence_transformer")
     def test_error_propagation_workflow(self, mock_st_class, mock_get_client):
         """Test: Propagación correcta de errores en flujo de trabajo."""
         # Arrange - Cliente que falla
