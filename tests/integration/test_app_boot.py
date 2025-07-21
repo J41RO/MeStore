@@ -154,8 +154,8 @@ class TestRouterIntegration:
         """Test de metadatos de la aplicación FastAPI."""
         # Verificar que la app tiene la configuración correcta
         from app.main import app
-        assert app.title == "MeStore API"
-        assert app.description == "API para gestión de tienda online"
+        assert app.title == "MeStore API - Fulfillment & Marketplace Colombia"
+        assert "API pública de MeStore para gestión de productos" in app.description
         assert app.version == "1.0.0"
 
     def test_middleware_configuration(self):

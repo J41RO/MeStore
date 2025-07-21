@@ -41,7 +41,7 @@ from app.core.database import get_db
 # Configurar logger estructurado para health checks
 logger = structlog.get_logger("health_check")
 
-router = APIRouter(tags=["health-simple"])
+router = APIRouter(tags=["health"])
 
 @router.get("/health", summary="Basic Health Check", description="Always returns 200 OK if application is alive")
 async def health_check() -> Dict[str, str]:

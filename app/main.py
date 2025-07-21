@@ -12,10 +12,32 @@ from app.core.logging_rotation import setup_log_rotation
 from app.middleware import RequestLoggingMiddleware
 from app.models.user import User
 
+# Metadata para categorización de endpoints
+tags_metadata = [
+    {"name": "health", "description": "Monitoreo de estado y readiness del sistema"},
+    {"name": "embeddings", "description": "Gestión de búsquedas vectoriales"},
+    {"name": "logs", "description": "Consulta de eventos y errores"},
+    {"name": "marketplace", "description": "Interacción con productos y vendedores"},
+    {"name": "agents", "description": "Gestión de agentes inteligentes IA"},
+]
+
 app = FastAPI(
-    title="MeStore API",
-    description="API para gestión de tienda online",
+    title="MeStore API - Fulfillment & Marketplace Colombia",
+    description="""API pública de MeStore para gestión de productos, IA, salud del sistema y agentes autónomos.
+
+🏗️ ENTORNOS CONFIGURADOS:
+   🐍 Backend: Python 3.11 + FastAPI (http://192.168.1.137:8000) ✅
+   ⚛️ Frontend: Node.js 20 + React+TS (http://192.168.1.137:5173) ✅
+
+📚 Documentación disponible en:
+   • Swagger UI: http://192.168.1.137:8000/docs
+   • ReDoc: http://192.168.1.137:8000/redoc
+   • OpenAPI Schema: http://192.168.1.137:8000/openapi.json""",
     version="1.0.0",
+    openapi_tags=tags_metadata,
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json"
 )
 
 # Registrar exception handlers

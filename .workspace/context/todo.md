@@ -153,8 +153,8 @@
     ✅ 1.1.1.2 Implementar router modular para fulfillment, marketplace, agentes
     ✅ 1.1.1.3 Configurar dependencias globales (database, redis, auth)
     ✅ 1.1.1.4 Crear estructura app/api/v1/ con versioning de API
-    ⬜ 1.1.1.5 Implementar exception handlers personalizados
-    ⬜ 1.1.1.6 Configurar metadata de API (title, description, docs)
+    ✅ 1.1.1.5 Implementar exception handlers personalizados
+    ✅ 1.1.1.6 Configurar metadata de API (title, description, docs)
 ⬜ 1.1.2 Crear sistema de autenticación JWT
     ⬜ 1.1.2.1 Instalar python-jose y passlib para JWT y passwords
     ⬜ 1.1.2.2 Crear utilities para hash/verify passwords con bcrypt

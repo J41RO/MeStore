@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 
 from app.core.logger import get_logger
 
-router = APIRouter()
+router = APIRouter(tags=["logs"])
 logger = get_logger("app.api.logs")
 
 

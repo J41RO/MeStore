@@ -51,7 +51,7 @@ from app.services.embeddings import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/embeddings", tags=["Vector Search"])
+router = APIRouter(prefix="/embeddings", tags=["embeddings"])
 
 # Modelos Pydantic para requests/responses
 

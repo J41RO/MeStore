@@ -77,4 +77,4 @@ def test_openapi_schema():
     schema = response.json()
     assert "openapi" in schema
     assert "info" in schema
-    assert schema["info"]["title"] == "MeStore API"
+    assert schema["info"]["title"] == "MeStore API - Fulfillment & Marketplace Colombia"
