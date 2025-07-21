@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     TESTING: bool = False
     SECRET_KEY: str = "dev-secret-key-change-in-production"
 
+    # JWT Configuration - Tarea 1.1.2.1
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+
     class Config:
         env_file = ".env"
 
