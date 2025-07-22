@@ -79,7 +79,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
         # Solo agregar headers en producción
         if self.is_production and self.enable_in_production:
-            self._add_security_headers(response)
+            self._add_security_headers(response, request.url.path)
 
             # Log para debugging en producción
             logger.debug(
@@ -88,7 +88,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
         return response
 
-    def _add_security_headers(self, response: Response) -> None:
+    def _add_security_headers(self, response: Response, request_path: str = "") -> None:
         """
         Agrega todos los headers de seguridad estándar.
 
@@ -114,11 +114,19 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "geolocation=(), camera=(), microphone=()"
         )
 
-        # Content Security Policy básico (puede expandirse)
-        response.headers["Content-Security-Policy"] = (
-            "default-src 'self'; script-src 'self' 'unsafe-inline'; "
-            "style-src 'self' 'unsafe-inline'; img-src 'self' data:"
-        )
+        # Content Security Policy - Protección XSS con exclusiones
+        # Excluir rutas de documentación que requieren scripts inline
+        # request_path ya se pasa como parámetro
+        excluded_paths = ["/docs", "/redoc", "/openapi.json"]
+        
+        if not any(request_path.startswith(path) for path in excluded_paths):
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'self'; "
+                "script-src 'self' 'unsafe-inline'; "
+                "object-src 'none'; "
+                "base-uri 'none'; "
+                "frame-ancestors 'none'"
+            )
 
 
 def get_security_middleware_config() -> dict:

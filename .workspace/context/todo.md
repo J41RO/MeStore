@@ -162,7 +162,7 @@
     ✅ 1.1.2.4 Crear dependency get_current_user para endpoints
     ✅ 1.1.2.5 Implementar role-based access (superuser, admin, vendedor, comprador)
     ✅ 1.1.2.6 Crear endpoints /login, /refresh-token, /logout
-🔁 1.1.3 Implementar middleware de seguridad
+✅ 1.1.3 Implementar middleware de seguridad
     ✅ 1.1.3.1 Configurar middleware HTTPS redirect y security headers
     ✅ 1.1.3.2 Implementar rate limiting por IP y usuario
     ✅ 1.1.3.3 Crear middleware de logging de requests/responses

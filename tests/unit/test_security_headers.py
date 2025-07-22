@@ -74,7 +74,7 @@ class TestSecurityHeadersMiddleware:
             "x-content-type-options": "nosniff",
             "referrer-policy": "no-referrer",
             "permissions-policy": "geolocation=(), camera=(), microphone=()",
-            "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
+            "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
         }
 
         for header_name, expected_value in expected_headers.items():
@@ -228,6 +228,79 @@ class TestHTTPSRedirectIntegration:
 
         # Nota: TestClient siempre usa HTTPS, por lo que no podemos testear 
         # la redirección real aquí. Esto se testea en tests de integración.
+
+
+
+    # Tests CSP deben estar aquí (nivel 0, sin indentación de clase)
+    @patch("app.middleware.security.settings.ENVIRONMENT", "production")
+    def test_csp_header_included_in_api_routes(self, mock_app):
+        """Test que CSP se incluye en rutas de API en producción."""
+        mock_app.add_middleware(SecurityHeadersMiddleware)
+        client = TestClient(mock_app)
+        response = client.get("/test")
+        assert response.status_code == 200
+        assert "Content-Security-Policy" in response.headers
+        csp_value = response.headers["Content-Security-Policy"]
+
+        # Verificar directivas específicas del CSP
+        assert "default-src 'self'" in csp_value
+        assert "script-src 'self' 'unsafe-inline'" in csp_value
+        assert "object-src 'none'" in csp_value
+        assert "base-uri 'none'" in csp_value
+        assert "frame-ancestors 'none'" in csp_value
+
+    @patch("app.middleware.security.settings.ENVIRONMENT", "production")
+    def test_csp_header_excluded_from_docs(self, mock_app):
+        """Test que CSP se excluye de rutas de documentación."""
+        mock_app.add_middleware(SecurityHeadersMiddleware)
+        client = TestClient(mock_app)
+
+        # Test ruta /docs
+        response = client.get("/docs")
+        assert response.status_code == 200
+        assert "Content-Security-Policy" not in response.headers
+
+        # Test ruta /redoc
+        response = client.get("/redoc")
+        assert response.status_code == 200
+        assert "Content-Security-Policy" not in response.headers
+
+        # Test ruta /openapi.json
+        response = client.get("/openapi.json")
+        assert response.status_code == 200
+        assert "Content-Security-Policy" not in response.headers
+
+    @patch("app.middleware.security.settings.ENVIRONMENT", "development")
+    def test_csp_header_not_included_in_development(self, mock_app):
+        """Test que CSP no se incluye en desarrollo."""
+        mock_app.add_middleware(SecurityHeadersMiddleware)
+        client = TestClient(mock_app)
+
+        response = client.get("/test")
+
+        assert response.status_code == 200
+        assert "Content-Security-Policy" not in response.headers
+
+    @patch("app.middleware.security.settings.ENVIRONMENT", "production")
+    def test_csp_exact_value_in_production(self, mock_app):
+        """Test que el valor exacto del CSP es correcto en producción."""
+        mock_app.add_middleware(SecurityHeadersMiddleware)
+        client = TestClient(mock_app)
+
+        response = client.get("/test")
+
+        expected_csp = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline'; "
+            "object-src 'none'; "
+            "base-uri 'none'; "
+            "frame-ancestors 'none'"
+        )
+
+        assert response.status_code == 200
+        assert "Content-Security-Policy" in response.headers
+        assert response.headers["Content-Security-Policy"] == expected_csp
+
 
 
 if __name__ == "__main__":
