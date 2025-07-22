@@ -170,8 +170,8 @@
     ✅ 1.1.3.5 Configurar CSP headers para XSS protection
     ✅ 1.1.3.6 Crear middleware de detección de IPs sospechosas
 ⬜ 1.1.4 Configurar CORS para React frontend
-    ⬜ 1.1.4.1 Instalar fastapi-cors y configurar origins permitidos
-    ⬜ 1.1.4.2 Configurar CORS para desarrollo (localhost:3000)
+    ✅ 1.1.4.1 Instalar fastapi-cors y configurar origins permitidos
+    ✅ 1.1.4.2 Configurar CORS para desarrollo (192.168.1.137:3000)
     ⬜ 1.1.4.3 Configurar CORS para producción (mestocker.com)
     ⬜ 1.1.4.4 Permitir credentials y headers específicos
     ⬜ 1.1.4.5 Configurar métodos HTTP permitidos (GET, POST, PUT, DELETE)

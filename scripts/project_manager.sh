@@ -26,7 +26,7 @@ PROJECT_DIR="/home/admin-jairo/MeStore"
 BACKEND_PORT=8000
 FRONTEND_PORT=5173
 BACKEND_HOST="192.168.1.137"
-FRONTEND_HOST="localhost"
+FRONTEND_HOST="192.168.1.137"
 
 # PID files para tracking
 BACKEND_PID_FILE="/tmp/mestocker_backend.pid"

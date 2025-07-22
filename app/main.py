@@ -16,6 +16,10 @@ from app.api.v1 import api_router
 from app.api.v1.handlers.exceptions import register_exception_handlers
 from app.core.auth import auth_service
 from app.core.config import settings
+
+# Procesar configuración CORS
+cors_origins = [origin.strip() for origin in settings.CORS_ORIGINS.split(",")]
+cors_methods = [method.strip() for method in settings.CORS_ALLOW_METHODS.split(",")]
 from app.core.database import get_db
 from app.core.logger import get_logger, log_error, log_shutdown_info, log_startup_info
 from app.core.logging_rotation import setup_log_rotation
@@ -102,9 +106,9 @@ app.add_middleware(RequestLoggingMiddleware)
 # 5. CORS Middleware (al final)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://192.168.1.137:5173"],
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=cors_origins,
+    allow_credentials=settings.CORS_ALLOW_CREDENTIALS,
+    allow_methods=cors_methods,
     allow_headers=["*"],
 )
 
