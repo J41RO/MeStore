@@ -1,3 +1,4 @@
+# Ruta: MeStore/app/api/v1/endpoints/auth.py
 """
 Endpoints de autenticación JWT para la API v1.
 

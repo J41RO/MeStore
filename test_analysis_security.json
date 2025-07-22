@@ -1,0 +1,195 @@
+{
+  "main_file": {
+    "file_path": "/home/admin-jairo/MeStore/app/middleware/security.py",
+    "relative_path": "app/middleware/security.py",
+    "local_imports": [
+      "app.core.config",
+      "app.core.logger"
+    ],
+    "external_imports": [
+      "fastapi",
+      "starlette.middleware.base",
+      "typing"
+    ],
+    "missing_local_files": [],
+    "suggested_test_path": {
+      "option_1": "/home/admin-jairo/MeStore/tests/test_security.py",
+      "option_2": "/home/admin-jairo/MeStore/app/middleware/test_security.py",
+      "recommended": "/home/admin-jairo/MeStore/tests/test_security.py"
+    },
+    "detected_frameworks": [
+      "fastapi"
+    ],
+    "domain_type": "web_middleware",
+    "edge_cases": [
+      "Valores límite y rangos",
+      "Operaciones asíncronas y timeouts"
+    ],
+    "performance_considerations": [
+      "Operaciones asíncronas - testear timeouts y concurrencia"
+    ],
+    "error_patterns": [],
+    "integration_points": [],
+    "testing_strategies": [
+      "Tests de middleware con requests simulados",
+      "Verificación de headers y modificación de request/response",
+      "Tests de performance con carga simulada",
+      "Tests parametrizados para casos edge"
+    ]
+  },
+  "related_files": [
+    "/home/admin-jairo/MeStore/app/core/config.py",
+    "/home/admin-jairo/MeStore/app/core/logger.py",
+    "/home/admin-jairo/MeStore/app/middleware/security.py"
+  ],
+  "files_analysis": {
+    "/home/admin-jairo/MeStore/app/core/config.py": {
+      "file_path": "/home/admin-jairo/MeStore/app/core/config.py",
+      "relative_path": "app/core/config.py",
+      "local_imports": [],
+      "external_imports": [
+        "pydantic_settings"
+      ],
+      "missing_local_files": [],
+      "suggested_test_path": {
+        "option_1": "/home/admin-jairo/MeStore/tests/test_config.py",
+        "option_2": "/home/admin-jairo/MeStore/app/core/test_config.py",
+        "recommended": "/home/admin-jairo/MeStore/tests/test_config.py"
+      },
+      "detected_frameworks": [
+        "config",
+        "validation"
+      ],
+      "domain_type": "general",
+      "edge_cases": [],
+      "performance_considerations": [
+        "Operaciones asíncronas - testear timeouts y concurrencia"
+      ],
+      "error_patterns": [],
+      "integration_points": [],
+      "testing_strategies": []
+    },
+    "/home/admin-jairo/MeStore/app/core/logger.py": {
+      "file_path": "/home/admin-jairo/MeStore/app/core/logger.py",
+      "relative_path": "app/core/logger.py",
+      "local_imports": [
+        "app.core.config"
+      ],
+      "external_imports": [
+        "inspect",
+        "logging",
+        "loguru",
+        "structlog",
+        "structlog.typing",
+        "sys",
+        "typing"
+      ],
+      "missing_local_files": [],
+      "suggested_test_path": {
+        "option_1": "/home/admin-jairo/MeStore/tests/test_logger.py",
+        "option_2": "/home/admin-jairo/MeStore/app/core/test_logger.py",
+        "recommended": "/home/admin-jairo/MeStore/tests/test_logger.py"
+      },
+      "detected_frameworks": [
+        "logging"
+      ],
+      "domain_type": "general",
+      "edge_cases": [
+        "Valores None/null",
+        "Valores límite y rangos",
+        "Manejo de excepciones"
+      ],
+      "performance_considerations": [
+        "Consultas de base de datos - testear con datos grandes"
+      ],
+      "error_patterns": [],
+      "integration_points": [],
+      "testing_strategies": [
+        "Tests parametrizados para casos edge"
+      ]
+    },
+    "/home/admin-jairo/MeStore/app/middleware/security.py": {
+      "file_path": "/home/admin-jairo/MeStore/app/middleware/security.py",
+      "relative_path": "app/middleware/security.py",
+      "local_imports": [
+        "app.core.config",
+        "app.core.logger"
+      ],
+      "external_imports": [
+        "fastapi",
+        "starlette.middleware.base",
+        "typing"
+      ],
+      "missing_local_files": [],
+      "suggested_test_path": {
+        "option_1": "/home/admin-jairo/MeStore/tests/test_security.py",
+        "option_2": "/home/admin-jairo/MeStore/app/middleware/test_security.py",
+        "recommended": "/home/admin-jairo/MeStore/tests/test_security.py"
+      },
+      "detected_frameworks": [
+        "fastapi"
+      ],
+      "domain_type": "web_middleware",
+      "edge_cases": [
+        "Valores límite y rangos",
+        "Operaciones asíncronas y timeouts"
+      ],
+      "performance_considerations": [
+        "Operaciones asíncronas - testear timeouts y concurrencia"
+      ],
+      "error_patterns": [],
+      "integration_points": [],
+      "testing_strategies": [
+        "Tests de middleware con requests simulados",
+        "Verificación de headers y modificación de request/response",
+        "Tests de performance con carga simulada",
+        "Tests parametrizados para casos edge"
+      ]
+    }
+  },
+  "advanced_analysis": {
+    "edge_cases": [
+      "Manejo de excepciones",
+      "Operaciones asíncronas y timeouts",
+      "Valores None/null",
+      "Valores límite y rangos"
+    ],
+    "performance_considerations": [
+      "Consultas de base de datos - testear con datos grandes",
+      "Operaciones asíncronas - testear timeouts y concurrencia"
+    ],
+    "error_patterns": [],
+    "integration_points": [],
+    "testing_strategies": [
+      "Tests de middleware con requests simulados",
+      "Tests de performance con carga simulada",
+      "Tests parametrizados para casos edge",
+      "Verificación de headers y modificación de request/response"
+    ],
+    "detected_frameworks": [
+      "config",
+      "fastapi",
+      "logging",
+      "validation"
+    ]
+  },
+  "summary": {
+    "total_local_files": 3,
+    "external_dependencies": [
+      "fastapi",
+      "inspect",
+      "logging",
+      "loguru",
+      "pydantic_settings",
+      "starlette.middleware.base",
+      "structlog",
+      "structlog.typing",
+      "sys",
+      "typing"
+    ],
+    "files_to_provide_to_ai": [
+      "/home/admin-jairo/MeStore/app/core/config.py",
+      "/home/admin-jairo/MeStore/app/core/logger.py"
+    ]
+  }
+}

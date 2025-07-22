@@ -1,15 +1,17 @@
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1 import api_router
 from app.api.v1.handlers.exceptions import register_exception_handlers
 from app.core.auth import auth_service
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.logger import get_logger, log_error, log_shutdown_info, log_startup_info
 from app.core.logging_rotation import setup_log_rotation
-from app.middleware import RequestLoggingMiddleware
+from app.middleware import RequestLoggingMiddleware, SecurityHeadersMiddleware
 from app.models.user import User
 
 # Metadata para categorización de endpoints
@@ -54,6 +56,14 @@ app.add_middleware(
 
 # Configurar middleware de logging CORRECTAMENTE
 app.add_middleware(RequestLoggingMiddleware)
+
+# Configurar middlewares de seguridad (solo en producción)
+if settings.ENVIRONMENT.lower() == "production":
+    # HTTPS redirect debe ir ANTES de security headers
+    app.add_middleware(HTTPSRedirectMiddleware)
+
+    # Security headers middleware
+    app.add_middleware(SecurityHeadersMiddleware)
 
 # Registrar routers
 app.include_router(api_router, prefix="/api/v1")

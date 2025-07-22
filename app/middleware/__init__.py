@@ -20,8 +20,10 @@ Modificaciones:
 """
 
 from .logging import RequestLoggingMiddleware
+from .security import SecurityHeadersMiddleware
 
 # Exports públicos del módulo
 __all__ = [
     "RequestLoggingMiddleware",
+    "SecurityHeadersMiddleware",
 ]
