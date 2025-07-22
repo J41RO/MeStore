@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings
+from pydantic import field_validator
 
 
 class Settings(BaseSettings):
@@ -29,6 +30,20 @@ class Settings(BaseSettings):
     # Rate Limiting Configuration
     RATE_LIMIT_AUTHENTICATED_PER_MINUTE: int = 100
     RATE_LIMIT_ANONYMOUS_PER_MINUTE: int = 30
+
+    # Suspicious IP Detection Configuration
+    SUSPICIOUS_IPS: list = []  # Se carga desde variable de entorno
+    ENABLE_IP_BLACKLIST: bool = True
+
+    @field_validator('SUSPICIOUS_IPS', mode='before')
+    @classmethod
+    def parse_suspicious_ips(cls, v):
+        """Parse SUSPICIOUS_IPS from environment variable string to list."""
+        if isinstance(v, str):
+            if not v.strip():
+                return []
+            return [ip.strip() for ip in v.split(',') if ip.strip()]
+        return v or []
 
     # Redis Connection Configuration
     REDIS_HOST: str = "localhost"

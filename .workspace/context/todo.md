@@ -167,8 +167,8 @@
     ✅ 1.1.3.2 Implementar rate limiting por IP y usuario
     ✅ 1.1.3.3 Crear middleware de logging de requests/responses
     ✅ 1.1.3.4 Implementar validación de User-Agent para bots
-    ⬜ 1.1.3.5 Configurar CSP headers para XSS protection
-    ⬜ 1.1.3.6 Crear middleware de detección de IPs sospechosas
+    ✅ 1.1.3.5 Configurar CSP headers para XSS protection
+    ✅ 1.1.3.6 Crear middleware de detección de IPs sospechosas
 ⬜ 1.1.4 Configurar CORS para React frontend
     ⬜ 1.1.4.1 Instalar fastapi-cors y configurar origins permitidos
     ⬜ 1.1.4.2 Configurar CORS para desarrollo (localhost:3000)

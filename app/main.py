@@ -20,6 +20,7 @@ from app.core.database import get_db
 from app.core.logger import get_logger, log_error, log_shutdown_info, log_startup_info
 from app.core.logging_rotation import setup_log_rotation
 from app.middleware import RequestLoggingMiddleware, SecurityHeadersMiddleware, UserAgentValidatorMiddleware
+from app.core.middleware.ip_detection import SuspiciousIPMiddleware
 from app.middleware.rate_limiter import RateLimitMiddleware
 from app.models.user import User
 
@@ -77,6 +78,13 @@ if settings.ENVIRONMENT.lower() == "production":
     app.add_middleware(SecurityHeadersMiddleware)
 
 # 3. Rate Limiting Middleware
+# 4. Suspicious IP Detection Middleware
+app.add_middleware(
+    SuspiciousIPMiddleware,
+    suspicious_ips=settings.SUSPICIOUS_IPS,
+    enable_blacklist=settings.ENABLE_IP_BLACKLIST
+)
+
 app.add_middleware(
     RateLimitMiddleware,
     redis_client=redis_client,
@@ -85,10 +93,10 @@ app.add_middleware(
     window_seconds=60
 )
 
-# 4. User-Agent Validator Middleware
+# 5. User-Agent Validator Middleware
 app.add_middleware(UserAgentValidatorMiddleware)
 
-# 5. Request Logging Middleware
+# 6. Request Logging Middleware
 app.add_middleware(RequestLoggingMiddleware)
 
 # 5. CORS Middleware (al final)
