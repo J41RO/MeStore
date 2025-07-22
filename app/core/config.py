@@ -69,13 +69,13 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 días
 
     # CORS Configuration - Tarea 1.1.4.1
-    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173,http://192.168.1.137:5173,https://mestocker.com"
+    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:8000"
     CORS_ALLOW_CREDENTIALS: bool = True
     CORS_ALLOW_METHODS: str = "GET,POST,PUT,DELETE,PATCH,OPTIONS"
     CORS_ALLOW_HEADERS: str = "*"
 
     class Config:
-        env_file = ".env"
+        env_file = [".env.test", ".env.production", ".env"]
 
 
 settings = Settings()

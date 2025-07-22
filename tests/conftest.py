@@ -7,6 +7,10 @@ Propósito: Fixtures centralizados para FastAPI testing con soporte async
 """
 
 import asyncio
+import os
+# Configurar variables de entorno para testing ANTES de importar app
+os.environ['TESTING'] = 'true'
+os.environ['CORS_ORIGINS'] = 'http://localhost:3000,http://localhost:8000,https://mestocker.com'
 from typing import AsyncGenerator, Generator
 
 import pytest

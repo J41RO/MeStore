@@ -109,8 +109,8 @@ class TestAppBoot:
 
         Verifica que las cabeceras CORS están presentes en las respuestas.
         """
-        response = client.options("/", headers={
-            "Origin": "http://192.168.1.137:5173",
+        response = client.options("/health", headers={
+            "Origin": "http://localhost:3000",
             "Access-Control-Request-Method": "GET"
         })
 
@@ -118,8 +118,8 @@ class TestAppBoot:
         assert response.status_code in [200, 204]
 
         # Test con GET normal para verificar headers
-        response = client.get("/", headers={
-            "Origin": "http://192.168.1.137:5173"
+        response = client.get("/health", headers={
+            "Origin": "http://localhost:3000"
         })
         assert response.status_code == 200
 
