@@ -25,6 +25,15 @@ class Settings(BaseSettings):
 
     # ChromaDB Configuration
     CHROMA_PERSIST_DIR: str = "./data/chroma"
+
+    # Rate Limiting Configuration
+    RATE_LIMIT_AUTHENTICATED_PER_MINUTE: int = 100
+    RATE_LIMIT_ANONYMOUS_PER_MINUTE: int = 30
+
+    # Redis Connection Configuration
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
+    REDIS_DB: int = 0
     DEBUG: bool = True
     ENVIRONMENT: str = "development"  # development, production, testing
 

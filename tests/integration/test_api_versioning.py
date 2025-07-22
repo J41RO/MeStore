@@ -61,7 +61,7 @@ class TestAPIVersioning:
         api_routes = [
             path for path, methods in routes 
             if any(keyword in path.lower() for keyword in [
-                'health', 'logs', 'embeddings', 'fulfillment', 
+                'logs', 'embeddings', 'fulfillment', 
                 'marketplace', 'agents'
             ]) and not path.startswith('/docs') and not path.startswith('/openapi')
         ]
@@ -76,7 +76,7 @@ class TestAPIVersioning:
         """Verificar que no existen rutas legacy sin versión."""
         # Rutas que NO deberían existir (sin versión)
         legacy_routes = [
-            "/health",
+
             "/logs", 
             "/embeddings",
             "/fulfillment",

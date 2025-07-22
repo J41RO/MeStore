@@ -21,9 +21,11 @@ Modificaciones:
 
 from .logging import RequestLoggingMiddleware
 from .security import SecurityHeadersMiddleware
+from .user_agent_validator import UserAgentValidatorMiddleware
 
 # Exports públicos del módulo
 __all__ = [
     "RequestLoggingMiddleware",
-    "SecurityHeadersMiddleware",
+    "SecurityHeadersMiddleware", 
+    "UserAgentValidatorMiddleware",
 ]

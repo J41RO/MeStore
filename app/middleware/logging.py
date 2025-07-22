@@ -32,6 +32,115 @@ from app.core.logger import get_logger
 logger = get_logger(__name__)
 
 
+# Constantes para logging de bodies
+MAX_BODY_SIZE = 10 * 1024  # 10KB máximo
+EXCLUDED_PATHS = {"/docs", "/openapi.json", "/health", "/ready"}
+JSON_CONTENT_TYPES = {"application/json", "application/ld+json"}
+TEXT_CONTENT_TYPES = {"text/plain", "text/html", "text/css", "text/javascript"}
+
+
+def _should_log_body(path: str, content_type: str = None) -> bool:
+    """
+    Determina si se debe loguear el body basado en path y content-type.
+
+    Args:
+        path: URL path del request
+        content_type: Content-Type header
+
+    Returns:
+        bool: True si se debe loguear el body
+    """
+    # Excluir paths específicos
+    if path in EXCLUDED_PATHS:
+        return False
+
+    # Si no hay content-type, no loguear
+    if not content_type:
+        return False
+
+    # Normalizar content-type (remover charset, etc.)
+    content_type = content_type.split(';')[0].strip().lower()
+
+    # Permitir solo tipos seguros para logging
+    allowed_types = JSON_CONTENT_TYPES | TEXT_CONTENT_TYPES
+    return content_type in allowed_types
+
+
+def _parse_body_safely(body_bytes: bytes, content_type: str = None) -> str | dict | None:
+    """
+    Parsea el body de forma segura según su content-type.
+
+    Args:
+        body_bytes: Raw bytes del body
+        content_type: Content-Type header
+
+    Returns:
+        str | dict | None: Body parseado o None si no se puede parsear
+    """
+    if not body_bytes:
+        return None
+
+    # Limitar tamaño
+    if len(body_bytes) > MAX_BODY_SIZE:
+        truncated_body = body_bytes[:MAX_BODY_SIZE].decode('utf-8', errors='replace')
+        return f"{truncated_body}... [truncated - original size: {len(body_bytes)} bytes]"
+
+    try:
+        body_str = body_bytes.decode('utf-8')
+
+        # Intentar parsear como JSON si es application/json
+        if content_type and 'application/json' in content_type.lower():
+            try:
+                import json
+                return json.loads(body_str)
+            except json.JSONDecodeError:
+                # Si falla JSON parsing, devolver como string
+                return body_str
+
+        # Para otros tipos, devolver como string
+        return body_str
+
+    except UnicodeDecodeError:
+        # Si no se puede decodificar, no loguear
+        return None
+
+
+async def _capture_response_body(response: Response) -> tuple[Response, str | dict | None]:
+    """
+    Captura el body del response sin consumir el stream.
+
+    Args:
+        response: Response de FastAPI
+
+    Returns:
+        tuple: (response_modificado, body_parseado)
+    """
+    # Obtener content-type del response
+    content_type = response.headers.get('content-type', '')
+
+    # Verificar si debemos loguear este response
+    if not _should_log_body('', content_type):
+        return response, None
+
+    # Leer el body del response
+    response_body = b''
+    async for chunk in response.body_iterator:
+        response_body += chunk
+
+    # Parsear el body
+    parsed_body = _parse_body_safely(response_body, content_type)
+
+    # Crear nuevo response con el mismo contenido
+    new_response = Response(
+        content=response_body,
+        status_code=response.status_code,
+        headers=dict(response.headers),
+        media_type=response.media_type
+    )
+
+    return new_response, parsed_body
+
+
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
     """
     Middleware de logging para FastAPI usando BaseHTTPMiddleware CORRECTAMENTE.
@@ -78,6 +187,24 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         if query_string:
             log_context["query_string"] = query_string
 
+        # Capturar request body de forma segura
+        request_body = None
+        content_type = request.headers.get("content-type", "")
+
+        if _should_log_body(url_path, content_type):
+            try:
+                body_bytes = await request.body()
+                request_body = _parse_body_safely(body_bytes, content_type)
+                if request_body is not None:
+                    log_context["request_body"] = request_body
+            except Exception as e:
+                # Si falla la captura del body, no romper el middleware
+                logger.bind(**log_context).warning(
+                    "Failed to capture request body",
+                    error_type=type(e).__name__,
+                    error_message=str(e)
+                )
+
         # Detectar usuario autenticado
         user_info = self._get_user_info(request)
         if user_info:
@@ -88,7 +215,9 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
         try:
             # Procesar request a través de la cadena
-            response = await call_next(request)
+            # Procesar request y capturar response con body
+            original_response = await call_next(request)
+            response, response_body = await _capture_response_body(original_response)
 
             # Calcular tiempo de procesamiento
             process_time = time.monotonic() - start_time
@@ -99,6 +228,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                 **log_context,
                 "status_code": response.status_code,
                 "duration_ms": duration_ms,
+                "response_body": response_body,
             }
 
             # Log de request completado exitosamente

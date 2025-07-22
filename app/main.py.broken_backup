@@ -1,26 +1,18 @@
-# ~/app/main.py
-# ---------------------------------------------------------------------------------------------
-# MESTOCKER - FastAPI Main Application
-# Copyright (c) 2025 Jairo. Todos los derechos reservados.
-# Licensed under the proprietary license detailed in a LICENSE file in the root of this project.
-# ---------------------------------------------------------------------------------------------
-
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
-import redis
 
 from app.api.v1 import api_router
 from app.api.v1.handlers.exceptions import register_exception_handlers
 from app.core.auth import auth_service
 from app.core.config import settings
+import redis
 from app.core.database import get_db
 from app.core.logger import get_logger, log_error, log_shutdown_info, log_startup_info
 from app.core.logging_rotation import setup_log_rotation
-from app.middleware import RequestLoggingMiddleware, SecurityHeadersMiddleware, UserAgentValidatorMiddleware
-from app.middleware.rate_limiter import RateLimitMiddleware
+from app.middleware import RequestLoggingMiddleware, SecurityHeadersMiddleware
 from app.models.user import User
 
 # Metadata para categorización de endpoints
@@ -32,6 +24,8 @@ tags_metadata = [
     {"name": "agents", "description": "Gestión de agentes inteligentes IA"},
 ]
 
+app = FastAPI(
+
 # Configuración Redis para Rate Limiting
 redis_client = redis.Redis(
     host=settings.REDIS_HOST,
@@ -42,9 +36,6 @@ redis_client = redis.Redis(
     socket_timeout=5,
     retry_on_timeout=True
 )
-
-# Crear aplicación FastAPI
-app = FastAPI(
     title="MeStore API - Fulfillment & Marketplace Colombia",
     description="""API pública de MeStore para gestión de productos, IA, salud del sistema y agentes autónomos.
 
@@ -66,32 +57,7 @@ app = FastAPI(
 # Registrar exception handlers
 register_exception_handlers(app)
 
-# CONFIGURACIÓN DE MIDDLEWARES EN ORDEN CORRECTO:
-
-# 1. HTTPS Redirect (solo en producción)
-if settings.ENVIRONMENT.lower() == "production":
-    app.add_middleware(HTTPSRedirectMiddleware)
-
-# 2. Security Headers (solo en producción)
-if settings.ENVIRONMENT.lower() == "production":
-    app.add_middleware(SecurityHeadersMiddleware)
-
-# 3. Rate Limiting Middleware
-app.add_middleware(
-    RateLimitMiddleware,
-    redis_client=redis_client,
-    authenticated_limit=settings.RATE_LIMIT_AUTHENTICATED_PER_MINUTE,
-    anonymous_limit=settings.RATE_LIMIT_ANONYMOUS_PER_MINUTE,
-    window_seconds=60
-)
-
-# 4. User-Agent Validator Middleware
-app.add_middleware(UserAgentValidatorMiddleware)
-
-# 5. Request Logging Middleware
-app.add_middleware(RequestLoggingMiddleware)
-
-# 5. CORS Middleware (al final)
+# Configurar CORS para desarrollo
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://192.168.1.137:5173"],
@@ -100,19 +66,35 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Configurar middleware de logging CORRECTAMENTE
+app.add_middleware(RequestLoggingMiddleware)
+
+# Configurar middlewares de seguridad (solo en producción)
+if settings.ENVIRONMENT.lower() == "production":
+    # HTTPS redirect debe ir ANTES de security headers
+    app.add_middleware(HTTPSRedirectMiddleware)
+
+    # Security headers middleware
+    app.add_middleware(SecurityHeadersMiddleware)
+
+# Rate Limiting Middleware (después de Security Headers)
+app.add_middleware(
+    RateLimitMiddleware,
+    redis_client=redis_client,
+    authenticated_limit=settings.RATE_LIMIT_AUTHENTICATED_PER_MINUTE,
+    anonymous_limit=settings.RATE_LIMIT_ANONYMOUS_PER_MINUTE,
+    window_seconds=60
+)
+
 # Registrar routers
 app.include_router(api_router, prefix="/api/v1")
 
 
 # Event handlers para logging
 @app.on_event("startup")
-async def startup_event():
-    """Inicialización del sistema."""
-    # Configurar sistema de rotación de logs
-    setup_log_rotation()
-    log_startup_info()
-
-    # Inicializar sistema de autenticación
+@app.on_event("startup")
+async def auth_startup():
+    """Inicialización del sistema de autenticación"""
     logger = get_logger()
     logger.info(
         "Sistema de autenticación inicializado",
@@ -120,9 +102,14 @@ async def startup_event():
     )
 
 
+async def startup_event():
+    # Configurar sistema de rotación de logs
+    setup_log_rotation()
+    log_startup_info()
+
+
 @app.on_event("shutdown")
 async def shutdown_event():
-    """Limpieza al cerrar la aplicación."""
     log_shutdown_info()
 
 
@@ -130,6 +117,7 @@ async def shutdown_event():
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
     """Handler global para capturar y loggear todas las excepciones."""
+
     log_error(
         error=exc,
         context={
@@ -149,12 +137,6 @@ async def global_exception_handler(request, exc):
 async def root():
     """Endpoint raíz de la API."""
     return {"status": "ok"}
-
-
-@app.get("/health")
-async def health():
-    """Health check endpoint - excluido de rate limiting."""
-    return {"status": "healthy", "service": "MeStore API"}
 
 
 @app.get("/db-test")
@@ -205,4 +187,5 @@ async def get_users_test(db: AsyncSession = Depends(get_db)):
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)
