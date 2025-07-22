@@ -160,7 +160,7 @@
     ✅ 1.1.2.2 Crear utilities para hash/verify passwords con bcrypt
     ✅ 1.1.2.3 Implementar create/verify JWT tokens con refresh
     ✅ 1.1.2.4 Crear dependency get_current_user para endpoints
-    ✅ 1.1.2.5 Implementar role-based access (superuser, admin, cliente, comprador)
+    ✅ 1.1.2.5 Implementar role-based access (superuser, admin, vendedor, comprador)
     ⬜ 1.1.2.6 Crear endpoints /login, /refresh-token, /logout
 ⬜ 1.1.3 Implementar middleware de seguridad
     ⬜ 1.1.3.1 Configurar middleware HTTPS redirect y security headers
@@ -193,9 +193,9 @@
 
 ## 1.2 Modelos de Base de Datos MVP
 
-⬜ 1.2.1 Modelo User (4 tipos: super, admin, cliente, comprador)
+⬜ 1.2.1 Modelo User (4 tipos: super, admin, vendedor, comprador)
     ⬜ 1.2.1.1 Crear SQLAlchemy model User con campos básicos (id, email, password_hash)
-    ⬜ 1.2.1.2 Implementar enum UserType (SUPERUSER, ADMIN, CLIENTE, COMPRADOR)
+    ⬜ 1.2.1.2 Implementar enum UserType (SUPERUSER, ADMIN, vendedor, COMPRADOR)
     ⬜ 1.2.1.3 Añadir campos específicos colombianos (cedula, telefono, ciudad)
     ⬜ 1.2.1.4 Crear campos de perfil (nombre, apellido, empresa, direccion)
     ⬜ 1.2.1.5 Implementar campos de estado (is_active, is_verified, last_login)
@@ -225,7 +225,7 @@
     ⬜ 1.2.5.1 Crear SQLAlchemy model Storage con campos de espacio (tipo, capacidad_max)
     ⬜ 1.2.5.2 Implementar enum StorageType (PEQUENO, MEDIANO, GRANDE, ESPECIAL)
     ⬜ 1.2.5.3 Añadir campos de pricing (tarifa_mensual, tarifa_por_producto)
-    ⬜ 1.2.5.4 Crear relationship con User (cliente) y tracking de ocupación
+    ⬜ 1.2.5.4 Crear relationship con User (vendedor) y tracking de ocupación
     ⬜ 1.2.5.5 Implementar campos de contrato (fecha_inicio, fecha_fin, renovacion_automatica)
     ⬜ 1.2.5.6 Crear Pydantic schemas para Storage y facturación de almacenamiento
 ⬜ 1.2.6 Crear relaciones y índices optimizados

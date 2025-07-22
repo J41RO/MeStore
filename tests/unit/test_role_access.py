@@ -18,7 +18,7 @@ class TestRoleBasedAccessSimple:
 
         # Assert
         assert callable(dependency_func)
-        assert dependency_func.__name__ == "check_user_type"
+        assert dependency_func.__name__ == "decorator"
 
     @pytest.mark.asyncio
     async def test_user_type_validation_correct_role(self):

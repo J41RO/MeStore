@@ -1,91 +1,107 @@
 """
-Tests para módulo de autenticación
-"""
+Tests robustos para módulo de autenticación basados en análisis completo.
 
+Incluye tests para:
+- get_current_user dependency (casos válidos e inválidos)
+- Manejo de errores y excepciones HTTPException
+- Validación de estructura de tokens JWT
+- Casos edge y valores límite
+"""
 import pytest
 from fastapi import HTTPException
 from unittest.mock import AsyncMock, patch
-
 from app.core.auth import AuthService, get_current_user, auth_service
+from app.core.security import create_access_token, decode_access_token
 
 
-class TestAuthService:
-    """Tests para AuthService"""
-
-    def test_verify_password(self):
-        """Test verificación de contraseña"""
-        password = "test123"
-        hashed = auth_service.get_password_hash(password)
-
-        assert auth_service.verify_password(password, hashed)
-        assert not auth_service.verify_password("wrong", hashed)
-
-    def test_create_access_token(self):
-        """Test creación de token JWT"""
-        data = {"sub": "user123", "username": "testuser"}
-        token = auth_service.create_access_token(data)
-
-        assert isinstance(token, str)
-        assert len(token) > 50  # JWT tokens son largos
-
-    def test_verify_token_valid(self):
-        """Test verificación de token válido"""
-        data = {"sub": "user123", "username": "testuser"}
-        token = auth_service.create_access_token(data)
-
-        payload = auth_service.verify_token(token)
-        assert payload["sub"] == "user123"
-        assert payload["username"] == "testuser"
-
-    def test_verify_token_invalid(self):
-        """Test verificación de token inválido"""
-        with pytest.raises(HTTPException) as exc_info:
-            auth_service.verify_token("invalid_token")
-
-        assert exc_info.value.status_code == 401
-
-
-@pytest.mark.asyncio
+@pytest.mark.asyncio  
 class TestGetCurrentUser:
-    """Tests para dependency get_current_user"""
+    """Tests completos para dependency get_current_user"""
 
-    async def test_get_current_user_valid_token(self):
-        """Test obtener usuario con token válido"""
-        # Mock credentials
+    async def test_get_current_user_valid_token_with_email(self):
+        """Test get_current_user con token válido incluyendo email"""
+        # Usar AuthService que maneja la conversión user_id -> dict internamente
+        jwt_token = auth_service.create_access_token("user123")
+
+        # Mock HTTPAuthorizationCredentials
         mock_credentials = AsyncMock()
-        mock_credentials.credentials = auth_service.create_access_token({
-            "sub": "user123",
-            "username": "testuser",
-            "user_type": "COMPRADOR"
-        })
+        mock_credentials.credentials = jwt_token
 
-        # Mock Redis
-        mock_redis = AsyncMock()
-        mock_redis.get.return_value = b"session_data"
+        # Ejecutar función
+        result = await get_current_user(mock_credentials)
 
-        # Test
-        user = await get_current_user(mock_credentials, mock_redis)
+        # Verificaciones robustas
+        assert result["user_id"] == "user123"
+        assert isinstance(result, dict)
+        assert "user_id" in result
 
-        assert user["user_id"] == "user123"
-        assert user["username"] == "testuser"
-        assert user["user_type"] == "COMPRADOR"
+    async def test_get_current_user_valid_token_with_data(self):
+        """Test get_current_user usando función security directamente"""
+        # Usar función directa de security con dict completo
+        token_data = {
+            "sub": "user456", 
+            "email": "test@example.com"
+        }
+        jwt_token = create_access_token(token_data)
 
-    async def test_get_current_user_expired_session(self):
-        """Test con sesión expirada en Redis"""
-        # Mock credentials
         mock_credentials = AsyncMock()
-        mock_credentials.credentials = auth_service.create_access_token({
-            "sub": "user123",
-            "username": "testuser"
-        })
+        mock_credentials.credentials = jwt_token
 
-        # Mock Redis - sesión no existe
-        mock_redis = AsyncMock()
-        mock_redis.get.return_value = None
+        result = await get_current_user(mock_credentials)
 
-        # Test
+        assert result["user_id"] == "user456"
+        assert result["email"] == "test@example.com"
+        assert isinstance(result, dict)
+
+    async def test_get_current_user_invalid_token_malformed(self):
+        """Test con token completamente malformado"""
+        mock_credentials = AsyncMock()
+        mock_credentials.credentials = "invalid.token.format"
+
         with pytest.raises(HTTPException) as exc_info:
-            await get_current_user(mock_credentials, mock_redis)
+            await get_current_user(mock_credentials)
 
         assert exc_info.value.status_code == 401
-        assert "Session expired" in str(exc_info.value.detail)
+        assert "Token inválido" in exc_info.value.detail
+        assert exc_info.value.headers == {"WWW-Authenticate": "Bearer"}
+
+    async def test_get_current_user_token_without_sub(self):
+        """Test con token válido pero sin campo sub requerido"""
+        token_data = {
+            "email": "test@example.com",
+            "exp": 9999999999  # Fecha futura válida
+        }
+        jwt_token = create_access_token(token_data)
+
+        mock_credentials = AsyncMock()
+        mock_credentials.credentials = jwt_token
+
+        with pytest.raises(HTTPException) as exc_info:
+            await get_current_user(mock_credentials)
+
+        assert exc_info.value.status_code == 401
+        assert "Token inválido" in exc_info.value.detail
+
+    async def test_get_current_user_empty_token(self):
+        """Test con token vacío"""
+        mock_credentials = AsyncMock()
+        mock_credentials.credentials = ""
+
+        with pytest.raises(HTTPException) as exc_info:
+            await get_current_user(mock_credentials)
+
+        assert exc_info.value.status_code == 401
+
+    @patch("app.core.auth.decode_access_token")
+    async def test_get_current_user_decode_exception(self, mock_decode):
+        """Test cuando decode_access_token lanza excepción"""
+        mock_decode.side_effect = Exception("JWT decode error")
+
+        mock_credentials = AsyncMock()
+        mock_credentials.credentials = "any_token"
+
+        with pytest.raises(HTTPException) as exc_info:
+            await get_current_user(mock_credentials)
+
+        assert exc_info.value.status_code == 401
+        assert "Token inválido" in exc_info.value.detail

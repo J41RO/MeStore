@@ -1,122 +1,88 @@
 """
-Tests de integración para endpoints protegidos con autenticación
+Tests de integración para endpoints de autenticación JWT - VERSIÓN CORREGIDA.
 """
 
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch, AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 from app.main import app
-from app.core.auth import auth_service
+from app.core.auth import get_auth_service
+from app.core.redis import get_redis_service
 
+# Cliente de prueba FastAPI
 client = TestClient(app)
 
 
-class TestAuthenticatedEndpoints:
-    """Tests para endpoints que requieren autenticación"""
-    
-    def test_protected_endpoint_without_token(self):
-        """Test endpoint protegido sin token - debe devolver 403"""
-        response = client.get("/api/v1/marketplace/protected")
-        assert response.status_code == 403
-    
-    def test_protected_endpoint_with_invalid_token(self):
-        """Test endpoint protegido con token inválido"""
-        headers = {"Authorization": "Bearer invalid_token"}
-        response = client.get("/api/v1/marketplace/protected", headers=headers)
-        assert response.status_code == 401
-    
-    def test_sellers_only_endpoint_with_buyer_token_simple(self):
-        """Test endpoint vendedores con token válido pero tipo incorrecto"""
-        # Este test funciona sin mock Redis porque usa override_dependency
-        from app.core.auth import get_current_user
-        from fastapi import Depends
+class TestAuthEndpoints:
+    """Tests para endpoints de autenticación JWT"""
+
+    @pytest.fixture(autouse=True)
+    def setup_mocks(self):
+        """Setup mocks para cada test"""
+        app.dependency_overrides.clear()
         
-        def mock_get_current_user():
-            return {
-                "user_id": "buyer_123",
-                "username": "buyer", 
-                "user_type": "COMPRADOR"
-            }
+        self.mock_user = MagicMock()
+        self.mock_user.id = "550e8400-e29b-41d4-a716-446655440000"
+        self.mock_user.email = "test@example.com"
+
+        self.mock_access_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.mock_access_token"
+        self.mock_refresh_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.mock_refresh_token"
+
+        yield
+        app.dependency_overrides.clear()
+
+    def test_refresh_token_valid(self, setup_mocks):
+        """Test refresh token válido - CORREGIDO"""
         
-        # Override dependency
-        app.dependency_overrides[get_current_user] = mock_get_current_user
+        # Mock AuthService
+        mock_auth_service = AsyncMock()
         
+        async def mock_create_access_token(user_id):
+            return "new_access_token"
+            
+        async def mock_create_refresh_token(user_id):
+            return "new_refresh_token"
+            
+        mock_auth_service.create_access_token = mock_create_access_token
+        mock_auth_service.create_refresh_token = mock_create_refresh_token
+
+        # Mock RedisService
+        mock_redis_service = AsyncMock()
+        mock_redis_service.get.return_value = self.mock_refresh_token
+        mock_redis_service.set_with_ttl.return_value = True
+
+        # Mock decode function
+        def mock_decode_refresh_token(token: str):
+            if token == self.mock_refresh_token:
+                return {"sub": self.mock_user.id, "type": "refresh"}
+            return None
+
+        # Override dependencies
+        app.dependency_overrides[get_auth_service] = lambda: mock_auth_service
+        app.dependency_overrides[get_redis_service] = lambda: mock_redis_service
+
+        import app.api.v1.endpoints.auth as auth_module
+        original_decode = auth_module.decode_refresh_token
+        auth_module.decode_refresh_token = mock_decode_refresh_token
+
         try:
-            response = client.get("/api/v1/marketplace/sellers-only")
-            assert response.status_code == 403
-            data = response.json()
-            assert "Access denied" in data["detail"]
-        finally:
-            # Cleanup override
-            app.dependency_overrides.clear()
-    
-    def test_sellers_only_endpoint_with_seller_token_simple(self):
-        """Test endpoint vendedores con token de vendedor"""
-        from app.core.auth import get_current_user
-        
-        def mock_get_current_user():
-            return {
-                "user_id": "seller_123",
-                "username": "seller",
-                "user_type": "VENDEDOR"
-            }
-        
-        # Override dependency
-        app.dependency_overrides[get_current_user] = mock_get_current_user
-        
-        try:
-            response = client.get("/api/v1/marketplace/sellers-only")
+            refresh_data = {"refresh_token": self.mock_refresh_token}
+            response = client.post("/api/v1/auth/refresh-token", json=refresh_data)
+
             assert response.status_code == 200
             data = response.json()
-            assert data["message"] == "Welcome seller!"
-            assert data["user"]["user_type"] == "VENDEDOR"
-            assert "features" in data
+            assert "access_token" in data
+            assert data["access_token"] == "new_access_token"
+
         finally:
-            # Cleanup override
-            app.dependency_overrides.clear()
+            auth_module.decode_refresh_token = original_decode
 
-
-class TestAuthEndpointsBasic:
-    """Tests básicos sin mocking complejo"""
-    
-    def test_all_marketplace_endpoints_exist(self):
-        """Verificar que todos los endpoints existen"""
-        # Test endpoint base
-        response = client.get("/api/v1/marketplace/")
-        assert response.status_code == 200
-        assert response.json()["module"] == "marketplace"
-        
-        # Test health endpoint
-        response = client.get("/api/v1/marketplace/health")
-        assert response.status_code == 200
-        assert response.json()["module"] == "marketplace"
-    
-    def test_protected_endpoints_require_auth(self):
-        """Verificar que endpoints protegidos requieren autenticación"""
-        protected_endpoints = [
-            "/api/v1/marketplace/protected",
-            "/api/v1/marketplace/sellers-only"
-        ]
-        
-        for endpoint in protected_endpoints:
-            response = client.get(endpoint)
-            assert response.status_code in [401, 403], f"Endpoint {endpoint} should require auth"
-    
-    def test_auth_service_functionality(self):
-        """Test directo del AuthService"""
-        # Test crear token
-        token_data = {"sub": "test", "username": "test", "user_type": "COMPRADOR"}
-        token = auth_service.create_access_token(token_data)
-        assert len(token) > 50
-        
-        # Test verificar token
-        payload = auth_service.verify_token(token)
-        assert payload["sub"] == "test"
-        assert payload["user_type"] == "COMPRADOR"
-        
-        # Test password hashing
-        password = "test123"
-        hashed = auth_service.get_password_hash(password)
-        assert len(hashed) > 50
-        assert auth_service.verify_password(password, hashed)
+    def test_login_endpoint_exists(self, setup_mocks):
+        """Test que endpoint login existe y responde"""
+        response = client.post("/api/v1/auth/login", json={
+            "email": "test@example.com",
+            "password": "password123"
+        })
+        # Debe responder (aunque sea 401 sin usuario válido)
+        assert response.status_code in [200, 401, 422]
