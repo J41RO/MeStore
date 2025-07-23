@@ -183,9 +183,9 @@
     ✅ 1.1.5.4 Configurar database URL desde variables de entorno
     ✅ 1.1.5.5 Crear utilities para queries comunes (get_by_id, soft_delete)
     ✅ 1.1.5.6 Implementar database initialization y connection testing
-⬜ 1.1.6 Crear sistema de migrations (Alembic)
-    ⬜ 1.1.6.1 Configurar Alembic con async support y auto-generate
-    ⬜ 1.1.6.2 Crear alembic.ini con configuración de environments
+✅ 1.1.6 Crear sistema de migrations (Alembic)
+    ✅ 1.1.6.1 Configurar Alembic con async support y auto-generate
+    ✅ 1.1.6.2 Crear alembic.ini con configuración de environments
     ⬜ 1.1.6.3 Configurar env.py para detectar models automáticamente
     ⬜ 1.1.6.4 Crear primera migration con tabla users base
     ⬜ 1.1.6.5 Implementar script para run migrations en deploy
