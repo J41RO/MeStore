@@ -56,8 +56,8 @@ COPY --from=builder /usr/src/app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/nginx.conf
 
 # Crear usuario nginx no-root
-RUN addgroup -g 1001 -S nginx && \
-    adduser -S -D -H -u 1001 -h /var/cache/nginx -s /sbin/nologin -G nginx -g nginx nginx
+# RUN comando de usuarios comentado - usando nginx existente
+# Usuario nginx ya existe en imagen base - no necesario crear
 
 # Cambiar ownership de directorios necesarios
 RUN chown -R nginx:nginx /usr/share/nginx/html \

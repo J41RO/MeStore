@@ -52,7 +52,6 @@ virtualenv==20.31.2
 asyncpg==0.29.0          # PostgreSQL async driver
 alembic==1.13.1          # Database migrations
 pydantic-settings==2.2.1  # Settings management for FastAPI
-psycopg2-binary==2.9.9   # PostgreSQL sync driver (fallback)
 chromadb>=0.4.15  # Vector database para embeddings
 sentence-transformers>=2.3.0  # Modelos de embeddings
 hiredis==3.2.1

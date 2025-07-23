@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 from pydantic import field_validator
+import os
 
 
 class Settings(BaseSettings):
@@ -71,8 +72,8 @@ class Settings(BaseSettings):
     # CORS Configuration - Tarea 1.1.4.1
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:8000"
     CORS_ALLOW_CREDENTIALS: bool = True
-    CORS_ALLOW_METHODS: str = "GET,POST,PUT,DELETE,PATCH,OPTIONS"
-    CORS_ALLOW_HEADERS: str = "*"
+    CORS_ALLOW_METHODS: str = os.getenv("CORS_ALLOW_METHODS", "GET,POST,PUT,DELETE")
+    CORS_ALLOW_HEADERS: str = os.getenv("CORS_ALLOW_HEADERS", "Authorization,Content-Type,Accept,X-Requested-With,Cache-Control,X-API-Key")
 
     class Config:
         env_file = [".env.test", ".env.production", ".env"]

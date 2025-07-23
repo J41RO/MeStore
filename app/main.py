@@ -1,4 +1,4 @@
-# ~/app/main.py
+# Ruta: MeStore/app/main.py
 # ---------------------------------------------------------------------------------------------
 # MESTOCKER - FastAPI Main Application
 # Copyright (c) 2025 Jairo. Todos los derechos reservados.
@@ -20,6 +20,7 @@ from app.core.config import settings
 # Procesar configuración CORS
 cors_origins = [origin.strip() for origin in settings.CORS_ORIGINS.split(",")]
 cors_methods = [method.strip() for method in settings.CORS_ALLOW_METHODS.split(",")]
+cors_headers = [header.strip() for header in settings.CORS_ALLOW_HEADERS.split(",")]
 from app.core.database import get_db
 from app.core.logger import get_logger, log_error, log_shutdown_info, log_startup_info
 from app.core.logging_rotation import setup_log_rotation
@@ -109,7 +110,7 @@ app.add_middleware(
     allow_origins=cors_origins,
     allow_credentials=settings.CORS_ALLOW_CREDENTIALS,
     allow_methods=cors_methods,
-    allow_headers=["*"],
+    allow_headers=cors_headers,
 )
 
 # Registrar routers
