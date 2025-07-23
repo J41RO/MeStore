@@ -79,10 +79,10 @@ class User(BaseModel):
             "email": self.email,
             "nombre": self.nombre,
             "apellido": self.apellido,
-            "user_type": self.user_type.value,
+            "user_type": self.user_type.value if hasattr(self.user_type, 'value') else str(self.user_type),
             "is_active": self.is_active,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "created_at": self.created_at.isoformat() if self.created_at is not None else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at is not None else None,
         }
 
     @property

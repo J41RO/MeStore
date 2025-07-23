@@ -179,8 +179,8 @@
 ✅ 1.1.5 Setup database ORM (SQLAlchemy)
     ✅ 1.1.5.1 Configurar SQLAlchemy async engine con connection pooling
     ✅ 1.1.5.2 Crear base model class con fields comunes (id, created_at, updated_at)
-    ⬜ 1.1.5.3 Implementar session dependency para injection en endpoints
-    ⬜ 1.1.5.4 Configurar database URL desde variables de entorno
+    ✅ 1.1.5.3 Implementar session dependency para injection en endpoints
+    ✅ 1.1.5.4 Configurar database URL desde variables de entorno
     ⬜ 1.1.5.5 Crear utilities para queries comunes (get_by_id, soft_delete)
     ⬜ 1.1.5.6 Implementar database initialization y connection testing
 ⬜ 1.1.6 Crear sistema de migrations (Alembic)

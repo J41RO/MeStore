@@ -70,6 +70,14 @@ class BaseModel(Base):
         comment="Fecha de última actualización",
     )
 
+    # Soft delete support
+    deleted_at = Column(
+        DateTime,
+        nullable=True,
+        default=None,
+        comment="Fecha de eliminación lógica (soft delete)",
+    )
+
     def __repr__(self) -> str:
         """Representación string del modelo"""
         return f"<{self.__class__.__name__}(id={self.id})>"
@@ -80,4 +88,13 @@ class BaseModel(Base):
             "id": str(self.id),
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat() if self.updated_at is not None else None,
+            "deleted_at": self.deleted_at.isoformat() if self.deleted_at is not None else None,
         }
+
+    def is_deleted(self) -> bool:
+        """Verificar si el registro está soft deleted"""
+        return self.deleted_at is not None
+
+    def is_active(self) -> bool:
+        """Verificar si el registro está activo (no eliminado)"""
+        return self.deleted_at is None
