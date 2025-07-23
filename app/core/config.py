@@ -7,6 +7,8 @@ class Settings(BaseSettings):
     DATABASE_URL: str = (
         "postgresql+asyncpg://mestocker_user:secure_password@localhost:5432/mestocker_dev"
     )
+    DB_ECHO: bool = False  # Set to True to log SQL statements
+    
     REDIS_URL: str = "redis://:dev-redis-password@localhost:6379/0"
 
     # Redis Database Configuration (múltiples DBs para separación de concerns)
