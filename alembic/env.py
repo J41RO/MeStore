@@ -2,8 +2,12 @@ import asyncio
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool
+from sqlalchemy.ext.asyncio import create_async_engine
 
 from alembic import context
+
+# Import settings for DATABASE_URL configuration
+from app.core.config import settings
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -22,6 +26,22 @@ from app.models import user  # Asegurar que todos los modelos se importen
 
 target_metadata = Base.metadata
 
+# Configure autogenerate options
+def include_object(object, name, type_, reflected, compare_to):
+    """Configure which objects to include in autogenerate."""
+    # Include all tables by default
+    return True
+
+def compare_type(context, inspected_column, metadata_column, inspected_type, metadata_type):
+    """Compare column types for autogenerate."""
+    # Enable type comparison for better autogeneration
+    return True
+
+def compare_server_default(context, inspected_column, metadata_column, inspected_default, metadata_default, rendered_metadata_default):
+    """Compare server defaults for autogenerate."""
+    # Enable server default comparison
+    return True
+
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
@@ -33,45 +53,61 @@ def run_migrations_offline() -> None:
 
     This configures the context with just a URL
     and not an Engine, though an Engine is acceptable
-    here as well.  By skipping the Engine creation
+    here as well. By skipping the Engine creation
     we don't even need a DBAPI to be available.
 
     Calls to context.execute() here emit the given string to the
     script output.
-
     """
-    url = config.get_main_option("sqlalchemy.url")
+    # Use settings directly from config
+    url = settings.DATABASE_URL
+    
     context.configure(
         url=url,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        include_object=include_object,
+        compare_type=compare_type,
+        compare_server_default=compare_server_default,
     )
 
     with context.begin_transaction():
         context.run_migrations()
 
 
-def do_run_migrations(connection):
-    """Run migrations with connection"""
-    context.configure(connection=connection, target_metadata=target_metadata)
+def do_run_migrations(connection) -> None:
+    """Execute migrations with full configuration."""
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        include_object=include_object,
+        compare_type=compare_type,
+        compare_server_default=compare_server_default,
+        render_as_batch=True,  # Support for SQLite and other databases
+    )
+    
     with context.begin_transaction():
         context.run_migrations()
 
 
-async def run_async_migrations():
-    """Run migrations in async mode"""
-    from sqlalchemy.ext.asyncio import create_async_engine
-
+async def run_async_migrations() -> None:
+    """Run migrations in async mode with proper async engine."""
+    # Create async engine directly with settings
     connectable = create_async_engine(
-        url=config.get_main_option("sqlalchemy.url"),
+        settings.DATABASE_URL,
         future=True,
+        poolclass=pool.NullPool,
     )
-
-    async with connectable.connect() as connection:
-        await connection.run_sync(do_run_migrations)
-
-    await connectable.dispose()
+    
+    try:
+        async with connectable.connect() as connection:
+            await connection.run_sync(do_run_migrations)
+    except Exception as e:
+        print(f"❌ ERROR in async migrations: {e}")
+        raise
+    finally:
+        await connectable.dispose()
 
 
 def run_migrations_online() -> None:
