@@ -1,0 +1,202 @@
+{
+  "main_file": {
+    "file_path": "/home/admin-jairo/MeStore/app/models/base.py",
+    "relative_path": "app/models/base.py",
+    "local_imports": [
+      "app.core.database"
+    ],
+    "external_imports": [
+      "datetime",
+      "sqlalchemy",
+      "sqlalchemy.dialects.postgresql",
+      "uuid"
+    ],
+    "missing_local_files": [],
+    "suggested_test_path": {
+      "option_1": "/home/admin-jairo/MeStore/tests/test_base.py",
+      "option_2": "/home/admin-jairo/MeStore/app/models/test_base.py",
+      "recommended": "/home/admin-jairo/MeStore/tests/test_base.py"
+    },
+    "detected_frameworks": [
+      "database"
+    ],
+    "domain_type": "data_access",
+    "edge_cases": [
+      "Valores None/null",
+      "Valores límite y rangos"
+    ],
+    "performance_considerations": [
+      "Consultas de base de datos - testear con datos grandes"
+    ],
+    "error_patterns": [],
+    "integration_points": [
+      "Base de datos SQL"
+    ],
+    "testing_strategies": [
+      "Tests con base de datos en memoria",
+      "Mocking de conexiones de BD",
+      "Tests de transacciones y rollback",
+      "Fixtures de BD/vectorial con datos de prueba",
+      "Tests parametrizados para casos edge",
+      "Tests de integración con servicios externos mockeados"
+    ]
+  },
+  "related_files": [
+    "/home/admin-jairo/MeStore/app/core/database.py",
+    "/home/admin-jairo/MeStore/app/models/__init__.py",
+    "/home/admin-jairo/MeStore/app/models/base.py"
+  ],
+  "files_analysis": {
+    "/home/admin-jairo/MeStore/app/core/database.py": {
+      "file_path": "/home/admin-jairo/MeStore/app/core/database.py",
+      "relative_path": "app/core/database.py",
+      "local_imports": [
+        "app.models"
+      ],
+      "external_imports": [
+        "os",
+        "sqlalchemy.ext.asyncio",
+        "sqlalchemy.ext.declarative",
+        "sqlalchemy.pool",
+        "typing"
+      ],
+      "missing_local_files": [],
+      "suggested_test_path": {
+        "option_1": "/home/admin-jairo/MeStore/tests/test_database.py",
+        "option_2": "/home/admin-jairo/MeStore/app/core/test_database.py",
+        "recommended": "/home/admin-jairo/MeStore/tests/test_database.py"
+      },
+      "detected_frameworks": [
+        "asyncio",
+        "database"
+      ],
+      "domain_type": "data_access",
+      "edge_cases": [
+        "Valores límite y rangos",
+        "Operaciones asíncronas y timeouts",
+        "Manejo de excepciones"
+      ],
+      "performance_considerations": [
+        "Operaciones asíncronas - testear timeouts y concurrencia"
+      ],
+      "error_patterns": [],
+      "integration_points": [],
+      "testing_strategies": [
+        "Tests con base de datos en memoria",
+        "Mocking de conexiones de BD",
+        "Tests de transacciones y rollback",
+        "Tests asíncronos con pytest-asyncio",
+        "Fixtures de BD/vectorial con datos de prueba",
+        "Tests parametrizados para casos edge"
+      ]
+    },
+    "/home/admin-jairo/MeStore/app/models/__init__.py": {
+      "file_path": "/home/admin-jairo/MeStore/app/models/__init__.py",
+      "relative_path": "app/models/__init__.py",
+      "local_imports": [],
+      "external_imports": [],
+      "missing_local_files": [],
+      "suggested_test_path": {
+        "option_1": "/home/admin-jairo/MeStore/tests/test___init__.py",
+        "option_2": "/home/admin-jairo/MeStore/app/models/test___init__.py",
+        "recommended": "/home/admin-jairo/MeStore/tests/test___init__.py"
+      },
+      "detected_frameworks": [],
+      "domain_type": "general",
+      "edge_cases": [],
+      "performance_considerations": [],
+      "error_patterns": [],
+      "integration_points": [],
+      "testing_strategies": []
+    },
+    "/home/admin-jairo/MeStore/app/models/base.py": {
+      "file_path": "/home/admin-jairo/MeStore/app/models/base.py",
+      "relative_path": "app/models/base.py",
+      "local_imports": [
+        "app.core.database"
+      ],
+      "external_imports": [
+        "datetime",
+        "sqlalchemy",
+        "sqlalchemy.dialects.postgresql",
+        "uuid"
+      ],
+      "missing_local_files": [],
+      "suggested_test_path": {
+        "option_1": "/home/admin-jairo/MeStore/tests/test_base.py",
+        "option_2": "/home/admin-jairo/MeStore/app/models/test_base.py",
+        "recommended": "/home/admin-jairo/MeStore/tests/test_base.py"
+      },
+      "detected_frameworks": [
+        "database"
+      ],
+      "domain_type": "data_access",
+      "edge_cases": [
+        "Valores None/null",
+        "Valores límite y rangos"
+      ],
+      "performance_considerations": [
+        "Consultas de base de datos - testear con datos grandes"
+      ],
+      "error_patterns": [],
+      "integration_points": [
+        "Base de datos SQL"
+      ],
+      "testing_strategies": [
+        "Tests con base de datos en memoria",
+        "Mocking de conexiones de BD",
+        "Tests de transacciones y rollback",
+        "Fixtures de BD/vectorial con datos de prueba",
+        "Tests parametrizados para casos edge",
+        "Tests de integración con servicios externos mockeados"
+      ]
+    }
+  },
+  "advanced_analysis": {
+    "edge_cases": [
+      "Manejo de excepciones",
+      "Operaciones asíncronas y timeouts",
+      "Valores None/null",
+      "Valores límite y rangos"
+    ],
+    "performance_considerations": [
+      "Consultas de base de datos - testear con datos grandes",
+      "Operaciones asíncronas - testear timeouts y concurrencia"
+    ],
+    "error_patterns": [],
+    "integration_points": [
+      "Base de datos SQL"
+    ],
+    "testing_strategies": [
+      "Fixtures de BD/vectorial con datos de prueba",
+      "Mocking de conexiones de BD",
+      "Tests asíncronos con pytest-asyncio",
+      "Tests con base de datos en memoria",
+      "Tests de integración con servicios externos mockeados",
+      "Tests de transacciones y rollback",
+      "Tests parametrizados para casos edge"
+    ],
+    "detected_frameworks": [
+      "asyncio",
+      "database"
+    ]
+  },
+  "summary": {
+    "total_local_files": 3,
+    "external_dependencies": [
+      "datetime",
+      "os",
+      "sqlalchemy",
+      "sqlalchemy.dialects.postgresql",
+      "sqlalchemy.ext.asyncio",
+      "sqlalchemy.ext.declarative",
+      "sqlalchemy.pool",
+      "typing",
+      "uuid"
+    ],
+    "files_to_provide_to_ai": [
+      "/home/admin-jairo/MeStore/app/core/database.py",
+      "/home/admin-jairo/MeStore/app/models/__init__.py"
+    ]
+  }
+}

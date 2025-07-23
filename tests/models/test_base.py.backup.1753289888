@@ -1,0 +1,664 @@
+# ~/tests/test_base.py
+# ---------------------------------------------------------------------------------------------
+# MESTOCKER - Tests Robustos para Base Model SQLAlchemy
+# Copyright (c) 2025 Jairo. Todos los derechos reservados.
+# Licensed under the proprietary license detailed in a LICENSE file in the root of this project.
+# ---------------------------------------------------------------------------------------------
+#
+# Nombre del Archivo: test_base.py
+# Ruta: ~/tests/test_base.py
+# Autor: Jairo
+# Fecha de Creación: 2025-07-23
+# Última Actualización: 2025-07-23
+# Versión: 2.0.0
+# Propósito: Tests robustos para BaseModel con todas las dependencias
+#            Incluye casos edge, operaciones async, mocking BD
+#
+# Modificaciones:
+# 2025-07-23 - Creación completa con análisis de dependencias
+#
+# ---------------------------------------------------------------------------------------------
+
+"""
+Tests completos y robustos para BaseModel SQLAlchemy
+
+Estrategias de testing implementadas:
+- Fixtures de BD con datos de prueba
+- Mocking de conexiones de BD
+- Tests asíncronos con pytest-asyncio
+- Tests con base de datos en memoria
+- Tests de integración con servicios mockeados
+- Tests de transacciones y rollback
+- Tests parametrizados para casos edge
+
+Casos edge cubiertos:
+- Manejo de excepciones
+- Operaciones asíncronas y timeouts
+- Valores None/null
+- Valores límite y rangos
+
+Métricas de performance:
+- Consultas con datos grandes
+- Operaciones asíncronas con timeouts
+- Concurrencia
+"""
+
+import pytest
+import uuid
+import asyncio
+from datetime import datetime, timedelta
+from unittest.mock import patch, Mock, AsyncMock
+from typing import Optional, Dict, Any
+
+# SQLAlchemy imports
+from sqlalchemy import Column, String, Integer, create_engine
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+
+# Project imports
+from app.models.base import BaseModel
+from app.core.database import Base
+
+
+class TestConcreteModel(BaseModel):
+    """Modelo concreto para testing de BaseModel abstracta"""
+    
+    __tablename__ = "test_concrete_model"
+    
+    name = Column(String(100), nullable=False, default="test")
+    value = Column(Integer, default=0)
+
+
+class TestConcreteModelAsync(BaseModel):
+    """Modelo concreto para tests asíncronos"""
+    
+    __tablename__ = "test_async_model"
+    
+    title = Column(String(200), nullable=False, default="async_test")
+    count = Column(Integer, default=1)
+
+
+@pytest.fixture
+def in_memory_db():
+    """Fixture de base de datos en memoria para tests"""
+    
+    engine = create_engine(
+        "sqlite:///:memory:",
+        poolclass=StaticPool,
+        connect_args={"check_same_thread": False}
+    )
+    
+    # Crear todas las tablas
+    Base.metadata.create_all(engine)
+    
+    # Crear sesión
+    SessionLocal = sessionmaker(bind=engine)
+    session = SessionLocal()
+    
+    yield session
+    
+    session.close()
+    engine.dispose()
+
+
+@pytest.fixture
+async def async_in_memory_db():
+    """Fixture de base de datos asíncrona en memoria"""
+    
+    engine = create_async_engine(
+        "sqlite+aiosqlite:///:memory:",
+        poolclass=StaticPool
+    )
+    
+    # Crear tablas
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    
+    # Crear sesión async
+    AsyncSessionLocal = sessionmaker(
+        engine, class_=AsyncSession, expire_on_commit=False
+    )
+    
+    async with AsyncSessionLocal() as session:
+        yield session
+    
+    await engine.dispose()
+
+
+@pytest.fixture
+def mock_database_connection():
+    """Mock de conexión a base de datos"""
+    
+    mock_connection = Mock()
+    mock_connection.execute.return_value = Mock()
+    mock_connection.commit.return_value = None
+    mock_connection.rollback.return_value = None
+    
+    return mock_connection
+
+
+class TestBaseModel:
+    """Suite completa de tests para BaseModel SQLAlchemy"""
+    
+    def test_basemodel_is_abstract(self):
+        """Test que BaseModel es abstracta (no crea tabla pero sí se instancia)"""
+        
+        # Verificar que tiene atributo __abstract__
+        assert hasattr(BaseModel, '__abstract__')
+        assert BaseModel.__abstract__ is True
+        
+        # Verificar que NO tiene __tablename__ (verdadero abstracto)
+        assert not hasattr(BaseModel, '__tablename__')
+        
+        # Verificar que SÍ se puede instanciar (comportamiento SQLAlchemy)
+        instance = BaseModel()
+        assert instance is not None
+        assert isinstance(instance, BaseModel)
+        
+        # Verificar que tiene los atributos esperados
+        assert hasattr(instance, 'id')
+        assert hasattr(instance, 'created_at')
+        assert hasattr(instance, 'updated_at')
+    
+    def test_basemodel_inheritance_structure(self):
+        """Test estructura completa de herencia de BaseModel"""
+        
+        # Verificar herencia de SQLAlchemy Base
+        assert issubclass(BaseModel, Base)
+        
+        # Verificar que tiene attributes de SQLAlchemy
+        assert hasattr(BaseModel, '__mapper_cls__') or hasattr(BaseModel, '_sa_class_manager')
+        
+        # Verificar que modelos concretos pueden heredar
+        assert issubclass(TestConcreteModel, BaseModel)
+        assert issubclass(TestConcreteModelAsync, BaseModel)
+    
+    def test_required_columns_configuration(self):
+        """Test configuración completa de columnas requeridas"""
+        
+        # Verificar columnas existen
+        assert hasattr(BaseModel, 'id')
+        assert hasattr(BaseModel, 'created_at')
+        assert hasattr(BaseModel, 'updated_at')
+        
+        # Verificar tipos y configuración de ID
+        id_column = BaseModel.id.property.columns[0]
+        assert id_column.primary_key is True
+        assert id_column.index is True
+        assert id_column.default is not None
+        assert id_column.comment == "ID único del registro"
+        
+        # Verificar configuración de created_at
+        created_at_column = BaseModel.created_at.property.columns[0]
+        assert created_at_column.nullable is False
+        assert created_at_column.default is not None
+        assert created_at_column.server_default is not None
+        assert "CURRENT_TIMESTAMP" in str(created_at_column.server_default)
+        
+        # Verificar configuración de updated_at
+        updated_at_column = BaseModel.updated_at.property.columns[0]
+        assert updated_at_column.nullable is False
+        assert updated_at_column.default is not None
+        assert updated_at_column.onupdate is not None
+        assert updated_at_column.server_default is not None
+    
+    def test_methods_exist_and_callable(self):
+        """Test que métodos requeridos existen y son callable"""
+        
+        # Verificar __repr__
+        assert hasattr(BaseModel, '__repr__')
+        assert callable(BaseModel.__repr__)
+        
+        # Verificar to_dict
+        assert hasattr(BaseModel, 'to_dict')
+        assert callable(BaseModel.to_dict)
+        
+        # Verificar que son métodos válidos
+        import inspect
+        assert inspect.isfunction(BaseModel.__repr__)
+        assert inspect.isfunction(BaseModel.to_dict)
+    
+    @pytest.mark.parametrize("model_class,tablename", [
+        (TestConcreteModel, "test_concrete_model"),
+        (TestConcreteModelAsync, "test_async_model"),
+    ])
+    def test_concrete_models_inheritance(self, model_class, tablename):
+        """Test parametrizado para múltiples modelos concretos"""
+        
+        # Verificar herencia
+        assert issubclass(model_class, BaseModel)
+        
+        # Verificar tablename
+        assert model_class.__tablename__ == tablename
+        
+        # Verificar columnas heredadas
+        assert hasattr(model_class, 'id')
+        assert hasattr(model_class, 'created_at')
+        assert hasattr(model_class, 'updated_at')
+    
+    def test_uuid_type_and_defaults(self):
+        """Test tipo UUID y configuración de defaults"""
+        
+        from sqlalchemy.dialects.postgresql import UUID
+        
+        id_column = BaseModel.id.property.columns[0]
+        
+        # Verificar tipo UUID
+        assert isinstance(id_column.type, UUID)
+        assert id_column.type.as_uuid is True
+        
+        # Verificar default es uuid4
+        assert id_column.default.arg == uuid.uuid4
+    
+    def test_datetime_configuration_detailed(self):
+        """Test configuración detallada de campos datetime"""
+        
+        created_at_column = BaseModel.created_at.property.columns[0]
+        updated_at_column = BaseModel.updated_at.property.columns[0]
+        
+        # Verificar defaults
+        assert created_at_column.default.arg == datetime.utcnow
+        assert updated_at_column.default.arg == datetime.utcnow
+        assert updated_at_column.onupdate.arg == datetime.utcnow
+        
+        # Verificar server defaults
+        assert created_at_column.server_default is not None
+        assert updated_at_column.server_default is not None
+        
+        # Verificar comentarios
+        assert "creación" in created_at_column.comment
+        assert "actualización" in updated_at_column.comment
+
+
+class TestBaseModelWithDatabase:
+    """Tests de BaseModel con conexión a base de datos"""
+    
+    def test_concrete_model_database_operations(self, in_memory_db):
+        """Test operaciones básicas de BD con modelo concreto"""
+        
+        session = in_memory_db
+        
+        # Crear instancia
+        model = TestConcreteModel(name="test_db", value=100)
+        
+        # Verificar que se puede agregar a sesión
+        session.add(model)
+        session.commit()
+        
+        # Verificar que tiene ID generado
+        assert model.id is not None
+        assert isinstance(model.id, uuid.UUID)
+        
+        # Verificar timestamps
+        assert model.created_at is not None
+        assert model.updated_at is not None
+        assert isinstance(model.created_at, datetime)
+        assert isinstance(model.updated_at, datetime)
+    
+    def test_model_query_operations(self, in_memory_db):
+        """Test operaciones de consulta con BaseModel"""
+        
+        session = in_memory_db
+        
+        # Crear múltiples instancias
+        models = [
+            TestConcreteModel(name=f"test_{i}", value=i)
+            for i in range(5)
+        ]
+        
+        session.add_all(models)
+        session.commit()
+        
+        # Verificar consultas
+        all_models = session.query(TestConcreteModel).all()
+        assert len(all_models) == 5
+        
+        # Verificar que todos tienen IDs únicos
+        ids = [model.id for model in all_models]
+        assert len(set(ids)) == 5
+        
+        # Verificar filtros por campo base
+        recent_models = session.query(TestConcreteModel).filter(
+            TestConcreteModel.created_at >= datetime.utcnow() - timedelta(minutes=1)
+        ).all()
+        assert len(recent_models) == 5
+    
+    def test_model_update_operations(self, in_memory_db):
+        """Test operaciones de actualización con timestamps"""
+        
+        session = in_memory_db
+        
+        # Crear modelo
+        model = TestConcreteModel(name="original", value=1)
+        session.add(model)
+        session.commit()
+        
+        original_created_at = model.created_at
+        original_updated_at = model.updated_at
+        
+        # Actualizar modelo
+        model.name = "updated"
+        model.value = 2
+        session.commit()
+        
+        # Verificar que created_at no cambió
+        assert model.created_at == original_created_at
+        
+        # Verificar que updated_at cambió (puede ser igual por velocidad de test)
+        # En BD real con server_default esto funcionaría diferente
+        assert model.updated_at >= original_updated_at
+    
+    def test_model_to_dict_with_real_data(self, in_memory_db):
+        """Test método to_dict con datos reales de BD"""
+        
+        session = in_memory_db
+        
+        # Crear modelo con datos específicos
+        model = TestConcreteModel(name="dict_test", value=42)
+        session.add(model)
+        session.commit()
+        
+        # Obtener diccionario
+        result = model.to_dict()
+        
+        # Verificar estructura
+        assert isinstance(result, dict)
+        assert "id" in result
+        assert "created_at" in result
+        assert "updated_at" in result
+        
+        # Verificar tipos
+        assert isinstance(result["id"], str)
+        assert isinstance(result["created_at"], str)
+        assert isinstance(result["updated_at"], str)
+        
+        # Verificar que ID es UUID válido
+        uuid.UUID(result["id"])  # No debe fallar
+        
+        # Verificar que timestamps son ISO format
+        datetime.fromisoformat(result["created_at"])
+        datetime.fromisoformat(result["updated_at"])
+
+
+class TestBaseModelAsync:
+    """Tests asíncronos de BaseModel"""
+    
+    @pytest.mark.asyncio
+    async def test_async_database_operations(self, async_in_memory_db):
+        """Test operaciones asíncronas con BaseModel"""
+        
+        session = async_in_memory_db
+        
+        # Crear modelo
+        model = TestConcreteModelAsync(title="async_test", count=1)
+        session.add(model)
+        await session.commit()
+        
+        # Verificar que tiene campos base
+        assert model.id is not None
+        assert model.created_at is not None
+        assert model.updated_at is not None
+        
+        # Verificar tipos
+        assert isinstance(model.id, uuid.UUID)
+        assert isinstance(model.created_at, datetime)
+        assert isinstance(model.updated_at, datetime)
+    
+    @pytest.mark.asyncio
+    async def test_async_query_operations(self, async_in_memory_db):
+        """Test consultas asíncronas con BaseModel"""
+        
+        session = async_in_memory_db
+        
+        # Crear múltiples modelos
+        models = [
+            TestConcreteModelAsync(title=f"async_{i}", count=i)
+            for i in range(3)
+        ]
+        
+        for model in models:
+            session.add(model)
+        
+        await session.commit()
+        
+        # Consulta asíncrona
+        from sqlalchemy import select
+        result = await session.execute(select(TestConcreteModelAsync))
+        all_models = result.scalars().all()
+        
+        # Verificar resultados
+        assert len(all_models) == 3
+        
+        # Verificar que todos tienen campos base válidos
+        for model in all_models:
+            assert model.id is not None
+            assert model.created_at is not None
+            assert model.updated_at is not None
+    
+    @pytest.mark.asyncio
+    async def test_async_concurrent_operations(self, async_in_memory_db):
+        """Test operaciones concurrentes asíncronas"""
+        
+        session = async_in_memory_db
+        
+        async def create_model(index: int):
+            model = TestConcreteModelAsync(title=f"concurrent_{index}", count=index)
+            session.add(model)
+            return model
+        
+        # Crear modelos concurrentemente
+        tasks = [create_model(i) for i in range(5)]
+        models = await asyncio.gather(*tasks)
+        
+        await session.commit()
+        
+        # Verificar que todos se crearon correctamente
+        assert len(models) == 5
+        
+        # Verificar que todos tienen IDs únicos
+        ids = [model.id for model in models]
+        assert len(set(ids)) == 5
+
+
+class TestBaseModelEdgeCases:
+    """Tests para casos edge y manejo de excepciones"""
+    
+    def test_model_with_none_values(self, in_memory_db):
+        """Test manejo de valores None en campos opcionales"""
+        
+        session = in_memory_db
+        
+        # Crear modelo con valores mínimos requeridos
+        model = TestConcreteModel(name="none_test")
+        # value tiene default=0, así que no será None
+        
+        session.add(model)
+        session.commit()
+        
+        # Verificar que campos base nunca son None
+        assert model.id is not None
+        assert model.created_at is not None
+        assert model.updated_at is not None
+    
+    def test_model_with_extreme_values(self, in_memory_db):
+        """Test con valores límite y extremos"""
+        
+        session = in_memory_db
+        
+        # Nombre muy largo (dentro del límite de 100)
+        long_name = "x" * 99
+        model = TestConcreteModel(name=long_name, value=2147483647)  # Max int32
+        
+        session.add(model)
+        session.commit()
+        
+        # Verificar que se guardó correctamente
+        assert model.name == long_name
+        assert model.value == 2147483647
+        assert model.id is not None
+    
+    @patch('app.models.base.datetime')
+    def test_model_with_mocked_datetime(self, mock_datetime, in_memory_db):
+        """Test con datetime mockeado para control preciso"""
+        
+        session = in_memory_db
+        
+        # Configurar mock
+        fixed_time = datetime(2025, 7, 23, 12, 0, 0)
+        mock_datetime.utcnow.return_value = fixed_time
+        
+        # Crear modelo
+        model = TestConcreteModel(name="mocked_time")
+        session.add(model)
+        session.commit()
+        
+        # Verificar que usó el tiempo mockeado para defaults Python
+        # (server_default seguirá usando tiempo real de BD)
+        assert isinstance(model.created_at, datetime)
+        assert isinstance(model.updated_at, datetime)
+    
+    def test_model_exception_handling(self, in_memory_db):
+        """Test manejo de excepciones de base de datos"""
+        
+        session = in_memory_db
+        
+        # Intentar crear modelo con datos inválidos
+        with pytest.raises((SQLAlchemyError, IntegrityError)):
+            # Nombre demasiado largo para la BD
+            invalid_model = TestConcreteModel(name="x" * 1000)  # Excede límite
+            session.add(invalid_model)
+            session.commit()
+    
+    @pytest.mark.asyncio
+    async def test_async_timeout_handling(self):
+        """Test manejo de timeouts en operaciones asíncronas"""
+        
+        # Mock de operación que timeout
+        async def slow_operation():
+            await asyncio.sleep(2)  # Simular operación lenta
+            return TestConcreteModelAsync(title="timeout_test")
+        
+        # Test con timeout
+        with pytest.raises(asyncio.TimeoutError):
+            await asyncio.wait_for(slow_operation(), timeout=1.0)
+
+
+class TestBaseModelPerformance:
+    """Tests de performance y escalabilidad"""
+    
+    def test_bulk_operations_performance(self, in_memory_db):
+        """Test performance con operaciones en lote"""
+        
+        session = in_memory_db
+        
+        # Crear muchos modelos
+        models = [
+            TestConcreteModel(name=f"bulk_{i}", value=i)
+            for i in range(100)
+        ]
+        
+        # Medir tiempo de inserción en lote
+        import time
+        start_time = time.time()
+        
+        session.add_all(models)
+        session.commit()
+        
+        end_time = time.time()
+        
+        # Verificar que se completó en tiempo razonable (< 1 segundo para 100 registros)
+        assert end_time - start_time < 1.0
+        
+        # Verificar que todos se insertaron
+        count = session.query(TestConcreteModel).count()
+        assert count == 100
+    
+    def test_query_performance_with_large_dataset(self, in_memory_db):
+        """Test performance de consultas con dataset grande"""
+        
+        session = in_memory_db
+        
+        # Crear dataset grande
+        models = [
+            TestConcreteModel(name=f"perf_{i}", value=i % 10)
+            for i in range(500)
+        ]
+        
+        session.add_all(models)
+        session.commit()
+        
+        # Test consultas con filtros
+        import time
+        start_time = time.time()
+        
+        # Consulta con filtro en campo base
+        filtered_models = session.query(TestConcreteModel).filter(
+            TestConcreteModel.value == 5
+        ).all()
+        
+        end_time = time.time()
+        
+        # Verificar performance (< 0.1 segundos para consulta simple)
+        assert end_time - start_time < 0.1
+        
+        # Verificar resultados
+        assert len(filtered_models) == 50  # 500 / 10 = 50 con value=5
+
+
+class TestBaseModelIntegration:
+    """Tests de integración con otros componentes"""
+    
+    def test_basemodel_with_user_model_compatibility(self):
+        """Test compatibilidad con User model existente"""
+        
+        # Importar User model
+        from app.models.user import User
+        
+        # Verificar que User hereda de Base (no de BaseModel aún)
+        # Este test documentará el estado actual antes del refactor
+        from app.core.database import Base
+        assert issubclass(User, Base)
+        
+        # Verificar que User tiene los mismos campos que BaseModel
+        assert hasattr(User, 'id')
+        assert hasattr(User, 'created_at')
+        assert hasattr(User, 'updated_at')
+        
+        # Verificar que cuando User herede de BaseModel, será compatible
+        assert hasattr(BaseModel, 'id')
+        assert hasattr(BaseModel, 'created_at')
+        assert hasattr(BaseModel, 'updated_at')
+    
+    @patch('app.core.database.Base')
+    def test_basemodel_with_mocked_base(self, mock_base):
+        """Test BaseModel con Base mockeado"""
+        
+        # Configurar mock
+        mock_base.metadata = Mock()
+        
+        # Verificar que BaseModel puede trabajar con Base mockeado
+        assert hasattr(BaseModel, '__abstract__')
+        assert BaseModel.__abstract__ is True
+    
+    def test_basemodel_tablename_conflicts(self):
+        """Test prevención de conflictos de tablename"""
+        
+        # Crear múltiples modelos con tablenames únicos
+        class ModelA(BaseModel):
+            __tablename__ = "model_a"
+            field_a = Column(String(50), default="a")
+        
+        class ModelB(BaseModel):
+            __tablename__ = "model_b"
+            field_b = Column(String(50), default="b")
+        
+        # Verificar que tienen tablenames diferentes
+        assert ModelA.__tablename__ != ModelB.__tablename__
+        assert ModelA.__tablename__ == "model_a"
+        assert ModelB.__tablename__ == "model_b"
+        
+        # Verificar que ambos heredan de BaseModel
+        assert issubclass(ModelA, BaseModel)
+        assert issubclass(ModelB, BaseModel)

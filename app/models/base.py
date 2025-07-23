@@ -30,28 +30,54 @@ Proporciona:
 - Validaciones base
 """
 
+import uuid
 from datetime import datetime
-from typing import Any, Dict
+from sqlalchemy import Column, DateTime, text
+from sqlalchemy.dialects.postgresql import UUID
+
+from app.core.database import Base
 
 
-class BaseModel:
-    """Clase base para todos los modelos del sistema"""
+class BaseModel(Base):
+    """Clase base abstracta para todos los modelos del sistema"""
+    
+    __abstract__ = True
 
-    def __init__(self):
-        now = datetime.utcnow()
-        self.created_at = now
-        self.updated_at = now
+    # Primary key UUID para mejor performance
+    id = Column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+        index=True,
+        comment="ID único del registro",
+    )
 
-    def to_dict(self) -> Dict[str, Any]:
-        """Convertir modelo a diccionario"""
+    # Timestamps automáticos con server defaults
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=False,
+        server_default=text("CURRENT_TIMESTAMP"),
+        comment="Fecha de creación",
+    )
+    
+    updated_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False,
+        server_default=text("CURRENT_TIMESTAMP"),
+        comment="Fecha de última actualización",
+    )
+
+    def __repr__(self) -> str:
+        """Representación string del modelo"""
+        return f"<{self.__class__.__name__}(id={self.id})>"
+
+    def to_dict(self) -> dict:
+        """Convertir modelo a diccionario base"""
         return {
+            "id": str(self.id),
             "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
+            "updated_at": self.updated_at.isoformat() if self.updated_at is not None else None,
         }
-
-    def update_timestamp(self):
-        """Actualizar timestamp de modificación"""
-        self.updated_at = datetime.utcnow()
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}(created_at={self.created_at})"

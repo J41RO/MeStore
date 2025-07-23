@@ -23,7 +23,7 @@ from enum import Enum as PyEnum
 from sqlalchemy import Boolean, Column, DateTime, Enum, String, text
 from sqlalchemy.dialects.postgresql import UUID
 
-from app.core.database import Base
+from app.models.base import BaseModel
 
 
 class UserType(PyEnum):
@@ -35,19 +35,10 @@ class UserType(PyEnum):
     COMPRADOR = "comprador"
 
 
-class User(Base):
+class User(BaseModel):
     """Modelo de usuario optimizado para async operations"""
 
     __tablename__ = "users"
-
-    # Primary key UUID para mejor performance
-    id = Column(
-        UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4,
-        index=True,
-        comment="ID único del usuario",
-    )
 
     # Información básica
     email = Column(
@@ -76,24 +67,6 @@ class User(Base):
 
     is_active = Column(
         Boolean, default=True, nullable=False, comment="Usuario activo en el sistema"
-    )
-
-    # Timestamps automáticos con server defaults
-    created_at = Column(
-        DateTime,
-        default=datetime.utcnow,
-        nullable=False,
-        server_default=text("CURRENT_TIMESTAMP"),
-        comment="Fecha de creación",
-    )
-
-    updated_at = Column(
-        DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
-        nullable=False,
-        server_default=text("CURRENT_TIMESTAMP"),
-        comment="Fecha de última actualización",
     )
 
     def __repr__(self) -> str:
