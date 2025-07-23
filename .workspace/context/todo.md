@@ -181,8 +181,8 @@
     ✅ 1.1.5.2 Crear base model class con fields comunes (id, created_at, updated_at)
     ✅ 1.1.5.3 Implementar session dependency para injection en endpoints
     ✅ 1.1.5.4 Configurar database URL desde variables de entorno
-    ⬜ 1.1.5.5 Crear utilities para queries comunes (get_by_id, soft_delete)
-    ⬜ 1.1.5.6 Implementar database initialization y connection testing
+    ✅ 1.1.5.5 Crear utilities para queries comunes (get_by_id, soft_delete)
+    ✅ 1.1.5.6 Implementar database initialization y connection testing
 ⬜ 1.1.6 Crear sistema de migrations (Alembic)
     ⬜ 1.1.6.1 Configurar Alembic con async support y auto-generate
     ⬜ 1.1.6.2 Crear alembic.ini con configuración de environments

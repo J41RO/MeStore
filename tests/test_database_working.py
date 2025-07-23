@@ -24,7 +24,7 @@ def test_create_user_with_all_required_fields(test_db_session: Session):
         nombre="Test",
         apellido="User"
         # user_type tiene default=UserType.COMPRADOR
-        # is_active tiene default=True
+        # active_status tiene default=True
         # created_at y updated_at son automáticos
     )
     
@@ -39,7 +39,7 @@ def test_create_user_with_all_required_fields(test_db_session: Session):
     assert test_user.nombre == "Test"
     assert test_user.apellido == "User"
     assert test_user.user_type == UserType.COMPRADOR  # Default
-    assert test_user.is_active is True  # Default
+    assert test_user.active_status is True  # Default
     assert test_user.created_at is not None
     assert test_user.updated_at is not None
     

@@ -65,25 +65,33 @@ class User(BaseModel):
         comment="Tipo de usuario en el sistema",
     )
 
-    is_active = Column(
-        Boolean, default=True, nullable=False, comment="Usuario activo en el sistema"
+    active_status = Column(
+        Boolean, default=True, nullable=False, comment="Estado activo del usuario en el sistema"
     )
 
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email}, type={self.user_type.value})>"
 
+    def is_user_active(self) -> bool:
+        """Verificar si usuario está activo (combina soft delete + active_status)"""
+        return self.is_active() and bool(getattr(self, "active_status", False))
+
     def to_dict(self) -> dict:
-        """Convertir modelo a diccionario (sin password)"""
-        return {
-            "id": str(self.id),
+        """Convertir modelo a diccionario extendiendo BaseModel (sin password)"""
+        # Obtener diccionario base con deleted_at incluido
+        base_dict = super().to_dict()
+        
+        # Agregar campos específicos de User
+        user_dict = {
             "email": self.email,
             "nombre": self.nombre,
             "apellido": self.apellido,
             "user_type": self.user_type.value if hasattr(self.user_type, 'value') else str(self.user_type),
-            "is_active": self.is_active,
-            "created_at": self.created_at.isoformat() if self.created_at is not None else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at is not None else None,
+            "active_status": self.active_status,
         }
+        
+        # Combinar ambos diccionarios
+        return {**base_dict, **user_dict}
 
     @property
     def full_name(self) -> str:

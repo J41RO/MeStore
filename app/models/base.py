@@ -85,8 +85,8 @@ class BaseModel(Base):
     def to_dict(self) -> dict:
         """Convertir modelo a diccionario base"""
         return {
-            "id": str(self.id),
-            "created_at": self.created_at.isoformat(),
+            "id": str(self.id) if self.id is not None else None,
+            "created_at": self.created_at.isoformat() if self.created_at is not None else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at is not None else None,
             "deleted_at": self.deleted_at.isoformat() if self.deleted_at is not None else None,
         }

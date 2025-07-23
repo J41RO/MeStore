@@ -79,3 +79,11 @@ async def init_db() -> None:
 async def close_db() -> None:
     """Cerrar todas las conexiones de base de datos"""
     await engine.dispose()
+
+async def get_session() -> AsyncSession:
+    """Obtener sesión async de base de datos"""
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+        finally:
+            await session.close()

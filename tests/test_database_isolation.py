@@ -36,7 +36,7 @@ def test_create_user_in_test_db(test_db_session: Session):
     assert test_user.email == "test@example.com"
     assert test_user.nombre == "Test"
     assert test_user.apellido == "User"
-    assert test_user.is_active is True
+    assert test_user.active_status is True
     
     print(f"✅ Usuario creado con ID: {test_user.id}")
 
