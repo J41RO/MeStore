@@ -37,7 +37,7 @@ from sqlalchemy import text
 from datetime import datetime
 
 from app.core.redis import get_redis, RedisService, get_redis_service
-from app.core.database import get_db
+from app.api.v1.deps import get_db
 
 router = APIRouter(prefix="/health", tags=["health"])
 

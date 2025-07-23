@@ -36,7 +36,7 @@ from datetime import datetime
 import structlog
 
 from app.core.redis import get_redis
-from app.core.database import get_db
+from app.api.v1.deps import get_db
 
 # Configurar logger estructurado para health checks
 logger = structlog.get_logger("health_check")
