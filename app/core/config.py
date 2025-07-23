@@ -1,13 +1,33 @@
 from pydantic_settings import BaseSettings
-from pydantic import field_validator
+from pydantic import field_validator, Field
 import os
 
 
 class Settings(BaseSettings):
-    DATABASE_URL: str = (
-        "postgresql+asyncpg://mestocker_user:secure_password@localhost:5432/mestocker_dev"
+    # Database Configuration - Unified source of truth
+    DATABASE_URL: str = Field(
+        default="postgresql+asyncpg://mestocker_user:secure_password@localhost:5432/mestocker_dev",
+        description="PostgreSQL database URL with asyncpg driver"
     )
-    DB_ECHO: bool = False  # Set to True to log SQL statements
+    DB_ECHO: bool = Field(
+        default=False,
+        description="Enable SQL statement logging for debugging"
+    )
+    
+    # Additional Database Configuration
+    DB_HOST: str = Field(default="localhost", description="Database host")
+    DB_PORT: int = Field(default=5432, description="Database port")
+    DB_USER: str = Field(default="mestocker_user", description="Database username")
+    DB_PASSWORD: str = Field(default="secure_password", description="Database password")
+    DB_NAME: str = Field(default="mestocker_dev", description="Database name")
+    
+    @field_validator('DATABASE_URL')
+    @classmethod
+    def validate_database_url(cls, v: str) -> str:
+        """Validate DATABASE_URL format and driver compatibility."""
+        if not v.startswith(('postgresql://', 'postgresql+asyncpg://')):
+            raise ValueError('DATABASE_URL must use postgresql or postgresql+asyncpg driver')
+        return v
     
     REDIS_URL: str = "redis://:dev-redis-password@localhost:6379/0"
 

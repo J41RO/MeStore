@@ -13,7 +13,7 @@ Tests de verificación para:
 - Variables de entorno configuradas
 """
 
-from app.core.config import settings
+from app.core.config import settings, Settings
 
 
 def test_settings_loaded():
@@ -65,3 +65,24 @@ def test_all_required_settings():
         assert value, f"Setting {setting} is empty"
 
     print("✅ Todas las configuraciones requeridas están presentes")
+
+
+class TestDatabaseURLConfiguration:
+   """Tests específicos para configuración DATABASE_URL."""
+
+   def test_database_url_field_description(self):
+       """Test que verifica que DATABASE_URL tiene Field con descripción."""
+       settings = Settings()
+
+       # Verificar que es un Field de Pydantic
+       field_info = settings.model_fields['DATABASE_URL']
+       assert field_info.description is not None
+       assert 'PostgreSQL' in field_info.description
+
+   def test_db_echo_field_description(self):
+       """Test que verifica que DB_ECHO tiene Field con descripción."""
+       settings = Settings()
+
+       field_info = settings.model_fields['DB_ECHO']
+       assert field_info.description is not None
+       assert 'debugging' in field_info.description.lower()

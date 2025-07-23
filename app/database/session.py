@@ -10,9 +10,14 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.pool import QueuePool
+from sqlalchemy.pool import QueuePool, NullPool
+import os
+from sqlalchemy.ext.declarative import declarative_base
 
 from app.core.config import settings
+
+# Base para modelos
+Base = declarative_base()
 
 
 # Create async engine with optimized connection pooling
@@ -57,6 +62,34 @@ async def get_session() -> AsyncSession:
             result = await session.execute(select(User))
     """
     return AsyncSessionLocal()
+
+# FastAPI Dependency
+async def get_db():
+    """
+    FastAPI dependency para obtener sesión de base de datos async.
+    
+    Yields:
+        AsyncSession: Sesión de base de datos async
+    """
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
+
+
+async def init_db() -> None:
+    """Inicializar base de datos creando todas las tablas."""
+    async with engine.begin() as conn:
+        # Importar todos los modelos aquí para que sean registrados
+        from app.models import user  # noqa: F401
+        
+        # Crear todas las tablas
+        await conn.run_sync(Base.metadata.create_all)
 
 
 async def close_db_engine() -> None:

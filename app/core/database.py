@@ -8,9 +8,10 @@ Configuración optimizada para:
 - Support para migrations automáticas
 """
 
-import os
+# Unified configuration through settings
 from typing import AsyncGenerator
-
+from app.core.config import settings
+import os
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.pool import NullPool
@@ -18,16 +19,12 @@ from sqlalchemy.pool import NullPool
 # Base para modelos
 Base = declarative_base()
 
-# URL de base de datos desde variables de entorno
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql+asyncpg://mestocker_user:secure_dev_password@localhost:5432/mestocker_dev",
-)
+# Use unified configuration from settings
 
 # Motor async optimizado para desarrollo
 engine = create_async_engine(
-    DATABASE_URL,
-    echo=True,  # Log SQL en desarrollo
+    settings.DATABASE_URL,
+    echo=settings.DB_ECHO,  # Configurado desde settings
     future=True,
     pool_pre_ping=True,  # Verificar conexiones antes de usar
     pool_recycle=300,  # Reciclar conexiones cada 5 minutos
