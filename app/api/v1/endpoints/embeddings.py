@@ -49,51 +49,20 @@ from app.services.embeddings import (
     update_item,
 )
 
+# Import schemas from dedicated module
+from app.schemas.embeddings_schemas import (
+    AddItemsRequest,
+    QueryRequest,
+    UpdateItemRequest,
+    DeleteItemsRequest,
+    StandardResponse
+)
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/embeddings", tags=["embeddings"])
 
 # Modelos Pydantic para requests/responses
-
-
-class AddItemsRequest(BaseModel):
-    """Request para agregar items a colección."""
-
-    ids: List[str] = Field(..., description="IDs únicos para cada item")
-    texts: List[str] = Field(..., description="Textos para generar embeddings")
-    metadatas: Optional[List[Dict[str, Any]]] = Field(
-        None, description="Metadatos opcionales para cada item"
-    )
-
-
-class QueryRequest(BaseModel):
-    """Request para búsqueda semántica."""
-
-    query_text: str = Field(..., description="Texto de consulta")
-    n_results: int = Field(5, description="Número de resultados", ge=1, le=50)
-    where: Optional[Dict[str, Any]] = Field(None, description="Filtros de metadatos")
-
-
-class UpdateItemRequest(BaseModel):
-    """Request para actualizar item."""
-
-    item_id: str = Field(..., description="ID del item a actualizar")
-    new_text: Optional[str] = Field(None, description="Nuevo texto")
-    new_metadata: Optional[Dict[str, Any]] = Field(None, description="Nuevos metadatos")
-
-
-class DeleteItemsRequest(BaseModel):
-    """Request para eliminar items."""
-
-    ids: List[str] = Field(..., description="IDs de items a eliminar")
-
-
-class StandardResponse(BaseModel):
-    """Response estándar para operaciones."""
-
-    success: bool = Field(..., description="Indica si operación fue exitosa")
-    message: str = Field(..., description="Mensaje descriptivo")
-    data: Optional[Dict[str, Any]] = Field(None, description="Datos adicionales")
 
 
 # Endpoints de la API
