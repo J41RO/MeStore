@@ -22,6 +22,31 @@
 # docker-compose.yml - MeStore Development Stack
 
 services:
+  # ===== MIGRATION SERVICE =====
+  migrations:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mestocker_migrations
+    volumes:
+      - .:/app
+      - /app/.venv  # Excluir .venv del mount
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgresql+asyncpg://mestocker_user:mestocker_secure_2024@postgres:5432/mestocker_dev
+      - POSTGRES_PASSWORD=postgres_secure_2024
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    working_dir: /app
+    command: ["bash", "-c", "./scripts/run_migrations.sh --force development && echo 'Migraciones completadas exitosamente'"]
+    networks:
+      - mestore_network
+    profiles:
+      - migration
+
   # ===== BACKEND SERVICE =====
   backend:
     build:
