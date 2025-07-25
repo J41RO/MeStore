@@ -41,7 +41,7 @@ class TestUsersSimpleMigration:
             missing_columns = model_columns - db_columns
             assert len(missing_columns) == 0, f"Columnas faltantes en DB: {missing_columns}"
             
-            required_columns = {'id', 'email', 'active_status', 'deleted_at', 'user_type'}
+            required_columns = {'id', 'email', 'is_active', 'deleted_at', 'user_type'}
             assert required_columns.issubset(db_columns), f"Columnas críticas faltantes: {required_columns - db_columns}"
             
         finally:
@@ -98,10 +98,10 @@ class TestUsersSimpleMigration:
         conn = await asyncpg.connect(settings.DATABASE_URL.replace('postgresql+asyncpg://', 'postgresql://'))
         try:
             user_id = await conn.fetchval('''
-                INSERT INTO users (id, email, password_hash, nombre, apellido, user_type, active_status)
-                VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6)
+                INSERT INTO users (id, email, password_hash, user_type, is_active)
+                VALUES (gen_random_uuid(), $1, $2, $3, $4)
                 RETURNING id
-            ''', 'test_simple@example.com', 'hash123', 'Test', 'Simple', 'VENDEDOR', True)
+            ''', 'test_simple@example.com', 'hash123', 'VENDEDOR', True)
             
             assert user_id is not None, "INSERT debe retornar ID válido"
             
@@ -124,8 +124,8 @@ class TestUsersSimpleMigration:
 
     def test_model_sync_check(self):
         """Verificar que el modelo User está correctamente definido."""
-        expected_fields = {'id', 'email', 'password_hash', 'nombre', 'apellido', 
-                          'user_type', 'active_status', 'created_at', 'updated_at', 'deleted_at'}
+        expected_fields = {'id', 'email', 'password_hash',  
+                          'nombre', 'apellido', 'nombre', 'apellido', 'user_type', 'is_active', 'created_at', 'updated_at', 'deleted_at'}
         model_fields = {col.name for col in User.__table__.columns}
         
         assert expected_fields == model_fields, f"Campos del modelo no coinciden: esperados={expected_fields}, modelo={model_fields}"

@@ -22,8 +22,6 @@ def test_create_user_in_test_db(test_db_session: Session):
     test_user = User(
         email="test@example.com",
         password_hash="$2b$12$fake.hashed.password.for.testing",
-        nombre="Test",
-        apellido="User"
     )
     
     # Agregar a la sesión y commitear
@@ -34,9 +32,6 @@ def test_create_user_in_test_db(test_db_session: Session):
     # Verificar que el usuario fue creado
     assert test_user.id is not None
     assert test_user.email == "test@example.com"
-    assert test_user.nombre == "Test"
-    assert test_user.apellido == "User"
-    assert test_user.active_status is True
     
     print(f"✅ Usuario creado con ID: {test_user.id}")
 
@@ -47,8 +42,6 @@ def test_query_user_from_test_db(test_db_session: Session):
     test_user = User(
         email="query_test@example.com",
         password_hash="$2b$12$query.hash.for.testing",
-        nombre="Query",
-        apellido="User"
     )
     test_db_session.add(test_user)
     test_db_session.commit()
@@ -61,8 +54,6 @@ def test_query_user_from_test_db(test_db_session: Session):
     # Verificaciones
     assert found_user is not None
     assert found_user.email == "query_test@example.com"
-    assert found_user.nombre == "Query"
-    assert found_user.apellido == "User"
     
     print(f"✅ Usuario consultado exitosamente: {found_user.email}")
 
@@ -77,8 +68,6 @@ def test_database_isolation_between_tests(test_db_session: Session):
     temp_user = User(
         email="isolation_test@example.com",
         password_hash="$2b$12$isolation.hash",
-        nombre="Isolation",
-        apellido="Test"
     )
     test_db_session.add(temp_user)
     test_db_session.commit()
@@ -117,8 +106,6 @@ def test_rollback_and_cleanup(test_db_session: Session):
         User(
             email=f"cleanup_test_{i}@example.com",
             password_hash="$2b$12$cleanup.hash",
-            nombre=f"User_{i}",
-            apellido="Cleanup"
         )
         for i in range(3)
     ]

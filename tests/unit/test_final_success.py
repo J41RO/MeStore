@@ -110,7 +110,7 @@ class TestFinalSuccess:
             apellido="Final",
             email="verification.final@example.com",
             password_hash="hash123",
-            user_type=UserType.ADMIN
+            user_type=UserType.VENDEDOR
         )
         assert hasattr(user, 'deleted_at'), "❌ BaseModel no tiene deleted_at"
         print("   ✅ BaseModel extendido con soft delete")

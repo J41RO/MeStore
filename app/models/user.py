@@ -1,99 +1,184 @@
 # ~/app/models/user.py
 # ---------------------------------------------------------------------------------------------
-# MeStore - Modelo de Usuario (Async Optimizado)
+# MeStore - Modelo SQLAlchemy User
 # Copyright (c) 2025 Jairo. Todos los derechos reservados.
-# Licensed under the proprietary license detailed in a LICENSE file
-# in the root of this project.
+# Licensed under the proprietary license detailed in a LICENSE file in the root of this project.
 # ---------------------------------------------------------------------------------------------
-"""
-User Model - Modelo de usuario con SQLAlchemy async
+#
+# Nombre del Archivo: user.py
+# Ruta: ~/app/models/user.py
+# Autor: Jairo
+# Fecha de Creación: 2025-07-25
+# Última Actualización: 2025-07-25
+# Versión: 1.1.0
+# Propósito: Modelo SQLAlchemy para gestión de usuarios del sistema
+#            Incluye campos básicos, constraints de seguridad y optimizaciones
+#
+# Modificaciones:
+# 2025-07-25 - Creación inicial del modelo User básico
+# 2025-07-25 - Agregados campos nombre y apellido
+# 2025-07-25 - Agregados métodos full_name y to_dict
+#
+# ---------------------------------------------------------------------------------------------
 
-Características:
-- UUID como primary key para mejor performance
-- Timestamps automáticos con server defaults
-- Email único con validación
-- Password hash seguro
-- Support para async operations
+"""
+Modelo SQLAlchemy User para MeStore.
+
+Este módulo contiene el modelo principal para gestión de usuarios:
+- Campos básicos: id, email, password_hash, nombre, apellido
+- Constraints de seguridad: email único, campos obligatorios
+- Timestamps automáticos: created_at, updated_at
+- Optimizaciones: índices apropiados para consultas frecuentes
 """
 
-import uuid
 from datetime import datetime
-from enum import Enum as PyEnum
-
-from sqlalchemy import Boolean, Column, DateTime, Enum, String, text
+from typing import Optional
+from sqlalchemy import Boolean, Column, DateTime, String, Text
 from sqlalchemy.dialects.postgresql import UUID
+import uuid
+from sqlalchemy.sql import func
+from enum import Enum as PyEnum
+from sqlalchemy import Enum
 
 from app.models.base import BaseModel
 
 
 class UserType(PyEnum):
-    """Tipos de usuario en MeStore"""
+    """
+    Enumeración para tipos de usuario en el sistema.
 
-    SUPERUSER = "superuser"
-    ADMIN = "admin"
-    VENDEDOR = "vendedor"
+    Valores:
+        COMPRADOR: Usuario que puede realizar compras
+        VENDEDOR: Usuario que puede vender productos
+    """
     COMPRADOR = "comprador"
+    VENDEDOR = "vendedor"
 
 
 class User(BaseModel):
-    """Modelo de usuario optimizado para async operations"""
+    """
+    Modelo SQLAlchemy para usuarios del sistema.
+
+    Campos:
+        id: Clave primaria autoincremental
+        email: Email único del usuario (índice para búsquedas)
+        password_hash: Hash bcrypt de la contraseña
+        nombre: Nombre del usuario
+        apellido: Apellido del usuario
+        user_type: Tipo de usuario (comprador/vendedor)
+        is_active: Estado activo del usuario
+        created_at: Timestamp de creación automático
+        updated_at: Timestamp de última actualización automático
+
+    Constraints:
+        - Email debe ser único en toda la tabla
+        - Email y password_hash son campos obligatorios
+        - nombre y apellido son opcionales
+        - Índices optimizados para consultas frecuentes
+    """
 
     __tablename__ = "users"
 
-    # Información básica
-    email = Column(
-        String(255),
-        unique=True,
+    # Clave primaria
+    id = Column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
         index=True,
-        nullable=False,
-        comment="Email único del usuario",
+        comment="Identificador único UUID del usuario"
+    )
+
+    # Campos de autenticación
+    email = Column(
+        String(255), 
+        unique=True, 
+        nullable=False, 
+        index=True,
+        comment="Email único del usuario, usado para login"
     )
 
     password_hash = Column(
-        String(255), nullable=False, comment="Hash seguro de la contraseña"
+        String(255),
+        nullable=False,
+        comment="Hash bcrypt de la contraseña del usuario"
     )
 
-    nombre = Column(String(100), nullable=False, comment="Nombre del usuario")
+    # Campos de información personal
+    nombre = Column(
+        String(100),
+        nullable=True,
+        comment="Nombre del usuario"
+    )
 
-    apellido = Column(String(100), nullable=False, comment="Apellido del usuario")
+    apellido = Column(
+        String(100),
+        nullable=True,
+        comment="Apellido del usuario"
+    )
 
-    # Tipo y estado
+    # Tipo de usuario
     user_type = Column(
         Enum(UserType),
-        default=UserType.COMPRADOR,
         nullable=False,
-        comment="Tipo de usuario en el sistema",
+        default=UserType.COMPRADOR,
+        comment="Tipo de usuario: comprador o vendedor"
     )
 
-    active_status = Column(
-        Boolean, default=True, nullable=False, comment="Estado activo del usuario en el sistema"
+    # Estado del usuario
+    is_active = Column(
+        Boolean, 
+        default=True, 
+        nullable=False,
+        comment="Indica si el usuario está activo en el sistema"
+    )
+
+    # Timestamps automáticos
+    created_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+        comment="Timestamp de creación del registro"
+    )
+    
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+        comment="Timestamp de última actualización del registro"
     )
 
     def __repr__(self) -> str:
-        return f"<User(id={self.id}, email={self.email}, type={self.user_type.value})>"
+        """Representación string del objeto User para debugging."""
+        return f"<User(id={self.id}, email='{self.email}', active={self.is_active})>"
 
-    def is_user_active(self) -> bool:
-        """Verificar si usuario está activo (combina soft delete + active_status)"""
-        return self.is_active() and bool(getattr(self, "active_status", False))
-
-    def to_dict(self) -> dict:
-        """Convertir modelo a diccionario extendiendo BaseModel (sin password)"""
-        # Obtener diccionario base con deleted_at incluido
-        base_dict = super().to_dict()
-        
-        # Agregar campos específicos de User
-        user_dict = {
-            "email": self.email,
-            "nombre": self.nombre,
-            "apellido": self.apellido,
-            "user_type": self.user_type.value if hasattr(self.user_type, 'value') else str(self.user_type),
-            "active_status": self.active_status,
-        }
-        
-        # Combinar ambos diccionarios
-        return {**base_dict, **user_dict}
+    def __str__(self) -> str:
+        """Representación string amigable del User."""
+        status = "activo" if self.is_active else "inactivo"
+        return f"Usuario {self.email} ({status})"
 
     @property
     def full_name(self) -> str:
-        """Nombre completo del usuario"""
-        return f"{self.nombre} {self.apellido}"
+        """Retorna el nombre completo del usuario."""
+        if self.nombre and self.apellido:
+            return f"{self.nombre} {self.apellido}"
+        elif self.nombre:
+            return self.nombre
+        elif self.apellido:
+            return self.apellido
+        else:
+            return "Usuario sin nombre"
+
+    def to_dict(self) -> dict:
+        """Convierte el objeto User a diccionario para serialización."""
+        return {
+            'id': str(self.id) if self.id else None,
+            'email': self.email,
+            'nombre': self.nombre,
+            'apellido': self.apellido,
+            'user_type': self.user_type.value if self.user_type else None,
+            'is_active': self.is_active,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'full_name': self.full_name
+        }

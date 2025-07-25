@@ -57,7 +57,7 @@ class TestWorkingUtilities:
             apellido="Ready",
             email="system.ready@example.com",
             password_hash="hash123",
-            user_type=UserType.SUPERUSER
+            user_type=UserType.VENDEDOR
         )
         
         assert hasattr(user, 'deleted_at')
