@@ -169,25 +169,3 @@ networks:
   mestocker_network:
     driver: bridge
     name: mestocker_network
-  # Servicio para ejecutar migraciones en deployment
-  migrations:
-    build: .
-    container_name: mestore_migrations
-    environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - POSTGRES_HOST=${POSTGRES_HOST}
-      - POSTGRES_PORT=${POSTGRES_PORT}
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - ENVIRONMENT=${ENVIRONMENT:-production}
-    depends_on:
-      - postgres
-    volumes:
-      - ./scripts:/app/scripts
-      - ./alembic:/app/alembic
-      - ./logs:/app/logs
-    working_dir: /app
-    profiles:
-      - migrations
-    command: python3 scripts/run_migrations.py --env production --validate

@@ -259,3 +259,111 @@ npm run dev
 - ✅ Setup Frontend con React + TypeScript
 - ✅ Estructura modular backend/frontend
 - 🔄 En desarrollo: Sistema de autenticación JWT
+## 🗄️ Sistema de Migraciones
+
+### Scripts Disponibles
+
+#### 1. Script Python Principal (`scripts/run_migrations.py`)
+Script robusto con validación completa y logging estructurado.
+
+```bash
+# Validar sistema sin ejecutar migraciones
+python3 scripts/run_migrations.py --validate --env production
+
+# Ejecutar migraciones en development
+python3 scripts/run_migrations.py --env development
+
+# Modo dry-run (simulación)
+python3 scripts/run_migrations.py --dry-run --env production
+
+# Rollback a revisión específica
+python3 scripts/run_migrations.py --rollback abc123def456 --env production
+
+# Forzar ejecución sin validaciones (uso con precaución)
+python3 scripts/run_migrations.py --force --env production
+2. Wrapper Bash (scripts/deploy_migrations_python.sh)
+Interfaz simplificada para integración con scripts de deployment.
+bash# Validar sistema
+./scripts/deploy_migrations_python.sh --validate production
+
+# Ejecutar migraciones
+./scripts/deploy_migrations_python.sh production
+
+# Dry-run
+./scripts/deploy_migrations_python.sh --dry-run production
+
+# Rollback
+./scripts/deploy_migrations_python.sh --rollback abc123def456 production
+3. Docker Compose Integration
+Ejecutar migraciones usando Docker Compose con profile específico.
+bash# Validar migraciones
+docker-compose --profile migrations up migrations
+
+# Ejecutar migraciones en producción
+docker-compose --profile migrations run --rm migrations \
+  python3 scripts/run_migrations.py --env production
+
+# Rollback usando Docker
+docker-compose --profile migrations run --rm migrations \
+  python3 scripts/run_migrations.py --rollback abc123def456 --env production
+Variables de Entorno Requeridas
+bash# Base de datos
+DATABASE_URL=postgresql://user:password@host:port/database
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=mestore
+POSTGRES_USER=mestore_user
+POSTGRES_PASSWORD=secure_password
+
+# Entorno (opcional, default: development)
+ENVIRONMENT=production
+Archivos de Configuración
+
+.env - Configuración de development (default)
+.env.production - Configuración de producción
+.env.test - Configuración de testing
+
+Logging
+Los logs se guardan automáticamente en:
+
+logs/migration_python_YYYYMMDD_HHMMSS.log - Logs del script Python
+logs/migration_deploy_YYYYMMDD_HHMMSS.log - Logs del script bash
+
+Ejemplos de Uso en Deployment
+Deployment Básico
+bash# 1. Validar sistema
+./scripts/deploy_migrations_python.sh --validate production
+
+# 2. Ejecutar migraciones
+./scripts/deploy_migrations_python.sh production
+
+# 3. Verificar estado
+alembic current
+Deployment con Docker
+bash# 1. Build y preparación
+docker-compose build
+
+# 2. Ejecutar migraciones
+docker-compose --profile migrations up migrations
+
+# 3. Iniciar servicios principales
+docker-compose up -d backend frontend
+Rollback de Emergencia
+bash# Obtener lista de revisiones
+alembic history
+
+# Rollback a revisión específica
+./scripts/deploy_migrations_python.sh --rollback abc123def456 production
+
+# Verificar rollback
+alembic current
+Testing del Sistema de Migraciones
+bash# Ejecutar tests del script
+python3 -m pytest tests/test_migrations_script.py -v
+
+# Verificar cobertura
+python3 -m pytest --cov=scripts tests/test_migrations_script.py --cov-report=term-missing
+
+# Test de integración con Docker
+docker-compose --profile migrations run --rm migrations \
+  python3 scripts/run_migrations.py --validate --env test
