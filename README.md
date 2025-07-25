@@ -261,6 +261,58 @@ npm run dev
 - 🔄 En desarrollo: Sistema de autenticación JWT
 ## 🗄️ Sistema de Migraciones
 
+
+## 🔧 Comandos Make para Migraciones
+
+MeStore incluye un **Makefile completo** que simplifica todos los comandos de migraciones. Los comandos make actúan como wrapper inteligente de los scripts existentes.
+
+### 🚀 Comandos Rápidos
+
+```bash
+# Ver ayuda completa de comandos
+make help
+
+# Aplicar migraciones pendientes
+make migrate-upgrade
+
+# Ver estado actual de la base de datos
+make migrate-current
+
+# Generar nueva migración automática
+make migrate-auto MSG="Agregar tabla productos"
+
+# Ejecutar migraciones en producción (con confirmaciones)
+make migrate-prod
+
+# Migraciones usando Docker
+make migrate-docker
+```
+
+### 📋 Categorías de Comandos
+
+- **🔄 Básicos**: `migrate-upgrade`, `migrate-downgrade`, `migrate-current`, `migrate-history`, `migrate-check`
+- **🏗️ Generación**: `migrate-auto`, `migrate-manual` (requieren `MSG="descripción"`)
+- **🌍 Entornos**: `migrate-dev`, `migrate-test`, `migrate-prod`
+- **🐳 Docker**: `migrate-docker`, `migrate-docker-dev`, `migrate-docker-rebuild`
+- **🛠️ Utilidades**: `migrate-reset`, `migrate-validate`, `db-status`, `db-init`
+- **⚡ Aliases**: `up`, `down`, `status`, `check`, `auto`
+
+### 📚 Documentación Completa
+
+**Ver guía detallada**: [scripts/MAKEFILE_USAGE.md](scripts/MAKEFILE_USAGE.md)
+
+**Ayuda específica de migraciones**:
+```bash
+make migrate-help
+```
+
+### 🔗 Integración con Scripts Existentes
+
+Los comandos make **no reemplazan** los scripts originales - los utilizan internamente:
+- `scripts/run_migrations.py` - Script principal (sigue funcionando independientemente)
+- `scripts/deploy_migrations_python.sh` - Usado por `make migrate-prod`
+- Comandos `alembic` directos - Totalmente compatibles
+
 ### Scripts Disponibles
 
 #### 1. Script Python Principal (`scripts/run_migrations.py`)

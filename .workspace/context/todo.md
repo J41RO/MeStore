@@ -188,7 +188,7 @@
     ✅ 1.1.6.2 Crear alembic.ini con configuración de environments
     ✅ 1.1.6.3 Configurar env.py para detectar models automáticamente
     ✅ 1.1.6.4 Crear primera migration con tabla users base
-    ⬜ 1.1.6.5 Implementar script para run migrations en deploy
+    ✅ 1.1.6.5 Implementar script para run migrations en deploy
     ⬜ 1.1.6.6 Crear comandos make para migrate, upgrade, downgrade
 
 ## 1.2 Modelos de Base de Datos MVP
