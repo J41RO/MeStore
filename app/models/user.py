@@ -112,7 +112,18 @@ class User(BaseModel):
         nullable=True,
         comment="Ciudad de residencia en Colombia (opcional)"
     )
+    empresa = Column(
+        String(200),
+        nullable=True,
+        comment="Empresa donde trabaja el usuario (opcional)"
+    )
 
+    direccion = Column(
+        String(300),
+        nullable=True,
+        comment="Dirección de residencia completa (opcional)"
+    )
+    
     # Campos de autenticación
     email = Column(
         String(255), 
@@ -208,5 +219,7 @@ class User(BaseModel):
             'cedula': self.cedula,
             'telefono': self.telefono,
             'ciudad': self.ciudad,
+            'empresa': self.empresa,
+            'direccion': self.direccion,
             'full_name': self.full_name
         }

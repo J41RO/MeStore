@@ -29,6 +29,8 @@ class UserBase(BaseModel):
     cedula: Optional[str] = None
     telefono: Optional[str] = None  
     ciudad: Optional[str] = None
+    empresa: Optional[str] = None
+    direccion: Optional[str] = None
 
 
 class UserCreate(UserBase):

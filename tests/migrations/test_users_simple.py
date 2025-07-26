@@ -124,9 +124,9 @@ class TestUsersSimpleMigration:
 
     def test_model_sync_check(self):
         """Verificar que el modelo User está correctamente definido."""
-        expected_fields = {'id', 'email', 'password_hash',  
-                          'nombre', 'apellido', 'user_type', 'is_active', 
-                          'cedula', 'telefono', 'ciudad',
+        expected_fields = {'id', 'email', 'password_hash',
+                          'nombre', 'apellido', 'user_type', 'is_active',
+                          'cedula', 'telefono', 'ciudad', 'empresa', 'direccion',
                           'created_at', 'updated_at', 'deleted_at'}
         model_fields = {col.name for col in User.__table__.columns}
         
