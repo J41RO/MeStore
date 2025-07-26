@@ -230,7 +230,7 @@ def test_user_model_methods(test_db_session: Session):
     assert user_dict["email"] == "methods_test@example.com"
     assert user_dict["nombre"] == "Methods"
     assert user_dict["apellido"] == "Test"
-    assert user_dict["user_type"] == "vendedor"
+    assert user_dict["user_type"] == "VENDEDOR"
     assert "password_hash" not in user_dict  # No debe incluir password
     assert "id" in user_dict
     assert "created_at" in user_dict

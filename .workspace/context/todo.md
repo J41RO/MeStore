@@ -193,9 +193,9 @@
 
 ## 1.2 Modelos de Base de Datos MVP
 
-⬜ 1.2.1 Modelo User (4 tipos: super, admin, vendedor, comprador)
+✅ 1.2.1 Modelo User (4 tipos: super, admin, vendedor, comprador)
     ✅ 1.2.1.1 Crear SQLAlchemy model User con campos básicos (id, email, password_hash)
-    ⬜ 1.2.1.2 Implementar enum UserType (SUPERUSER, ADMIN, vendedor, COMPRADOR)
+    ✅ 1.2.1.2 Implementar enum UserType (SUPERUSER, ADMIN, vendedor, COMPRADOR)
     ⬜ 1.2.1.3 Añadir campos específicos colombianos (cedula, telefono, ciudad)
     ⬜ 1.2.1.4 Crear campos de perfil (nombre, apellido, empresa, direccion)
     ⬜ 1.2.1.5 Implementar campos de estado (is_active, is_verified, last_login)

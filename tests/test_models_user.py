@@ -269,9 +269,11 @@ class TestUserTypeEnum:
     def test_user_type_enum_values(self):
         """Test que UserType enum tiene los valores correctos."""
         # Assert
-        assert UserType.COMPRADOR.value == "comprador"
-        assert UserType.VENDEDOR.value == "vendedor"
-        assert len(list(UserType)) == 2
+        assert UserType.COMPRADOR.value == "COMPRADOR"
+        assert UserType.VENDEDOR.value == "VENDEDOR"
+        assert UserType.ADMIN.value == "ADMIN"
+        assert UserType.SUPERUSER.value == "SUPERUSER"
+        assert len(list(UserType)) == 4
 
     def test_user_type_default_value(self, test_db_session):
         """Test que user_type tiene valor por defecto COMPRADOR."""

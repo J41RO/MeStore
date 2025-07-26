@@ -46,13 +46,17 @@ from app.models.base import BaseModel
 class UserType(PyEnum):
     """
     Enumeración para tipos de usuario en el sistema.
-
-    Valores:
-        COMPRADOR: Usuario que puede realizar compras
-        VENDEDOR: Usuario que puede vender productos
+    
+    Jerarquía de permisos (menor a mayor):
+        COMPRADOR: Usuario básico que puede realizar compras
+        VENDEDOR: Usuario que puede vender productos  
+        ADMIN: Administrador con permisos de gestión
+        SUPERUSER: Super administrador con todos los permisos
     """
-    COMPRADOR = "comprador"
-    VENDEDOR = "vendedor"
+    COMPRADOR = "COMPRADOR"
+    VENDEDOR = "VENDEDOR"
+    ADMIN = "ADMIN"
+    SUPERUSER = "SUPERUSER"
 
 
 class User(BaseModel):

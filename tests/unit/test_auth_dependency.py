@@ -42,7 +42,7 @@ class TestGetCurrentUser:
             "email": "usuario@test.com",
             "nombre": "Usuario",
             "apellido": "Test",
-            "user_type": "comprador",
+            "user_type": "COMPRADOR",
             "is_active": True
         }
 
@@ -70,7 +70,7 @@ class TestGetCurrentUser:
             assert result.email == "usuario@test.com"
             assert result.nombre == "Usuario"
             assert result.apellido == "Test"
-            assert result.user_type.value == "comprador"  # Comparar valor del enum
+            assert result.user_type.value == "COMPRADOR"  # Comparar valor del enum
             assert result.is_active is True
 
             # Verificar que se llamaron los métodos correctos
@@ -186,7 +186,7 @@ class TestGetCurrentActiveUser:
             email="activo@test.com",
             nombre="Usuario",
             apellido="Activo", 
-            user_type="comprador",
+            user_type="COMPRADOR",
             is_active=True
         )
 
@@ -210,7 +210,7 @@ class TestGetCurrentActiveUser:
             email="inactivo@test.com",
             nombre="Usuario",
             apellido="Inactivo",
-            user_type="vendedor",  # Se convertirá a enum automáticamente 
+            user_type="VENDEDOR",  # Se convertirá a enum automáticamente 
             is_active=False
         )
 
