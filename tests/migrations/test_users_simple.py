@@ -125,7 +125,9 @@ class TestUsersSimpleMigration:
     def test_model_sync_check(self):
         """Verificar que el modelo User está correctamente definido."""
         expected_fields = {'id', 'email', 'password_hash',  
-                          'nombre', 'apellido', 'nombre', 'apellido', 'user_type', 'is_active', 'created_at', 'updated_at', 'deleted_at'}
+                          'nombre', 'apellido', 'user_type', 'is_active', 
+                          'cedula', 'telefono', 'ciudad',
+                          'created_at', 'updated_at', 'deleted_at'}
         model_fields = {col.name for col in User.__table__.columns}
         
         assert expected_fields == model_fields, f"Campos del modelo no coinciden: esperados={expected_fields}, modelo={model_fields}"

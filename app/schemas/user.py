@@ -13,6 +13,7 @@ Definición inicial de esquemas Pydantic para User
 """
 
 from pydantic import BaseModel, EmailStr
+from typing import Optional
 
 from app.models.user import UserType
 
@@ -24,6 +25,10 @@ class UserBase(BaseModel):
     nombre: str
     apellido: str
     user_type: UserType = UserType.COMPRADOR
+    # Campos específicos colombianos (opcionales)
+    cedula: Optional[str] = None
+    telefono: Optional[str] = None  
+    ciudad: Optional[str] = None
 
 
 class UserCreate(UserBase):
@@ -40,3 +45,5 @@ class UserRead(UserBase):
 
     class Config:
         from_attributes = True
+
+    # Campos colombianos heredados de UserBase

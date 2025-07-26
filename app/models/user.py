@@ -92,6 +92,27 @@ class User(BaseModel):
         comment="Identificador único UUID del usuario"
     )
 
+    # Campos específicos colombianos
+    cedula = Column(
+        String(20),
+        nullable=True,
+        unique=True,
+        index=True,
+        comment="Cédula de ciudadanía colombiana (opcional, única)"
+    )
+
+    telefono = Column(
+        String(20),
+        nullable=True,
+        comment="Número de teléfono colombiano (opcional)"
+    )
+
+    ciudad = Column(
+        String(100),
+        nullable=True,
+        comment="Ciudad de residencia en Colombia (opcional)"
+    )
+
     # Campos de autenticación
     email = Column(
         String(255), 
@@ -184,5 +205,8 @@ class User(BaseModel):
             'is_active': self.is_active,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'cedula': self.cedula,
+            'telefono': self.telefono,
+            'ciudad': self.ciudad,
             'full_name': self.full_name
         }

@@ -194,3 +194,54 @@ Producción: Formato JSON para herramientas de análisis
 - 🔧 Configuración nullable incorrecta en campos críticos
 
 **Resultado final:** Modelo User completamente funcional con 400+ tests pasando
+
+## 📋 TAREA 1.2.1.3 COMPLETADA - Campos Específicos Colombianos
+
+**Fecha:** $(date '+%Y-%m-%d %H:%M:%S')
+**Estado:** ✅ COMPLETADA EXITOSAMENTE
+
+### 🎯 OBJETIVO ALCANZADO:
+Agregar campos cedula, telefono, ciudad al modelo User para usuarios colombianos
+
+### 🔧 IMPLEMENTACIÓN REALIZADA:
+- **Modelo SQLAlchemy (app/models/user.py)**: 
+  - Campo `cedula`: String(20), nullable=True, unique=True, index=True
+  - Campo `telefono`: String(20), nullable=True  
+  - Campo `ciudad`: String(100), nullable=True
+  - Método `to_dict()` actualizado con campos colombianos
+
+- **Schemas Pydantic (app/schemas/user.py)**:
+  - UserBase actualizado con campos Optional[str] = None
+  - UserCreate hereda automáticamente los campos
+  - UserRead hereda automáticamente los campos
+  - Import de typing.Optional agregado
+
+- **Migración Alembic**:
+  - Migración 86470e73bf74 generada y aplicada exitosamente
+  - Índice único ix_users_cedula creado automáticamente
+  - Campos agregados como nullable=True (no breaking change)
+
+- **Tests (tests/test_user_colombian_fields.py)**:
+  - 4 tests específicos para campos colombianos
+  - Verificación de creación con/sin campos opcionales
+  - Validación de método to_dict() con campos
+  - Verificación de constraints de unicidad en cedula
+
+### 📊 RESULTADOS DE VALIDACIÓN:
+- ✅ Tests: 16/16 pasando (100% success rate)
+- ✅ Cobertura: 34.85% global mantenida
+- ✅ Compatibilidad: Funcionalidad existente preservada
+- ✅ Migración: Aplicada sin errores a base de datos
+- ✅ Schemas: Validación Pydantic funcionando correctamente
+
+### 🎯 VERIFICACIONES CRÍTICAS COMPLETADAS:
+- ✅ NO rompe funcionalidad de autenticación existente
+- ✅ NO modifica campos obligatorios existentes (email, password_hash)
+- ✅ NO cambia estructura de UserType enum
+- ✅ MANTIENE compatibilidad con UserCreate y UserRead existentes
+- ✅ TODOS los nuevos campos son OPCIONALES (nullable=True)
+
+### 🚀 PRÓXIMA TAREA SUGERIDA:
+**1.2.1.4** - Crear campos de perfil (nombre, apellido, empresa, direccion)
+
+---
