@@ -98,10 +98,10 @@ class TestUsersSimpleMigration:
         conn = await asyncpg.connect(settings.DATABASE_URL.replace('postgresql+asyncpg://', 'postgresql://'))
         try:
             user_id = await conn.fetchval('''
-                INSERT INTO users (id, email, password_hash, user_type, is_active)
-                VALUES (gen_random_uuid(), $1, $2, $3, $4)
+                INSERT INTO users (id, email, password_hash, user_type, is_active, is_verified)
+                VALUES (gen_random_uuid(), $1, $2, $3, $4, $5)
                 RETURNING id
-            ''', 'test_simple@example.com', 'hash123', 'VENDEDOR', True)
+            ''', 'test_simple@example.com', 'hash123', 'VENDEDOR', True, False)
             
             assert user_id is not None, "INSERT debe retornar ID válido"
             
@@ -125,9 +125,10 @@ class TestUsersSimpleMigration:
     def test_model_sync_check(self):
         """Verificar que el modelo User está correctamente definido."""
         expected_fields = {'id', 'email', 'password_hash',
-                          'nombre', 'apellido', 'user_type', 'is_active',
-                          'cedula', 'telefono', 'ciudad', 'empresa', 'direccion',
-                          'created_at', 'updated_at', 'deleted_at'}
+                        'nombre', 'apellido', 'user_type', 'is_active',
+                        'cedula', 'telefono', 'ciudad', 'empresa', 'direccion',
+                        'created_at', 'updated_at', 'deleted_at',
+                        'is_verified', 'last_login'}
         model_fields = {col.name for col in User.__table__.columns}
         
         assert expected_fields == model_fields, f"Campos del modelo no coinciden: esperados={expected_fields}, modelo={model_fields}"

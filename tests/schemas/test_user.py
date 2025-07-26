@@ -252,7 +252,9 @@ class TestUserRead:
             "apellido": "Martín",
             "user_type": UserType.COMPRADOR,
             "id": 123,
-            "is_active": True
+            "is_active": True,
+            "is_verified": False,
+            "last_login": None
         }
         
         user = UserRead(**user_data)
@@ -266,8 +268,11 @@ class TestUserRead:
         # Verificar campos adicionales
         assert user.id == 123
         assert user.is_active is True
+        assert user.is_verified is False
+        assert user.last_login is None
         assert isinstance(user.id, int)
         assert isinstance(user.is_active, bool)
+        assert isinstance(user.is_verified, bool)
     
     def test_user_read_inactive_user(self):
         """Test con usuario inactivo"""
@@ -276,12 +281,15 @@ class TestUserRead:
             "nombre": "Pedro",
             "apellido": "López",
             "id": 456,
-            "is_active": False
+            "is_active": False,
+            "is_verified": False,
+            "last_login": None
         }
         
         user = UserRead(**user_data)
         
         assert user.is_active is False
+        assert user.is_verified is False
         assert user.user_type == UserType.COMPRADOR  # Default
     
     def test_user_read_missing_id(self):
@@ -290,8 +298,9 @@ class TestUserRead:
             "email": "test@example.com",
             "nombre": "Juan",
             "apellido": "Pérez",
-            "is_active": True
-            # id omitido intencionalmente
+            "is_active": True,
+            "is_verified": False,
+            "last_login": None
         }
         
         with pytest.raises(ValidationError) as exc_info:
@@ -308,7 +317,9 @@ class TestUserRead:
             "email": "test@example.com",
             "nombre": "Juan",
             "apellido": "Pérez",
-            "id": 789
+            "id": 789,
+            "is_verified": False,
+            "last_login": None
             # is_active omitido intencionalmente
         }
         
@@ -327,7 +338,9 @@ class TestUserRead:
             "nombre": "Juan",
             "apellido": "Pérez",
             "id": "not_an_integer",  # String en lugar de int
-            "is_active": True
+            "is_active": True,
+            "is_verified": False,
+            "last_login": None
         }
         
         with pytest.raises(ValidationError) as exc_info:
@@ -351,7 +364,9 @@ class TestUserRead:
             "nombre": "Juan",
             "apellido": "Pérez",
             "id": 123,
-            "is_active": True
+            "is_active": True,
+            "is_verified": False,
+            "last_login": None
         }
         
         with pytest.raises(ValidationError) as exc_info:
@@ -385,7 +400,9 @@ class TestUserSchemaIntegration:
             "apellido": user_create.apellido,
             "user_type": user_create.user_type,
             "id": 999,
-            "is_active": True
+            "is_active": True,
+            "is_verified": False,
+            "last_login": None
         }
         
         user_read = UserRead(**read_data)
@@ -399,6 +416,7 @@ class TestUserSchemaIntegration:
         # Verificar campos adicionales de read
         assert user_read.id == 999
         assert user_read.is_active is True
+        assert user_read.is_verified is False
     
     def test_all_user_types_compatibility(self):
         """Test de compatibilidad con todos los tipos de usuario"""
@@ -420,7 +438,13 @@ class TestUserSchemaIntegration:
             assert user_create.user_type == user_type
             
             # Test con UserRead
-            read_data = {**base_data, "id": 1, "is_active": True}
+            read_data = {
+                **base_data, 
+                "id": 1, 
+                "is_active": True,
+                "is_verified": False,
+                "last_login": None
+            }
             user_read = UserRead(**read_data)
             assert user_read.user_type == user_type
     
@@ -432,7 +456,9 @@ class TestUserSchemaIntegration:
             "apellido": "Serialization",
             "user_type": UserType.COMPRADOR,
             "id": 555,
-            "is_active": True
+            "is_active": True,
+            "is_verified": False,
+            "last_login": None
         }
         
         user_read = UserRead(**user_data)
@@ -447,6 +473,8 @@ class TestUserSchemaIntegration:
         assert user_dict["user_type"] == UserType.COMPRADOR
         assert user_dict["id"] == 555
         assert user_dict["is_active"] is True
+        assert user_dict["is_verified"] is False
+        assert user_dict["last_login"] is None
     
     def test_schema_json_serialization(self):
         """Test de serialización JSON"""
@@ -456,7 +484,9 @@ class TestUserSchemaIntegration:
             "apellido": "Test",
             "user_type": UserType.VENDEDOR,
             "id": 777,
-            "is_active": False
+            "is_active": False,
+            "is_verified": True,
+            "last_login": None
         }
         
         user_read = UserRead(**user_data)
@@ -470,7 +500,8 @@ class TestUserSchemaIntegration:
         assert "Test" in user_json
         assert str(UserType.VENDEDOR.value) in user_json
         assert "777" in user_json
-        assert "false" in user_json.lower()
+        assert "false" in user_json.lower()  # is_active: false
+        assert "true" in user_json.lower()   # is_verified: true
 
 
 class TestEdgeCases:

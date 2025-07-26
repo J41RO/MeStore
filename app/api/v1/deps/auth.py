@@ -76,7 +76,9 @@ async def get_current_user(
             nombre=payload.get("nombre", ""),
             apellido=payload.get("apellido", ""),
             user_type=payload.get("user_type", ""),
-            is_active=payload.get("is_active", True)
+            is_active=payload.get("is_active", True),
+            is_verified=payload.get("is_verified", False),
+            last_login=payload.get("last_login", None)
         )
 
         return user_data

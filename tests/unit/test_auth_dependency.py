@@ -43,7 +43,9 @@ class TestGetCurrentUser:
             "nombre": "Usuario",
             "apellido": "Test",
             "user_type": "COMPRADOR",
-            "is_active": True
+            "is_active": True,
+            "is_verified": False,
+            "last_login": None
         }
 
     @pytest.mark.asyncio
@@ -185,9 +187,11 @@ class TestGetCurrentActiveUser:
             id=123,
             email="activo@test.com",
             nombre="Usuario",
-            apellido="Activo", 
+            apellido="Activo",
             user_type="COMPRADOR",
-            is_active=True
+            is_active=True,
+            is_verified=False,
+            last_login=None
         )
 
         # Importar la función
@@ -210,8 +214,10 @@ class TestGetCurrentActiveUser:
             email="inactivo@test.com",
             nombre="Usuario",
             apellido="Inactivo",
-            user_type="VENDEDOR",  # Se convertirá a enum automáticamente 
-            is_active=False
+            user_type="VENDEDOR",
+            is_active=False,
+            is_verified=False,
+            last_login=None
         )
 
         # Importar la función

@@ -33,6 +33,7 @@ Este módulo contiene el modelo principal para gestión de usuarios:
 
 from datetime import datetime
 from typing import Optional
+from datetime import datetime
 from sqlalchemy import Boolean, Column, DateTime, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
@@ -90,6 +91,22 @@ class User(BaseModel):
         default=uuid.uuid4,
         index=True,
         comment="Identificador único UUID del usuario"
+    )
+
+    # Campo de verificación
+    is_verified = Column(
+        Boolean,
+        default=lambda: False,
+        server_default='false',
+        nullable=False,
+        comment="Indica si el usuario ha verificado su email"
+    )
+
+    # Campo de último login
+    last_login = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Timestamp del último login del usuario"
     )
 
     # Campos específicos colombianos
@@ -183,6 +200,16 @@ class User(BaseModel):
         nullable=False,
         comment="Timestamp de última actualización del registro"
     )
+    def __init__(self, **kwargs):
+        """Constructor personalizado para aplicar defaults correctamente."""
+        # Aplicar defaults explícitos para campos de estado
+        if 'is_verified' not in kwargs:
+            kwargs['is_verified'] = False
+        if 'is_active' not in kwargs:
+            kwargs['is_active'] = True
+            
+        # Llamar al constructor padre
+        super().__init__(**kwargs)
 
     def __repr__(self) -> str:
         """Representación string del objeto User para debugging."""
@@ -214,6 +241,8 @@ class User(BaseModel):
             'apellido': self.apellido,
             'user_type': self.user_type.value if self.user_type else None,
             'is_active': self.is_active,
+            'is_verified': self.is_verified,
+            'last_login': self.last_login.isoformat() if self.last_login else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
             'cedula': self.cedula,

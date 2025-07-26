@@ -14,6 +14,7 @@ Definición inicial de esquemas Pydantic para User
 
 from pydantic import BaseModel, EmailStr
 from typing import Optional
+from datetime import datetime
 
 from app.models.user import UserType
 
@@ -31,6 +32,9 @@ class UserBase(BaseModel):
     ciudad: Optional[str] = None
     empresa: Optional[str] = None
     direccion: Optional[str] = None
+    is_verified: bool = False
+    last_login: Optional[datetime] = None
+    last_login: Optional[datetime] = None
 
 
 class UserCreate(UserBase):
@@ -44,6 +48,8 @@ class UserRead(UserBase):
 
     id: int
     is_active: bool
+    is_verified: bool
+    is_verified: bool
 
     class Config:
         from_attributes = True
