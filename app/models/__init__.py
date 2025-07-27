@@ -12,6 +12,7 @@ from typing import List
 # Import base model first
 from .base import BaseModel
 from .user import User
+from .product import Product
 
 # Auto-import all model modules
 def _import_all_models() -> List[str]:
