@@ -199,7 +199,7 @@
     ✅ 1.2.1.3 Añadir campos específicos colombianos (cedula, telefono, ciudad)
     ✅ 1.2.1.4 Crear campos de perfil (nombre, apellido, empresa, direccion)
     ✅ 1.2.1.5 Implementar campos de estado (is_active, is_verified, last_login)
-    ⬜ 1.2.1.6 Crear Pydantic schemas para User (Create, Update, Response)
+    ✅ 1.2.1.6 Crear Pydantic schemas para User (Create, Update, Response)
 ⬜ 1.2.2 Modelo Product (con estados: tránsito→verificado→disponible→vendido)
     ⬜ 1.2.2.1 Crear SQLAlchemy model Product con campos básicos (sku, name, description)
     ⬜ 1.2.2.2 Implementar enum ProductStatus (TRANSITO, VERIFICADO, DISPONIBLE, VENDIDO)

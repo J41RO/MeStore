@@ -34,7 +34,15 @@ class TestUserBase:
             "user_type": UserType.COMPRADOR
         }
         
-        user = UserBase(**user_data)
+        # Nueva validación min_length=2 debe rechazar strings vacíos
+        with pytest.raises(ValidationError) as exc_info:
+            user = UserBase(**user_data)
+
+        # Verificar que ambos campos fallan por ser muy cortos
+        errors = exc_info.value.errors()
+        field_errors = [error['loc'][0] for error in errors]
+        assert 'nombre' in field_errors
+        assert 'apellido' in field_errors
         
         # Verificar que todos los campos se asignan correctamente
         assert user.email == "test@example.com"
@@ -118,17 +126,26 @@ class TestUserBase:
         assert 'apellido' in field_errors
     
     def test_user_base_empty_strings(self):
-        """Test con strings vacíos"""
+        """Test que strings vacíos son rechazados por validación min_length"""
         user_data = {
             "email": "test@example.com",
             "nombre": "",  # String vacío
             "apellido": ""  # String vacío
         }
         
-        # Pydantic permite strings vacíos por defecto
-        user = UserBase(**user_data)
-        assert user.nombre == ""
-        assert user.apellido == ""
+        # String vacíos deben fallar con min_length=2
+        with pytest.raises(ValidationError) as exc_info:
+            user = UserBase(**user_data)
+
+        # Verificar que ambos campos fallan por ser muy cortos
+        errors = exc_info.value.errors()
+        field_errors = [error['loc'][0] for error in errors]
+        assert 'nombre' in field_errors
+        assert 'apellido' in field_errors
+
+        # Verificar tipo de error específico
+        error_types = [error['type'] for error in errors]
+        assert 'string_too_short' in error_types
     
     def test_user_base_special_characters(self):
         """Test con caracteres especiales en nombres"""
