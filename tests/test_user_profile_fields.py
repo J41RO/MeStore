@@ -78,7 +78,7 @@ class TestUserProfileFields:
 
         # Verificar campos colombianos siguen funcionando
         assert user_data.cedula == "87654321"
-        assert user_data.telefono == "3009876543"
+        assert user_data.telefono == "+57 3009876543"
         assert user_data.ciudad == "Medellín"
 
         # Verificar campos básicos siguen funcionando

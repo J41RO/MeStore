@@ -1,4 +1,5 @@
 # ~/tests/test_user_status_fields.py
+import uuid
 # ---------------------------------------------------------------------------------------------
 # MeStore - Tests para campos de estado de User
 # Copyright (c) 2025 Jairo. Todos los derechos reservados.
@@ -73,7 +74,9 @@ class TestUserStatusFields:
             'password_hash': 'hashed_password',
             'nombre': 'Juan',
             'apellido': 'Pérez',
-            'last_login': now
+            'last_login': now,
+            'created_at': datetime.now(),
+            'updated_at': datetime.now()
         }
         user = User(**user_data)
 
@@ -88,7 +91,9 @@ class TestUserStatusFields:
             'nombre': 'Juan',
             'apellido': 'Pérez',
             'is_verified': True,
-            'last_login': now
+            'last_login': now,
+            'created_at': datetime.now(),
+            'updated_at': datetime.now()
         }
         user = User(**user_data)
         user_dict = user.to_dict()
@@ -131,14 +136,16 @@ class TestUserStatusFields:
         """Test que UserRead schema incluye ambos campos."""
         now = datetime.now(timezone.utc)
         user_data = {
-            'id': 1,
+            'id': str(uuid.uuid4()),
             'email': 'test@example.com',
             'nombre': 'Juan',
             'apellido': 'Pérez',
             'user_type': UserType.COMPRADOR,
             'is_active': True,
             'is_verified': True,
-            'last_login': now
+            'last_login': now,
+            'created_at': datetime.now(),
+            'updated_at': datetime.now()
         }
         user_read = UserRead(**user_data)
 

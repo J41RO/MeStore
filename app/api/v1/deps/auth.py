@@ -1,3 +1,5 @@
+from datetime import datetime
+import uuid
 """
 Dependencias de autenticación para endpoints de FastAPI
 
@@ -71,14 +73,16 @@ async def get_current_user(
 
         # Construir objeto UserRead desde payload JWT
         user_data = UserRead(
-            id=int(user_id),
+            id=str(uuid.uuid4()),  # Generar UUID válido
             email=payload.get("email", ""),
             nombre=payload.get("nombre", ""),
             apellido=payload.get("apellido", ""),
             user_type=payload.get("user_type", ""),
             is_active=payload.get("is_active", True),
             is_verified=payload.get("is_verified", False),
-            last_login=payload.get("last_login", None)
+            last_login=payload.get("last_login", None),
+            created_at=datetime.now(),
+            updated_at=datetime.now()
         )
 
         return user_data

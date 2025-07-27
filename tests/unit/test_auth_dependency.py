@@ -1,4 +1,8 @@
+import uuid
+from datetime import datetime
 """
+import uuid
+from datetime import datetime
 Tests unitarios para las dependencias de autenticación.
 
 Tests para app/api/v1/deps/auth.py:
@@ -68,7 +72,7 @@ class TestGetCurrentUser:
 
             # Assert
             assert isinstance(result, UserRead)
-            assert result.id == 123
+            assert isinstance(result.id, (str, uuid.UUID))
             assert result.email == "usuario@test.com"
             assert result.nombre == "Usuario"
             assert result.apellido == "Test"
@@ -184,14 +188,16 @@ class TestGetCurrentActiveUser:
 
         # Arrange
         active_user = UserRead(
-            id=123,
+            id=str(uuid.uuid4()),  # UUID válido
             email="activo@test.com",
             nombre="Usuario",
             apellido="Activo",
             user_type="COMPRADOR",
             is_active=True,
             is_verified=False,
-            last_login=None
+            last_login=None,
+            created_at=datetime.now(),
+            updated_at=datetime.now()
         )
 
         # Importar la función
@@ -210,14 +216,16 @@ class TestGetCurrentActiveUser:
 
         # Arrange
         inactive_user = UserRead(
-            id=456,
+            id=str(uuid.uuid4()),  # UUID válido
             email="inactivo@test.com",
             nombre="Usuario",
             apellido="Inactivo",
             user_type="VENDEDOR",
             is_active=False,
             is_verified=False,
-            last_login=None
+            last_login=None,
+            created_at=datetime.now(),
+            updated_at=datetime.now()
         )
 
         # Importar la función
