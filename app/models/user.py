@@ -40,6 +40,7 @@ import uuid
 from sqlalchemy.sql import func
 from enum import Enum as PyEnum
 from sqlalchemy import Enum
+from sqlalchemy.orm import relationship
 
 from app.models.base import BaseModel
 
@@ -91,6 +92,13 @@ class User(BaseModel):
         default=uuid.uuid4,
         index=True,
         comment="Identificador único UUID del usuario"
+    )
+
+    # Relationship con Product
+    productos_vendidos = relationship(
+        "Product",
+        foreign_keys="Product.vendedor_id",
+        back_populates="vendedor"
     )
 
     # Campo de verificación

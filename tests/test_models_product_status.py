@@ -200,7 +200,7 @@ class TestProductStatusIntegration:
     """Tests de integración para ProductStatus."""
 
     def test_product_model_column_count(self):
-        """Verificar que Product tiene exactamente 15 columnas incluyendo status, pricing y fulfillment."""
+        """Verificar que Product tiene exactamente 19 columnas incluyendo status, pricing, fulfillment y tracking."""
         expected_columns = [
             'sku', 'name', 'description', 'status',
             'precio_venta', 'precio_costo', 'comision_mestocker',
@@ -209,7 +209,7 @@ class TestProductStatusIntegration:
 
         actual_columns = [col.name for col in Product.__table__.columns]
 
-        assert len(actual_columns) == 15
+        assert len(actual_columns) == 19
         assert all(col in actual_columns for col in expected_columns)
 
     def test_pricing_fields_exist(self):

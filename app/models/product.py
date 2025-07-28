@@ -37,9 +37,13 @@ Este módulo contiene el modelo SQLAlchemy para la entidad Product:
 
 from sqlalchemy import Column, String, Text, Index
 from sqlalchemy.dialects.postgresql import JSON
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import ForeignKey
+from sqlalchemy import Integer
 from sqlalchemy import DECIMAL
 from sqlalchemy import Enum
 from sqlalchemy.orm import validates
+from sqlalchemy.orm import relationship
 from enum import Enum as PyEnum
 
 from app.models.base import BaseModel
@@ -98,6 +102,55 @@ class Product(BaseModel):
         nullable=False, 
         index=True,
         comment="Código único del producto para identificación"
+    )
+
+    # Relationship con User (vendedor)
+    vendedor_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey('users.id'),
+        nullable=True,
+        index=True,
+        comment="ID del usuario vendedor que registró el producto"
+    )
+
+    # Tracking de cambios
+    created_by_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey('users.id'),
+        nullable=True,
+        comment="ID del usuario que creó el producto"
+    )
+
+    updated_by_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey('users.id'),
+        nullable=True,
+        comment="ID del usuario que actualizó por última vez"
+    )
+
+    version = Column(
+        Integer,
+        default=1,
+        nullable=False,
+        comment="Versión del producto para control de cambios"
+    )
+    # Relationships
+    vendedor = relationship(
+        "User",
+        foreign_keys=[vendedor_id],
+        back_populates="productos_vendidos"
+    )
+
+    created_by = relationship(
+        "User", 
+        foreign_keys=[created_by_id],
+        backref="productos_creados"
+    )
+
+    updated_by = relationship(
+        "User",
+        foreign_keys=[updated_by_id], 
+        backref="productos_actualizados"
     )
 
     name = Column(
@@ -203,6 +256,27 @@ class Product(BaseModel):
             raise ValueError("Nombre no puede exceder 200 caracteres")
         return name.strip()
 
+    def set_vendedor(self, user_id: UUID) -> None:
+        """Asignar vendedor al producto"""
+        self.vendedor_id = user_id
+        self.increment_version()
+
+    def increment_version(self) -> None:
+        """Incrementar versión para tracking"""
+        if self.version is None:
+            self.version = 1
+        else:
+            self.version += 1
+
+    def update_tracking(self, user_id: UUID) -> None:
+        """Actualizar tracking de cambios"""
+        self.updated_by_id = user_id
+        self.increment_version()
+
+    def is_vendido_por(self, user_id: UUID) -> bool:
+        """Verificar si producto es vendido por usuario específico"""
+        return self.vendedor_id == user_id
+
     def __repr__(self) -> str:
         """
         Representación técnica del objeto Product.
@@ -242,6 +316,10 @@ class Product(BaseModel):
             "dimensiones": self.dimensiones,
             "categoria": self.categoria,
             "tags": self.tags,
+            "vendedor_id": str(self.vendedor_id) if self.vendedor_id else None,
+            "created_by_id": str(self.created_by_id) if self.created_by_id else None,
+            "updated_by_id": str(self.updated_by_id) if self.updated_by_id else None,
+            "version": self.version,
         }
         return {**base_dict, **product_dict}
 
