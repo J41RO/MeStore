@@ -235,6 +235,16 @@ db-init: ## Inicializar base de datos desde cero
 # ==============================================================================
 
 migrate-test-all: ## Ejecutar todos los tests de migraciones
+
+test-product: ## Ejecutar todos los tests de Product
+	@echo \"🧪 Ejecutando tests de Product...\"
+	@python3 -m pytest tests/test_models_product.py tests/test_models_product_status.py -v
+	@echo \"✅ Tests Product completados\"
+
+test-product-detailed: ## Tests Product con detalles y coverage
+	@echo \"🧪 Tests Product detallados...\"
+	@python3 -m pytest tests/test_models_product.py tests/test_models_product_status.py -v --tb=short --cov=app.models.product
+	@echo \"📊 Reporte detallado completado\"
 	@echo "$(CYAN)Ejecutando tests de migraciones...$(NC)"
 	@python3 -m pytest tests/test_makefile_commands.py -v
 	@echo "$(GREEN)Tests de migraciones completados$(NC)"

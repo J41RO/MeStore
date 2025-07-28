@@ -30,9 +30,27 @@ Este módulo contiene el modelo SQLAlchemy para la entidad Product:
 """
 
 from sqlalchemy import Column, String, Text, Index
+from sqlalchemy import Enum
 from sqlalchemy.orm import validates
+from enum import Enum as PyEnum
 
 from app.models.base import BaseModel
+
+
+class ProductStatus(PyEnum):
+    """
+    Enumeración para estados del producto en el marketplace.
+
+    Estados del flujo de vida del producto:
+        TRANSITO: Producto en tránsito hacia almacén
+        VERIFICADO: Producto verificado y en proceso de catalogación
+        DISPONIBLE: Producto disponible para venta
+        VENDIDO: Producto vendido y no disponible
+    """
+    TRANSITO = "TRANSITO"
+    VERIFICADO = "VERIFICADO"
+    DISPONIBLE = "DISPONIBLE"
+    VENDIDO = "VENDIDO"
 
 
 class Product(BaseModel):
@@ -62,6 +80,20 @@ class Product(BaseModel):
         comment="Código único del producto para identificación"
     )
 
+    def __init__(self, **kwargs):
+        """
+        Inicializar Product con default status si no se especifica.
+
+        Args:
+            **kwargs: Argumentos para crear el producto
+        """
+        # Si no se especifica status, aplicar default
+        if 'status' not in kwargs:
+            kwargs['status'] = ProductStatus.TRANSITO
+
+        # Llamar al __init__ de BaseModel
+        super().__init__(**kwargs)
+
     name = Column(
         String(200), 
         nullable=False, 
@@ -73,6 +105,13 @@ class Product(BaseModel):
         Text, 
         nullable=True,
         comment="Descripción detallada del producto"
+    )
+
+    status = Column(
+        Enum(ProductStatus),
+        nullable=False,
+        default=ProductStatus.TRANSITO,
+        comment="Estado actual del producto en el marketplace"
     )
 
     # Índices adicionales para optimización
@@ -130,6 +169,7 @@ class Product(BaseModel):
             "sku": self.sku,
             "name": self.name,
             "description": self.description,
+            "status": self.status.value if self.status else None,
         }
         return {**base_dict, **product_dict}
 
