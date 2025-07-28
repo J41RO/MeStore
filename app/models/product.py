@@ -149,10 +149,16 @@ class Product(BaseModel):
 
     updated_by = relationship(
         "User",
-        foreign_keys=[updated_by_id], 
+        foreign_keys=[updated_by_id],
         backref="productos_actualizados"
     )
 
+    # Inventory relationship
+    ubicaciones_inventario = relationship(
+        "Inventory",
+        back_populates="product"
+    )
+    
     name = Column(
         String(200), 
         nullable=False, 
