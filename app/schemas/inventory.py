@@ -186,13 +186,13 @@ class InventoryUpdate(BaseModel):
 class InventoryRead(InventoryBase):
     """Schema para respuestas API con campos completos"""
     
-    # Campos base heredados + metadatos
-    id: UUID4
+# Campos base heredados + metadatos
+    id: Optional[UUID4] = Field(None, description="ID del registro (None si no persistido)")
     updated_by_id: Optional[UUID4] = Field(None, description="ID del usuario que realizó la última actualización")
     fecha_ingreso: datetime = Field(..., description="Fecha de ingreso al inventario")
     fecha_ultimo_movimiento: datetime = Field(..., description="Fecha del último movimiento de stock")
-    created_at: datetime = Field(..., description="Fecha de creación del registro")
-    updated_at: datetime = Field(..., description="Fecha de última actualización")
+    created_at: Optional[datetime] = Field(None, description="Fecha de creación del registro (None si no persistido)")
+    updated_at: Optional[datetime] = Field(None, description="Fecha de última actualización (None si no persistido)")
     deleted_at: Optional[datetime] = Field(None, description="Fecha de eliminación lógica")
     
 # Campos calculados (computed fields basados en métodos del modelo)
