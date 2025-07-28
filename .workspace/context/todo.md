@@ -204,7 +204,7 @@
     ✅ 1.2.2.1 Crear SQLAlchemy model Product con campos básicos (sku, name, description)
     ✅ 1.2.2.2 Implementar enum ProductStatus (TRANSITO, VERIFICADO, DISPONIBLE, VENDIDO)
     ✅ 1.2.2.3 Añadir campos de pricing (precio_venta, precio_costo, comision_mestocker)
-    ⬜ 1.2.2.4 Crear campos de fulfillment (peso, dimensiones, categoria, tags)
+    ✅ 1.2.2.4 Crear campos de fulfillment (peso, dimensiones, categoria, tags)
     ⬜ 1.2.2.5 Implementar relationship con User (vendedor) y tracking de cambios
     ⬜ 1.2.2.6 Crear Pydantic schemas para Product con validaciones de negocio
 ⬜ 1.2.3 Modelo Inventory (tracking de ubicación física)
@@ -1933,7 +1933,7 @@
 ⬜ 11.2.2.1 Configurar pytest execution con coverage reporting
 ⬜ 11.2.2.2 Implementar frontend testing con Jest y React Testing Library
 ⬜ 11.2.2.3 Añadir end-to-end testing con Playwright o Cypress
-⬜ 11.2.2.4 Crear API testing con Postman/Newman collections
+🔁 11.2.2.4 Crear API testing con Postman/Newman collections
 ⬜ 11.2.2.5 Implementar performance testing con k6 o Artillery
 ⬜ 11.2.2.6 Añadir test result reporting y failure notifications
 ⬜ 11.2.3 Deploy automático a staging

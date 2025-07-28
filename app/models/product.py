@@ -10,13 +10,14 @@
 # Autor: Jairo
 # Fecha de Creación: 2025-07-27
 # Última Actualización: 2025-07-28
-# Versión: 1.1.0
-# Propósito: Modelo SQLAlchemy para entidad Product con campos básicos y pricing
-#            Gestión de productos del marketplace (sku, name, description, pricing)
+# Versión: 1.2.0
+# Propósito: Modelo SQLAlchemy para entidad Product con campos básicos, pricing y fulfillment
+#            Gestión de productos del marketplace (sku, name, description, pricing, logística)
 #
 # Modificaciones:
 # 2025-07-27 - Creación inicial del modelo Product básico
 # 2025-07-28 - Añadidos campos de pricing (precio_venta, precio_costo, comision_mestocker)
+# 2025-07-28 - Añadidos campos de fulfillment (peso, dimensiones, categoria, tags)
 #
 # ---------------------------------------------------------------------------------------------
 
@@ -26,13 +27,16 @@ Modelo Product para MeStore.
 Este módulo contiene el modelo SQLAlchemy para la entidad Product:
 - Product: Modelo principal con campos básicos (sku, name, description)
 - Campos de pricing: precio_venta, precio_costo, comision_mestocker
+- Campos de fulfillment: peso, dimensiones, categoria, tags
 - Herencia de BaseModel: UUID, timestamps automáticos y soft delete
 - Métodos personalizados: __repr__, __str__, to_dict()
 - Métodos de negocio: calcular_margen(), calcular_porcentaje_margen()
-- Índices para optimización: sku (unique), name (búsquedas)
+- Métodos de fulfillment: calcular_volumen(), tiene_tag()
+- Índices para optimización: sku (unique), name (búsquedas), categoria
 """
 
 from sqlalchemy import Column, String, Text, Index
+from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy import DECIMAL
 from sqlalchemy import Enum
 from sqlalchemy.orm import validates
@@ -77,6 +81,12 @@ class Product(BaseModel):
     - precio_venta: Precio de venta al público (DECIMAL 10,2)
     - precio_costo: Precio de costo/compra (DECIMAL 10,2)
     - comision_mestocker: Comisión de MeStore (DECIMAL 10,2)
+    
+    Campos de fulfillment:
+    - peso: Peso del producto en kilogramos (DECIMAL 8,3)
+    - dimensiones: Dimensiones del producto en JSON {largo, ancho, alto} cm
+    - categoria: Categoría del producto (String 100 chars, indexed)
+    - tags: Tags del producto como array JSON para búsquedas
     """
 
     __tablename__ = "products"
@@ -127,6 +137,32 @@ class Product(BaseModel):
         DECIMAL(10, 2),
         nullable=True,
         comment="Comisión de MeStore por venta del producto (COP)"
+    )
+
+    # Campos de fulfillment
+    peso = Column(
+        DECIMAL(8, 3),
+        nullable=True,
+        comment="Peso del producto en kilogramos"
+    )
+
+    dimensiones = Column(
+        JSON,
+        nullable=True,
+        comment="Dimensiones del producto: {largo, ancho, alto} en cm"
+    )
+
+    categoria = Column(
+        String(100),
+        nullable=True,
+        index=True,
+        comment="Categoría del producto para organización"
+    )
+
+    tags = Column(
+        JSON,
+        nullable=True,
+        comment="Tags del producto como array JSON para búsquedas"
     )
 
     # Índices adicionales para optimización
@@ -190,7 +226,7 @@ class Product(BaseModel):
         Serializar producto a diccionario.
 
         Returns:
-            dict: Representación completa del producto
+            dict: Representación completa del producto incluyendo fulfillment
         """
         # Usar método base y extender con campos específicos
         base_dict = super().to_dict()
@@ -202,6 +238,10 @@ class Product(BaseModel):
             "precio_venta": float(self.precio_venta) if self.precio_venta else None,
             "precio_costo": float(self.precio_costo) if self.precio_costo else None,
             "comision_mestocker": float(self.comision_mestocker) if self.comision_mestocker else None,
+            "peso": float(self.peso) if self.peso else None,
+            "dimensiones": self.dimensiones,
+            "categoria": self.categoria,
+            "tags": self.tags,
         }
         return {**base_dict, **product_dict}
 
@@ -226,6 +266,31 @@ class Product(BaseModel):
         if self.precio_venta and self.precio_costo and self.precio_costo > 0:
             return float((self.precio_venta - self.precio_costo) / self.precio_costo * 100)
         return 0.0
+
+    def calcular_volumen(self) -> float:
+        """
+        Calcular volumen en cm³ desde dimensiones.
+        
+        Returns:
+            float: Volumen en cm³ o 0.0 si no hay dimensiones válidas
+        """
+        if self.dimensiones and all(k in self.dimensiones for k in ['largo', 'ancho', 'alto']):
+            return float(self.dimensiones['largo'] * self.dimensiones['ancho'] * self.dimensiones['alto'])
+        return 0.0
+
+    def tiene_tag(self, tag: str) -> bool:
+        """
+        Verificar si producto tiene un tag específico.
+        
+        Args:
+            tag: Tag a buscar (case insensitive)
+            
+        Returns:
+            bool: True si el producto tiene el tag especificado
+        """
+        if self.tags and isinstance(self.tags, list):
+            return tag.lower() in [t.lower() for t in self.tags]
+        return False
 
     def has_description(self) -> bool:
         """
