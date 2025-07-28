@@ -200,16 +200,38 @@ class TestProductStatusIntegration:
     """Tests de integración para ProductStatus."""
 
     def test_product_model_column_count(self):
-        """Verificar que Product tiene exactamente 8 columnas incluyendo status."""
+        """Verificar que Product tiene exactamente 11 columnas incluyendo status y pricing."""
         expected_columns = [
             'sku', 'name', 'description', 'status',
+            'precio_venta', 'precio_costo', 'comision_mestocker',
             'id', 'created_at', 'updated_at', 'deleted_at'
         ]
 
         actual_columns = [col.name for col in Product.__table__.columns]
 
-        assert len(actual_columns) == 8
+        assert len(actual_columns) == 11
         assert all(col in actual_columns for col in expected_columns)
+
+    def test_pricing_fields_exist(self):
+        """Verificar que los campos de pricing existen en el modelo."""
+        pricing_fields = ['precio_venta', 'precio_costo', 'comision_mestocker']
+        actual_columns = [col.name for col in Product.__table__.columns]
+
+        for field in pricing_fields:
+            assert field in actual_columns, f"Campo {field} no encontrado en modelo Product"
+
+    def test_pricing_fields_are_decimal(self):
+        """Verificar que los campos de pricing son tipo DECIMAL."""
+        from sqlalchemy import DECIMAL
+
+        pricing_fields = ['precio_venta', 'precio_costo', 'comision_mestocker']
+
+        for field_name in pricing_fields:
+            column = getattr(Product, field_name)
+            assert isinstance(column.type, DECIMAL), f"Campo {field_name} no es tipo DECIMAL"
+            assert column.type.precision == 10, f"Campo {field_name} no tiene precisión 10"
+            assert column.type.scale == 2, f"Campo {field_name} no tiene escala 2"
+            assert column.nullable == True, f"Campo {field_name} debería ser nullable"
 
     def test_product_status_enum_consistency(self):
         """Verificar consistencia entre enum y valores esperados en proyecto."""

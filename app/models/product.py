@@ -9,13 +9,14 @@
 # Ruta: ~/app/models/product.py
 # Autor: Jairo
 # Fecha de Creación: 2025-07-27
-# Última Actualización: 2025-07-27
-# Versión: 1.0.0
-# Propósito: Modelo SQLAlchemy para entidad Product con campos básicos
-#            Gestión de productos del marketplace (sku, name, description)
+# Última Actualización: 2025-07-28
+# Versión: 1.1.0
+# Propósito: Modelo SQLAlchemy para entidad Product con campos básicos y pricing
+#            Gestión de productos del marketplace (sku, name, description, pricing)
 #
 # Modificaciones:
 # 2025-07-27 - Creación inicial del modelo Product básico
+# 2025-07-28 - Añadidos campos de pricing (precio_venta, precio_costo, comision_mestocker)
 #
 # ---------------------------------------------------------------------------------------------
 
@@ -24,12 +25,15 @@ Modelo Product para MeStore.
 
 Este módulo contiene el modelo SQLAlchemy para la entidad Product:
 - Product: Modelo principal con campos básicos (sku, name, description)
+- Campos de pricing: precio_venta, precio_costo, comision_mestocker
 - Herencia de BaseModel: UUID, timestamps automáticos y soft delete
 - Métodos personalizados: __repr__, __str__, to_dict()
+- Métodos de negocio: calcular_margen(), calcular_porcentaje_margen()
 - Índices para optimización: sku (unique), name (búsquedas)
 """
 
 from sqlalchemy import Column, String, Text, Index
+from sqlalchemy import DECIMAL
 from sqlalchemy import Enum
 from sqlalchemy.orm import validates
 from enum import Enum as PyEnum
@@ -67,6 +71,12 @@ class Product(BaseModel):
     - sku: Código único del producto (String 50 chars, unique, indexed)
     - name: Nombre del producto (String 200 chars, indexed)
     - description: Descripción detallada (Text, optional)
+    - status: Estado del producto (Enum ProductStatus)
+    
+    Campos de pricing:
+    - precio_venta: Precio de venta al público (DECIMAL 10,2)
+    - precio_costo: Precio de costo/compra (DECIMAL 10,2)
+    - comision_mestocker: Comisión de MeStore (DECIMAL 10,2)
     """
 
     __tablename__ = "products"
@@ -79,20 +89,6 @@ class Product(BaseModel):
         index=True,
         comment="Código único del producto para identificación"
     )
-
-    def __init__(self, **kwargs):
-        """
-        Inicializar Product con default status si no se especifica.
-
-        Args:
-            **kwargs: Argumentos para crear el producto
-        """
-        # Si no se especifica status, aplicar default
-        if 'status' not in kwargs:
-            kwargs['status'] = ProductStatus.TRANSITO
-
-        # Llamar al __init__ de BaseModel
-        super().__init__(**kwargs)
 
     name = Column(
         String(200), 
@@ -114,11 +110,44 @@ class Product(BaseModel):
         comment="Estado actual del producto en el marketplace"
     )
 
+    # Campos de pricing
+    precio_venta = Column(
+        DECIMAL(10, 2),
+        nullable=True,
+        comment="Precio de venta al público (COP)"
+    )
+
+    precio_costo = Column(
+        DECIMAL(10, 2), 
+        nullable=True,
+        comment="Precio de costo/compra del producto (COP)"
+    )
+
+    comision_mestocker = Column(
+        DECIMAL(10, 2),
+        nullable=True,
+        comment="Comisión de MeStore por venta del producto (COP)"
+    )
+
     # Índices adicionales para optimización
     __table_args__ = (
         Index('ix_product_name_sku', 'name', 'sku'),  # Índice compuesto
         Index('ix_product_created_at', 'created_at'),  # Para ordenamiento temporal
     )
+
+    def __init__(self, **kwargs):
+        """
+        Inicializar Product con default status si no se especifica.
+
+        Args:
+            **kwargs: Argumentos para crear el producto
+        """
+        # Si no se especifica status, aplicar default
+        if 'status' not in kwargs:
+            kwargs['status'] = ProductStatus.TRANSITO
+
+        # Llamar al __init__ de BaseModel
+        super().__init__(**kwargs)
 
     @validates('sku')
     def validate_sku(self, key, sku):
@@ -170,8 +199,33 @@ class Product(BaseModel):
             "name": self.name,
             "description": self.description,
             "status": self.status.value if self.status else None,
+            "precio_venta": float(self.precio_venta) if self.precio_venta else None,
+            "precio_costo": float(self.precio_costo) if self.precio_costo else None,
+            "comision_mestocker": float(self.comision_mestocker) if self.comision_mestocker else None,
         }
         return {**base_dict, **product_dict}
+
+    def calcular_margen(self) -> float:
+        """
+        Calcular margen de ganancia.
+        
+        Returns:
+            float: Margen en COP (precio_venta - precio_costo)
+        """
+        if self.precio_venta and self.precio_costo:
+            return float(self.precio_venta - self.precio_costo)
+        return 0.0
+
+    def calcular_porcentaje_margen(self) -> float:
+        """
+        Calcular porcentaje de margen.
+        
+        Returns:
+            float: Porcentaje de margen sobre precio_costo
+        """
+        if self.precio_venta and self.precio_costo and self.precio_costo > 0:
+            return float((self.precio_venta - self.precio_costo) / self.precio_costo * 100)
+        return 0.0
 
     def has_description(self) -> bool:
         """

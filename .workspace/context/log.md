@@ -422,3 +422,30 @@ Continuar con siguiente tarea de logging o infraestructura según TODO.MD
   - Coverage: 34.01% global con modelos bien testeados
   - Próxima tarea: 1.1.6.5 Script para run migrations en deploy
 
+
+## CORRECCIÓN DE TESTS COMPLETADA - $(date +"%Y-%m-%d %H:%M:%S")
+
+### ✅ PROBLEMA RESUELTO:
+- **Test obsoleto** esperando 8 columnas cuando modelo tiene 11
+- **Ubicación:** tests/test_models_product_status.py línea 211
+- **Error:** AssertionError: assert 11 == 8
+
+### 🔧 CORRECCIONES APLICADAS:
+- Actualizado docstring: "11 columnas incluyendo status y pricing"
+- Corregido assert: `len(actual_columns) == 11`
+- Actualizada expected_columns con campos pricing:
+  - precio_venta, precio_costo, comision_mestocker
+- Añadidos tests específicos de pricing:
+  - test_pricing_fields_exist()
+  - test_pricing_fields_are_decimal()
+
+### 🧪 RESULTADO:
+- ✅ **15 tests pasando** (0 fallando)
+- ✅ Validación completa de campos DECIMAL(10,2)
+- ✅ Tests de pricing específicos funcionando
+
+### 🎯 ESTADO:
+- **Suite de tests:** Completamente funcional
+- **Cobertura pricing:** Tests específicos añadidos
+- **Regresión:** Corregida sin impacto en funcionalidad
+

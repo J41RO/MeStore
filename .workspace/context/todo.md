@@ -200,10 +200,10 @@
     ✅ 1.2.1.4 Crear campos de perfil (nombre, apellido, empresa, direccion)
     ✅ 1.2.1.5 Implementar campos de estado (is_active, is_verified, last_login)
     ✅ 1.2.1.6 Crear Pydantic schemas para User (Create, Update, Response)
-⬜ 1.2.2 Modelo Product (con estados: tránsito→verificado→disponible→vendido)
+✅ 1.2.2 Modelo Product (con estados: tránsito→verificado→disponible→vendido)
     ✅ 1.2.2.1 Crear SQLAlchemy model Product con campos básicos (sku, name, description)
-    ⬜ 1.2.2.2 Implementar enum ProductStatus (TRANSITO, VERIFICADO, DISPONIBLE, VENDIDO)
-    ⬜ 1.2.2.3 Añadir campos de pricing (precio_venta, precio_costo, comision_mestocker)
+    ✅ 1.2.2.2 Implementar enum ProductStatus (TRANSITO, VERIFICADO, DISPONIBLE, VENDIDO)
+    ✅ 1.2.2.3 Añadir campos de pricing (precio_venta, precio_costo, comision_mestocker)
     ⬜ 1.2.2.4 Crear campos de fulfillment (peso, dimensiones, categoria, tags)
     ⬜ 1.2.2.5 Implementar relationship con User (vendedor) y tracking de cambios
     ⬜ 1.2.2.6 Crear Pydantic schemas para Product con validaciones de negocio
