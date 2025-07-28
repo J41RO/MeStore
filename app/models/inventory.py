@@ -10,13 +10,14 @@
 # Autor: Jairo
 # Fecha de Creación: 2025-07-28
 # Última Actualización: 2025-07-28
-# Versión: 1.0.0
+# Versión: 1.2.0
 # Propósito: Modelo Inventory para gestión de ubicación física de productos en almacén
-#            Incluye campos de zona, estante, posición y control de cantidades
+#            Incluye campos de zona, estante, posición, control de cantidades y calidad
 #
 # Modificaciones:
 # 2025-07-28 - Creación inicial del modelo con campos de ubicación
 # 2025-07-28 - Agregado enum InventoryStatus y métodos de transición
+# 2025-07-28 - Agregado enum CondicionProducto y campos de calidad
 #
 # ---------------------------------------------------------------------------------------------
 
@@ -26,14 +27,17 @@ Modelo Inventory para gestión de ubicación física de productos.
 Este módulo contiene:
 - Clase Inventory: Modelo principal para tracking de ubicación física
 - Enum InventoryStatus: Estados del proceso de fulfillment
+- Enum CondicionProducto: Estados de calidad del producto
 - Campos de ubicación: zona, estante, posición para localización precisa
 - Control de inventario: cantidad total y cantidad reservada
+- Campos de calidad: condicion_producto y notas_almacen
 - Relationships: Conexiones con Product y User para integridad referencial
 - Métodos de utilidad: Cálculos de disponibilidad y gestión de reservas
 - Métodos de transición: Control de estados del proceso de fulfillment
+- Métodos de calidad: Business logic para condición del producto
 """
 
-from sqlalchemy import Column, String, Integer, ForeignKey, Index, UniqueConstraint, DateTime, Enum
+from sqlalchemy import Column, String, Integer, ForeignKey, Index, UniqueConstraint, DateTime, Enum, Text
 from enum import Enum as PyEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
@@ -59,12 +63,31 @@ class InventoryStatus(PyEnum):
     DESPACHADO = "DESPACHADO"
 
 
+class CondicionProducto(PyEnum):
+    """
+    Enumeración para condición física del producto en inventario.
+    
+    Estados de calidad del producto:
+        NUEVO: Producto completamente nuevo, sin uso
+        USADO_EXCELENTE: Producto usado en excelente estado
+        USADO_BUENO: Producto usado en buen estado
+        USADO_REGULAR: Producto usado con desgaste visible
+        DAÑADO: Producto con daños significativos
+    """
+    NUEVO = "NUEVO"
+    USADO_EXCELENTE = "USADO_EXCELENTE"
+    USADO_BUENO = "USADO_BUENO"
+    USADO_REGULAR = "USADO_REGULAR"
+    DAÑADO = "DAÑADO"
+
+
 class Inventory(BaseModel):
     """
     Modelo Inventory para gestión de ubicación física de productos.
 
     Gestiona la ubicación física de productos en el almacén con campos específicos
-    para zona, estante y posición. Incluye control de cantidades disponibles y reservadas.
+    para zona, estante y posición. Incluye control de cantidades disponibles y reservadas,
+    así como sistema de calidad para tracking de condición del producto.
 
     Campos de ubicación:
     - zona: Zona del almacén (A, B, C, etc.)
@@ -75,6 +98,8 @@ class Inventory(BaseModel):
     - cantidad_reservada: Cantidad reservada para órdenes
     - updated_by_id: Usuario que realizó la última actualización
     - status: Estado en el proceso de fulfillment
+    - condicion_producto: Estado de calidad del producto
+    - notas_almacen: Observaciones del personal de almacén
     """
 
     __tablename__ = "inventory"
@@ -94,6 +119,20 @@ class Inventory(BaseModel):
         nullable=False,
         default=InventoryStatus.DISPONIBLE,
         comment="Estado del inventario en el proceso de fulfillment"
+    )
+
+    # Campos de calidad del producto
+    condicion_producto = Column(
+        Enum(CondicionProducto),
+        nullable=False,
+        default=CondicionProducto.NUEVO,
+        comment="Condición física del producto en inventario"
+    )
+
+    notas_almacen = Column(
+        Text,
+        nullable=True,
+        comment="Observaciones y notas del personal de almacén"
     )
 
     # Campos de ubicación física
@@ -182,6 +221,7 @@ class Inventory(BaseModel):
         
         # CRÍTICO: Asegurar status por defecto
         kwargs.setdefault('status', InventoryStatus.DISPONIBLE)
+        kwargs.setdefault('condicion_producto', CondicionProducto.NUEVO)
         
         # Inicializar campos fecha si no se proporcionan
         if 'fecha_ingreso' not in kwargs:
@@ -283,6 +323,68 @@ class Inventory(BaseModel):
     def esta_despachado(self) -> bool:
         """Verificar si está en estado DESPACHADO"""
         return self.status == InventoryStatus.DESPACHADO
+
+    # Métodos de calidad del producto
+    def es_producto_nuevo(self) -> bool:
+        """Verificar si el producto está en condición nueva"""
+        return self.condicion_producto == CondicionProducto.NUEVO
+
+    def es_producto_usado(self) -> bool:
+        """Verificar si el producto está usado (cualquier condición)"""
+        return self.condicion_producto in [
+            CondicionProducto.USADO_EXCELENTE,
+            CondicionProducto.USADO_BUENO,
+            CondicionProducto.USADO_REGULAR
+        ]
+
+    def requiere_inspeccion(self) -> bool:
+        """Verificar si requiere inspección especial"""
+        return self.condicion_producto in [
+            CondicionProducto.USADO_REGULAR,
+            CondicionProducto.DAÑADO
+        ]
+
+    def es_vendible(self) -> bool:
+        """Verificar si está en condición vendible"""
+        return self.condicion_producto != CondicionProducto.DAÑADO
+
+    def tiene_notas(self) -> bool:
+        """Verificar si tiene notas del almacén"""
+        return self.notas_almacen is not None and len(self.notas_almacen.strip()) > 0
+
+    def obtener_condicion_descripcion(self) -> str:
+        """Obtener descripción legible de la condición"""
+        descripciones = {
+            CondicionProducto.NUEVO: "Producto nuevo",
+            CondicionProducto.USADO_EXCELENTE: "Usado - Excelente estado",
+            CondicionProducto.USADO_BUENO: "Usado - Buen estado",
+            CondicionProducto.USADO_REGULAR: "Usado - Estado regular",
+            CondicionProducto.DAÑADO: "Producto dañado"
+        }
+        return descripciones.get(self.condicion_producto, "Condición desconocida")
+
+    def obtener_nivel_calidad(self) -> int:
+        """Obtener nivel numérico de calidad (1-5, donde 5 es mejor)"""
+        niveles = {
+            CondicionProducto.DAÑADO: 1,
+            CondicionProducto.USADO_REGULAR: 2,
+            CondicionProducto.USADO_BUENO: 3,
+            CondicionProducto.USADO_EXCELENTE: 4,
+            CondicionProducto.NUEVO: 5
+        }
+        return niveles.get(self.condicion_producto, 0)
+
+    def agregar_nota_almacen(self, nota: str, user_id: Optional[UUID] = None) -> None:
+        """Agregar o actualizar nota del almacén"""
+        fecha_actual = datetime.utcnow().strftime("%Y-%m-%d %H:%M")
+        nueva_nota = f"[{fecha_actual}] {nota}"
+        
+        if self.notas_almacen:
+            self.notas_almacen = f"{self.notas_almacen}\n{nueva_nota}"
+        else:
+            self.notas_almacen = nueva_nota
+        
+        self.actualizar_fecha_movimiento(user_id)
 
     def esta_en_proceso(self) -> bool:
         """Verificar si está en algún proceso (no disponible ni despachado)"""
@@ -421,6 +523,15 @@ class Inventory(BaseModel):
             "dias_desde_ultimo_movimiento": self.dias_desde_ultimo_movimiento(),
             "status": self.status.value if self.status else None,
             "status_descripcion": self.status.value.replace("_", " ").title() if self.status else None,
+            # Campos de calidad del producto
+            "condicion_producto": self.condicion_producto.value if self.condicion_producto else None,
+            "condicion_descripcion": self.obtener_condicion_descripcion(),
+            "nivel_calidad": self.obtener_nivel_calidad(),
+            "notas_almacen": self.notas_almacen,
+            "es_nuevo": self.es_producto_nuevo(),
+            "es_vendible": self.es_vendible(),
+            "requiere_inspeccion": self.requiere_inspeccion(),
+            "tiene_notas": self.tiene_notas(),
             "puede_reservar": self.esta_disponible() and self.cantidad_disponible() > 0,
             "transiciones_disponibles": [s.value for s in self.obtener_transiciones_disponibles()],
             "es_reciente": self.es_reciente(),
@@ -430,4 +541,4 @@ class Inventory(BaseModel):
 
     def __repr__(self) -> str:
         """Representación string del objeto Inventory."""
-        return f"<Inventory {self.get_ubicacion_completa()}: {self.cantidad_disponible()}/{self.cantidad} [{self.status.value}]>"
+        return f"<Inventory {self.get_ubicacion_completa()}: {self.cantidad_disponible()}/{self.cantidad} [{self.status.value}] [{self.condicion_producto.value}]>"
