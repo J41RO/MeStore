@@ -211,7 +211,7 @@
     ✅ 1.2.3.1 Crear SQLAlchemy model Inventory con campos de ubicación (zona, estante, posicion)
     ✅ 1.2.3.2 Implementar relationship con Product y Stock tracking (cantidad_disponible)
     ✅ 1.2.3.3 Añadir campos de fechas (fecha_ingreso, fecha_ultimo_movimiento)
-    ⬜ 1.2.3.4 Crear enum InventoryStatus (DISPONIBLE, RESERVADO, EN_PICKING, DESPACHADO)
+    ✅ 1.2.3.4 Crear enum InventoryStatus (DISPONIBLE, RESERVADO, EN_PICKING, DESPACHADO)
     ⬜ 1.2.3.5 Implementar campos de calidad (condicion_producto, notas_almacen)
     ⬜ 1.2.3.6 Crear Pydantic schemas para Inventory y movimientos de stock
 ⬜ 1.2.4 Modelo Transaction (ventas y comisiones)
