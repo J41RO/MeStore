@@ -213,7 +213,7 @@
     ✅ 1.2.3.3 Añadir campos de fechas (fecha_ingreso, fecha_ultimo_movimiento)
     ✅ 1.2.3.4 Crear enum InventoryStatus (DISPONIBLE, RESERVADO, EN_PICKING, DESPACHADO)
     ✅ 1.2.3.5 Implementar campos de calidad (condicion_producto, notas_almacen)
-    ⬜ 1.2.3.6 Crear Pydantic schemas para Inventory y movimientos de stock
+    ✅ 1.2.3.6 Crear Pydantic schemas para Inventory y movimientos de stock
 ⬜ 1.2.4 Modelo Transaction (ventas y comisiones)
     ⬜ 1.2.4.1 Crear SQLAlchemy model Transaction con campos básicos (monto, metodo_pago)
     ⬜ 1.2.4.2 Implementar enum TransactionType (VENTA, COMISION, DEVOLUCION, AJUSTE)

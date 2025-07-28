@@ -3,12 +3,10 @@
 # MeStore - Schemas Package Exports
 # Copyright (c) 2025 Jairo. Todos los derechos reservados.
 # ---------------------------------------------------------------------------------------------
-
 """
 Schemas package for MeStore application.
-
 Exports all Pydantic schemas for API validation and serialization.
-Organized by domain: User schemas, Product schemas, etc.
+Organized by domain: User schemas, Product schemas, Inventory schemas, etc.
 """
 
 # User schemas
@@ -29,19 +27,41 @@ from .product import (
     ProductResponse,
 )
 
+# Inventory schemas
+from .inventory import (
+    InventoryBase,
+    InventoryCreate,
+    InventoryUpdate,
+    InventoryRead,
+    InventoryResponse,
+    MovimientoStockBase,
+    MovimientoStockCreate,
+    MovimientoStockRead,
+    TipoMovimiento,
+)
+
 # Export all schemas for easy importing
 __all__ = [
     # User schemas
     "UserBase",
-    "UserCreate", 
+    "UserCreate",
     "UserUpdate",
     "UserRead",
     "UserResponse",
-
     # Product schemas
     "ProductBase",
     "ProductCreate",
-    "ProductUpdate", 
+    "ProductUpdate",
     "ProductRead",
     "ProductResponse",
+    # Inventory schemas
+    "InventoryBase",
+    "InventoryCreate",
+    "InventoryUpdate",
+    "InventoryRead",
+    "InventoryResponse",
+    "MovimientoStockBase",
+    "MovimientoStockCreate",
+    "MovimientoStockRead",
+    "TipoMovimiento",
 ]
