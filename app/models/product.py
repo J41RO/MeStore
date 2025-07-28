@@ -45,6 +45,7 @@ from sqlalchemy import Enum
 from sqlalchemy.orm import validates
 from sqlalchemy.orm import relationship
 from enum import Enum as PyEnum
+from typing import List, Dict, Optional
 
 from app.models.base import BaseModel
 
@@ -103,6 +104,54 @@ class Product(BaseModel):
         index=True,
         comment="Código único del producto para identificación"
     )
+
+    # === MÉTODOS DE STOCK TRACKING AGREGADO ===
+    def get_stock_total(self) -> int:
+        """Obtener stock total sumando todas las ubicaciones"""
+        if not self.ubicaciones_inventario:
+            return 0
+        return sum(ubicacion.cantidad for ubicacion in self.ubicaciones_inventario)
+
+    def get_stock_disponible(self) -> int:
+        """Obtener stock disponible sumando todas las ubicaciones"""
+        if not self.ubicaciones_inventario:
+            return 0
+        return sum(ubicacion.cantidad_disponible() for ubicacion in self.ubicaciones_inventario)
+
+    def get_stock_reservado(self) -> int:
+        """Obtener stock reservado sumando todas las ubicaciones"""
+        if not self.ubicaciones_inventario:
+            return 0
+        return sum(ubicacion.cantidad_reservada for ubicacion in self.ubicaciones_inventario)
+
+    def get_ubicaciones_stock(self) -> List[Dict]:
+        """Obtener resumen de stock por ubicación"""
+        if not self.ubicaciones_inventario:
+            return []
+
+        return [
+            {
+                "ubicacion": ubicacion.get_ubicacion_completa(),
+                "zona": ubicacion.zona,
+                "estante": ubicacion.estante,
+                "posicion": ubicacion.posicion,
+                "cantidad_total": ubicacion.cantidad,
+                "cantidad_reservada": ubicacion.cantidad_reservada,
+                "cantidad_disponible": ubicacion.cantidad_disponible()
+            }
+            for ubicacion in self.ubicaciones_inventario
+        ]
+
+    def tiene_stock_disponible(self) -> bool:
+        """Verificar si hay stock disponible en cualquier ubicación"""
+        return self.get_stock_disponible() > 0
+
+    def buscar_ubicacion_disponible(self, cantidad_requerida: int) -> Optional["Inventory"]:
+        """Encontrar ubicación con stock suficiente"""
+        for ubicacion in self.ubicaciones_inventario:
+            if ubicacion.cantidad_disponible() >= cantidad_requerida:
+                return ubicacion
+        return None
 
     # Relationship con User (vendedor)
     vendedor_id = Column(
@@ -326,6 +375,11 @@ class Product(BaseModel):
             "created_by_id": str(self.created_by_id) if self.created_by_id else None,
             "updated_by_id": str(self.updated_by_id) if self.updated_by_id else None,
             "version": self.version,
+            "stock_total": self.get_stock_total(),
+            "stock_disponible": self.get_stock_disponible(),
+            "stock_reservado": self.get_stock_reservado(),
+            "tiene_stock": self.tiene_stock_disponible(),
+            "ubicaciones_count": len(self.ubicaciones_inventario) if self.ubicaciones_inventario else 0,
         }
         return {**base_dict, **product_dict}
 

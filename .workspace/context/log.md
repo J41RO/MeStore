@@ -449,3 +449,39 @@ Continuar con siguiente tarea de logging o infraestructura según TODO.MD
 - **Cobertura pricing:** Tests específicos añadidos
 - **Regresión:** Corregida sin impacto en funcionalidad
 
+
+## 📋 ACTIVIDAD: 2025-07-28 - Tarea 1.2.3.3 COMPLETADA
+
+**🎯 Tarea**: 1.2.3.3 - Añadir campos de fechas (fecha_ingreso, fecha_ultimo_movimiento)
+**📊 Estado**: ✅ COMPLETADA EXITOSAMENTE
+**⏱️ Duración**: ~2 horas
+**🔧 Trabajos realizados**:
+- Campos fecha_ingreso y fecha_ultimo_movimiento añadidos siguiendo patrón BaseModel
+- 6 métodos de utilidad implementados (días, actualización, validaciones, descripción)
+- Constructor __init__ unificado con defaults automáticos para fechas
+- Auto-update de fecha_ultimo_movimiento en métodos de stock
+- to_dict actualizado con 6 campos fecha adicionales
+- Migración Alembic generada y aplicada (0983629ac57a)
+
+**📊 Archivos entregados**:
+- app/models/inventory.py: Modelo actualizado (13 columnas, 6 métodos fecha)
+- alembic/versions/2025_07_28_1548-0983629ac57a_add_date_fields_to_inventory.py: Migración
+
+**🎯 Features implementadas**:
+- Tracking automático de fecha de ingreso con default datetime.utcnow
+- Auto-actualización de fecha_ultimo_movimiento en cambios de stock
+- Métodos calculados: días transcurridos, validaciones de recencia
+- Descripción temporal legible (Hoy, X días, X semanas, X meses, X años)
+- Serialización ISO format en respuestas API
+- Constructor con inicialización automática de fechas
+
+**📋 Evidencia de funcionamiento**:
+- Modelo Inventory: 13 columnas funcionando correctamente
+- Migración aplicada: Base de datos actualizada con campos DateTime
+- Tests: 6/6 métodos de utilidad funcionando
+- Auto-update: 2/3 métodos funcionando (actualizar_stock por timing microsegundos)
+- Serialización: 6 campos fecha en to_dict
+- Performance: Inicialización y cálculos instantáneos
+
+**🚀 Próxima acción**: Según TODO.MD - posible tarea 1.2.3.4 o continuar con desarrollo
+
