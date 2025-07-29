@@ -215,8 +215,8 @@
     ✅ 1.2.3.5 Implementar campos de calidad (condicion_producto, notas_almacen)
     ✅ 1.2.3.6 Crear Pydantic schemas para Inventory y movimientos de stock
 ✅ 1.2.4.1 Crear SQLAlchemy model Transaction con campos básicos (monto, metodo_pago) - COMPLETADO
-    ⬜ 1.2.4.1 Crear SQLAlchemy model Transaction con campos básicos (monto, metodo_pago)
-    ⬜ 1.2.4.2 Implementar enum TransactionType (VENTA, COMISION, DEVOLUCION, AJUSTE)
+    ✅ 1.2.4.1 Crear SQLAlchemy model Transaction con campos básicos (monto, metodo_pago)
+    ✅ 1.2.4.2 Implementar enum TransactionType (VENTA, COMISION, DEVOLUCION, AJUSTE)
     ⬜ 1.2.4.3 Añadir relationships con User (comprador, vendedor) y Product
     ⬜ 1.2.4.4 Crear campos de comisiones (porcentaje_mestocker, monto_vendedor)
     ⬜ 1.2.4.5 Implementar campos de estado (status, fecha_pago, referencia_pago)

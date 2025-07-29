@@ -64,4 +64,25 @@ __all__ = [
     "MovimientoStockCreate",
     "MovimientoStockRead",
     "TipoMovimiento",
+    # Transaction schemas
+    "TransactionBase",
+    "TransactionCreate",
+    "TransactionUpdate",
+    "TransactionRead",
+    "TransactionResponse",
+    "TransactionType",
+    "MetodoPago",
+    "EstadoTransaccion",
 ]
+
+# Transaction schemas
+from .transaction import (
+    TransactionBase,
+    TransactionCreate,
+    TransactionUpdate,
+    TransactionRead,
+    TransactionResponse,
+    TransactionType,
+    MetodoPago,
+    EstadoTransaccion
+)

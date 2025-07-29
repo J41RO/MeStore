@@ -89,6 +89,22 @@ class EstadoTransaccion(PyEnum):
     CANCELADA = "CANCELADA"
 
 
+class TransactionType(PyEnum):
+    """
+    Enumeración para tipos de transacciones en el marketplace.
+
+    Valores:
+    - VENTA: Transacción de venta de producto
+    - COMISION: Comisión cobrada por la plataforma
+    - DEVOLUCION: Devolución de dinero al comprador
+    - AJUSTE: Ajuste contable o corrección
+    """
+    VENTA = "VENTA"
+    COMISION = "COMISION"
+    DEVOLUCION = "DEVOLUCION"
+    AJUSTE = "AJUSTE"
+
+
 class Transaction(BaseModel):
     """
     Modelo Transaction para gestión de transacciones del marketplace.
@@ -126,6 +142,13 @@ class Transaction(BaseModel):
         nullable=False,
         default=EstadoTransaccion.PENDIENTE,
         comment="Estado actual de la transacción"
+    )
+
+    transaction_type = Column(
+        Enum(TransactionType),
+        nullable=False,
+        default=TransactionType.VENTA,
+        comment="Tipo de transacción del marketplace"
     )
 
     # Relationships con otros modelos
