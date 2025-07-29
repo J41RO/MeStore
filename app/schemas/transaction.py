@@ -39,6 +39,26 @@ class TransactionBase(BaseModel):
         gt=0,
         decimal_places=2
     )
+
+    # Campos de comisiones
+    porcentaje_mestocker: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        le=100,
+        max_digits=5,
+        decimal_places=2,
+        description="Porcentaje de comisión para MeStore (0.00 a 100.00)"
+    )
+
+    monto_vendedor: Optional[Decimal] = Field(
+        None,
+        ge=0,
+        max_digits=12,
+        decimal_places=2,
+        description="Monto que recibe el vendedor después de comisiones (COP)"
+    )
+
+
     metodo_pago: MetodoPago = Field(
         ...,
         description="Método de pago utilizado en la transacción"

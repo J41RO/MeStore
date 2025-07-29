@@ -485,3 +485,13 @@ Continuar con siguiente tarea de logging o infraestructura según TODO.MD
 
 **🚀 Próxima acción**: Según TODO.MD - posible tarea 1.2.3.4 o continuar con desarrollo
 
+2025-07-29 00:10:34 - ✅ TAREA 1.2.4.4 COMPLETADA EXITOSAMENTE: Campos de comisiones implementados
+  - Campos porcentaje_mestocker (DECIMAL 5,2) y monto_vendedor (DECIMAL 12,2) agregados
+  - CheckConstraints para validación: porcentaje 0-100%, monto_vendedor >= 0
+  - Métodos calcular_monto_vendedor() y aplicar_comision_automatica() funcionando
+  - Schema Pydantic actualizado con validaciones Field() apropiadas
+  - Serialización to_dict() incluye nuevos campos con manejo None
+  - Migración f5b5d83fa63d aplicada exitosamente en base de datos
+  - 17 tests unitarios: 100% pasando en 0.84s (cobertura 41.14%)
+  - Sistema de comisiones completamente funcional y validado
+  - READY FOR: 1.2.4.5 - Implementar campos de estado

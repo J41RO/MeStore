@@ -151,6 +151,20 @@ class Transaction(BaseModel):
         comment="Tipo de transacción del marketplace"
     )
 
+    # Campos de comisiones
+    porcentaje_mestocker = Column(
+        DECIMAL(5, 2),  # Hasta 999.99%
+        nullable=True,
+        comment="Porcentaje de comisión para MeStore (0.00 a 100.00)"
+    )
+
+    monto_vendedor = Column(
+        DECIMAL(12, 2),
+        nullable=True,
+        comment="Monto que recibe el vendedor después de comisiones (COP)"
+    )
+    
+
     # Relationships con otros modelos
     comprador_id = Column(
         SQLAlchemyUUID(as_uuid=True),
@@ -215,6 +229,14 @@ class Transaction(BaseModel):
         Index("ix_transaction_vendedor_estado", "vendedor_id", "estado"),
         Index("ix_transaction_product", "product_id", "estado"),
         CheckConstraint("monto > 0", name="ck_transaction_monto_positive"),
+        CheckConstraint(
+            "porcentaje_mestocker >= 0 AND porcentaje_mestocker <= 100", 
+            name="ck_transaction_porcentaje_valid"
+        ),
+        CheckConstraint(
+            "monto_vendedor >= 0", 
+            name="ck_transaction_monto_vendedor_positive"
+        ),
     )
 
     def esta_pendiente(self) -> bool:
@@ -252,6 +274,8 @@ class Transaction(BaseModel):
 
     def get_monto_formateado(self) -> str:
         """Obtener monto formateado en pesos colombianos"""
+        if self.monto is None:
+            return "$0.00 COP"
         return f"${self.monto:,.2f} COP"
 
     def es_pago_digital(self) -> bool:
@@ -264,12 +288,26 @@ class Transaction(BaseModel):
             MetodoPago.DAVIPLATA
         ]
 
+    def calcular_monto_vendedor(self) -> Optional[Decimal]:
+        """Calcular monto para vendedor basado en comisión"""
+        if self.monto and self.porcentaje_mestocker is not None:
+            comision = (self.monto * self.porcentaje_mestocker) / 100
+            return self.monto - comision
+        return None
+
+    def aplicar_comision_automatica(self, porcentaje: Decimal) -> None:
+        """Aplicar comisión y calcular monto vendedor automáticamente"""
+        self.porcentaje_mestocker = porcentaje
+        self.monto_vendedor = self.calcular_monto_vendedor()
+
     def to_dict(self) -> dict:
         """Serializar transacción a diccionario"""
         base_dict = super().to_dict()
         transaction_dict = {
             "monto": float(self.monto) if self.monto else None,
             "monto_formateado": self.get_monto_formateado(),
+            "porcentaje_mestocker": float(self.porcentaje_mestocker) if self.porcentaje_mestocker else None,
+            "monto_vendedor": float(self.monto_vendedor) if self.monto_vendedor else None,
             "metodo_pago": self.metodo_pago.value if self.metodo_pago else None,
             "estado": self.estado.value if self.estado else None,
             "comprador_id": str(self.comprador_id) if self.comprador_id else None,
