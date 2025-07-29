@@ -39,6 +39,15 @@ from .inventory import (
     MovimientoStockRead,
     TipoMovimiento,
 )
+# Financial reports schemas
+from .financial_reports import (
+    MetricaVentas,
+    MetricaComisiones,
+    ReporteVendedor,
+    DashboardFinanciero,
+    AnalyticsTransacciones,
+    ExportacionReporte,
+)
 
 # Export all schemas for easy importing
 __all__ = [
@@ -73,10 +82,19 @@ __all__ = [
     "TransactionType",
     "MetodoPago",
     "EstadoTransaccion",
+    # Financial reports schemas
+    "MetricaVentas",
+    "MetricaComisiones", 
+    "ReporteVendedor",
+    "DashboardFinanciero",
+    "AnalyticsTransacciones",
+    "ExportacionReporte",
 ]
 
 # Transaction schemas
 from .transaction import (
+
+# Financial reports schemas
     TransactionBase,
     TransactionCreate,
     TransactionUpdate,

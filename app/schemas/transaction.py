@@ -40,6 +40,46 @@ class TransactionBase(BaseModel):
         decimal_places=2
     )
 
+    # Campos de estado adicionales (tarea 1.2.4.5)
+    status: Optional[str] = Field(
+        None,
+        max_length=50,
+        description="Estado adicional específico del procesador de pagos"
+    )
+
+    fecha_pago: Optional[datetime] = Field(
+        None,
+        description="Fecha y hora cuando se realizó el pago efectivo"
+    )
+
+    referencia_pago: Optional[str] = Field(
+        None,
+        max_length=100,
+        description="Referencia específica del pago (diferente a referencia_externa)"
+    )
+
+    # Campos adicionales
+    vendedor_id: Optional[UUID] = Field(
+        None,
+        description="ID del usuario vendedor (nullable para transacciones del sistema)"
+    )
+
+    product_id: Optional[UUID] = Field(
+        None,
+        description="ID del producto involucrado en la transacción"
+    )
+
+    referencia_externa: Optional[str] = Field(
+        None,
+        max_length=100,
+        description="Referencia externa del procesador de pagos"
+    )
+
+    observaciones: Optional[str] = Field(
+        None,
+        description="Observaciones adicionales sobre la transacción"
+    )
+
     # Campos de comisiones
     porcentaje_mestocker: Optional[Decimal] = Field(
         None,
@@ -116,3 +156,45 @@ class TransactionRead(TransactionBase):
 
 # Alias descriptivo para respuestas
 TransactionResponse = TransactionRead
+
+# Agregar campos faltantes después de los campos existentes
+
+# Campos de estado adicionales (tarea 1.2.4.5)
+status: Optional[str] = Field(
+    None,
+    max_length=50,
+    description="Estado adicional específico del procesador de pagos"
+)
+
+fecha_pago: Optional[datetime] = Field(
+    None,
+    description="Fecha y hora cuando se realizó el pago efectivo"
+)
+
+referencia_pago: Optional[str] = Field(
+    None,
+    max_length=100,
+    description="Referencia específica del pago (diferente a referencia_externa)"
+)
+
+# Campos adicionales
+vendedor_id: Optional[UUID] = Field(
+    None,
+    description="ID del usuario vendedor (nullable para transacciones del sistema)"
+)
+
+product_id: Optional[UUID] = Field(
+    None,
+    description="ID del producto involucrado en la transacción"
+)
+
+referencia_externa: Optional[str] = Field(
+    None,
+    max_length=100,
+    description="Referencia externa del procesador de pagos"
+)
+
+observaciones: Optional[str] = Field(
+    None,
+    description="Observaciones adicionales sobre la transacción"
+)

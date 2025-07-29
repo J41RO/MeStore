@@ -220,7 +220,7 @@
     ✅ 1.2.4.3 Añadir relationships con User (comprador, vendedor) y Product
     ✅ 1.2.4.4 Crear campos de comisiones (porcentaje_mestocker, monto_vendedor)
     ✅ 1.2.4.5 Implementar campos de estado (status, fecha_pago, referencia_pago)
-    ⬜ 1.2.4.6 Crear Pydantic schemas para Transaction y reportes financieros
+    ✅ 1.2.4.6 Crear Pydantic schemas para Transaction y reportes financieros
 ⬜ 1.2.5 Modelo Storage (espacios y tarifas)
     ⬜ 1.2.5.1 Crear SQLAlchemy model Storage con campos de espacio (tipo, capacidad_max)
     ⬜ 1.2.5.2 Implementar enum StorageType (PEQUENO, MEDIANO, GRANDE, ESPECIAL)
