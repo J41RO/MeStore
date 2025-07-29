@@ -34,6 +34,7 @@ from decimal import Decimal
 from enum import Enum as PyEnum
 from typing import Optional
 from uuid import UUID
+from datetime import datetime
 
 from sqlalchemy import (
     DECIMAL,
@@ -45,6 +46,7 @@ from sqlalchemy import (
     String,
     Text,
     UUID as SQLAlchemyUUID,
+    DateTime,
 )
 from sqlalchemy.orm import relationship
 
@@ -129,6 +131,28 @@ class Transaction(BaseModel):
         DECIMAL(12, 2),
         nullable=False,
         comment="Monto de la transacción en pesos colombianos (COP)"
+    )
+
+    # Campos de estado adicionales del procesador de pagos
+    status = Column(
+        String(50),
+        nullable=True,
+        index=True,
+        comment="Estado adicional específico del procesador de pagos"
+    )
+
+    fecha_pago = Column(
+        DateTime,
+        nullable=True,
+        index=True,
+        comment="Fecha y hora cuando se realizó el pago efectivo"
+    )
+
+    referencia_pago = Column(
+        String(100),
+        nullable=True,
+        index=True,
+        comment="Referencia específica del pago (diferente a referencia_externa)"
     )
 
     metodo_pago = Column(
@@ -228,6 +252,9 @@ class Transaction(BaseModel):
         Index("ix_transaction_comprador_estado", "comprador_id", "estado"),
         Index("ix_transaction_vendedor_estado", "vendedor_id", "estado"),
         Index("ix_transaction_product", "product_id", "estado"),
+        Index("ix_transaction_fecha_pago", "fecha_pago"),
+        Index("ix_transaction_status_fecha", "status", "fecha_pago"),
+        Index("ix_transaction_referencia_pago", "referencia_pago"),
         CheckConstraint("monto > 0", name="ck_transaction_monto_positive"),
         CheckConstraint(
             "porcentaje_mestocker >= 0 AND porcentaje_mestocker <= 100", 
@@ -257,6 +284,17 @@ class Transaction(BaseModel):
             self.estado = EstadoTransaccion.COMPLETADA
             return True
         return False
+
+    def marcar_pago_completado(self, referencia: str = None) -> None:
+        """Marcar pago como completado con fecha y referencia"""
+        self.fecha_pago = datetime.utcnow()
+        self.status = "PAGADO"
+        if referencia:
+            self.referencia_pago = referencia
+
+    def tiene_pago_confirmado(self) -> bool:
+        """Verificar si el pago está confirmado"""
+        return self.fecha_pago is not None and self.status == "PAGADO"
 
     def marcar_como_fallida(self) -> bool:
         """Marcar transacción como fallida"""
@@ -314,6 +352,9 @@ class Transaction(BaseModel):
             "vendedor_id": str(self.vendedor_id) if self.vendedor_id else None,
             "product_id": str(self.product_id) if self.product_id else None,
             "referencia_externa": self.referencia_externa,
+            "status": self.status,
+            "fecha_pago": self.fecha_pago.isoformat() if self.fecha_pago else None,
+            "referencia_pago": self.referencia_pago,
             "observaciones": self.observaciones,
             "esta_completada": self.esta_completada(),
             "puede_cancelar": self.puede_cancelar(),
