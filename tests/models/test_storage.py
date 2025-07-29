@@ -23,12 +23,88 @@
 """Tests para el modelo Storage"""
 
 import pytest
+from decimal import Decimal
 from sqlalchemy.exc import IntegrityError
 
 from app.models.storage import Storage, StorageType
 
 
 class TestStorageModel:
+
+    def test_create_storage_with_pricing(self):
+        """Test creación de storage con campos de pricing"""
+        storage = Storage(
+            tipo=StorageType.MEDIANO,
+            capacidad_max=500,
+            tarifa_mensual=Decimal("75000.00"),
+            tarifa_por_producto=Decimal("1500.00")
+        )
+
+        assert storage.tarifa_mensual == Decimal("75000.00")
+        assert storage.tarifa_por_producto == Decimal("1500.00")
+        assert storage.tipo == StorageType.MEDIANO
+        assert storage.capacidad_max == 500
+
+    def test_tarifa_mensual_validation_positive(self):
+        """Test validación tarifa mensual positiva"""
+        storage = Storage(
+            tipo=StorageType.PEQUENO,
+            capacidad_max=100,
+            tarifa_mensual=Decimal("50000.00")
+        )
+        assert storage.tarifa_mensual == Decimal("50000.00")
+
+    def test_tarifa_por_producto_validation_positive(self):
+        """Test validación tarifa por producto positiva"""
+        storage = Storage(
+            tipo=StorageType.GRANDE,
+            capacidad_max=1000,
+            tarifa_por_producto=Decimal("2000.00")
+        )
+        assert storage.tarifa_por_producto == Decimal("2000.00")
+
+    def test_calcular_costo_mensual(self):
+        """Test cálculo de costo mensual total"""
+        storage = Storage(
+            tipo=StorageType.GRANDE,
+            capacidad_max=1000,
+            tarifa_mensual=Decimal("120000.00"),
+            tarifa_por_producto=Decimal("2000.00")
+        )
+
+        # Con 50 productos: 120000 + (50 * 2000) = 220000
+        costo = storage.calcular_costo_mensual(50)
+        assert costo == Decimal("220000.00")
+
+        # Solo tarifa mensual
+        storage_solo_mensual = Storage(
+            tipo=StorageType.MEDIANO,
+            capacidad_max=300,
+            tarifa_mensual=Decimal("60000.00")
+        )
+        costo_mensual = storage_solo_mensual.calcular_costo_mensual(25)
+        assert costo_mensual == Decimal("60000.00")
+
+    def test_pricing_serialization(self):
+        """Test serialización campos pricing en to_dict"""
+        storage = Storage(
+            tipo=StorageType.MEDIANO,
+            capacidad_max=400,
+            tarifa_mensual=Decimal("80000.00"),
+            tarifa_por_producto=Decimal("1800.00")
+        )
+
+        storage_dict = storage.to_dict()
+
+        # Verificar que campos pricing estén en dict
+        assert "tarifa_mensual" in storage_dict
+        assert "tarifa_por_producto" in storage_dict
+
+        # Verificar conversión Decimal → float
+        assert isinstance(storage_dict["tarifa_mensual"], float)
+        assert isinstance(storage_dict["tarifa_por_producto"], float)
+        assert storage_dict["tarifa_mensual"] == 80000.0
+        assert storage_dict["tarifa_por_producto"] == 1800.0
     """Tests para el modelo Storage"""
 
     def test_create_storage_basic(self):

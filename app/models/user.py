@@ -94,6 +94,13 @@ class User(BaseModel):
         comment="Identificador único UUID del usuario"
     )
 
+    # Relationship con Storage
+    espacios_storage = relationship(
+        "Storage",
+        foreign_keys="Storage.vendedor_id",
+        back_populates="vendedor"
+    )
+
     # Relationship con Product
     productos_vendidos = relationship(
         "Product",

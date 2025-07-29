@@ -64,3 +64,8 @@ try:
     __all__.append("Storage")
 except ImportError:
     pass
+
+from .storage import Storage, StorageType
+
+# Agregar a __all__
+"StorageType"

@@ -131,16 +131,6 @@ class Storage(BaseModel):
     )
 
     # Relationships (DESPUÉS de todos los campos)
-
-    def __init__(self, **kwargs):
-        """Constructor con defaults Python para campos de tracking"""
-        # Establecer defaults antes de llamar super().__init__
-        if 'productos_actuales' not in kwargs:
-            kwargs['productos_actuales'] = 0
-        if 'ocupacion_actual' not in kwargs:
-            kwargs['ocupacion_actual'] = Decimal('0.00')
-
-        super().__init__(**kwargs)
     vendedor = relationship(
         "User",
         foreign_keys=[vendedor_id],
