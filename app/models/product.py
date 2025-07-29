@@ -207,7 +207,12 @@ class Product(BaseModel):
         "Inventory",
         back_populates="product"
     )
-    
+
+    # Transaction relationship
+    transacciones = relationship(
+        "Transaction",
+        back_populates="product"
+    )
     name = Column(
         String(200), 
         nullable=False, 

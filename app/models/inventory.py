@@ -206,6 +206,10 @@ class Inventory(BaseModel):
         backref="inventarios_actualizados"
     )
 
+    user = relationship(
+        "User",
+        back_populates="ubicaciones_inventario"
+    )
     # Constraints e índices
     __table_args__ = (
         Index('ix_inventory_location', 'zona', 'estante', 'posicion'),

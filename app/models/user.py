@@ -101,6 +101,18 @@ class User(BaseModel):
         back_populates="vendedor"
     )
 
+    # Relationships con Transaction
+    transacciones_comprador = relationship(
+        "Transaction",
+        foreign_keys="Transaction.comprador_id",
+        back_populates="comprador"
+    )
+
+    transacciones_vendedor = relationship(
+        "Transaction",
+        foreign_keys="Transaction.vendedor_id",
+        back_populates="vendedor"
+    )
     # Campo de verificación
     is_verified = Column(
         Boolean,
@@ -193,14 +205,11 @@ class User(BaseModel):
         comment="Indica si el usuario está activo en el sistema"
     )
 
-    # Timestamps automáticos
-    created_at = Column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        nullable=False,
-        comment="Timestamp de creación del registro"
+    ubicaciones_inventario = relationship( 
+        "Inventory",
+        back_populates="user"
     )
-    
+
     updated_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),

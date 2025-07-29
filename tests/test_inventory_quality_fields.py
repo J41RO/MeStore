@@ -181,7 +181,13 @@ class TestInventoryQualityFields:
         inventory.agregar_nota_almacen("Producto verificado", user_id)
         assert inventory.tiene_notas() == True
         assert "Producto verificado" in inventory.notas_almacen
-        assert "[2025-07-28" in inventory.notas_almacen  # Timestamp
+        # Verificar formato de timestamp (fecha actual)
+        from datetime import datetime
+        today = datetime.now().strftime('%Y-%m-%d')
+        # Verificar que hay timestamp con formato [YYYY-MM-DD HH:MM]
+        import re
+        timestamp_pattern = r'\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}\]'
+        assert re.search(timestamp_pattern, inventory.notas_almacen), f"No timestamp found in: {inventory.notas_almacen}"
         assert inventory.updated_by_id == user_id
         
         # Segunda nota (acumulativa)
