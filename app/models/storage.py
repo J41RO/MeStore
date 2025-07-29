@@ -30,10 +30,45 @@ Este módulo contiene:
 - Métodos personalizados para gestión de espacios
 """
 
-from sqlalchemy import CheckConstraint, Column, Index, Integer, String
+from sqlalchemy import CheckConstraint, Column, Enum, Index, Integer, String
 from sqlalchemy.orm import validates
+from enum import Enum as PyEnum
 
 from app.models.base import BaseModel
+
+
+class StorageType(PyEnum):
+    """
+    Enumeración para tipos de espacios de almacenamiento.
+
+    Tipos disponibles:
+        PEQUENO: Espacio pequeño para pocos productos
+        MEDIANO: Espacio mediano para cantidades moderadas
+        GRANDE: Espacio grande para alto volumen
+        ESPECIAL: Espacio especial para productos únicos
+    """
+    PEQUENO = "PEQUENO"
+    MEDIANO = "MEDIANO"
+    GRANDE = "GRANDE"
+    ESPECIAL = "ESPECIAL"
+
+
+
+class StorageType(PyEnum):
+   """
+   Enumeración para tipos de espacios de almacenamiento.
+
+   Tipos disponibles:
+       PEQUENO: Espacio pequeño para pocos productos
+       MEDIANO: Espacio mediano para cantidades moderadas
+       GRANDE: Espacio grande para alto volumen
+       ESPECIAL: Espacio especial para productos únicos
+   """
+   PEQUENO = "PEQUENO"
+   MEDIANO = "MEDIANO"
+   GRANDE = "GRANDE"
+   ESPECIAL = "ESPECIAL"
+
 
 
 class Storage(BaseModel):
@@ -55,7 +90,7 @@ class Storage(BaseModel):
 
     # Campos de espacio básicos
     tipo = Column(
-        String(50),
+        Enum(StorageType),
         nullable=False,
         index=True,
         comment="Tipo de espacio de almacenamiento",
@@ -80,9 +115,20 @@ class Storage(BaseModel):
 
     @validates("tipo")
     def validate_tipo(self, key, value):
-        """Validar formato del tipo"""
+        """Validar que el tipo sea un StorageType válido."""
         if value:
+            # Si recibimos enum, obtener su valor
+            if isinstance(value, StorageType):
+                return value
+            # Si es string, normalizar y convertir a enum
             value = value.strip().upper()
+            try:
+                return StorageType(value)
+            except ValueError:
+                allowed_tipos = [t.value for t in StorageType]
+                raise ValueError(
+                    f"Tipo de almacenamiento inválido. Debe ser uno de: {', '.join(allowed_tipos)}"
+                )
             if len(value) < 2:
                 raise ValueError("El tipo debe tener al menos 2 caracteres")
         return value
@@ -109,13 +155,15 @@ class Storage(BaseModel):
         """Serializar storage a diccionario"""
         base_dict = super().to_dict()
         storage_dict = {
-            "tipo": self.tipo,
+            "tipo": self.tipo.value if isinstance(self.tipo, StorageType) else self.tipo,
             "capacidad_max": self.capacidad_max,
         }
         return {**base_dict, **storage_dict}
 
     def __repr__(self) -> str:
-        return f"<Storage(id={self.id}, tipo='{self.tipo}', capacidad_max={self.capacidad_max})>"
+        tipo_display = self.tipo.value if isinstance(self.tipo, StorageType) else self.tipo
+        return f"<Storage(id={self.id}, tipo='{tipo_display}', capacidad_max={self.capacidad_max})>"
 
     def __str__(self) -> str:
-        return f"Storage {self.tipo} (Capacidad: {self.capacidad_max} productos)"
+        tipo_display = self.tipo.value if isinstance(self.tipo, StorageType) else self.tipo
+        return f"Storage {tipo_display} (Capacidad: {self.capacidad_max} productos)"
