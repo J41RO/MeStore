@@ -30,7 +30,9 @@ Este módulo contiene:
 - Métodos personalizados para gestión de espacios
 """
 
-from sqlalchemy import CheckConstraint, Column, DECIMAL, Enum, ForeignKey, Index, Integer, String, DateTime
+from sqlalchemy import Boolean, CheckConstraint, Column, DECIMAL, Enum, ForeignKey, Index, Integer, String, DateTime
+from datetime import datetime
+from typing import Optional
 from sqlalchemy.orm import relationship, validates
 from decimal import Decimal
 from sqlalchemy.dialects.postgresql import UUID
@@ -148,6 +150,26 @@ class Storage(BaseModel):
         back_populates="espacios_storage"
     )
 
+    # Campos de contrato
+    fecha_inicio = Column(
+        DateTime,
+        nullable=True,
+        comment="Fecha de inicio del contrato de almacenamiento"
+    )
+
+    fecha_fin = Column(
+        DateTime,
+        nullable=True,
+        comment="Fecha de finalización del contrato de almacenamiento"
+    )
+
+    renovacion_automatica = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        comment="Indica si el contrato se renueva automáticamente"
+    )
+
     # Constraints e índices
     __table_args__ = (
         Index("ix_storage_tipo_capacidad", "tipo", "capacidad_max"),
@@ -156,6 +178,10 @@ class Storage(BaseModel):
         CheckConstraint("ocupacion_actual >= 0 AND ocupacion_actual <= 100", name="ck_storage_ocupacion_valid"),
         CheckConstraint("tarifa_mensual >= 0", name="ck_storage_tarifa_mensual_positive"),
         CheckConstraint("tarifa_por_producto >= 0", name="ck_storage_tarifa_por_producto_positive"),
+        CheckConstraint(
+            "fecha_fin IS NULL OR fecha_inicio IS NULL OR fecha_fin > fecha_inicio", 
+            name="ck_storage_fechas_validas"
+        ),
     )
 
     @validates("capacidad_max")
@@ -163,6 +189,20 @@ class Storage(BaseModel):
         """Validar que la capacidad máxima sea positiva"""
         if value is not None and value <= 0:
             raise ValueError("La capacidad máxima debe ser mayor a 0")
+        return value
+
+    @validates('fecha_fin')
+    def validate_fecha_fin(self, key, value):
+        """Validar que fecha_fin sea posterior a fecha_inicio"""
+        if value and self.fecha_inicio and value <= self.fecha_inicio:
+            raise ValueError("La fecha de fin debe ser posterior a la fecha de inicio")
+        return value
+
+    @validates('fecha_inicio')
+    def validate_fecha_inicio(self, key, value):
+        """Validar fecha_inicio"""
+        if value and self.fecha_fin and value >= self.fecha_fin:
+            raise ValueError("La fecha de inicio debe ser anterior a la fecha de fin")
         return value
 
     @validates('tarifa_mensual')
@@ -279,6 +319,35 @@ class Storage(BaseModel):
             return "Gratis"
         return f"${self.tarifa_por_producto:,.2f} COP por producto"
 
+    def esta_vigente(self) -> bool:
+        """Verificar si el contrato está vigente actualmente"""
+        now = datetime.utcnow()
+        if not self.fecha_inicio:
+            return False
+        if self.fecha_fin and now > self.fecha_fin:
+            return False
+        return now >= self.fecha_inicio
+
+    def dias_restantes(self) -> Optional[int]:
+        """Calcular días restantes del contrato"""
+        if not self.fecha_fin or not self.esta_vigente():
+            return None
+        return (self.fecha_fin - datetime.utcnow()).days
+
+    def requiere_renovacion(self, dias_aviso: int = 30) -> bool:
+        """Verificar si el contrato requiere renovación pronto"""
+        if not self.esta_vigente() or self.renovacion_automatica:
+            return False
+        dias = self.dias_restantes()
+        return dias is not None and dias <= dias_aviso
+
+    def renovar_contrato(self, duracion_meses: int = 12) -> None:
+        """Renovar contrato por duración especificada"""
+        if self.fecha_fin:
+            from dateutil.relativedelta import relativedelta
+            self.fecha_fin = self.fecha_fin + relativedelta(months=duracion_meses)
+            self.ultima_actualizacion = datetime.utcnow()
+
     def to_dict(self) -> dict:
         """Serializar storage a diccionario"""
         base_dict = super().to_dict()
@@ -291,6 +360,9 @@ class Storage(BaseModel):
             "ultima_actualizacion": self.ultima_actualizacion.isoformat() if self.ultima_actualizacion else None,
             "tarifa_mensual": float(self.tarifa_mensual) if self.tarifa_mensual is not None else None,
             "tarifa_por_producto": float(self.tarifa_por_producto) if self.tarifa_por_producto is not None else None,
+            "fecha_inicio": self.fecha_inicio.isoformat() if self.fecha_inicio else None,
+            "fecha_fin": self.fecha_fin.isoformat() if self.fecha_fin else None,
+            "renovacion_automatica": self.renovacion_automatica,
         }
         return {**base_dict, **storage_dict}
 
