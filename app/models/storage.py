@@ -77,6 +77,7 @@ class Storage(BaseModel):
     tipo = Column(
         Enum(StorageType),
         nullable=False,
+        default=0,
         index=True,
         comment="Tipo de espacio de almacenamiento",
     )
