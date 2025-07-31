@@ -241,8 +241,8 @@
 ✅ 1.3.1 API registro/login vendedores con validación colombiana
     ✅ 1.3.1.1 Crear endpoint POST /vendedores/registro con validación de cédula colombiana
     ✅ 1.3.1.2 Implementar validación de número de teléfono celular colombiano (+57)
-    ⬜ 1.3.1.3 Validar formato email y verificar que no esté registrado previamente
-    ⬜ 1.3.1.4 Crear endpoint POST /vendedores/login con rate limiting
+    ✅ 1.3.1.3 Validar formato email y verificar que no esté registrado previamente
+    ✅ 1.3.1.4 Crear endpoint POST /vendedores/login con rate limiting ✅ COMPLETADA 100%
     ⬜ 1.3.1.5 Implementar verificación de email con código OTP por SMS
     ⬜ 1.3.1.6 Crear endpoint para recuperación de contraseña con validación segura
 ⬜ 1.3.2 API gestión de productos (CRUD completo)

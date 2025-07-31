@@ -28,18 +28,26 @@ Este módulo contiene endpoints especializados para:
 - Manejo de errores específicos para vendedores
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy import select
-from typing import Dict, Any
 import logging
+from datetime import datetime
+from typing import Any, Dict
 
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.auth import AuthService, get_auth_service
 from app.core.database import get_db
-from app.core.auth import AuthService
 from app.models.user import User, UserType
-from app.schemas.vendedor import VendedorCreate, VendedorResponse, VendedorErrorResponse
+from app.schemas.auth import TokenResponse
 from app.schemas.user import UserRead
+from app.schemas.vendedor import (
+    VendedorCreate,
+    VendedorErrorResponse,
+    VendedorLogin,
+    VendedorResponse,
+)
 
 # Configurar logging
 logger = logging.getLogger(__name__)
@@ -73,11 +81,10 @@ auth_service = AuthService()
     - direccion: Dirección completa
 
     El user_type se asigna automáticamente como VENDEDOR.
-    """
+    """,
 )
 async def registrar_vendedor(
-    vendedor_data: VendedorCreate,
-    db: AsyncSession = Depends(get_db)
+    vendedor_data: VendedorCreate, db: AsyncSession = Depends(get_db)
 ):
     """
     Registrar nuevo vendedor con validaciones específicas.
@@ -102,10 +109,12 @@ async def registrar_vendedor(
         existing_user = result.scalar_one_or_none()
 
         if existing_user:
-            logger.warning(f"Intento de registro con email duplicado: {vendedor_data.email}")
+            logger.warning(
+                f"Intento de registro con email duplicado: {vendedor_data.email}"
+            )
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email ya está registrado en el sistema"
+                detail="Email ya está registrado en el sistema",
             )
 
         # PASO 2: Verificar que cédula no esté registrada (si se proporciona)
@@ -115,10 +124,12 @@ async def registrar_vendedor(
             existing_cedula = result.scalar_one_or_none()
 
             if existing_cedula:
-                logger.warning(f"Intento de registro con cédula duplicada: {vendedor_data.cedula}")
+                logger.warning(
+                    f"Intento de registro con cédula duplicada: {vendedor_data.cedula}"
+                )
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Cédula ya está registrada en el sistema"
+                    detail="Cédula ya está registrada en el sistema",
                 )
 
         # PASO 3: Hash de la contraseña usando AuthService
@@ -137,7 +148,7 @@ async def registrar_vendedor(
             empresa=vendedor_data.empresa,
             direccion=vendedor_data.direccion,
             is_active=True,
-            is_verified=False  # Requerirá verificación posterior
+            is_verified=False,  # Requerirá verificación posterior
         )
 
         # PASO 5: Guardar en base de datos
@@ -145,15 +156,15 @@ async def registrar_vendedor(
         await db.commit()
         await db.refresh(new_user)
 
-        logger.info(f"Vendedor registrado exitosamente: {new_user.id} - {new_user.email}")
+        logger.info(
+            f"Vendedor registrado exitosamente: {new_user.id} - {new_user.email}"
+        )
 
         # PASO 6: Preparar respuesta
         user_read = UserRead.model_validate(new_user)
 
         return VendedorResponse(
-            success=True,
-            message="Vendedor registrado exitosamente",
-            vendedor=user_read
+            success=True, message="Vendedor registrado exitosamente", vendedor=user_read
         )
 
     except HTTPException:
@@ -168,17 +179,17 @@ async def registrar_vendedor(
         if "email" in str(e).lower():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email ya está registrado en el sistema"
+                detail="Email ya está registrado en el sistema",
             )
         elif "cedula" in str(e).lower():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cédula ya está registrada en el sistema"
+                detail="Cédula ya está registrada en el sistema",
             )
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Error de integridad en los datos proporcionados"
+                detail="Error de integridad en los datos proporcionados",
             )
 
     except ValueError as e:
@@ -187,7 +198,7 @@ async def registrar_vendedor(
         logger.error(f"Error de validación: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Error de validación: {str(e)}"
+            detail=f"Error de validación: {str(e)}",
         )
 
     except Exception as e:
@@ -196,14 +207,96 @@ async def registrar_vendedor(
         logger.error(f"Error inesperado en registro de vendedor: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error interno del servidor durante el registro"
+            detail="Error interno del servidor durante el registro",
+        )
+
+
+@router.post("/login", response_model=TokenResponse, status_code=status.HTTP_200_OK)
+async def login_vendedor(
+    login_data: VendedorLogin, auth_service: AuthService = Depends(get_auth_service)
+) -> TokenResponse:
+    """
+    Endpoint de login específico para vendedores.
+
+    Valida credenciales y verifica que el usuario sea tipo VENDEDOR.
+    Retorna tokens JWT si la autenticación es exitosa.
+
+    Args:
+        login_data: Datos de login (email, password)
+        auth_service: Servicio de autenticación
+
+    Returns:
+        TokenResponse: Tokens de acceso y refresh
+
+    Raises:
+        HTTPException: 401 si credenciales inválidas o usuario no es vendedor
+    """
+    logger.info(f"Intento de login vendedor: {login_data.email}")
+
+    try:
+        # Autenticar usuario usando el core auth
+        user = await auth_service.authenticate_user(
+            email=login_data.email, password=login_data.password
+        )
+
+        if not user:
+            logger.warning(f"Login vendedor fallido - credenciales inválidas: {login_data.email}")
+
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Credenciales inválidas",
+            )
+
+        # Verificar que el usuario sea tipo VENDEDOR
+        if user.user_type != UserType.VENDEDOR:
+            logger.warning(f"Login vendedor fallido - tipo incorrecto: {login_data.email}, tipo: {user.user_type.value}")
+
+
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Este endpoint es solo para vendedores",
+            )
+
+        # Actualizar last_login
+        from app.core.database import get_db
+
+        async for db in get_db():
+            try:
+                user.last_login = datetime.utcnow()
+                await db.commit()
+                break
+            except Exception as e:
+                logger.error(f"Error actualizando last_login: {str(e)}")
+
+        # Crear tokens JWT
+        access_token = auth_service.create_access_token(str(user.id))
+        refresh_token = auth_service.create_refresh_token(str(user.id))
+
+        logger.info(
+            f"Login vendedor exitoso - user_id: {str(user.id)}, email: {user.email}"
+        )
+
+        return TokenResponse(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            token_type="bearer",
+            expires_in=3600,  # 1 hora
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error en login vendedor: {str(e)}, email: {login_data.email}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor",
         )
 
 
 @router.get(
     "/health",
     summary="Health check vendedores",
-    description="Endpoint de verificación de salud del módulo vendedores"
+    description="Endpoint de verificación de salud del módulo vendedores",
 )
 async def health_check() -> Dict[str, Any]:
     """
@@ -216,10 +309,7 @@ async def health_check() -> Dict[str, Any]:
         "status": "healthy",
         "module": "vendedores",
         "version": "1.0.0",
-        "endpoints": [
-            "POST /vendedores/registro",
-            "GET /vendedores/health"
-        ]
+        "endpoints": ["POST /vendedores/registro", "GET /vendedores/health"],
     }
 
 

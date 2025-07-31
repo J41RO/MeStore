@@ -29,9 +29,11 @@ Este módulo contiene schemas especializados para:
 """
 
 from typing import Optional
-from pydantic import BaseModel, Field, field_validator
-from app.schemas.user import UserCreate, UserRead
+
+from pydantic import BaseModel, EmailStr, Field, field_validator
+
 from app.models.user import UserType
+from app.schemas.user import UserCreate, UserRead
 from app.utils.validators import validate_celular_colombiano
 
 
@@ -49,13 +51,23 @@ class VendedorCreate(UserCreate):
     """
 
     # Campos obligatorios para vendedores (override de UserCreate)
-    cedula: str = Field(..., description="Cédula de ciudadanía colombiana (obligatoria para vendedores)")
-    telefono: str = Field(..., description="Número de teléfono colombiano (obligatorio para vendedores)")
-    nombre: str = Field(..., min_length=2, max_length=50, description="Nombre completo (obligatorio)")
-    apellido: str = Field(..., min_length=2, max_length=50, description="Apellido completo (obligatorio)")
+    cedula: str = Field(
+        ..., description="Cédula de ciudadanía colombiana (obligatoria para vendedores)"
+    )
+    telefono: str = Field(
+        ..., description="Número de teléfono colombiano (obligatorio para vendedores)"
+    )
+    nombre: str = Field(
+        ..., min_length=2, max_length=50, description="Nombre completo (obligatorio)"
+    )
+    apellido: str = Field(
+        ..., min_length=2, max_length=50, description="Apellido completo (obligatorio)"
+    )
 
     # Campo automático - no enviado por cliente
-    user_type: UserType = Field(default=UserType.VENDEDOR, description="Tipo fijo: VENDEDOR")
+    user_type: UserType = Field(
+        default=UserType.VENDEDOR, description="Tipo fijo: VENDEDOR"
+    )
 
     @field_validator("telefono")
     @classmethod
@@ -79,7 +91,7 @@ class VendedorCreate(UserCreate):
                 "telefono": "+57 300 123 4567",
                 "ciudad": "Bogotá",
                 "empresa": "Mi Tienda SAS",
-                "direccion": "Calle 123 #45-67, Bogotá"
+                "direccion": "Calle 123 #45-67, Bogotá",
             }
         }
 
@@ -114,39 +126,41 @@ class VendedorResponse(BaseModel):
                     "empresa": "Mi Tienda SAS",
                     "is_active": True,
                     "is_verified": False,
-                    "created_at": "2025-07-30T20:30:00Z"
-                }
+                    "created_at": "2025-07-30T20:30:00Z",
+                },
             }
         }
 
 
 class VendedorErrorResponse(BaseModel):
-    """
-    Schema de respuesta para errores en registro de vendedor.
-    """
+    """Schema para respuestas de error específicas de vendedores."""
 
-    success: bool = Field(False, description="Indicador de fallo del registro")
-    message: str = Field(..., description="Mensaje descriptivo del error")
-    error_type: str = Field(..., description="Tipo de error ocurrido")
-    details: Optional[dict] = Field(None, description="Detalles adicionales del error")
+    error: str = Field(..., description="Mensaje de error")
+    details: Optional[str] = Field(None, description="Detalles adicionales del error")
 
     class Config:
         json_schema_extra = {
             "example": {
-                "success": False,
-                "message": "Error en validación de datos",
-                "error_type": "VALIDATION_ERROR",
-                "details": {
-                    "field": "cedula",
-                    "issue": "Cédula debe ser numérica entre 6-10 dígitos"
-                }
+                "error": "Email ya registrado",
+                "details": "Un vendedor con este email ya existe",
+            }
+        }
+
+
+class VendedorLogin(BaseModel):
+    """Schema para login específico de vendedores."""
+
+    email: EmailStr = Field(..., description="Email del vendedor")
+    password: str = Field(..., min_length=6, description="Contraseña del vendedor")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "email": "vendedor@empresa.com",
+                "password": "mi_password_seguro",
             }
         }
 
 
 # Exports para facilitar imports
-__all__ = [
-    "VendedorCreate",
-    "VendedorResponse", 
-    "VendedorErrorResponse"
-]
+__all__ = ["VendedorCreate", "VendedorResponse", "VendedorErrorResponse"]
