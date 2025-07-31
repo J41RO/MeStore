@@ -32,6 +32,7 @@ from typing import Optional
 from pydantic import BaseModel, Field, field_validator
 from app.schemas.user import UserCreate, UserRead
 from app.models.user import UserType
+from app.utils.validators import validate_celular_colombiano
 
 
 class VendedorCreate(UserCreate):
@@ -55,6 +56,17 @@ class VendedorCreate(UserCreate):
 
     # Campo automático - no enviado por cliente
     user_type: UserType = Field(default=UserType.VENDEDOR, description="Tipo fijo: VENDEDOR")
+
+    @field_validator("telefono")
+    @classmethod
+    def validate_telefono_celular(cls, v):
+        """
+        Validar que el teléfono sea ESPECÍFICAMENTE un celular colombiano.
+
+        Los vendedores requieren números celulares para mayor contactabilidad.
+        No se permiten teléfonos fijos.
+        """
+        return validate_celular_colombiano(v)
 
     class Config(UserCreate.Config):
         json_schema_extra = {

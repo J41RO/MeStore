@@ -291,3 +291,46 @@ Creado endpoint especializado para registro de vendedores con validaciones colom
 **LISTO PARA PRÓXIMA TAREA**: 1.3.1.2 - Implementar validación de número de teléfono celular colombiano (+57)
 
 ---
+
+=== ✅ TAREA 1.3.1.2 COMPLETADA EXITOSAMENTE ===
+📅 Fecha: 2025-07-31 02:20:41
+🎯 Objetivo: Validación específica celular colombiano para VendedorCreate
+
+📋 IMPLEMENTACIÓN REALIZADA:
+✅ VALIDADOR ESPECÍFICO CREADO:
+   • app/utils/validators.py: validate_celular_colombiano()
+   • 40 códigos móviles colombianos (Tigo, Movistar, Claro, Avantel, Virgin)
+   • Validación estricta SOLO códigos 3XX
+   • Rechazo automático teléfonos fijos (1XX, 2XX, 4XX-8XX)
+
+✅ INTEGRACIÓN EN VENDEDORSCHEMA:
+   • app/schemas/vendedor.py: field_validator específico
+   • VendedorCreate SOLO acepta celulares
+   • UserCreate mantiene compatibilidad (celular + fijo)
+   • Mensajes de error descriptivos
+
+✅ TESTING EXHAUSTIVO:
+   • tests/test_vendedor_celular_validation.py: 5/5 tests pasando
+   • tests/test_vendedores_registro.py: 5/5 tests pasando  
+   • Verificación diferenciación VendedorCreate vs UserCreate
+   • Coverage: 40 códigos móviles validados
+
+📊 RESULTADOS VERIFICADOS:
+✅ VendedorCreate rechaza teléfonos fijos: "601" → Error específico
+✅ VendedorCreate acepta celulares: "300" → "+57 3001234567"
+✅ UserCreate mantiene compatibilidad: "601" → "+57 6012345678"
+✅ Normalización funcionando: múltiples formatos → "+57 XXXXXXXXXX"
+✅ Códigos operadores: Tigo(6) + Movistar(10) + Claro(15) + Avantel(4) + Virgin(5) = 40
+
+🔧 COMPATIBILIDAD PRESERVADA:
+✅ UserBase/UserCreate: Sin cambios - sigue aceptando celular + fijo
+✅ Tests existentes: Sin regresiones - todos funcionando
+✅ API endpoints: Compatibilidad total mantenida
+✅ Base de datos: Sin cambios - campo VARCHAR(20) suficiente
+
+🎉 ESTADO FINAL: COMPLETAMENTE FUNCIONAL
+📱 Vendedores: SOLO celulares colombianos válidos
+👥 Usuarios: Celulares + fijos (sin restricción)
+🔒 Seguridad: Validación robusta con mensajes descriptivos
+
+
