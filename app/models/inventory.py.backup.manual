@@ -178,16 +178,6 @@ class Inventory(BaseModel):
         nullable=True,
         comment="ID del usuario que actualizó el inventario"
     )
-    # Relación con Storage (opcional)
-    # Permite asociar el inventario a una ubicación física específica
-    # Esto es útil si se maneja un sistema de almacenamiento más complejo
-    # como múltiples almacenes o ubicaciones físicas
-    storage_id = Column(
-        UUID(as_uuid=True),
-        ForeignKey('storages.id'),
-        nullable=True,
-        comment='FK hacia Storage - ubicación física del inventario'
-    )
 
     # Campos de fechas específicos del inventario
     fecha_ingreso = Column(
@@ -210,39 +200,20 @@ class Inventory(BaseModel):
         "Product",
         back_populates="ubicaciones_inventario"
     )
-    
+
     updated_by = relationship(
         "User",
         backref="inventarios_actualizados"
     )
-    storage = relationship(
-        "Storage",
-        back_populates="inventarios"
-    )
-    # Relación con User para tracking de quién actualizó el inventario
-    # Esto permite saber quién realizó la última modificación
-    # y es útil para auditoría y control de cambios
-    # También permite mantener un historial de cambios por usuario
-    # y facilita la trazabilidad de acciones en el inventario
+
     user = relationship(
         "User",
-        back_populates="ubicaciones_inventario",
-        overlaps="inventarios_actualizados,updated_by"
-    )
-
-    # Relationship con Transaction para transacciones relacionadas
-    transacciones = relationship(
-        "Transaction",
-        back_populates="inventario"
+        back_populates="ubicaciones_inventario"
     )
     # Constraints e índices
     __table_args__ = (
         Index('ix_inventory_location', 'zona', 'estante', 'posicion'),
         Index('ix_inventory_product_location', 'product_id', 'zona', 'estante'),
-        Index('ix_inventory_updated_by_product', 'updated_by_id', 'product_id'),  # Inventario por usuario
-        Index('ix_inventory_storage_product', 'storage_id', 'product_id'),  # Inventario por storage
-        Index('ix_inventory_updated_at', 'updated_at'),  # Temporal
-        Index('ix_inventory_updated_by_status', 'updated_by_id', 'status'),  # Usuario + estado
         UniqueConstraint('product_id', 'zona', 'estante', 'posicion', name='uq_product_location'),
     )
 

@@ -17,7 +17,7 @@ class TestMigrationDeployScripts:
     @classmethod
     def setup_class(cls):
         """Setup para todos los tests."""
-        cls.project_root = Path(__file__).parent.parent.parent
+        cls.project_root = Path(__file__).parent.parent
         cls.scripts_dir = cls.project_root / "scripts"
         cls.run_migrations_script = cls.scripts_dir / "run_migrations.sh"
         cls.deploy_script = cls.scripts_dir / "deploy_with_migrations.sh"
@@ -171,7 +171,7 @@ class TestDeploymentIntegration:
 
     def test_migration_service_docker_config(self):
         """Test configuración del servicio de migración en Docker."""
-        docker_compose = Path(__file__).parent.parent.parent / "docker-compose.yml"
+        docker_compose = Path(__file__).parent.parent / "docker-compose.yml"
 
         with open(docker_compose, "r") as f:
             content = f.read()
@@ -188,7 +188,7 @@ class TestDeploymentIntegration:
     def test_environment_detection_logic(self):
         """Test que la lógica de detección de environment funciona."""
         # Test conceptual - verificar que está implementada
-        script_content = (Path(__file__).parent.parent.parent / "scripts" / "run_migrations.sh").read_text()
+        script_content = (Path(__file__).parent.parent / "scripts" / "run_migrations.sh").read_text()
 
         assert "detect_environment" in script_content, "Función detect_environment no implementada"
         assert "ENVIRONMENT" in script_content, "Variable ENVIRONMENT no referenciada"

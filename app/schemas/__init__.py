@@ -39,6 +39,19 @@ from .inventory import (
     MovimientoStockRead,
     TipoMovimiento,
 )
+
+# Transaction schemas
+from .transaction import (
+    TransactionBase,
+    TransactionCreate,
+    TransactionUpdate,
+    TransactionRead,
+    TransactionResponse,
+    TransactionType,
+    MetodoPago,
+    EstadoTransaccion,
+)
+
 # Financial reports schemas
 from .financial_reports import (
     MetricaVentas,
@@ -49,6 +62,16 @@ from .financial_reports import (
     ExportacionReporte,
 )
 
+# Storage schemas
+from .storage import (
+    StorageBase,
+    StorageCreate,
+    StorageUpdate,
+    StorageResponse,
+    StorageBilling,
+    BillingCalculation,
+)
+
 # Export all schemas for easy importing
 __all__ = [
     # User schemas
@@ -57,12 +80,14 @@ __all__ = [
     "UserUpdate",
     "UserRead",
     "UserResponse",
+
     # Product schemas
     "ProductBase",
     "ProductCreate",
     "ProductUpdate",
     "ProductRead",
     "ProductResponse",
+
     # Inventory schemas
     "InventoryBase",
     "InventoryCreate",
@@ -73,6 +98,7 @@ __all__ = [
     "MovimientoStockCreate",
     "MovimientoStockRead",
     "TipoMovimiento",
+
     # Transaction schemas
     "TransactionBase",
     "TransactionCreate",
@@ -82,25 +108,20 @@ __all__ = [
     "TransactionType",
     "MetodoPago",
     "EstadoTransaccion",
+
     # Financial reports schemas
     "MetricaVentas",
-    "MetricaComisiones", 
+    "MetricaComisiones",
     "ReporteVendedor",
     "DashboardFinanciero",
     "AnalyticsTransacciones",
     "ExportacionReporte",
+
+    # Storage schemas
+    "StorageBase",
+    "StorageCreate",
+    "StorageUpdate",
+    "StorageResponse",
+    "StorageBilling",
+    "BillingCalculation",
 ]
-
-# Transaction schemas
-from .transaction import (
-
-# Financial reports schemas
-    TransactionBase,
-    TransactionCreate,
-    TransactionUpdate,
-    TransactionRead,
-    TransactionResponse,
-    TransactionType,
-    MetodoPago,
-    EstadoTransaccion
-)

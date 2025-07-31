@@ -35,6 +35,7 @@ from datetime import datetime
 from typing import Optional
 from datetime import datetime
 from sqlalchemy import Boolean, Column, DateTime, String, Text
+from sqlalchemy import Index
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from sqlalchemy.sql import func
@@ -212,11 +213,11 @@ class User(BaseModel):
         comment="Indica si el usuario está activo en el sistema"
     )
 
-    ubicaciones_inventario = relationship( 
+    ubicaciones_inventario = relationship(
         "Inventory",
-        back_populates="user"
+        back_populates="user",
+        overlaps="inventarios_actualizados,updated_by"
     )
-
     updated_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -224,6 +225,14 @@ class User(BaseModel):
         nullable=False,
         comment="Timestamp de última actualización del registro"
     )
+
+    __table_args__ = (
+        Index('ix_user_type_active', 'user_type', 'is_active'),  # Vendedores activos
+        Index('ix_user_email_active', 'email', 'is_active'),     # Autenticación optimizada  
+        Index('ix_user_created_type', 'created_at', 'user_type'), # Reportes temporales
+        Index('ix_user_active_created', 'is_active', 'created_at'), # Usuarios recientes activos
+    )
+
     def __init__(self, **kwargs):
         """Constructor personalizado para aplicar defaults correctamente."""
         # Aplicar defaults explícitos para campos de estado

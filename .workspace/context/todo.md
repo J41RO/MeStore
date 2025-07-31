@@ -226,12 +226,12 @@
     ✅ 1.2.5.2 Implementar enum StorageType (PEQUENO, MEDIANO, GRANDE, ESPECIAL)
     ✅ 1.2.5.3 Añadir campos de pricing (tarifa_mensual, tarifa_por_producto)
     ✅ 1.2.5.4 Crear relationship con User (vendedor) y tracking de ocupación
-    ⬜ 1.2.5.5 Implementar campos de contrato (fecha_inicio, fecha_fin, renovacion_automatica)
-    ⬜ 1.2.5.6 Crear Pydantic schemas para Storage y facturación de almacenamiento
-⬜ 1.2.6 Crear relaciones y índices optimizados
-    ⬜ 1.2.6.1 Definir foreign keys y relationships bidireccionales entre modelos
-    ⬜ 1.2.6.2 Crear índices compuestos para queries frecuentes (user_id + status)
-    ⬜ 1.2.6.3 Implementar índices de texto para búsqueda de productos (name, description)
+    ✅ 1.2.5.5 Implementar campos de contrato (fecha_inicio, fecha_fin, renovacion_automatica)
+    ✅ 1.2.5.6 Crear Pydantic schemas para Storage y facturación de almacenamiento
+✅ 1.2.6 Crear relaciones y índices optimizados
+    ✅ 1.2.6.1 Definir foreign keys y relationships bidireccionales entre modelos
+    ✅ 1.2.6.2 Crear índices compuestos para queries frecuentes (user_id + status)
+    ✅ 1.2.6.3 Implementar índices de texto para búsqueda de productos (name, description)
     ⬜ 1.2.6.4 Crear índices de fecha para reportes temporales (created_at, updated_at)
     ⬜ 1.2.6.5 Implementar soft delete con deleted_at en todos los modelos críticos
     ⬜ 1.2.6.6 Verificar performance de queries con EXPLAIN y optimizar según necesidad

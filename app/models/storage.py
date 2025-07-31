@@ -149,6 +149,10 @@ class Storage(BaseModel):
         foreign_keys=[vendedor_id],
         back_populates="espacios_storage"
     )
+    inventarios = relationship(
+        "Inventory",
+        back_populates="storage"
+    )
 
     # Campos de contrato
     fecha_inicio = Column(
@@ -173,6 +177,9 @@ class Storage(BaseModel):
     # Constraints e índices
     __table_args__ = (
         Index("ix_storage_tipo_capacidad", "tipo", "capacidad_max"),
+        Index('ix_storage_vendedor_tipo', 'vendedor_id', 'tipo'),  # Espacios por vendedor
+        Index('ix_storage_tipo_vendedor', 'tipo', 'vendedor_id'),  # Tipo por vendedor
+        Index('ix_storage_vendedor_created', 'vendedor_id', 'created_at'),  # Vendedor temporal
         CheckConstraint("capacidad_max > 0", name="ck_storage_capacidad_positive"),
         CheckConstraint("productos_actuales >= 0", name="ck_storage_productos_actuales_positive"),
         CheckConstraint("ocupacion_actual >= 0 AND ocupacion_actual <= 100", name="ck_storage_ocupacion_valid"),

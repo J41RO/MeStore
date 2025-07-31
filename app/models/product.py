@@ -36,6 +36,8 @@ Este módulo contiene el modelo SQLAlchemy para la entidad Product:
 """
 
 from sqlalchemy import Column, String, Text, Index
+
+from sqlalchemy import func, text
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import ForeignKey
@@ -282,6 +284,14 @@ class Product(BaseModel):
     __table_args__ = (
         Index('ix_product_name_sku', 'name', 'sku'),  # Índice compuesto
         Index('ix_product_created_at', 'created_at'),  # Para ordenamiento temporal
+        Index('ix_product_vendedor_status', 'vendedor_id', 'status'),  # Productos por vendedor
+        Index('ix_product_status_created', 'status', 'created_at'),    # Estado temporal
+        Index('ix_product_vendedor_status_created', 'vendedor_id', 'status', 'created_at'),  # Query compleja
+        # Índices GIN para búsqueda de texto optimizada
+        # Index('ix_product_name_gin', text('name gin_trgm_ops'), postgresql_using='gin'),  # Búsqueda similitud nombre (deshabilitado para compatibilidad SQLite)
+        # Index('ix_product_description_gin', text('description gin_trgm_ops'), postgresql_using='gin'),  # Búsqueda similitud descripción (deshabilitado para compatibilidad SQLite)  
+        # Index('ix_product_name_fulltext', func.to_tsvector('spanish', 'name'), postgresql_using='gin'),  # Búsqueda full-text nombre (deshabilitado para compatibilidad SQLite)
+        # Index('ix_product_description_fulltext', func.to_tsvector('spanish', 'description'), postgresql_using='gin'),  # Búsqueda full-text descripción (deshabilitado para compatibilidad SQLite)
     )
 
     def __init__(self, **kwargs):

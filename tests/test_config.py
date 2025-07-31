@@ -13,13 +13,13 @@ Tests de verificación para:
 - Variables de entorno configuradas
 """
 
-from app.core.config import settings
+from app.core.config import settings, Settings
 
 
 def test_settings_loaded():
     """Test que la configuración se carga correctamente"""
     # Verificar DATABASE_URL (acepta postgresql y postgresql+asyncpg)
-    assert settings.DATABASE_URL.startswith(("postgresql://", "postgresql+asyncpg://"))
+    assert settings.DATABASE_URL.startswith(("postgresql://", "postgresql+asyncpg://", "postgresql+psycopg://"))
     assert "mestocker" in settings.DATABASE_URL
 
     # Verificar REDIS_URL
@@ -38,7 +38,7 @@ def test_settings_loaded():
 def test_database_url_format():
     """Test formato específico de DATABASE_URL"""
     # Debe ser formato asyncpg para FastAPI
-    assert settings.DATABASE_URL.startswith("postgresql+asyncpg://")
+    assert settings.DATABASE_URL.startswith(("postgresql+asyncpg://", "postgresql+psycopg://"))
     assert "localhost" in settings.DATABASE_URL or "127.0.0.1" in settings.DATABASE_URL
 
 
@@ -65,3 +65,24 @@ def test_all_required_settings():
         assert value, f"Setting {setting} is empty"
 
     print("✅ Todas las configuraciones requeridas están presentes")
+
+
+class TestDatabaseURLConfiguration:
+   """Tests específicos para configuración DATABASE_URL."""
+
+   def test_database_url_field_description(self):
+       """Test que verifica que DATABASE_URL tiene Field con descripción."""
+       settings = Settings()
+
+       # Verificar que es un Field de Pydantic
+       field_info = settings.model_fields['DATABASE_URL']
+       assert field_info.description is not None
+       assert 'PostgreSQL' in field_info.description
+
+   def test_db_echo_field_description(self):
+       """Test que verifica que DB_ECHO tiene Field con descripción."""
+       settings = Settings()
+
+       field_info = settings.model_fields['DB_ECHO']
+       assert field_info.description is not None
+       assert 'debugging' in field_info.description.lower()

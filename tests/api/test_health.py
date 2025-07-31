@@ -23,21 +23,22 @@ client = TestClient(app)
 
 def test_health_endpoint():
     """Test del endpoint de health check básico (SABEMOS QUE FUNCIONA)"""
-    response = client.get("/api/v1/health/health")
+    response = client.get("/health")
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "healthy"
-    # assert "version" in data  # Version not available due to router priority conflict
-    assert "status" in data  # Version field not present in this endpoint
+    # Version field removed from current implementation
     print(f"✅ Health basic: {data}")
 
 
 def test_health_simple():
     """Test health check simple - verificación adicional"""
-    response = client.get("/api/v1/health/health")
+    response = client.get("/health")
     assert response.status_code == 200
     print(f"✅ Health check response: {response.json()}")
 
+
+# Test updated to use correct endpoint
 
 def test_health_full_v1_endpoint():
     """Test del endpoint health full que SÍ existe"""
@@ -48,6 +49,8 @@ def test_health_full_v1_endpoint():
     print(f"✅ Health full v1: {data}")
 
 
+# Test enabled - endpoint exists at /api/v1/health/health
+# Test enabled - endpoint exists at /api/v1/health/health
 def test_health_v1_basic():
     """Test endpoint v1 básico"""
     response = client.get("/api/v1/health/health")
@@ -64,10 +67,10 @@ def test_available_health_endpoints():
 
     # Endpoints conocidos que pueden existir
     possible_endpoints = [
-        "/api/v1/health/health",
+        "/health",
         "/api/v1/health",
-        "/api/v1/health-complete/health/redis",
-        "/api/v1/health-complete/health/database",
+        "/health/redis",
+        "/health/database",
     ]
 
     working_endpoints = []
@@ -84,13 +87,13 @@ def test_available_health_endpoints():
             print(f"❌ {endpoint}: Error - {e}")
 
     # Al menos /health debe funcionar
-    assert "/api/v1/health/health" in working_endpoints, "Endpoint /api/v1/health/health debe estar disponible"
+    assert "/health" in working_endpoints, "Endpoint /health debe estar disponible"
     assert len(working_endpoints) >= 1, "Al menos un endpoint health debe funcionar"
 
 
 def test_health_response_structure():
     """Test estructura de respuesta health"""
-    response = client.get("/api/v1/health/health")
+    response = client.get("/health")
     assert response.status_code == 200
 
     data = response.json()

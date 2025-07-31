@@ -133,6 +133,21 @@ class Transaction(BaseModel):
         comment="Monto de la transacción en pesos colombianos (COP)"
     )
 
+    # Relationship con Inventory
+    inventario = relationship(
+        "Inventory",
+        back_populates="transacciones"
+    )
+
+    # FK para relación con Inventory
+    inventory_id = Column(
+        SQLAlchemyUUID(as_uuid=True),
+        ForeignKey("inventory.id"),
+        nullable=True,
+        index=True,
+        comment="ID del inventario específico involucrado en la transacción"
+    )
+
     # Campos de estado adicionales del procesador de pagos
     status = Column(
         String(50),
