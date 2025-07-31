@@ -232,7 +232,7 @@
     ✅ 1.2.6.1 Definir foreign keys y relationships bidireccionales entre modelos
     ✅ 1.2.6.2 Crear índices compuestos para queries frecuentes (user_id + status)
     ✅ 1.2.6.3 Implementar índices de texto para búsqueda de productos (name, description)
-    ⬜ 1.2.6.4 Crear índices de fecha para reportes temporales (created_at, updated_at)
+    ✅ 1.2.6.4 Crear índices de fecha para reportes temporales (created_at, updated_at)
     ⬜ 1.2.6.5 Implementar soft delete con deleted_at en todos los modelos críticos
     ⬜ 1.2.6.6 Verificar performance de queries con EXPLAIN y optimizar según necesidad
 
