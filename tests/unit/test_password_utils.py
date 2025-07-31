@@ -31,7 +31,8 @@ import pytest
 from app.utils.password import hash_password, verify_password, pwd_context
 
 
-def test_hash_password_no_retorna_original():
+@pytest.mark.asyncio
+async def test_hash_password_no_retorna_original():
     """
     Test que hash_password() no retorna el string original.
 
@@ -41,7 +42,7 @@ def test_hash_password_no_retorna_original():
     password_original = "mi_password_segura_123"
 
     # Generar hash
-    password_hash = hash_password(password_original)
+    password_hash = await hash_password(password_original)
 
     # Verificaciones
     assert password_hash != password_original, "El hash no debe ser igual a la password original"
@@ -49,7 +50,8 @@ def test_hash_password_no_retorna_original():
     assert password_hash.startswith('$2b$')
 
 
-def test_verify_password_con_password_valida():
+@pytest.mark.asyncio
+async def test_verify_password_con_password_valida():
     """
     Test que verify_password() funciona con password válida.
 
@@ -59,15 +61,16 @@ def test_verify_password_con_password_valida():
     password_original = "password_correcta_456"
 
     # Generar hash de la password
-    password_hash = hash_password(password_original)
+    password_hash = await hash_password(password_original)
 
     # Verificar que la password original coincide con el hash
-    resultado = verify_password(password_original, password_hash)
+    resultado = await verify_password(password_original, password_hash)
 
     assert resultado is True, "verify_password debe retornar True para password correcta"
 
 
-def test_verify_password_con_password_incorrecta():
+@pytest.mark.asyncio
+async def test_verify_password_con_password_incorrecta():
     """
     Test que verify_password() retorna False con password incorrecta.
 
@@ -78,15 +81,16 @@ def test_verify_password_con_password_incorrecta():
     password_incorrecta = "password_incorrecta_000"
 
     # Generar hash de la password original
-    password_hash = hash_password(password_original)
+    password_hash = await hash_password(password_original)
 
     # Verificar que la password incorrecta NO coincide con el hash
-    resultado = verify_password(password_incorrecta, password_hash)
+    resultado = await verify_password(password_incorrecta, password_hash)
 
     assert resultado is False, "verify_password debe retornar False para password incorrecta"
 
 
-def test_hash_password_genera_hashes_unicos():
+@pytest.mark.asyncio
+async def test_hash_password_genera_hashes_unicos():
     """
     Test adicional: verify que hash_password genera hashes únicos.
 
@@ -95,14 +99,14 @@ def test_hash_password_genera_hashes_unicos():
     """
     password = "misma_password"
 
-    hash1 = hash_password(password)
-    hash2 = hash_password(password)
+    hash1 = await hash_password(password)
+    hash2 = await hash_password(password)
 
     assert hash1 != hash2, "Cada hash debe ser único debido al salt de bcrypt"
 
     # Pero ambos deben validar la password original
-    assert verify_password(password, hash1) is True
-    assert verify_password(password, hash2) is True
+    assert await verify_password(password, hash1) is True
+    assert await verify_password(password, hash2) is True
 
 
 def test_pwd_context_configuracion():

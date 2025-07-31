@@ -26,13 +26,13 @@ class AuthService:
     def __init__(self):
         self.secret_key = settings.SECRET_KEY
 
-    def verify_password(self, plain_password: str, hashed_password: str) -> bool:
+    async def verify_password(self, plain_password: str, hashed_password: str) -> bool:
         """Verificar contraseña usando función centralizada"""
-        return verify_password(plain_password, hashed_password)
+        return await verify_password(plain_password, hashed_password)
 
-    def get_password_hash(self, password: str) -> str:
+    async def get_password_hash(self, password: str) -> str:
         """Hash de contraseña usando función centralizada"""
-        return hash_password(password)
+        return await hash_password(password)
 
     async def authenticate_user(self, email: str, password: str):
         """
@@ -61,7 +61,7 @@ class AuthService:
                     return None
 
                 # Verificar contraseña
-                if not self.verify_password(password, user.password_hash):
+                if not await self.verify_password(password, user.password_hash):
                     return None
 
                 return user

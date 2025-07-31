@@ -14,21 +14,22 @@ Verifica el correcto funcionamiento de:
 - Generación y decodificación de tokens JWT
 """
 
-import pytest
 from datetime import timedelta
 
+import pytest
+
 from app.core.security import create_access_token, decode_access_token
-from app.utils.password import hash_password, verify_password
 from app.utils.password import hash_password, verify_password
 
 
 class TestPasswordSecurity:
     """Tests para funciones de manejo de contraseñas."""
 
-    def test_get_password_hash_generates_valid_hash(self):
+    @pytest.mark.asyncio
+    async def test_get_password_hash_generates_valid_hash(self):
         """Test que get_password_hash genera un hash válido."""
         password = "test_password_123"
-        hashed = hash_password(password)
+        hashed = await hash_password(password)
 
         # Verificar que el hash se generó
         assert hashed is not None
@@ -43,36 +44,38 @@ class TestPasswordSecurity:
         # Verificar que empieza con el prefijo de bcrypt
         assert hashed.startswith("$2b$")
 
-    def test_verify_password_returns_true_for_valid_combination(self):
+    @pytest.mark.asyncio
+    async def test_verify_password_returns_true_for_valid_combination(self):
         """Test que verify_password devuelve True para combinación válida."""
         password = "my_secure_password_456"
-        hashed = hash_password(password)
+        hashed = await hash_password(password)
 
         # Verificar que la contraseña correcta es válida
-        assert verify_password(password, hashed) is True
+        assert await verify_password(password, hashed) is True
 
         # Verificar que una contraseña incorrecta es inválida
-        assert verify_password("wrong_password", hashed) is False
+        assert await verify_password("wrong_password", hashed) is False
 
         # Verificar que una cadena vacía es inválida
-        assert verify_password("", hashed) is False
+        assert await verify_password("", hashed) is False
 
-    def test_different_passwords_generate_different_hashes(self):
+    @pytest.mark.asyncio
+    async def test_different_passwords_generate_different_hashes(self):
         """Test que contraseñas diferentes generan hashes diferentes."""
         password1 = "password_one"
         password2 = "password_two"
 
-        hash1 = hash_password(password1)
-        hash2 = hash_password(password2)
+        hash1 = await hash_password(password1)
+        hash2 = await hash_password(password2)
 
         # Los hashes deben ser diferentes
         assert hash1 != hash2
 
         # Cada uno debe verificar solo con su contraseña original
-        assert verify_password(password1, hash1) is True
-        assert verify_password(password1, hash2) is False
-        assert verify_password(password2, hash1) is False
-        assert verify_password(password2, hash2) is True
+        assert await verify_password(password1, hash1) is True
+        assert await verify_password(password1, hash2) is False
+        assert await verify_password(password2, hash1) is False
+        assert await verify_password(password2, hash2) is True
 
 
 class TestJWTTokens:
@@ -132,17 +135,18 @@ class TestJWTTokens:
 class TestSecurityIntegration:
     """Tests de integración para verificar el flujo completo."""
 
-    def test_complete_auth_flow_simulation(self):
+    @pytest.mark.asyncio
+    async def test_complete_auth_flow_simulation(self):
         """Test que simula flujo completo de autenticación."""
         # Simular registro de usuario
         user_email = "user@example.com"
         user_password = "secure_password_789"
 
         # 1. Hash de contraseña (como en registro)
-        password_hash = hash_password(user_password)
+        password_hash = await hash_password(user_password)
 
         # 2. Verificación de contraseña (como en login)
-        login_successful = verify_password(user_password, password_hash)
+        login_successful = await verify_password(user_password, password_hash)
         assert login_successful is True
 
         # 3. Generación de token (como después de login exitoso)
@@ -155,5 +159,5 @@ class TestSecurityIntegration:
         assert token_payload["sub"] == user_email
 
         # 5. Verificar que password incorrecto falla
-        wrong_login = verify_password("wrong_password", password_hash)
+        wrong_login = await verify_password("wrong_password", password_hash)
         assert wrong_login is False

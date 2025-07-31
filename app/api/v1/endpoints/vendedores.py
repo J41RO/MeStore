@@ -122,7 +122,7 @@ async def registrar_vendedor(
                 )
 
         # PASO 3: Hash de la contraseña usando AuthService
-        password_hash = auth_service.get_password_hash(vendedor_data.password)
+        password_hash = await auth_service.get_password_hash(vendedor_data.password)
 
         # PASO 4: Crear nuevo usuario vendedor
         new_user = User(
@@ -142,8 +142,8 @@ async def registrar_vendedor(
 
         # PASO 5: Guardar en base de datos
         db.add(new_user)
-        db.commit()
-        db.refresh(new_user)
+        await db.commit()
+        await db.refresh(new_user)
 
         logger.info(f"Vendedor registrado exitosamente: {new_user.id} - {new_user.email}")
 
@@ -162,7 +162,7 @@ async def registrar_vendedor(
 
     except IntegrityError as e:
         # Errores de integridad de BD
-        db.rollback()
+        # await db.rollback()  # CORREGIDO: get_db() maneja rollback automáticamente
         logger.error(f"Error de integridad en registro: {str(e)}")
 
         if "email" in str(e).lower():
@@ -183,7 +183,7 @@ async def registrar_vendedor(
 
     except ValueError as e:
         # Errores de validación de Pydantic
-        db.rollback()
+        # await db.rollback()  # CORREGIDO: get_db() maneja rollback automáticamente
         logger.error(f"Error de validación: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -192,7 +192,7 @@ async def registrar_vendedor(
 
     except Exception as e:
         # Errores inesperados
-        db.rollback()
+        # await db.rollback()  # CORREGIDO: get_db() maneja rollback automáticamente
         logger.error(f"Error inesperado en registro de vendedor: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

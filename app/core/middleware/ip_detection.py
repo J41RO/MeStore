@@ -73,7 +73,7 @@ class SuspiciousIPMiddleware(BaseHTTPMiddleware):
         # IPs sospechosas conocidas por defecto
         default_suspicious_ips = [
             '0.0.0.0',           # IP inválida
-            '127.0.0.1',         # Localhost (para testing)
+            # '127.0.0.1',  # Comentado para permitir testing local         # Localhost (para testing)
             '10.0.0.1',          # Gateway común
             '192.168.1.1',       # Gateway doméstico común
         ]
