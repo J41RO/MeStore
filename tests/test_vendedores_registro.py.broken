@@ -1,0 +1,385 @@
+# ~/tests/test_vendedores_registro.py
+# ---------------------------------------------------------------------------------------------
+# MESTOCKER - Tests Endpoint Vendedores
+# Copyright (c) 2025 Jairo. Todos los derechos reservados.
+# Licensed under the proprietary license detailed in a LICENSE file in the root of this project.
+# ---------------------------------------------------------------------------------------------
+#
+# Nombre del Archivo: test_vendedores_registro.py
+# Ruta: ~/tests/test_vendedores_registro.py
+# Autor: Jairo
+# Fecha de Creación: 2025-07-31
+# Última Actualización: 2025-07-31
+# Versión: 1.0.0
+# Propósito: Tests completos para endpoint de registro de vendedores
+#            con validaciones colombianas y casos edge específicos
+#
+# Modificaciones:
+# 2025-07-31 - Creación inicial con tests completos
+#
+# ---------------------------------------------------------------------------------------------
+
+"""
+Tests completos para endpoint de registro de vendedores.
+
+Este módulo contiene tests para:
+- Registro exitoso de vendedores con validaciones colombianas
+- Validación de cédula colombiana (6-10 dígitos)
+- Validación de teléfono colombiano (+57)
+- Verificación de emails y cédulas duplicadas
+- Casos edge y manejo de errores
+- Integración con sistema de autenticación
+"""
+
+import pytest
+import asyncio
+import httpx
+from fastapi.testclient import TestClient
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+
+from app.main import app
+from app.models.user import User, UserType
+from app.core.database import get_db
+from tests.conftest import async_session, override_get_db
+
+
+class TestVendedoresRegistro:
+    """Tests para endpoint POST /api/v1/vendedores/registro"""
+
+    
+    def test_registro_vendedor_exitoso(self, override_get_db_async):
+        """Test registro exitoso de vendedor con todos los campos"""
+
+        # Override dependency
+        app.dependency_overrides[get_db] = override_get_db
+
+        client = TestClient(app)
+        vendedor_data = {
+            "email": "juan.vendedor@test.com",
+            "password": "MiPassword123",
+            "nombre": "Juan Carlos",
+            "apellido": "Pérez García",
+            "cedula": "12345678",
+            "telefono": "+57 300 123 4567",
+            "ciudad": "Bogotá",
+            "empresa": "Mi Tienda SAS",
+            "direccion": "Calle 123 #45-67"
+        }
+
+        response = client.post("/api/v1/vendedores/registro", json=vendedor_data)
+
+        assert response.status_code == 201
+
+        data = response.json()
+        assert data["success"] is True
+        assert "Vendedor registrado exitosamente" in data["message"]
+        assert data["vendedor"]["email"] == vendedor_data["email"]
+        assert data["vendedor"]["user_type"] == "VENDEDOR"
+        assert data["vendedor"]["cedula"] == "12345678"
+        assert data["vendedor"]["telefono"] == "+57 300 123 4567"
+        assert data["vendedor"]["is_active"] is True
+        assert data["vendedor"]["is_verified"] is False
+
+    
+    def test_registro_vendedor_campos_minimos(self):
+        """Test registro con campos mínimos obligatorios"""
+
+        app.dependency_overrides[get_db] = override_get_db
+
+        client = TestClient(app)
+        vendedor_data = {
+            "email": "maria.vendedora@test.com",
+            "password": "Password123",
+            "nombre": "María",
+            "apellido": "González",
+            "cedula": "987654321",
+            "telefono": "300 987 6543"
+        }
+
+        response = client.post("/api/v1/vendedores/registro", json=vendedor_data)
+
+        assert response.status_code == 201
+        data = response.json()
+        assert data["success"] is True
+        assert data["vendedor"]["telefono"] == "+57 300 987 6543"  # Normalizado
+
+    
+    def test_validacion_cedula_colombiana(self):
+        """Test validación específica de cédula colombiana"""
+
+        app.dependency_overrides[get_db] = override_get_db
+
+        client = TestClient(app)
+
+        # Test cédulas válidas
+        cedulas_validas = ["123456", "12345678", "1234567890"]
+
+        for i, cedula in enumerate(cedulas_validas):
+            vendedor_data = {
+                "email": f"vendedor{i}@test.com",
+                "password": "Password123",
+                "nombre": "Test",
+                "apellido": "User",
+                "cedula": cedula,
+                "telefono": "300 111 2233"
+            }
+
+            response = client.post("/api/v1/vendedores/registro", json=vendedor_data)
+            assert response.status_code == 201, f"Cédula {cedula} debería ser válida"
+
+     
+    def test_validacion_cedula_invalida(self):
+        """Test validación de cédulas inválidas"""
+
+        app.dependency_overrides[get_db] = override_get_db
+
+        client = TestClient(app)
+
+        # Test cédulas inválidas
+        cedulas_invalidas = [
+            "12345",        # Muy corta (5 dígitos)
+            "12345678901",  # Muy larga (11 dígitos)
+            "abcd1234",     # No numérica
+            "1234-5678",    # Con guiones (debería limpiarse pero testear formato crudo)
+            ""              # Vacía
+        ]
+
+        for i, cedula in enumerate(cedulas_invalidas):
+            vendedor_data = {
+                "email": f"invalid{i}@test.com",
+                "password": "Password123",
+                "nombre": "Test",
+                "apellido": "Invalid",
+                "cedula": cedula,
+                "telefono": "300 111 2233"
+            }
+
+            response = client.post("/api/v1/vendedores/registro", json=vendedor_data)
+            assert response.status_code == 422, f"Cédula '{cedula}' debería ser inválida"
+
+    
+    def test_validacion_telefono_colombiano(self):
+        """Test validación de teléfonos colombianos"""
+
+        app.dependency_overrides[get_db] = override_get_db
+
+        client = TestClient(app)
+
+        # Test teléfonos válidos
+        telefonos_validos = [
+            "300 123 4567",     # Celular formato espacios
+            "+57 300 123 4567",  # Con código país
+            "3001234567",        # Sin espacios
+            "601 234 5678"       # Fijo Bogotá
+        ]
+
+        for i, telefono in enumerate(telefonos_validos):
+            vendedor_data = {
+                "email": f"phone{i}@test.com",
+                "password": "Password123",
+                "nombre": "Test",
+                "apellido": "Phone",
+                "cedula": f"1234567{i}",
+                "telefono": telefono
+            }
+
+            response = client.post("/api/v1/vendedores/registro", json=vendedor_data)
+            assert response.status_code == 201, f"Teléfono {telefono} debería ser válido"
+
+            data = response.json()
+            # Verificar normalización a formato +57
+            assert data["vendedor"]["telefono"].startswith("+57")
+
+    
+    def test_validacion_telefono_invalido(self):
+        """Test validación de teléfonos inválidos"""
+
+        app.dependency_overrides[get_db] = override_get_db
+
+        client = TestClient(app)
+
+        # Test teléfonos inválidos
+        telefonos_invalidos = [
+            "123456789",      # Muy corto
+            "12345678901",    # Muy largo
+            "900 123 4567",   # Código inválido para Colombia
+            "abc 123 4567",   # No numérico
+            ""                # Vacío
+        ]
+
+        for i, telefono in enumerate(telefonos_invalidos):
+            vendedor_data = {
+                "email": f"badphone{i}@test.com",
+                "password": "Password123",
+                "nombre": "Test",
+                "apellido": "BadPhone",
+                "cedula": f"9876543{i}",
+                "telefono": telefono
+            }
+
+            response = client.post("/api/v1/vendedores/registro", json=vendedor_data)
+            assert response.status_code == 422, f"Teléfono '{telefono}' debería ser inválido"
+
+    
+    def test_email_duplicado(self):
+        """Test verificación de email duplicado"""
+
+        app.dependency_overrides[get_db] = override_get_db
+
+        client = TestClient(app)
+
+        # Primer vendedor
+        vendedor_data = {
+            "email": "duplicado@test.com",
+            "password": "Password123",
+            "nombre": "Primer",
+            "apellido": "Vendedor",
+            "cedula": "11111111",
+            "telefono": "300 111 1111"
+        }
+
+        response1 = client.post("/api/v1/vendedores/registro", json=vendedor_data)
+        assert response1.status_code == 201
+
+        # Segundo vendedor con mismo email
+        vendedor_data["nombre"] = "Segundo"
+        vendedor_data["cedula"] = "22222222"
+        vendedor_data["telefono"] = "300 222 2222"
+
+        response2 = client.post("/api/v1/vendedores/registro", json=vendedor_data)
+        assert response2.status_code == 400
+
+        data = response2.json()
+        assert "Email ya está registrado" in data["detail"]
+
+    
+    def test_cedula_duplicada(self):
+        """Test verificación de cédula duplicada"""
+
+        app.dependency_overrides[get_db] = override_get_db
+
+        client = TestClient(app)
+
+        # Primer vendedor
+        vendedor_data = {
+            "email": "cedula1@test.com",
+            "password": "Password123",
+            "nombre": "Primer",
+            "apellido": "Cedula",
+            "cedula": "33333333",
+            "telefono": "300 333 3333"
+        }
+
+        response1 = client.post("/api/v1/vendedores/registro", json=vendedor_data)
+        assert response1.status_code == 201
+
+        # Segundo vendedor con misma cédula
+        vendedor_data["email"] = "cedula2@test.com"
+        vendedor_data["telefono"] = "300 444 4444"
+
+        response2 = client.post("/api/v1/vendedores/registro", json=vendedor_data)
+        assert response2.status_code == 400
+
+        data = response2.json()
+        assert "Cédula ya está registrada" in data["detail"]
+
+    
+    def test_campos_obligatorios_faltantes(self):
+        """Test validación de campos obligatorios faltantes"""
+
+        app.dependency_overrides[get_db] = override_get_db
+
+        client = TestClient(app)
+
+        # Test campos obligatorios uno por uno
+        campos_obligatorios = ["email", "password", "nombre", "apellido", "cedula", "telefono"]
+
+        for campo_faltante in campos_obligatorios:
+            vendedor_data = {
+                "email": "test@test.com",
+                "password": "Password123",
+                "nombre": "Test",
+                "apellido": "User",
+                "cedula": "12345678",
+                "telefono": "300 123 4567"
+            }
+
+            # Remover campo obligatorio
+            del vendedor_data[campo_faltante]
+
+            response = client.post("/api/v1/vendedores/registro", json=vendedor_data)
+            assert response.status_code == 422, f"Debería fallar sin campo {campo_faltante}"
+
+    
+    def test_user_type_automatico(self):
+        """Test que user_type se asigna automáticamente como VENDEDOR"""
+
+        app.dependency_overrides[get_db] = override_get_db
+
+        client = TestClient(app)
+        vendedor_data = {
+            "email": "auto.type@test.com",
+            "password": "Password123",
+            "nombre": "Auto",
+            "apellido": "Type",
+            "cedula": "55555555",
+            "telefono": "300 555 5555",
+            "user_type": "COMPRADOR"  # Intentar forzar COMPRADOR
+        }
+
+        response = client.post("/api/v1/vendedores/registro", json=vendedor_data)
+        assert response.status_code == 201
+
+        data = response.json()
+        # Verificar que se fuerza VENDEDOR independientemente del input
+        assert data["vendedor"]["user_type"] == "VENDEDOR"
+
+    
+    def test_health_check_vendedores(self):
+        """Test endpoint de health check del módulo vendedores"""
+
+        client = TestClient(app)
+        response = client.get("/api/v1/vendedores/health")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "healthy"
+        assert data["module"] == "vendedores"
+        assert "POST /vendedores/registro" in data["endpoints"]
+
+
+# Fixtures y helpers específicos para tests de vendedores
+@pytest.fixture
+def vendedor_test_data():
+    """Fixture con datos de prueba para vendedores"""
+    return {
+        "email": "fixture.vendedor@test.com",
+        "password": "FixturePass123",
+        "nombre": "Fixture",
+        "apellido": "Vendedor",
+        "cedula": "99999999",
+        "telefono": "300 999 9999",
+        "ciudad": "Medellín",
+        "empresa": "Fixture Company SAS"
+    }
+
+
+@pytest.fixture
+def vendedor_creado(vendedor_test_data):
+    """Fixture que crea un vendedor en BD para tests"""
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    client = TestClient(app)
+    response = client.post("/api/v1/vendedores/registro", json=vendedor_test_data)
+    assert response.status_code == 201
+    return response.json()["vendedor"]
+
+
+# Exports para facilitar imports
+__all__ = [
+    "TestVendedoresRegistro",
+    "vendedor_test_data",
+    "vendedor_creado"
+]

@@ -120,6 +120,7 @@ import tempfile
 from typing import Generator
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.pool import StaticPool
 from app.core.database import Base, get_db
 from app.main import app
@@ -138,6 +139,21 @@ test_engine = create_engine(
 
 # SessionLocal para testing
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
+
+
+# Engine async para testing
+async_test_engine = create_async_engine(
+    "sqlite+aiosqlite:///:memory:",
+    echo=False,
+    pool_pre_ping=True
+)
+
+# SessionLocal async para testing
+AsyncTestingSessionLocal = async_sessionmaker(
+    bind=async_test_engine,
+    class_=AsyncSession,
+    expire_on_commit=False
+)
 
 
 @pytest.fixture(scope="function")
@@ -162,6 +178,31 @@ def test_db_session() -> Generator[Session, None, None]:
         db_session.close()
         # Limpiar todas las tablas después del test
         Base.metadata.drop_all(bind=test_engine)
+
+
+
+@pytest.fixture(scope="function")
+async def async_session() -> AsyncGenerator[AsyncSession, None]:
+    """
+    Fixture para sesión async de base de datos de testing.
+
+    Scope: function - Nueva DB async limpia por cada test.
+    Yields: AsyncSession de SQLAlchemy para tests async.
+    """
+    # Crear todas las tablas
+    async with async_test_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    # Crear sesión async para el test
+    async with AsyncTestingSessionLocal() as session:
+        try:
+            yield session
+        finally:
+            await session.close()
+
+    # Limpiar tablas después del test
+    async with async_test_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
 
 
 @pytest.fixture(scope="function")

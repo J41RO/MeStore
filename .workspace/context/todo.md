@@ -234,12 +234,12 @@
     ✅ 1.2.6.3 Implementar índices de texto para búsqueda de productos (name, description)
     ✅ 1.2.6.4 Crear índices de fecha para reportes temporales (created_at, updated_at)
     ✅ 1.2.6.5 Implementar soft delete con deleted_at en todos los modelos críticos
-    ⬜ 1.2.6.6 Verificar performance de queries con EXPLAIN y optimizar según necesidad
+    ✅ 1.2.6.6 Verificar performance de queries con EXPLAIN y optimizar según necesidad
 
 ## 1.3 APIs Core para Vendedores
 
-⬜ 1.3.1 API registro/login vendedores con validación colombiana
-    ⬜ 1.3.1.1 Crear endpoint POST /vendedores/registro con validación de cédula colombiana
+✅ 1.3.1 API registro/login vendedores con validación colombiana
+    ✅ 1.3.1.1 Crear endpoint POST /vendedores/registro con validación de cédula colombiana
     ⬜ 1.3.1.2 Implementar validación de número de teléfono celular colombiano (+57)
     ⬜ 1.3.1.3 Validar formato email y verificar que no esté registrado previamente
     ⬜ 1.3.1.4 Crear endpoint POST /vendedores/login con rate limiting

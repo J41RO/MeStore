@@ -16,6 +16,7 @@ from app.api.v1.endpoints.health_complete import router as health_complete_route
 from app.api.v1.endpoints.logs import router as logs_router
 from app.api.v1.endpoints.marketplace import router as marketplace_router
 from app.api.v1.endpoints.auth import router as auth_router
+from app.api.v1.endpoints.vendedores import router as vendedores_router
 
 # Router principal que unifica todos los endpoints v1
 api_router = APIRouter()
@@ -66,4 +67,8 @@ api_router.include_router(
     auth_router,
     prefix="/auth",
     tags=["auth"]
+)
+api_router.include_router(
+    vendedores_router,
+    tags=["vendedores"]
 )
