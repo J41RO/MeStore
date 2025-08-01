@@ -124,10 +124,14 @@ class TestUsersSimpleMigration:
 
     def test_model_sync_check(self):
         """Verificar que el modelo User está correctamente definido."""
+        # Campos originales + nuevos campos OTP
         expected_fields = {'id', 'email', 'password_hash',
                         'nombre', 'apellido', 'user_type', 'is_active',
                         'cedula', 'telefono', 'ciudad', 'empresa', 'direccion',
                         'created_at', 'updated_at', 'deleted_at',
+            # Campos OTP agregados
+            'email_verified', 'phone_verified', 'otp_secret', 
+            'otp_expires_at', 'otp_attempts', 'otp_type', 'last_otp_sent',
                         'is_verified', 'last_login'}
         model_fields = {col.name for col in User.__table__.columns}
         

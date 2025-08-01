@@ -87,3 +87,122 @@ class AuthResponse(BaseModel):
                 "message": "Operación completada exitosamente"
             }
         }
+
+
+
+# === SCHEMAS OTP PARA VERIFICACIÓN EMAIL/SMS ===
+
+class OTPSendRequest(BaseModel):
+    """Schema para solicitar envío de código OTP."""
+
+    otp_type: str = Field(
+        ..., 
+        pattern="^(EMAIL|SMS)$",
+        description="Tipo de OTP a enviar: EMAIL o SMS"
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "otp_type": "EMAIL"
+            }
+        }
+
+
+class OTPVerifyRequest(BaseModel):
+    """Schema para verificar código OTP."""
+
+    otp_code: str = Field(
+        ..., 
+        min_length=6,
+        max_length=6,
+        pattern="^[0-9]{6}$",
+        description="Código OTP de 6 dígitos numéricos"
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "otp_code": "123456"
+            }
+        }
+
+
+class OTPResponse(BaseModel):
+    """Schema para respuesta de operaciones OTP."""
+
+    success: bool = Field(
+        ..., 
+        description="Indica si la operación fue exitosa"
+    )
+    message: str = Field(
+        ..., 
+        description="Mensaje descriptivo del resultado"
+    )
+    verification_status: Optional[dict] = Field(
+        None,
+        description="Estado de verificación del usuario (solo en verificaciones exitosas)"
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "success": True,
+                "message": "Código enviado exitosamente",
+                "verification_status": {
+                    "email_verified": True,
+                    "phone_verified": False
+                }
+            }
+        }
+
+
+class UserVerificationStatus(BaseModel):
+    """Schema para estado completo de verificación del usuario."""
+
+    email_verified: bool = Field(
+        ..., 
+        description="Indica si el email está verificado"
+    )
+    phone_verified: bool = Field(
+        ..., 
+        description="Indica si el teléfono está verificado"
+    )
+    has_active_otp: bool = Field(
+        ..., 
+        description="Indica si tiene un código OTP activo"
+    )
+    otp_type: Optional[str] = Field(
+        None, 
+        description="Tipo de OTP activo: EMAIL, SMS o None"
+    )
+    otp_expires_at: Optional[str] = Field(
+        None, 
+        description="Fecha/hora de expiración del OTP en formato ISO"
+    )
+    can_request_new_otp: bool = Field(
+        ..., 
+        description="Indica si puede solicitar un nuevo OTP"
+    )
+    is_otp_blocked: bool = Field(
+        ..., 
+        description="Indica si está bloqueado por demasiados intentos"
+    )
+    otp_attempts: int = Field(
+        ..., 
+        description="Número de intentos fallidos de OTP"
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "email_verified": True,
+                "phone_verified": False,
+                "has_active_otp": False,
+                "otp_type": None,
+                "otp_expires_at": None,
+                "can_request_new_otp": True,
+                "is_otp_blocked": False,
+                "otp_attempts": 0
+            }
+        }

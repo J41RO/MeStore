@@ -9,15 +9,15 @@
 # Ruta: ~/app/models/user.py
 # Autor: Jairo
 # Fecha de Creación: 2025-07-25
-# Última Actualización: 2025-07-25
-# Versión: 1.1.0
-# Propósito: Modelo SQLAlchemy para gestión de usuarios del sistema
-#            Incluye campos básicos, constraints de seguridad y optimizaciones
+# Última Actualización: 2025-08-01
+# Versión: 1.2.0
+# Propósito: Modelo SQLAlchemy para gestión de usuarios del sistema con OTP
+#            Incluye campos básicos, OTP verification, constraints de seguridad
 #
 # Modificaciones:
 # 2025-07-25 - Creación inicial del modelo User básico
 # 2025-07-25 - Agregados campos nombre y apellido
-# 2025-07-25 - Agregados métodos full_name y to_dict
+# 2025-08-01 - Agregados campos OTP para verificación email/SMS
 #
 # ---------------------------------------------------------------------------------------------
 
@@ -26,6 +26,7 @@ Modelo SQLAlchemy User para MeStore.
 
 Este módulo contiene el modelo principal para gestión de usuarios:
 - Campos básicos: id, email, password_hash, nombre, apellido
+- Campos OTP: email_verified, phone_verified, otp_secret, etc.
 - Constraints de seguridad: email único, campos obligatorios
 - Timestamps automáticos: created_at, updated_at
 - Optimizaciones: índices apropiados para consultas frecuentes
@@ -33,8 +34,7 @@ Este módulo contiene el modelo principal para gestión de usuarios:
 
 from datetime import datetime
 from typing import Optional
-from datetime import datetime
-from sqlalchemy import Boolean, Column, DateTime, String, Text
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text
 from sqlalchemy import Index
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
@@ -67,26 +67,45 @@ class User(BaseModel):
     Modelo SQLAlchemy para usuarios del sistema.
 
     Campos:
-        id: Clave primaria autoincremental
+        id: Clave primaria UUID autoincremental
         email: Email único del usuario (índice para búsquedas)
         password_hash: Hash bcrypt de la contraseña
         nombre: Nombre del usuario
         apellido: Apellido del usuario
-        user_type: Tipo de usuario (comprador/vendedor)
+        user_type: Tipo de usuario (comprador/vendedor/admin/superuser)
         is_active: Estado activo del usuario
+        is_verified: Usuario ha verificado su email
+        
+        # Campos colombianos específicos
+        cedula: Cédula de ciudadanía colombiana
+        telefono: Número de teléfono
+        ciudad: Ciudad de residencia
+        empresa: Empresa donde trabaja
+        direccion: Dirección completa
+        
+        # Campos OTP para verificación
+        email_verified: Email verificado con OTP
+        phone_verified: Teléfono verificado con OTP
+        otp_secret: Código OTP temporal (6 dígitos)
+        otp_expires_at: Expiración del código OTP
+        otp_attempts: Intentos fallidos de OTP
+        otp_type: Tipo de OTP (EMAIL o SMS)
+        last_otp_sent: Último envío de OTP
+        
+        # Timestamps automáticos
+        last_login: Último login del usuario
         created_at: Timestamp de creación automático
         updated_at: Timestamp de última actualización automático
 
     Constraints:
         - Email debe ser único en toda la tabla
         - Email y password_hash son campos obligatorios
-        - nombre y apellido son opcionales
         - Índices optimizados para consultas frecuentes
     """
 
     __tablename__ = "users"
 
-    # Clave primaria
+    # === CLAVE PRIMARIA ===
     id = Column(
         UUID(as_uuid=True),
         primary_key=True,
@@ -95,6 +114,152 @@ class User(BaseModel):
         comment="Identificador único UUID del usuario"
     )
 
+    # === CAMPOS DE AUTENTICACIÓN ===
+    email = Column(
+        String(255), 
+        unique=True, 
+        nullable=False, 
+        index=True,
+        comment="Email único del usuario, usado para login"
+    )
+
+    password_hash = Column(
+        String(255),
+        nullable=False,
+        comment="Hash bcrypt de la contraseña del usuario"
+    )
+
+    # === CAMPOS DE INFORMACIÓN PERSONAL ===
+    nombre = Column(
+        String(100),
+        nullable=True,
+        comment="Nombre del usuario"
+    )
+
+    apellido = Column(
+        String(100),
+        nullable=True,
+        comment="Apellido del usuario"
+    )
+
+    # === TIPO Y ESTADO DE USUARIO ===
+    user_type = Column(
+        Enum(UserType),
+        nullable=False,
+        default=UserType.COMPRADOR,
+        comment="Tipo de usuario: comprador o vendedor"
+    )
+
+    is_active = Column(
+        Boolean, 
+        default=True, 
+        nullable=False,
+        comment="Indica si el usuario está activo en el sistema"
+    )
+
+    is_verified = Column(
+        Boolean,
+        default=False,
+        server_default='false',
+        nullable=False,
+        comment="Indica si el usuario ha verificado su email"
+    )
+
+    # === CAMPOS ESPECÍFICOS COLOMBIANOS ===
+    cedula = Column(
+        String(20),
+        nullable=True,
+        unique=True,
+        index=True,
+        comment="Cédula de ciudadanía colombiana (opcional, única)"
+    )
+
+    telefono = Column(
+        String(20),
+        nullable=True,
+        comment="Número de teléfono colombiano (opcional)"
+    )
+
+    ciudad = Column(
+        String(100),
+        nullable=True,
+        comment="Ciudad de residencia en Colombia (opcional)"
+    )
+
+    empresa = Column(
+        String(200),
+        nullable=True,
+        comment="Empresa donde trabaja el usuario (opcional)"
+    )
+
+    direccion = Column(
+        String(300),
+        nullable=True,
+        comment="Dirección de residencia completa (opcional)"
+    )
+
+    # === CAMPOS OTP PARA VERIFICACIÓN EMAIL/SMS ===
+    email_verified = Column(
+        Boolean,
+        default=False,
+        nullable=False,
+        comment='Email verificado con código OTP'
+    )
+
+    phone_verified = Column(
+        Boolean,
+        default=False,
+        nullable=False,
+        comment='Teléfono verificado con código OTP'
+    )
+
+    otp_secret = Column(
+        String(6),
+        nullable=True,
+        comment='Código OTP temporal (6 dígitos)'
+    )
+
+    otp_expires_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment='Fecha y hora de expiración del código OTP'
+    )
+
+    otp_attempts = Column(
+        Integer,
+        default=0,
+        nullable=False,
+        comment='Número de intentos fallidos de verificación OTP'
+    )
+
+    otp_type = Column(
+        String(10),
+        nullable=True,
+        comment='Tipo de OTP enviado: EMAIL o SMS'
+    )
+
+    last_otp_sent = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment='Fecha y hora del último envío de OTP'
+    )
+
+    # === TIMESTAMPS ===
+    last_login = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Timestamp del último login del usuario"
+    )
+
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+        comment="Timestamp de última actualización del registro"
+    )
+
+    # === RELATIONSHIPS ===
     # Relationship con Storage
     espacios_storage = relationship(
         "Storage",
@@ -121,116 +286,22 @@ class User(BaseModel):
         foreign_keys="Transaction.vendedor_id",
         back_populates="vendedor"
     )
-    # Campo de verificación
-    is_verified = Column(
-        Boolean,
-        default=lambda: False,
-        server_default='false',
-        nullable=False,
-        comment="Indica si el usuario ha verificado su email"
-    )
 
-    # Campo de último login
-    last_login = Column(
-        DateTime(timezone=True),
-        nullable=True,
-        comment="Timestamp del último login del usuario"
-    )
-
-    # Campos específicos colombianos
-    cedula = Column(
-        String(20),
-        nullable=True,
-        unique=True,
-        index=True,
-        comment="Cédula de ciudadanía colombiana (opcional, única)"
-    )
-
-    telefono = Column(
-        String(20),
-        nullable=True,
-        comment="Número de teléfono colombiano (opcional)"
-    )
-
-    ciudad = Column(
-        String(100),
-        nullable=True,
-        comment="Ciudad de residencia en Colombia (opcional)"
-    )
-    empresa = Column(
-        String(200),
-        nullable=True,
-        comment="Empresa donde trabaja el usuario (opcional)"
-    )
-
-    direccion = Column(
-        String(300),
-        nullable=True,
-        comment="Dirección de residencia completa (opcional)"
-    )
-    
-    # Campos de autenticación
-    email = Column(
-        String(255), 
-        unique=True, 
-        nullable=False, 
-        index=True,
-        comment="Email único del usuario, usado para login"
-    )
-
-    password_hash = Column(
-        String(255),
-        nullable=False,
-        comment="Hash bcrypt de la contraseña del usuario"
-    )
-
-    # Campos de información personal
-    nombre = Column(
-        String(100),
-        nullable=True,
-        comment="Nombre del usuario"
-    )
-
-    apellido = Column(
-        String(100),
-        nullable=True,
-        comment="Apellido del usuario"
-    )
-
-    # Tipo de usuario
-    user_type = Column(
-        Enum(UserType),
-        nullable=False,
-        default=UserType.COMPRADOR,
-        comment="Tipo de usuario: comprador o vendedor"
-    )
-
-    # Estado del usuario
-    is_active = Column(
-        Boolean, 
-        default=True, 
-        nullable=False,
-        comment="Indica si el usuario está activo en el sistema"
-    )
-
+    # Relationship con Inventory
     ubicaciones_inventario = relationship(
         "Inventory",
         back_populates="user",
         overlaps="inventarios_actualizados,updated_by"
     )
-    updated_at = Column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
-        nullable=False,
-        comment="Timestamp de última actualización del registro"
-    )
 
+    # === ÍNDICES OPTIMIZADOS ===
     __table_args__ = (
         Index('ix_user_type_active', 'user_type', 'is_active'),  # Vendedores activos
         Index('ix_user_email_active', 'email', 'is_active'),     # Autenticación optimizada  
         Index('ix_user_created_type', 'created_at', 'user_type'), # Reportes temporales
         Index('ix_user_active_created', 'is_active', 'created_at'), # Usuarios recientes activos
+        Index('ix_user_otp_expires', 'otp_expires_at'),          # OTP expiración
+        Index('ix_user_email_verified', 'email_verified'),       # Usuarios verificados
     )
 
     def __init__(self, **kwargs):
@@ -240,6 +311,12 @@ class User(BaseModel):
             kwargs['is_verified'] = False
         if 'is_active' not in kwargs:
             kwargs['is_active'] = True
+        if 'email_verified' not in kwargs:
+            kwargs['email_verified'] = False
+        if 'phone_verified' not in kwargs:
+            kwargs['phone_verified'] = False
+        if 'otp_attempts' not in kwargs:
+            kwargs['otp_attempts'] = 0
             
         # Llamar al constructor padre
         super().__init__(**kwargs)
@@ -275,6 +352,8 @@ class User(BaseModel):
             'user_type': self.user_type.value if self.user_type else None,
             'is_active': self.is_active,
             'is_verified': self.is_verified,
+            'email_verified': self.email_verified,
+            'phone_verified': self.phone_verified,
             'last_login': self.last_login.isoformat() if self.last_login else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
@@ -285,3 +364,30 @@ class User(BaseModel):
             'direccion': self.direccion,
             'full_name': self.full_name
         }
+
+    # === MÉTODOS OTP ===
+    def is_otp_valid(self) -> bool:
+        """Verifica si el OTP actual no ha expirado."""
+        if not self.otp_expires_at:
+            return False
+        return datetime.utcnow() < self.otp_expires_at.replace(tzinfo=None)
+
+    def can_request_otp(self) -> bool:
+        """Verifica si puede solicitar un nuevo OTP (cooldown de 1 minuto)."""
+        if not self.last_otp_sent:
+            return True
+        cooldown_seconds = 60  # 1 minuto
+        time_since_last = datetime.utcnow() - self.last_otp_sent.replace(tzinfo=None)
+        return time_since_last.total_seconds() >= cooldown_seconds
+
+    def reset_otp_attempts(self):
+        """Reinicia el contador de intentos fallidos de OTP."""
+        self.otp_attempts = 0
+
+    def increment_otp_attempts(self):
+        """Incrementa el contador de intentos fallidos de OTP."""
+        self.otp_attempts += 1
+
+    def is_otp_blocked(self) -> bool:
+        """Verifica si está bloqueado por demasiados intentos fallidos."""
+        return self.otp_attempts >= 5  # Máximo 5 intentos
