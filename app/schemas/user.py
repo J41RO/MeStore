@@ -19,6 +19,7 @@ Incluye:
 """
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import ConfigDict
 from typing import Optional, Union
 from datetime import datetime
 from uuid import UUID
