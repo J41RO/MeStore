@@ -8,7 +8,7 @@ Contiene los modelos Pydantic para request/response de autenticación:
 """
 
 from typing import Optional
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, validator
 
 
 class LoginRequest(BaseModel):
@@ -204,5 +204,71 @@ class UserVerificationStatus(BaseModel):
                 "can_request_new_otp": True,
                 "is_otp_blocked": False,
                 "otp_attempts": 0
+            }
+        }
+
+
+# === SCHEMAS PARA RESET DE CONTRASEÑA ===
+
+class PasswordResetRequest(BaseModel):
+    """Esquema para solicitud de reset de contraseña."""
+
+    email: EmailStr = Field(..., description="Email del usuario para enviar token de reset")
+
+    class Config:
+        from_attributes = True
+        json_schema_extra = {
+            "example": {
+                "email": "usuario@ejemplo.com"
+            }
+        }
+
+
+class PasswordResetConfirm(BaseModel):
+    """Esquema para confirmar reset de contraseña con token."""
+
+    token: str = Field(..., min_length=32, max_length=100, description="Token de reset recibido por email")
+    new_password: str = Field(..., min_length=8, max_length=128, description="Nueva contraseña (mínimo 8 caracteres)")
+    confirm_password: str = Field(..., min_length=8, max_length=128, description="Confirmación de la nueva contraseña")
+
+    class Config:
+        from_attributes = True
+        json_schema_extra = {
+            "example": {
+                "token": "abc123def456ghi789jkl012mno345pqr678stu901vwx234yz",
+            }
+        }
+
+    @validator('confirm_password')
+    def passwords_match(cls, v, values, **kwargs):
+        if 'new_password' in values and v != values['new_password']:
+            raise ValueError('Las contraseñas no coinciden')
+        return v
+
+    @validator('new_password')
+    def password_strength(cls, v):
+        if len(v) < 8:
+            raise ValueError('La contraseña debe tener al menos 8 caracteres')
+        if not any(c.isupper() for c in v):
+            raise ValueError('La contraseña debe contener al menos una mayúscula')
+        if not any(c.islower() for c in v):
+            raise ValueError('La contraseña debe contener al menos una minúscula')
+        if not any(c.isdigit() for c in v):
+            raise ValueError('La contraseña debe contener al menos un número')
+        return v
+
+
+class PasswordResetResponse(BaseModel):
+    """Esquema para response de operaciones de reset."""
+
+    success: bool = Field(..., description="Indica si la operación fue exitosa")
+    message: str = Field(..., description="Mensaje descriptivo del resultado")
+
+    class Config:
+        from_attributes = True
+        json_schema_extra = {
+            "example": {
+                "success": True,
+                "message": "Se ha enviado un enlace de recuperación a tu email"
             }
         }
