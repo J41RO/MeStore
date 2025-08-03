@@ -1,62 +1,36 @@
-/**
- * Hook personalizado para logging en componentes React
- */
+import { useEffect } from 'react';
 
-import { useEffect, useCallback } from 'react';
-import logger from '../utils/logger';
-
-interface UseLoggerOptions {
-  component?: string;
-  autoLogMount?: boolean;
-  autoLogUnmount?: boolean;
+export interface Logger {
+  logInfo: (message: string, data?: any) => void;
+  logError: (message: string, data?: any) => void;
+  logWarn: (message: string, data?: any) => void;
+  logDebug: (message: string, data?: any) => void;
+  logUserAction: (action: string, component: string, data?: any) => void;
 }
 
-export const useLogger = (options: UseLoggerOptions = {}) => {
-  const { component, autoLogMount = false, autoLogUnmount = false } = options;
-
-  // Auto-log mount/unmount si está habilitado
+export const useLogger = (component: string): Logger => {
   useEffect(() => {
-    if (autoLogMount && component) {
-      logger.debug(`Component ${component} mounted`, {}, component, 'mount');
-    }
-
+    console.log(`[${component}] Component mounted`);
     return () => {
-      if (autoLogUnmount && component) {
-        logger.debug(`Component ${component} unmounted`, {}, component, 'unmount');
-      }
+      console.log(`[${component}] Component unmounted`);
     };
-  }, [component, autoLogMount, autoLogUnmount]);
-
-  // Funciones de logging con componente pre-configurado
-  const logInfo = useCallback((message: string, data?: any, action?: string) => {
-    logger.info(message, data, component, action);
-  }, [component]);
-
-  const logError = useCallback((message: string, data?: any, action?: string) => {
-    logger.error(message, data, component, action);
-  }, [component]);
-
-  const logWarn = useCallback((message: string, data?: any, action?: string) => {
-    logger.warn(message, data, component, action);
-  }, [component]);
-
-  const logDebug = useCallback((message: string, data?: any, action?: string) => {
-    logger.debug(message, data, component, action);
-  }, [component]);
-
-  const logUserAction = useCallback((action: string, data?: any) => {
-    logger.logUserAction(action, component || 'Unknown', data);
   }, [component]);
 
   return {
-    logInfo,
-    logError,
-    logWarn,
-    logDebug,
-    logUserAction,
-    // Acceso directo al logger global si es necesario
-    logger
+    logInfo: (message: string, data?: any) => {
+      console.log(`[${component}] INFO: ${message}`, data || '');
+    },
+    logError: (message: string, data?: any) => {
+      console.error(`[${component}] ERROR: ${message}`, data || '');
+    },
+    logWarn: (message: string, data?: any) => {
+      console.warn(`[${component}] WARN: ${message}`, data || '');
+    },
+    logDebug: (message: string, data?: any) => {
+      console.debug(`[${component}] DEBUG: ${message}`, data || '');
+    },
+    logUserAction: (action: string, component: string, data?: any) => {
+      console.log(`[${component}] USER ACTION: ${action}`, data || '');
+    }
   };
 };
-
-export default useLogger;

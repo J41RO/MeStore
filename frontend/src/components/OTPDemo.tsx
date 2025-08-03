@@ -6,6 +6,7 @@ const OTPDemo: React.FC = () => {
   const [verificationResult, setVerificationResult] = useState<string>('');
 
   const handleVerificationSuccess = (type: 'EMAIL' | 'SMS') => {
+    setVerificationResult(`✅ Verificación ${type} exitosa!`);
     setShowOTP(false);
   };
 
@@ -18,8 +19,9 @@ const OTPDemo: React.FC = () => {
       <h1>🔐 Demo Verificación OTP</h1>
       <p>Componente de verificación OTP por Email/SMS</p>
       
+      {!showOTP && (
         <div>
-          <button 
+          <button
             onClick={() => setShowOTP(true)}
             style={{
               padding: '12px 24px',

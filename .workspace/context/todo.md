@@ -244,7 +244,7 @@
     ✅ 1.3.1.3 Validar formato email y verificar que no esté registrado previamente
     ✅ 1.3.1.4 Crear endpoint POST /vendedores/login con rate limiting 
     ✅ 1.3.1.5 Implementar verificación de email con código OTP por SMS
-    ⬜ 1.3.1.6 Crear endpoint para recuperación de contraseña con validación segura
+    ✅ 1.3.1.6 Crear endpoint para recuperación de contraseña con validación segura
 ⬜ 1.3.2 API gestión de productos (CRUD completo)
     ⬜ 1.3.2.1 Crear endpoint POST /productos para crear producto con validaciones
     ⬜ 1.3.2.2 Implementar endpoint GET /productos con filtros y paginación

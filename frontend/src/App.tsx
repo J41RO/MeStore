@@ -1,87 +1,150 @@
-import React, { useEffect } from 'react'
-import logger from './utils/logger'
+import React, { useState } from 'react'
 import './App.css'
-import OTPDemo from './components/OTPDemo';
+import OTPDemo from './components/OTPDemo'
+import ForgotPassword from './components/auth/ForgotPassword'
+import ResetPassword from './components/auth/ResetPassword'
+import './components/auth/PasswordReset.css'
+
+type DemoView = 'otp' | 'forgot' | 'reset' | 'home'
 
 function App() {
-  useEffect(() => {
-    // Inicializar logger al cargar la app
-    logger.info('App initialized', { 
-      timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent,
-      url: window.location.href 
-    });
+  const [currentView, setCurrentView] = useState<DemoView>('home')
 
-    // Ejemplo de logging de eventos
-    logger.debug('App useEffect executed');
-    
-    // Simular algunos logs para demostrar funcionalidad
-    setTimeout(() => {
-      logger.warn('Example warning log', { component: 'App' });
-    }, 2000);
+  const renderView = () => {
+    switch (currentView) {
+      case 'otp':
+        return <OTPDemo />
+      case 'forgot':
+        return <ForgotPassword onBackToLogin={() => setCurrentView('home')} />
+      case 'reset':
+        return <ResetPassword />
+      default:
+        return (
+          <div style={{ padding: '40px', textAlign: 'center', maxWidth: '800px', margin: '0 auto' }}>
+            <h1>🔐 MeStore Auth Components Demo</h1>
+            <p>Demostración de componentes de autenticación implementados</p>
+            
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+              gap: '20px',
+              marginTop: '40px'
+            }}>
+              <div style={{
+                border: '1px solid #ddd',
+                borderRadius: '8px',
+                padding: '20px',
+                background: '#f8f9fa'
+              }}>
+                <h3>📱 Verificación OTP</h3>
+                <p>Componente completo para verificación por Email/SMS con códigos OTP</p>
+                <button 
+                  onClick={() => setCurrentView('otp')}
+                  style={{
+                    padding: '10px 20px',
+                    background: '#007bff',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Ver Demo OTP
+                </button>
+              </div>
 
-    setTimeout(() => {
-      logger.logEvent('app_fully_loaded', { loadTime: '2s' });
-    }, 3000);
+              <div style={{
+                border: '1px solid #ddd',
+                borderRadius: '8px',
+                padding: '20px',
+                background: '#f8f9fa'
+              }}>
+                <h3>📧 Recuperar Contraseña</h3>
+                <p>Componente para solicitar recuperación de contraseña por email</p>
+                <button 
+                  onClick={() => setCurrentView('forgot')}
+                  style={{
+                    padding: '10px 20px',
+                    background: '#28a745',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Ver Demo Forgot Password
+                </button>
+              </div>
 
-  }, []);
+              <div style={{
+                border: '1px solid #ddd',
+                borderRadius: '8px',
+                padding: '20px',
+                background: '#f8f9fa'
+              }}>
+                <h3>🔑 Reset Contraseña</h3>
+                <p>Componente para restablecer contraseña con token de validación</p>
+                <button 
+                  onClick={() => setCurrentView('reset')}
+                  style={{
+                    padding: '10px 20px',
+                    background: '#dc3545',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Ver Demo Reset Password
+                </button>
+              </div>
+            </div>
 
-  const handleTestError = () => {
-    // Función para probar captura de errores
-    logger.error('Manual error test', { 
-      type: 'user_triggered',
-      component: 'App' 
-    });
-    
-    // Simular error no manejado (opcional - para testing)
-    // throw new Error('Test error for global handler');
-  };
-
-  const handleTestLogs = () => {
-    logger.debug('Debug message from button');
-    logger.info('Info message from button');
-    logger.warn('Warning message from button');
-    logger.error('Error message from button');
-  };
+            <div style={{ 
+              marginTop: '40px', 
+              padding: '20px', 
+              background: '#e8f5e8', 
+              borderRadius: '8px',
+              border: '1px solid #28a745'
+            }}>
+              <h3>✅ Estado del Proyecto</h3>
+              <ul style={{ textAlign: 'left', maxWidth: '500px', margin: '0 auto' }}>
+                <li>✅ <strong>Backend OTP:</strong> Completamente funcional</li>
+                <li>✅ <strong>Frontend OTP:</strong> Componente React/TypeScript</li>
+                <li>✅ <strong>Password Reset:</strong> Componentes implementados</li>
+                <li>✅ <strong>TypeScript:</strong> Configuración limpia</li>
+                <li>✅ <strong>Build Pipeline:</strong> Funcionando perfectamente</li>
+              </ul>
+            </div>
+          </div>
+        )
+    }
+  }
 
   return (
     <div className="App">
-      <header className="App-header">
-        <h1>MeStore - Frontend Logger System</h1>
-        
-        <div style={{ margin: '20px' }}>
-          <h2>🚀 Sistema de Logging Activo</h2>
-          
-          <div style={{ margin: '10px' }}>
-            <button onClick={handleTestLogs} style={{ margin: '5px', padding: '10px' }}>
-              🧪 Test All Log Levels
-            </button>
-            
-            <button onClick={handleTestError} style={{ margin: '5px', padding: '10px' }}>
-              ❌ Test Error Logging
-            </button>
-          </div>
-          
-          <div style={{ textAlign: 'left', maxWidth: '600px', margin: '20px auto' }}>
-            <h3>📋 Características del Logger:</h3>
-            <ul>
-              <li>✅ Logs enriquecidos en consola (desarrollo)</li>
-              <li>✅ Envío remoto opcional (producción)</li>
-              <li>✅ Captura automática de errores JS no manejados</li>
-              <li>✅ Captura de promesas rechazadas</li>
-              <li>✅ Captura de errores de recursos (imágenes, scripts)</li>
-              <li>✅ Context del usuario (ID, sesión, URL, timestamp)</li>
-              <li>✅ Sistema de filtrado por level (debug/info/warn/error)</li>
-              <li>✅ Cola de envío con retry automático</li>
-            </ul>
-            
-            <p><strong>💡 Consola del navegador:</strong> Abre DevTools para ver los logs enriquecidos</p>
-            <p><strong>🔧 Configuración:</strong> Variables VITE_LOG_REMOTE y VITE_LOG_ENDPOINT</p>
-          </div>
-        </div>
-      </header>
+      {currentView !== 'home' && (
+        <button 
+          onClick={() => setCurrentView('home')}
+          style={{
+            position: 'fixed',
+            top: '20px',
+            left: '20px',
+            padding: '8px 16px',
+            background: '#6c757d',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            zIndex: 1000
+          }}
+        >
+          ← Volver al Demo
+        </button>
+      )}
+      {renderView()}
     </div>
-  );
+  )
 }
 
 export default App

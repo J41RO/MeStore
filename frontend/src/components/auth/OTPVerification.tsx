@@ -199,7 +199,7 @@ return (
           {otpCode.map((digit, index) => (
             <input
               key={index}
-              ref={el => inputRefs.current[index] = el}
+              ref={(el: HTMLInputElement | null) => { if (el) inputRefs.current[index] = el; }}
               value={digit}
               onChange={e => handleDigitInput(index, e.target.value)}
               onKeyDown={e => handleKeyDown(index, e)}
