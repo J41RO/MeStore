@@ -132,7 +132,9 @@ class TestUsersSimpleMigration:
             # Campos OTP agregados
             'email_verified', 'phone_verified', 'otp_secret', 
             'otp_expires_at', 'otp_attempts', 'otp_type', 'last_otp_sent',
-                        'is_verified', 'last_login'}
+                        'is_verified', 'last_login',
+            # Campos Password Reset agregados
+            'reset_token', 'reset_token_expires_at', 'reset_attempts', 'last_reset_request'}
         model_fields = {col.name for col in User.__table__.columns}
         
         assert expected_fields == model_fields, f"Campos del modelo no coinciden: esperados={expected_fields}, modelo={model_fields}"

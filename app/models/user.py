@@ -114,6 +114,34 @@ class User(BaseModel):
         comment="Identificador único UUID del usuario"
     )
 
+    # === CAMPOS DE RESET DE CONTRASEÑA ===
+    reset_token = Column(
+        String(100),
+        nullable=True,
+        index=True,
+        comment="Token temporal para reset de contraseña"
+    )
+
+    reset_token_expires_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
+        comment="Fecha y hora de expiración del token de reset"
+    )
+
+    reset_attempts = Column(
+        Integer,
+        nullable=False,
+        default=0,
+        comment="Número de intentos de reset de contraseña"
+    )
+
+    last_reset_request = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Fecha y hora del último request de reset"
+    )
+
     # === CAMPOS DE AUTENTICACIÓN ===
     email = Column(
         String(255), 
@@ -391,3 +419,33 @@ class User(BaseModel):
     def is_otp_blocked(self) -> bool:
         """Verifica si está bloqueado por demasiados intentos fallidos."""
         return self.otp_attempts >= 5  # Máximo 5 intentos
+
+
+    # === MÉTODOS PASSWORD RESET ===
+    def can_request_password_reset(self) -> bool:
+        """Verifica si puede solicitar reset de contraseña (cooldown 5 minutos)."""
+        if not self.last_reset_request:
+            return True
+        cooldown_seconds = 300  # 5 minutos
+        time_since_last = datetime.utcnow() - self.last_reset_request.replace(tzinfo=None)
+        return time_since_last.total_seconds() >= cooldown_seconds
+
+    def is_reset_token_valid(self) -> bool:
+        """Verifica si el token de reset es válido y no ha expirado."""
+        if not self.reset_token or not self.reset_token_expires_at:
+            return False
+        return datetime.utcnow() < self.reset_token_expires_at.replace(tzinfo=None)
+
+    def is_reset_blocked(self) -> bool:
+        """Verifica si está bloqueado por demasiados intentos de reset."""
+        return self.reset_attempts >= 3  # Máximo 3 intentos por día
+
+    def increment_reset_attempts(self):
+        """Incrementa el contador de intentos fallidos de reset."""
+        self.reset_attempts += 1
+
+    def clear_reset_data(self):
+        """Limpia todos los datos de reset de contraseña."""
+        self.reset_token = None
+        self.reset_token_expires_at = None
+        self.reset_attempts = 0
