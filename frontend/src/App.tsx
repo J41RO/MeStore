@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react'
 import logger from './utils/logger'
 import './App.css'
+import OTPDemo from './components/OTPDemo';
 
 function App() {
   useEffect(() => {

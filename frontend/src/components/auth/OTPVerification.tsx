@@ -1,0 +1,252 @@
+import React, { useState, useEffect, useRef } from 'react';
+import './OTPVerification.css';
+
+// Tipos TypeScript para el componente
+interface OTPVerificationProps {
+onVerificationSuccess?: (type: 'EMAIL' | 'SMS') => void;
+onClose?: () => void;
+}
+
+interface OTPResponse {
+success: boolean;
+message: string;
+}
+
+type VerificationStep = 'request' | 'verify' | 'success';
+type OTPType = 'EMAIL' | 'SMS';
+
+const OTPVerification: React.FC<OTPVerificationProps> = ({
+onVerificationSuccess,
+onClose
+}) => {
+// Estados del componente
+const [step, setStep] = useState<VerificationStep>('request');
+const [otpType, setOtpType] = useState<OTPType>('EMAIL');
+const [otpCode, setOtpCode] = useState<string[]>(['', '', '', '', '', '']);
+const [loading, setLoading] = useState(false);
+const [message, setMessage] = useState('');
+const [messageType, setMessageType] = useState<'success' | 'error'>('success');
+const [cooldown, setCooldown] = useState(0);
+
+// Referencias para los inputs
+const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+// Efecto para el cooldown
+useEffect(() => {
+  if (cooldown > 0) {
+    const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+    return () => clearTimeout(timer);
+  }
+}, [cooldown]);
+
+// Verificar si el código está completo
+const isCodeComplete = otpCode.every(digit => digit !== '');
+
+// Obtener token del localStorage
+const getAuthToken = (): string | null => {
+  return localStorage.getItem('auth_token');
+};
+
+// Enviar solicitud OTP
+const sendOTP = async (): Promise<void> => {
+  setLoading(true);
+  setMessage('');
+
+  try {
+    const endpoint = otpType === 'EMAIL' 
+      ? '/api/v1/auth/send-verification-email'
+      : '/api/v1/auth/send-verification-sms';
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`
+      },
+      body: JSON.stringify({ otp_type: otpType })
+    });
+
+    const data: OTPResponse = await response.json();
+
+    if (response.ok) {
+      setStep('verify');
+      setCooldown(60);
+      setMessage(data.message);
+      setMessageType('success');
+      setTimeout(() => inputRefs.current[0]?.focus(), 100);
+    } else {
+      setMessage(data.message || 'Error enviando código');
+      setMessageType('error');
+    }
+  } catch (error) {
+    setMessage('Error de conexión');
+    setMessageType('error');
+  } finally {
+    setLoading(false);
+  }
+};
+
+// Verificar código OTP
+const verifyOTP = async (): Promise<void> => {
+  setLoading(true);
+  setMessage('');
+
+  const code = otpCode.join('');
+
+  try {
+    const endpoint = otpType === 'EMAIL'
+      ? '/api/v1/auth/verify-email-otp'
+      : '/api/v1/auth/verify-phone-otp';
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`
+      },
+      body: JSON.stringify({ otp_code: code })
+    });
+
+    const data: OTPResponse = await response.json();
+
+    if (response.ok) {
+      setStep('success');
+      setMessage('Verificación exitosa');
+      setMessageType('success');
+      
+      if (onVerificationSuccess) {
+        onVerificationSuccess(otpType);
+      }
+      
+      setTimeout(() => {
+        if (onClose) onClose();
+      }, 2000);
+    } else {
+      setMessage(data.message || 'Código incorrecto');
+      setMessageType('error');
+      setOtpCode(['', '', '', '', '', '']);
+      inputRefs.current[0]?.focus();
+    }
+  } catch (error) {
+    setMessage('Error de conexión');
+    setMessageType('error');
+  } finally {
+    setLoading(false);
+  }
+};
+
+// Reenviar código
+const resendOTP = (): void => {
+  if (cooldown === 0) {
+    sendOTP();
+  }
+};
+
+// Manejar input de dígitos
+const handleDigitInput = (index: number, value: string): void => {
+  if (value.length <= 1 && /^[0-9]*$/.test(value)) {
+    const newOtpCode = [...otpCode];
+    newOtpCode[index] = value;
+    setOtpCode(newOtpCode);
+
+    if (value && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  }
+};
+
+// Manejar teclas especiales
+const handleKeyDown = (index: number, event: React.KeyboardEvent): void => {
+  if (event.key === 'Backspace' && !otpCode[index] && index > 0) {
+    inputRefs.current[index - 1]?.focus();
+  }
+};
+
+return (
+  <div className="otp-verification-container">
+    {step === 'request' && (
+      <div className="otp-request">
+        <h3>Verificar Email/Teléfono</h3>
+        <div className="otp-type-selector">
+          <button
+            onClick={() => setOtpType('EMAIL')}
+            className={otpType === 'EMAIL' ? 'active' : ''}
+          >
+            Verificar por Email
+          </button>
+          <button
+            onClick={() => setOtpType('SMS')}
+            className={otpType === 'SMS' ? 'active' : ''}
+          >
+            Verificar por SMS
+          </button>
+        </div>
+        <button
+          onClick={sendOTP}
+          disabled={loading}
+          className="send-otp-btn"
+        >
+          {loading ? 'Enviando...' : 'Enviar Código'}
+        </button>
+      </div>
+    )}
+
+    {step === 'verify' && (
+      <div className="otp-input">
+        <h3>Ingresa el código de verificación</h3>
+        <p>Código enviado por {otpType === 'EMAIL' ? 'email' : 'SMS'}</p>
+        <div className="otp-digits">
+          {otpCode.map((digit, index) => (
+            <input
+              key={index}
+              ref={el => inputRefs.current[index] = el}
+              value={digit}
+              onChange={e => handleDigitInput(index, e.target.value)}
+              onKeyDown={e => handleKeyDown(index, e)}
+              maxLength={1}
+              className="otp-digit"
+              type="text"
+              inputMode="numeric"
+            />
+          ))}
+        </div>
+        <button
+          onClick={verifyOTP}
+          disabled={!isCodeComplete || loading}
+          className="verify-btn"
+        >
+          {loading ? 'Verificando...' : 'Verificar Código'}
+        </button>
+        <button
+          onClick={resendOTP}
+          disabled={cooldown > 0}
+          className="resend-btn"
+        >
+          {cooldown > 0 ? `Reenviar en ${cooldown}s` : 'Reenviar Código'}
+        </button>
+      </div>
+    )}
+
+    {step === 'success' && (
+      <div className="otp-success">
+        <h3>✅ Verificación Exitosa</h3>
+        <p>Tu {otpType === 'EMAIL' ? 'email' : 'teléfono'} ha sido verificado correctamente</p>
+      </div>
+    )}
+
+    {message && (
+      <div className={`message message--${messageType}`}>
+        {message}
+      </div>
+    )}
+
+    {onClose && (
+      <button onClick={onClose} className="close-btn">
+        ✕
+      </button>
+    )}
+  </div>
+);
+};
+
+export default OTPVerification;

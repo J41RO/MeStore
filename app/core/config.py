@@ -91,6 +91,42 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 días
 
+    # Twilio/SMS Configuration - Tarea 1.3.1.5
+    TWILIO_ACCOUNT_SID: str = Field(
+        default="",
+        description="Twilio Account SID for SMS services"
+    )
+    TWILIO_AUTH_TOKEN: str = Field(
+        default="",
+        description="Twilio Authentication Token"
+    )
+    TWILIO_FROM_NUMBER: str = Field(
+        default="",
+        description="Twilio phone number for sending SMS"
+    )
+    TWILIO_VERIFY_SERVICE_SID: str = Field(
+        default="",
+        description="Twilio Verify Service SID for OTP verification"
+    )
+
+    # OTP Configuration - Tarea 1.3.1.5
+    OTP_EXPIRATION_MINUTES: int = Field(
+        default=5,
+        description="OTP code expiration time in minutes"
+    )
+    OTP_MAX_ATTEMPTS: int = Field(
+        default=3,
+        description="Maximum number of OTP verification attempts"
+    )
+    SMS_ENABLED: bool = Field(
+        default=True,
+        description="Enable SMS OTP functionality"
+    )
+    EMAIL_OTP_ENABLED: bool = Field(
+        default=True,
+        description="Enable Email OTP functionality"
+    )
+
     # CORS Configuration - Tarea 1.1.4.1
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:8000"
     CORS_ALLOW_CREDENTIALS: bool = True

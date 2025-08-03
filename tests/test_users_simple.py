@@ -98,10 +98,10 @@ class TestUsersSimpleMigration:
         conn = await asyncpg.connect(settings.DATABASE_URL.replace('postgresql+asyncpg://', 'postgresql://'))
         try:
             user_id = await conn.fetchval('''
-                INSERT INTO users (id, email, password_hash, user_type, is_active, is_verified, email_verified, phone_verified, otp_attempts)
-                VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8)
+                INSERT INTO users (id, email, password_hash, user_type, is_active, is_verified, email_verified, phone_verified, otp_attempts, reset_attempts)
+                VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9)
                 RETURNING id
-            ''', 'test_simple@example.com', 'hash123', 'VENDEDOR', True, False, False, False, 0)
+            ''', 'test_simple@example.com', 'hash123', 'VENDEDOR', True, False, False, False, 0, 0)
             
             assert user_id is not None, "INSERT debe retornar ID válido"
             
