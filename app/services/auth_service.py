@@ -280,6 +280,164 @@ class AuthService:
             return self.otp_service.cleanup_expired_otps(db)
         except Exception as e:
             return 0
+
+
+    # === MÉTODOS PARA RECUPERACIÓN DE CONTRASEÑA ===
+
+    async def send_password_reset_email(
+        self, 
+        db: Session, 
+        email: str
+    ) -> Tuple[bool, str]:
+        """
+        Envía email de recuperación de contraseña.
+
+        Args:
+            db: Sesión de base de datos
+            email: Email del usuario
+
+        Returns:
+            Tuple[bool, str]: (Éxito, Mensaje)
+        """
+        from app.models.user import User
+        from app.services.email_service import EmailService
+        import secrets
+        from datetime import datetime, timedelta
+
+        try:
+            # Buscar usuario por email
+            user = db.query(User).filter(User.email == email).first()
+            if not user:
+                # Por seguridad, no revelar si el email existe
+                return True, "Si el email existe, recibirás instrucciones de recuperación"
+
+            # Verificar cooldown (5 minutos entre requests)
+            if not user.can_request_password_reset():
+                return False, "Debe esperar 5 minutos antes de solicitar otro reset"
+
+            # Verificar si está bloqueado por intentos
+            if user.is_reset_blocked():
+                return False, "Demasiados intentos de reset. Contacte soporte"
+
+            # Generar token seguro
+            reset_token = secrets.token_urlsafe(32)
+            expires_at = datetime.utcnow() + timedelta(hours=1)  # Expira en 1 hora
+
+            # Asignar token al usuario
+            user.reset_token = reset_token
+            user.reset_token_expires_at = expires_at
+            user.last_reset_request = datetime.utcnow()
+
+            # Guardar en base de datos
+            db.commit()
+            db.refresh(user)
+
+            # Enviar email
+            email_service = EmailService()
+            email_sent = email_service.send_password_reset_email(
+                email=user.email,
+                reset_token=reset_token,
+                user_name=user.nombre
+            )
+
+            if email_sent:
+                return True, "Se ha enviado un enlace de recuperación a tu email"
+            else:
+                # Limpiar token si no se pudo enviar
+                user.reset_token = None
+                user.reset_token_expires_at = None
+                db.commit()
+                return False, "Error enviando email de recuperación"
+
+        except Exception as e:
+            logger.error(f"Error en send_password_reset_email: {str(e)}")
+            return False, "Error interno del servidor"
+
+    async def reset_password_with_token(
+        self, 
+        db: Session, 
+        token: str, 
+        new_password: str
+    ) -> Tuple[bool, str]:
+        """
+        Resetea contraseña usando token de recuperación.
+
+        Args:
+            db: Sesión de base de datos
+            token: Token de reset
+            new_password: Nueva contraseña
+
+        Returns:
+            Tuple[bool, str]: (Éxito, Mensaje)
+        """
+        from app.models.user import User
+
+        try:
+            # Buscar usuario por token
+            user = db.query(User).filter(User.reset_token == token).first()
+            if not user:
+                return False, "Token de recuperación inválido"
+
+            # Verificar que el token no haya expirado
+            if not user.is_reset_token_valid():
+                # Limpiar token expirado
+                user.clear_reset_data()
+                db.commit()
+                return False, "El enlace de recuperación ha expirado"
+
+            # Verificar si está bloqueado por intentos
+            if user.is_reset_blocked():
+                return False, "Demasiados intentos fallidos. Contacte soporte"
+
+            # Hash de la nueva contraseña
+            password_hash = await self.get_password_hash(new_password)
+
+            # Actualizar contraseña y limpiar datos de reset
+            user.password_hash = password_hash
+            user.clear_reset_data()
+
+            # Guardar cambios
+            db.commit()
+            db.refresh(user)
+
+            logger.info(f"Contraseña reseteada exitosamente para usuario {user.email}")
+            return True, "Contraseña actualizada exitosamente"
+
+        except Exception as e:
+            logger.error(f"Error en reset_password_with_token: {str(e)}")
+            return False, "Error interno del servidor"
+
+    async def cleanup_expired_reset_tokens(self, db: Session) -> int:
+        """
+        Limpia tokens de reset expirados de la base de datos.
+
+        Args:
+            db: Sesión de base de datos
+
+        Returns:
+            int: Número de tokens limpiados
+        """
+        from app.models.user import User
+        from datetime import datetime
+
+        try:
+            expired_users = db.query(User).filter(
+                User.reset_token_expires_at < datetime.utcnow(),
+                User.reset_token.isnot(None)
+            ).all()
+
+            for user in expired_users:
+                user.clear_reset_data()
+
+            if expired_users:
+                db.commit()
+
+            logger.info(f"Limpiados {len(expired_users)} tokens de reset expirados")
+            return len(expired_users)
+
+        except Exception as e:
+            logger.error(f"Error en cleanup_expired_reset_tokens: {str(e)}")
+            return 0
     def __del__(self):
         """Cleanup del ThreadPoolExecutor al destruir el objeto."""
         if hasattr(self, 'executor'):

@@ -9,7 +9,7 @@ Proporciona endpoints para:
 """
 
 from typing import Any, Dict
-from fastapi import APIRouter, Depends, HTTPException, status, Header
+from fastapi import APIRouter, Depends, HTTPException, status, Header, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.core.auth import AuthService, get_auth_service
@@ -20,6 +20,9 @@ from app.models.user import User
 from fastapi import HTTPException
 from app.core.security import decode_access_token, decode_refresh_token
 from app.schemas.auth import (
+    PasswordResetRequest,
+    PasswordResetConfirm,
+    PasswordResetResponse,
     OTPSendRequest,
     OTPVerifyRequest, 
     OTPResponse,
@@ -507,4 +510,156 @@ async def get_verification_status(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error obteniendo estado de verificación"
+        )
+
+
+
+# === ENDPOINTS PARA RECUPERACIÓN DE CONTRASEÑA ===
+
+@router.post("/forgot-password", response_model=PasswordResetResponse, status_code=status.HTTP_200_OK)
+async def forgot_password(
+    request: PasswordResetRequest,
+    db: Session = Depends(get_db),
+    auth_service: AuthService = Depends(get_auth_service)
+):
+    """
+    Solicita recuperación de contraseña por email.
+
+    - **email**: Email registrado en el sistema
+    - No requiere autenticación
+    - Cooldown de 5 minutos entre solicitudes
+    - Por seguridad, siempre responde exitosamente (no revela si email existe)
+    """
+    try:
+        logger.info(f"Solicitud de recuperación de contraseña para: {request.email}")
+
+        # Enviar email de recuperación
+        success, message = await auth_service.send_password_reset_email(
+            db=db,
+            email=request.email
+        )
+
+        # Por seguridad, siempre respondemos que fue exitoso
+        # (no revelamos si el email existe en el sistema)
+        return PasswordResetResponse(
+            success=True,
+            message="Si el email existe, recibirás instrucciones de recuperación"
+        )
+
+    except Exception as e:
+        logger.error(f"Error en forgot_password: {str(e)}")
+        # Por seguridad, no revelar error interno
+        return PasswordResetResponse(
+            success=True,
+            message="Si el email existe, recibirás instrucciones de recuperación"
+        )
+
+
+@router.post("/reset-password", response_model=PasswordResetResponse, status_code=status.HTTP_200_OK)
+async def reset_password(
+    request: PasswordResetConfirm,
+    db: Session = Depends(get_db),
+    auth_service: AuthService = Depends(get_auth_service)
+):
+    """
+    Confirma reset de contraseña con token.
+
+    - **token**: Token de reset recibido por email
+    - **new_password**: Nueva contraseña (mín. 8 caracteres, mayús, minús, número)
+    - **confirm_password**: Confirmación de nueva contraseña
+    - No requiere autenticación JWT
+    - Token expira en 1 hora
+    - Máximo 3 intentos por día
+    """
+    try:
+        logger.info(f"Intento de reset de contraseña con token: {request.token[:10]}...")
+
+        # Validar que las contraseñas coincidan (ya validado en schema)
+        if request.new_password != request.confirm_password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Las contraseñas no coinciden"
+            )
+
+        # Resetear contraseña
+        success, message = await auth_service.reset_password_with_token(
+            db=db,
+            token=request.token,
+            new_password=request.new_password
+        )
+
+        if success:
+            return PasswordResetResponse(
+                success=True,
+                message=message
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=message
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error en reset_password: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )
+
+
+@router.post("/validate-reset-token", response_model=PasswordResetResponse, status_code=status.HTTP_200_OK)
+async def validate_reset_token(
+    token: str = Query(..., description="Token de reset a validar"),
+    db: Session = Depends(get_db)
+):
+    """
+    Valida si un token de reset es válido y no ha expirado.
+
+    - **token**: Token de reset a validar
+    - No requiere autenticación
+    - Útil para validar token antes de mostrar formulario de reset
+    """
+    try:
+        from app.models.user import User
+
+        # Buscar usuario por token
+        user = db.query(User).filter(User.reset_token == token).first()
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Token de recuperación inválido"
+            )
+
+        # Verificar que el token no haya expirado
+        if not user.is_reset_token_valid():
+            # Limpiar token expirado
+            user.clear_reset_data()
+            db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El enlace de recuperación ha expirado"
+            )
+
+        # Verificar si está bloqueado
+        if user.is_reset_blocked():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Demasiados intentos fallidos. Contacte soporte"
+            )
+
+        return PasswordResetResponse(
+            success=True,
+            message="Token válido. Puede proceder con el reset"
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error en validate_reset_token: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
         )
