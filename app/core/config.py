@@ -133,6 +133,35 @@ class Settings(BaseSettings):
     CORS_ALLOW_METHODS: str = os.getenv("CORS_ALLOW_METHODS", "GET,POST,PUT,DELETE")
     CORS_ALLOW_HEADERS: str = os.getenv("CORS_ALLOW_HEADERS", "Authorization,Content-Type,Accept,X-Requested-With,Cache-Control,X-API-Key")
 
+
+    # Email Configuration for SendGrid
+    SENDGRID_API_KEY: str = Field(
+        default="your_sendgrid_api_key_here",
+        description="SendGrid API key for email sending"
+    )
+    FROM_EMAIL: str = Field(
+        default="noreply@mestore.com",
+        description="Default from email address"
+    )
+    FROM_NAME: str = Field(
+        default="MeStore",
+        description="Default from name for emails"
+    )
+
+    # Password Reset Configuration
+    RESET_TOKEN_EXPIRY_HOURS: int = Field(
+        default=1,
+        description="Password reset token expiry time in hours"
+    )
+    RESET_COOLDOWN_MINUTES: int = Field(
+        default=5,
+        description="Cooldown between password reset requests in minutes"
+    )
+    RESET_MAX_ATTEMPTS: int = Field(
+        default=3,
+        description="Maximum password reset attempts before blocking"
+    )
+
     class Config:
         env_file = [".env.test", ".env.production", ".env"]
 
