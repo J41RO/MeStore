@@ -33,7 +33,9 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, desc, asc, or_, and_
 
 from app.core.database import get_db
 from app.models.product import Product
@@ -111,4 +113,101 @@ async def create_producto(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error interno del servidor",
+        )
+
+
+
+@router.get(
+    "/",
+    response_model=List[ProductResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Listar productos",
+    description="Obtener lista de productos con filtros avanzados y paginación",
+    tags=["productos"]
+)
+async def get_productos(
+    # Filtros de búsqueda
+    search: Optional[str] = Query(None, description="Búsqueda por nombre, descripción o SKU"),
+    categoria: Optional[str] = Query(None, description="Filtrar por categoría"),
+    status_filter: Optional[str] = Query(None, alias="status", description="Filtrar por estado"),
+
+    # Filtros de precio
+    precio_min: Optional[float] = Query(None, ge=0, description="Precio mínimo"),
+    precio_max: Optional[float] = Query(None, ge=0, description="Precio máximo"),
+
+    # Ordenamiento
+    sort_by: Optional[str] = Query("created_at", description="Campo para ordenar"),
+    sort_order: Optional[str] = Query("desc", regex="^(asc|desc)$", description="Orden de clasificación"),
+
+    # Paginación básica
+    skip: int = Query(0, ge=0, description="Elementos a saltar"),
+    limit: int = Query(100, ge=1, le=500, description="Límite de elementos"),
+    db: AsyncSession = Depends(get_db)
+) -> List[ProductResponse]:
+    """
+    Obtener lista de productos con paginación básica.
+    """
+    try:
+        # Query básica con paginación
+        # Construir query base
+        stmt = select(Product)
+
+        # Lista para condiciones WHERE
+        where_conditions = []
+
+        # Aplicar filtro de búsqueda
+        if search:
+            search_filter = or_(
+                Product.name.ilike(f"%{search}%"),
+                Product.description.ilike(f"%{search}%"),
+                Product.sku.ilike(f"%{search}%")
+            )
+            where_conditions.append(search_filter)
+
+        # Filtros específicos
+        if categoria:
+            where_conditions.append(Product.categoria.ilike(f"%{categoria}%"))
+
+        if status_filter:
+            where_conditions.append(Product.status == status_filter)
+
+        # Filtros de precio
+        if precio_min is not None:
+            where_conditions.append(Product.precio_venta >= precio_min)
+        if precio_max is not None:
+            where_conditions.append(Product.precio_venta <= precio_max)
+
+        # Aplicar condiciones WHERE si existen
+        if where_conditions:
+            stmt = stmt.where(and_(*where_conditions))
+
+        # Aplicar ordenamiento
+        if sort_by == "precio_venta":
+            order_field = Product.precio_venta
+        elif sort_by == "name":
+            order_field = Product.name
+        elif sort_by == "created_at":
+            order_field = Product.created_at
+        else:
+            order_field = Product.created_at
+
+        if sort_order == "desc":
+            stmt = stmt.order_by(desc(order_field))
+        else:
+            stmt = stmt.order_by(asc(order_field))
+
+        # Aplicar paginación
+        stmt = stmt.offset(skip).limit(limit)
+        result = await db.execute(stmt)
+        productos = result.scalars().all()
+
+        logger.info(f"Obtenidos {len(productos)} productos con filtros aplicados")
+
+        return [ProductResponse.model_validate(producto) for producto in productos]
+
+    except Exception as e:
+        logger.error(f"Error al obtener productos: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno al obtener productos"
         )
