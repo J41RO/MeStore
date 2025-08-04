@@ -40,7 +40,7 @@ from sqlalchemy import select, desc, asc, or_, and_
 
 from app.core.database import get_db
 from app.models.product import Product
-from app.schemas.product import ProductCreate, ProductResponse
+from app.schemas.product import ProductCreate, ProductUpdate, ProductResponse
 
 # Configurar logging
 logger = logging.getLogger(__name__)
@@ -264,6 +264,104 @@ async def get_producto_by_id(
         raise
     except Exception as e:
         logger.error(f"Error al obtener producto por ID {producto_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )
+
+
+
+@router.put(
+    "/{producto_id}",
+    response_model=ProductResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Actualizar producto",
+    description="Actualizar un producto existente por su ID con datos parciales o completos",
+    tags=["productos"]
+)
+async def update_producto(
+    producto_id: UUID,
+    producto_data: ProductUpdate,
+    db: AsyncSession = Depends(get_db)
+) -> ProductResponse:
+    """
+    Actualizar un producto existente.
+
+    Args:
+        producto_id: ID único del producto a actualizar
+        producto_data: Datos del producto a actualizar (campos opcionales)
+        db: Sesión de base de datos
+
+    Returns:
+        ProductResponse: Producto actualizado
+
+    Raises:
+        HTTPException: 404 si el producto no existe,
+                      400 si hay errores de validación,
+                      500 si hay error interno
+    """
+    try:
+        logger.info(f"Actualizando producto con ID: {producto_id}")
+
+        # Buscar producto existente
+        from sqlalchemy import select
+        result = await db.execute(
+            select(Product).where(Product.id == producto_id)
+        )
+        producto = result.scalar_one_or_none()
+
+        if not producto:
+            logger.warning(f"Producto no encontrado: {producto_id}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Producto con ID {producto_id} no encontrado"
+            )
+
+        # Actualizar solo campos proporcionados (no None)
+        update_data = producto_data.model_dump(exclude_unset=True, exclude_none=True)
+
+        if not update_data:
+            logger.warning(f"No se proporcionaron datos para actualizar: {producto_id}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No se proporcionaron datos para actualizar"
+            )
+
+        # Validar SKU único si se está actualizando
+        if "sku" in update_data and update_data["sku"] != producto.sku:
+            existing_sku = await db.execute(
+                select(Product).where(
+                    Product.sku == update_data["sku"],
+                    Product.id != producto_id
+                )
+            )
+            if existing_sku.scalar_one_or_none():
+                logger.warning(f"SKU ya existe: {update_data['sku']}")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"El SKU {update_data['sku']} ya está en uso"
+                )
+
+        # Aplicar actualizaciones
+        for field, value in update_data.items():
+            setattr(producto, field, value)
+
+        # Actualizar metadatos de tracking si el método existe
+        if hasattr(producto, 'update_tracking'):
+            producto.update_tracking(user_id=None)  # TODO: Obtener user_id del token
+
+        # Guardar cambios
+        await db.commit()
+        await db.refresh(producto)
+
+        logger.info(f"Producto actualizado exitosamente: {producto_id}")
+        return ProductResponse.model_validate(producto)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error al actualizar producto {producto_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error interno del servidor"

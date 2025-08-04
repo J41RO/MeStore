@@ -248,7 +248,7 @@
 ✅ 1.3.2 API gestión de productos (CRUD completo)
     ✅ 1.3.2.1 Crear endpoint POST /productos para crear producto con validaciones
     ✅ 1.3.2.2 Implementar endpoint GET /productos con filtros y paginación
-    ⬜ 1.3.2.3 Crear endpoint GET /productos/{id} para detalle específico
+    ✅ 1.3.2.3 Crear endpoint GET /productos/{id} para detalle específico
     ⬜ 1.3.2.4 Implementar endpoint PUT /productos/{id} para actualización completa
     ⬜ 1.3.2.5 Crear endpoint PATCH /productos/{id} para actualización parcial
     ⬜ 1.3.2.6 Implementar endpoint DELETE /productos/{id} con soft delete
