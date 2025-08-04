@@ -30,8 +30,8 @@ Este middleware intercepta todas las requests entrantes y verifica:
 """
 
 import time
-from typing import Dict, List, Optional, Set
 from ipaddress import AddressValueError, ip_address
+from typing import Dict, List, Optional, Set
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -54,7 +54,12 @@ class SuspiciousIPMiddleware(BaseHTTPMiddleware):
     - Respuestas HTTP apropiadas para IPs bloqueadas
     """
 
-    def __init__(self, app, suspicious_ips: Optional[List[str]] = None, enable_blacklist: bool = True):
+    def __init__(
+        self,
+        app,
+        suspicious_ips: Optional[List[str]] = None,
+        enable_blacklist: bool = True,
+    ):
         """
         Inicializar middleware de detección de IPs sospechosas.
 
@@ -67,15 +72,20 @@ class SuspiciousIPMiddleware(BaseHTTPMiddleware):
         self.enable_blacklist = enable_blacklist
 
         # Lista de IPs sospechosas - combinar configuración y parámetros
-        config_ips = getattr(settings, 'SUSPICIOUS_IPS', [])
-        param_ips = suspicious_ips or []
+        config_ips_str = getattr(settings, "SUSPICIOUS_IPS", "")
+        config_ips = (
+            [ip.strip() for ip in config_ips_str.split(",") if ip.strip()]
+            if config_ips_str
+            else []
+        )
+        param_ips = list(suspicious_ips) if suspicious_ips else []
 
         # IPs sospechosas conocidas por defecto
         default_suspicious_ips = [
-            '0.0.0.0',           # IP inválida
+            "0.0.0.0",  # IP inválida
             # '127.0.0.1',  # Comentado para permitir testing local         # Localhost (para testing)
-            '10.0.0.1',          # Gateway común
-            '192.168.1.1',       # Gateway doméstico común
+            "10.0.0.1",  # Gateway común
+            "192.168.1.1",  # Gateway doméstico común
         ]
 
         # Combinar todas las listas y crear set para búsqueda rápida
@@ -84,33 +94,33 @@ class SuspiciousIPMiddleware(BaseHTTPMiddleware):
 
         # User-Agents sospechosos
         self.suspicious_user_agents = {
-            'curl/',
-            'python-requests/',
-            'bot',
-            'crawler',
-            'spider',
-            'scraper',
-            'wget',
-            'httpie',
-            'postman',
-            'insomnia',
+            "curl/",
+            "python-requests/",
+            "bot",
+            "crawler",
+            "spider",
+            "scraper",
+            "wget",
+            "httpie",
+            "postman",
+            "insomnia",
         }
 
         # Rutas excluidas de verificación
         self.excluded_paths = {
-            '/health',
-            '/ready',
-            '/docs',
-            '/openapi.json',
-            '/redoc',
-            '/favicon.ico',
+            "/health",
+            "/ready",
+            "/docs",
+            "/openapi.json",
+            "/redoc",
+            "/favicon.ico",
         }
 
         logger.info(
             "Middleware SuspiciousIP inicializado",
             suspicious_ips_count=len(self.suspicious_ips),
             blacklist_enabled=self.enable_blacklist,
-            excluded_paths=list(self.excluded_paths)
+            excluded_paths=list(self.excluded_paths),
         )
 
     async def dispatch(self, request: Request, call_next) -> Response:
@@ -128,7 +138,7 @@ class SuspiciousIPMiddleware(BaseHTTPMiddleware):
 
         # Obtener IP del cliente
         client_ip = self._get_client_ip(request)
-        user_agent = request.headers.get('user-agent', '').lower()
+        user_agent = request.headers.get("user-agent", "").lower()
         path = request.url.path
 
         # Skip verificación para rutas excluidas
@@ -143,12 +153,12 @@ class SuspiciousIPMiddleware(BaseHTTPMiddleware):
             logger.warning(
                 "SECURITY ALERT: Suspicious IP detected",
                 client_ip=client_ip,
-                user_agent=request.headers.get('user-agent', ''),
+                user_agent=request.headers.get("user-agent", ""),
                 path=path,
                 method=request.method,
                 duration=f"{duration:.3f}s",
                 action="blocked",
-                reason="ip_blacklist"
+                reason="ip_blacklist",
             )
 
             return JSONResponse(
@@ -156,8 +166,8 @@ class SuspiciousIPMiddleware(BaseHTTPMiddleware):
                 content={
                     "detail": "Access denied",
                     "error": "suspicious_ip",
-                    "timestamp": time.time()
-                }
+                    "timestamp": time.time(),
+                },
             )
 
         # Verificar User-Agent sospechoso
@@ -167,12 +177,12 @@ class SuspiciousIPMiddleware(BaseHTTPMiddleware):
             logger.warning(
                 "SECURITY ALERT: Suspicious User-Agent detected",
                 client_ip=client_ip,
-                user_agent=request.headers.get('user-agent', ''),
+                user_agent=request.headers.get("user-agent", ""),
                 path=path,
                 method=request.method,
                 duration=f"{duration:.3f}s",
                 action="flagged",
-                reason="suspicious_user_agent"
+                reason="suspicious_user_agent",
             )
 
             # Para User-Agent sospechoso, solo loggear pero permitir acceso
@@ -190,7 +200,7 @@ class SuspiciousIPMiddleware(BaseHTTPMiddleware):
                     client_ip=client_ip,
                     path=path,
                     duration=f"{duration:.3f}s",
-                    status="allowed"
+                    status="allowed",
                 )
 
             return response
@@ -202,7 +212,7 @@ class SuspiciousIPMiddleware(BaseHTTPMiddleware):
                 client_ip=client_ip,
                 path=path,
                 error=str(e),
-                duration=f"{duration:.3f}s"
+                duration=f"{duration:.3f}s",
             )
             raise
 
@@ -217,13 +227,13 @@ class SuspiciousIPMiddleware(BaseHTTPMiddleware):
             IP del cliente como string
         """
         # Verificar headers de proxy primero
-        forwarded_for = request.headers.get('x-forwarded-for')
+        forwarded_for = request.headers.get("x-forwarded-for")
         if forwarded_for:
             # X-Forwarded-For puede contener múltiples IPs
-            return forwarded_for.split(',')[0].strip()
+            return forwarded_for.split(",")[0].strip()
 
         # Headers alternativos
-        real_ip = request.headers.get('x-real-ip')
+        real_ip = request.headers.get("x-real-ip")
         if real_ip:
             return real_ip.strip()
 
@@ -257,7 +267,9 @@ class SuspiciousIPMiddleware(BaseHTTPMiddleware):
             # Por ejemplo: ip_obj.is_private, ip_obj.is_loopback, etc.
         except (AddressValueError, ValueError):
             # IP inválida (como 'testclient' de TestClient) - no bloquear
-            logger.debug(f"Invalid IP format detected: {ip} - treating as non-suspicious")
+            logger.debug(
+                f"Invalid IP format detected: {ip} - treating as non-suspicious"
+            )
             return False
 
         return False

@@ -8,21 +8,43 @@ Propósito: Fixtures centralizados para FastAPI testing con soporte async
 
 import asyncio
 import os
-from typing import AsyncGenerator
-
 # Configurar variables de entorno para testing ANTES de importar app
-os.environ["TESTING"] = "true"
-os.environ["CORS_ORIGINS"] = (
-    "http://localhost:3000,http://localhost:8000,https://mestocker.com"
-)
+os.environ['TESTING'] = 'true'
+os.environ['CORS_ORIGINS'] = 'http://localhost:3000,http://localhost:8000,https://mestocker.com'
 from typing import AsyncGenerator, Generator
-from unittest.mock import AsyncMock
+from httpx import AsyncClient, ASGITransport
 
 import pytest
+from unittest.mock import AsyncMock
 from fastapi.testclient import TestClient
-from httpx import ASGITransport, AsyncClient
 
 from app.main import app
+
+
+@pytest.fixture(scope="session")
+def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
+    """
+    Fixture para event loop de asyncio compatible con pytest-asyncio.
+
+    Scope: session - Un loop por sesión de testing completa.
+    Yield: Event loop de asyncio para tests async.
+
+    Nota: Con asyncio_mode = auto, pytest-asyncio maneja el loop automáticamente.
+    Este fixture está disponible para casos específicos que lo requieran.
+    """
+    try:
+        # Intentar obtener loop actual si existe
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        # Si no hay loop corriendo, crear uno nuevo
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+    yield loop
+
+    # Solo cerrar si creamos el loop nosotros
+    if not loop.is_running():
+        loop.close()
 
 
 @pytest.fixture(scope="module")
@@ -35,23 +57,21 @@ def client() -> TestClient:
     """
     return TestClient(app)
 
-
 @pytest.fixture(scope="function")
 async def async_client() -> AsyncGenerator[AsyncClient, None]:
     """
     Fixture async para AsyncClient cuando se requieren operaciones async.
-
+    
     Scope: function - Nuevo cliente por test function.
     Yields: AsyncClient para operaciones async.
     """
     # Headers con User-Agent válido para evitar bloqueo de middleware
-    headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"}
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36'
+    }
     transport = ASGITransport(app=app)
-    async with AsyncClient(
-        transport=transport, base_url="http://testserver", headers=headers
-    ) as ac:
+    async with AsyncClient(transport=transport, base_url="http://testserver", headers=headers) as ac:
         yield ac
-
 
 @pytest.fixture(scope="session")
 def test_config():
@@ -102,14 +122,13 @@ def mock_database():
 
 import tempfile
 from typing import Generator
-
 from sqlalchemy import create_engine
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.pool import StaticPool
-
 from app.core.database import Base, get_db
 from app.main import app
+
 
 # Configuración de base de datos de testing
 SQLALCHEMY_TEST_DATABASE_URL = "sqlite:///:memory:"
@@ -117,11 +136,9 @@ SQLALCHEMY_TEST_DATABASE_URL = "sqlite:///:memory:"
 # Engine de testing con configuración específica para SQLite en memoria
 test_engine = create_engine(
     SQLALCHEMY_TEST_DATABASE_URL,
-    connect_args={
-        "check_same_thread": False
-    },  # Permitir múltiples threads para testing
+    connect_args={"check_same_thread": False},  # Permitir múltiples threads para testing
     poolclass=StaticPool,  # Pool estático para SQLite en memoria
-    echo=False,  # Cambiar a True para debug SQL
+    echo=False  # Cambiar a True para debug SQL
 )
 
 # SessionLocal para testing
@@ -130,12 +147,16 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_
 
 # Engine async para testing
 async_test_engine = create_async_engine(
-    "sqlite+aiosqlite:///:memory:", echo=False, pool_pre_ping=True
+    "sqlite+aiosqlite:///:memory:",
+    echo=False,
+    pool_pre_ping=True
 )
 
 # SessionLocal async para testing
 AsyncTestingSessionLocal = async_sessionmaker(
-    bind=async_test_engine, class_=AsyncSession, expire_on_commit=False
+    bind=async_test_engine,
+    class_=AsyncSession,
+    expire_on_commit=False
 )
 
 
@@ -143,7 +164,7 @@ AsyncTestingSessionLocal = async_sessionmaker(
 def test_db_session() -> Generator[Session, None, None]:
     """
     Fixture para sesión de base de datos de testing.
-
+    
     Scope: function - Nueva DB limpia por cada test.
     Creates: Todas las tablas en SQLite en memoria.
     Yields: Sesión de SQLAlchemy para el test.
@@ -151,16 +172,17 @@ def test_db_session() -> Generator[Session, None, None]:
     """
     # Crear todas las tablas en la base de datos de testing
     Base.metadata.create_all(bind=test_engine)
-
+    
     # Crear sesión para el test
     db_session = TestingSessionLocal()
-
+    
     try:
         yield db_session
     finally:
         db_session.close()
         # Limpiar todas las tablas después del test
         Base.metadata.drop_all(bind=test_engine)
+
 
 
 @pytest.fixture(scope="function")
@@ -188,36 +210,35 @@ async def async_session() -> AsyncGenerator[AsyncSession, None]:
 
 
 @pytest.fixture(scope="function")
-def override_get_db(async_session: AsyncSession) -> Generator[None, None, None]:
+def override_get_db(test_db_session: Session) -> Generator[None, None, None]:
     """
     Fixture para override de dependencia get_db de FastAPI.
-
+    
     Scope: function - Override por test individual.
     Effect: Redirige get_db() a la sesión de testing.
     Cleanup: Restaura dependencia original.
     """
-
-    async def get_test_db() -> AsyncGenerator[AsyncSession, None]:
+    def get_test_db() -> Generator[Session, None, None]:
         """Dependencia de testing que retorna la sesión de test."""
         try:
-            yield async_session
+            yield test_db_session
         finally:
             pass  # Session cleanup manejado por test_db_session fixture
-
+    
     # Override de la dependencia get_db
     app.dependency_overrides[get_db] = get_test_db
-
+    
     yield
-
+    
     # Limpiar override después del test
     app.dependency_overrides.clear()
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="function")  
 def client_with_test_db(override_get_db) -> TestClient:
     """
     Fixture para TestClient con base de datos de testing configurada.
-
+    
     Scope: function - Cliente limpio por test.
     Requires: override_get_db fixture activo.
     Returns: TestClient que usa base de datos de testing.
@@ -229,7 +250,7 @@ def client_with_test_db(override_get_db) -> TestClient:
 def test_db_url() -> str:
     """
     Fixture que retorna la URL de la base de datos de testing.
-
+    
     Returns: URL de SQLite en memoria para logging/debugging.
     """
     return SQLALCHEMY_TEST_DATABASE_URL
