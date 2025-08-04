@@ -267,3 +267,57 @@ class TestGetProductos:
             # Verificar que están ordenados por precio ascendente
             precios = [p["precio_venta"] for p in data]
             assert precios == sorted(precios)
+
+    @pytest.mark.asyncio
+    async def test_get_producto_by_id_success(self, async_client: AsyncClient):
+        """Test obtener producto específico por ID exitosamente."""
+        import time
+        timestamp = int(time.time() * 1000)
+        
+        # Crear producto para obtener por ID
+        product_data = {
+            "sku": f"BYID-{timestamp}",
+            "name": "Producto By ID Test",
+            "description": "Test obtener por ID específico",
+            "precio_venta": 250.0,
+            "categoria": "Test"
+        }
+        
+        # Crear producto
+        create_response = await async_client.post("/api/v1/productos/", json=product_data)
+        assert create_response.status_code == 201
+        created_product = create_response.json()
+        product_id = created_product["id"]
+        
+        # Obtener producto por ID
+        response = await async_client.get(f"/api/v1/productos/{product_id}")
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data["id"] == product_id
+        assert data["sku"] == f"BYID-{timestamp}"
+        assert data["name"] == "Producto By ID Test"
+        assert data["precio_venta"] == 250.0
+
+    @pytest.mark.asyncio
+    async def test_get_producto_by_id_not_found(self, async_client: AsyncClient):
+        """Test error 404 cuando producto no existe."""
+        from uuid import uuid4
+        
+        # Usar UUID que no existe
+        non_existent_id = str(uuid4())
+        
+        response = await async_client.get(f"/api/v1/productos/{non_existent_id}")
+        
+        assert response.status_code == 404
+        data = response.json()
+        assert "no encontrado" in data["detail"]
+
+    @pytest.mark.asyncio
+    async def test_get_producto_by_id_invalid_uuid(self, async_client: AsyncClient):
+        """Test error de validación con UUID inválido."""
+        invalid_id = "not-a-valid-uuid"
+        
+        response = await async_client.get(f"/api/v1/productos/{invalid_id}")
+        
+        assert response.status_code == 422  # Validation error

@@ -31,6 +31,7 @@ Este módulo contiene:
 
 import logging
 from typing import Any, Dict, List, Optional
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi import Query
@@ -210,4 +211,60 @@ async def get_productos(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error interno al obtener productos"
+        )
+@router.get(
+    "/{producto_id}",
+    response_model=ProductResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Obtener producto por ID",
+    description="Obtener detalles específicos de un producto por su ID único",
+    tags=["productos"]
+)
+async def get_producto_by_id(
+    producto_id: UUID,
+    db: AsyncSession = Depends(get_db)
+) -> ProductResponse:
+    """
+    Obtener un producto específico por su ID.
+
+    Args:
+        producto_id: UUID del producto a obtener
+        db: Sesión de base de datos async
+
+    Returns:
+        ProductResponse: Producto con información completa
+
+    Raises:
+        HTTPException 404: Producto no encontrado
+        HTTPException 500: Error interno del servidor
+    """
+    try:
+        from sqlalchemy import select
+
+        logger.info(f"Buscando producto con ID: {producto_id}")
+
+        # Buscar producto por ID
+        stmt = select(Product).where(Product.id == producto_id)
+        result = await db.execute(stmt)
+        producto = result.scalar_one_or_none()
+
+        if not producto:
+            logger.warning(f"Producto no encontrado: ID={producto_id}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Producto con ID {producto_id} no encontrado"
+            )
+
+        logger.info(f"Producto encontrado: SKU={producto.sku}, ID={producto.id}")
+
+        # Convertir a ProductResponse
+        return ProductResponse.model_validate(producto)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error al obtener producto por ID {producto_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
         )
