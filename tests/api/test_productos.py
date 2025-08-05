@@ -226,7 +226,7 @@ class TestGetProductos:
             "sku": f"PRICE-{timestamp}",
             "name": "Producto Precio Test",
             "description": "Test filtro precio",
-            "precio_venta": 299.99,
+            "precio_venta": 200000.0,
             "categoria": "Test"
         }
         
@@ -234,11 +234,11 @@ class TestGetProductos:
         assert create_response.status_code == 201
         
         # Filtrar por rango de precio
-        response = await async_client.get("/api/v1/productos/?precio_min=250&precio_max=350")
+        response = await async_client.get("/api/v1/productos/?precio_min=150000&precio_max=250000")
         assert response.status_code == 200
         data = response.json()
         assert len(data) >= 1
-        assert all(250 <= p["precio_venta"] <= 350 for p in data)
+        assert all(150000 <= p["precio_venta"] <= 250000 for p in data)
 
     @pytest.mark.asyncio
     async def test_get_productos_pagination(self, async_client: AsyncClient):
@@ -321,3 +321,175 @@ class TestGetProductos:
         response = await async_client.get(f"/api/v1/productos/{invalid_id}")
         
         assert response.status_code == 422  # Validation error
+
+
+
+# ========================================================================
+# TESTS PARA ENDPOINT PUT /productos/{id} - MICRO-FASE 2
+# ========================================================================
+
+class TestProductosPUT:
+    """Tests comprehensivos para endpoint PUT /productos/{id}"""
+
+    async def test_update_producto_exitoso_campos_parciales(self, async_client, sample_product_data):
+        """Test actualización exitosa con campos parciales"""
+        # Crear producto primero
+        create_response = await async_client.post("/api/v1/productos/", json=sample_product_data)
+        assert create_response.status_code == 201
+        producto_id = create_response.json()["id"]
+
+        # Actualizar solo algunos campos
+        update_data = {
+            "name": "Producto Actualizado",
+            "precio_venta": 200000.0,
+            "description": "Descripción actualizada"
+        }
+
+        response = await async_client.put(f"/api/v1/productos/{producto_id}", json=update_data)
+
+
+        assert response.status_code == 200
+
+        result = response.json()
+        assert result["name"] == "Producto Actualizado"
+        assert result["precio_venta"] == 200000.0
+        assert result["description"] == "Descripción actualizada"
+        # Verificar que campos no actualizados se preservaron
+        assert result["sku"] == sample_product_data["sku"]
+
+    async def test_update_producto_exitoso_campos_completos(self, async_client, sample_product_data):
+        """Test actualización exitosa con todos los campos"""
+        # Crear producto primero
+        create_response = await async_client.post("/api/v1/productos/", json=sample_product_data)
+        assert create_response.status_code == 201
+        producto_id = create_response.json()["id"]
+
+        # Actualizar todos los campos
+        update_data = {
+            "name": "Producto Completamente Actualizado",
+            "description": "Nueva descripción completa",
+            "precio_venta": 200000.0,
+            "sku": "SKU-UPDATE-001",
+            "categoria": "Nueva Categoría",
+
+
+        }
+
+        response = await async_client.put(f"/api/v1/productos/{producto_id}", json=update_data)
+        assert response.status_code == 200
+
+        result = response.json()
+        assert result["name"] == update_data["name"]
+        assert result["description"] == update_data["description"]
+        assert result["precio_venta"] == 200000.0
+        assert result["sku"] == update_data["sku"]
+        assert result["categoria"] == update_data["categoria"]
+
+
+
+    async def test_update_producto_no_encontrado_404(self, async_client):
+        """Test producto no encontrado devuelve 404"""
+        import uuid
+        producto_id_inexistente = str(uuid.uuid4())
+
+        update_data = {
+            "nombre": "No importa",
+            "precio": 100.0
+        }
+
+        response = await async_client.put(f"/api/v1/productos/{producto_id_inexistente}", json=update_data)
+        assert response.status_code == 404
+        assert "no encontrado" in response.json()["detail"].lower()
+
+    async def test_update_producto_sku_duplicado_400(self, async_client, sample_product_data):
+        """Test SKU duplicado en actualización devuelve 400"""
+        # Crear primer producto
+        create_response1 = await async_client.post("/api/v1/productos/", json=sample_product_data)
+        assert create_response1.status_code == 201
+
+        # Crear segundo producto con SKU diferente
+        sample_product_data2 = sample_product_data.copy()
+        sample_product_data2["sku"] = "SKU-DIFERENTE-001"
+        sample_product_data2["nombre"] = "Producto 2"
+
+        create_response2 = await async_client.post("/api/v1/productos/", json=sample_product_data2)
+        assert create_response2.status_code == 201
+        producto_id_2 = create_response2.json()["id"]
+
+        # Intentar actualizar producto 2 con SKU del producto 1 (duplicado)
+        update_data = {
+            "sku": sample_product_data["sku"]  # SKU que ya existe
+        }
+
+        response = await async_client.put(f"/api/v1/productos/{producto_id_2}", json=update_data)
+        assert response.status_code == 400
+        assert "ya está en uso" in response.json()["detail"].lower()
+
+    async def test_update_producto_uuid_invalido_422(self, async_client):
+        """Test UUID inválido devuelve 422"""
+        producto_id_invalido = "no-es-un-uuid-valido"
+
+        update_data = {
+            "nombre": "No importa",
+            "precio": 100.0
+        }
+
+        response = await async_client.put(f"/api/v1/productos/{producto_id_invalido}", json=update_data)
+        assert response.status_code == 422
+
+    async def test_update_producto_sin_datos_400(self, async_client, sample_product_data):
+        """Test actualización sin datos devuelve 400"""
+        # Crear producto primero
+        create_response = await async_client.post("/api/v1/productos/", json=sample_product_data)
+        assert create_response.status_code == 201
+        producto_id = create_response.json()["id"]
+
+        # Intentar actualizar sin datos
+        update_data = {}
+
+        response = await async_client.put(f"/api/v1/productos/{producto_id}", json=update_data)
+        assert response.status_code == 400
+        assert "no se proporcionaron datos" in response.json()["detail"].lower()
+
+    async def test_update_producto_datos_nulos_400(self, async_client, sample_product_data):
+        """Test actualización con todos los datos como None"""
+        # Crear producto primero
+        create_response = await async_client.post("/api/v1/productos/", json=sample_product_data)
+        assert create_response.status_code == 201
+        producto_id = create_response.json()["id"]
+
+        # Intentar actualizar con datos nulos
+        update_data = {
+            "nombre": None,
+            "precio": None,
+            "descripcion": None
+        }
+
+        response = await async_client.put(f"/api/v1/productos/{producto_id}", json=update_data)
+        assert response.status_code == 400
+        assert "no se proporcionaron datos" in response.json()["detail"].lower()
+
+    async def test_update_producto_preserva_campos_no_enviados(self, async_client, sample_product_data):
+        """Test que campos no enviados se preservan"""
+        # Crear producto primero
+        create_response = await async_client.post("/api/v1/productos/", json=sample_product_data)
+        assert create_response.status_code == 201
+        producto_id = create_response.json()["id"]
+        producto_original = create_response.json()
+
+        # Actualizar solo el nombre
+        update_data = {
+            "name": "Solo Nombre Actualizado"
+        }
+
+        response = await async_client.put(f"/api/v1/productos/{producto_id}", json=update_data)
+        assert response.status_code == 200
+
+        result = response.json()
+        # Campo actualizado
+        assert result["name"] == "Solo Nombre Actualizado"
+        # Campos preservados
+        assert result["precio_venta"] == producto_original["precio_venta"]
+        assert result["sku"] == producto_original["sku"]
+        assert result["description"] == producto_original["description"]
+        assert result["categoria"] == producto_original["categoria"]

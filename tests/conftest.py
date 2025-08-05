@@ -264,3 +264,20 @@ async def mock_redis_for_testing(monkeypatch):
 
     monkeypatch.setattr("app.core.redis.redis_manager.get_redis", mock_get_redis)
     return mock_redis
+@pytest.fixture(scope="function")
+def sample_product_data():
+    """Datos de muestra para crear productos en tests."""
+    import time
+    timestamp = int(time.time() * 1000)
+    
+    return {
+        "sku": f"TEST-SAMPLE-{timestamp}",
+        "name": "Producto Test Muestra",
+        "description": "Producto creado para tests de muestra",
+        "precio_venta": 150000.0,
+        "precio_costo": 120000.0,
+        "categoria": "Test Category",
+        "peso": 1.5,
+        "dimensiones": {"largo": 20.0, "ancho": 15.0, "alto": 5.0},
+        "tags": ["test", "muestra"]
+    }
