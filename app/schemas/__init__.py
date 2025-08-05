@@ -9,67 +9,68 @@ Exports all Pydantic schemas for API validation and serialization.
 Organized by domain: User schemas, Product schemas, Inventory schemas, etc.
 """
 
-# User schemas
-from .user import (
-    UserBase,
-    UserCreate,
-    UserUpdate,
-    UserRead,
-    UserResponse,
-)
-
-# Product schemas
-from .product import (
-    ProductBase,
-    ProductCreate,
-    ProductUpdate,
-    ProductRead,
-    ProductResponse,
+# Financial reports schemas
+from .financial_reports import (
+    AnalyticsTransacciones,
+    DashboardFinanciero,
+    ExportacionReporte,
+    MetricaComisiones,
+    MetricaVentas,
+    ReporteVendedor,
 )
 
 # Inventory schemas
 from .inventory import (
     InventoryBase,
     InventoryCreate,
-    InventoryUpdate,
     InventoryRead,
     InventoryResponse,
+    InventoryUpdate,
     MovimientoStockBase,
     MovimientoStockCreate,
     MovimientoStockRead,
     TipoMovimiento,
 )
 
-# Transaction schemas
-from .transaction import (
-    TransactionBase,
-    TransactionCreate,
-    TransactionUpdate,
-    TransactionRead,
-    TransactionResponse,
-    TransactionType,
-    MetodoPago,
-    EstadoTransaccion,
-)
-
-# Financial reports schemas
-from .financial_reports import (
-    MetricaVentas,
-    MetricaComisiones,
-    ReporteVendedor,
-    DashboardFinanciero,
-    AnalyticsTransacciones,
-    ExportacionReporte,
+# Product schemas
+from .product import (
+    ProductBase,
+    ProductCreate,
+    ProductPatch,
+    ProductRead,
+    ProductResponse,
+    ProductUpdate,
 )
 
 # Storage schemas
 from .storage import (
-    StorageBase,
-    StorageCreate,
-    StorageUpdate,
-    StorageResponse,
-    StorageBilling,
     BillingCalculation,
+    StorageBase,
+    StorageBilling,
+    StorageCreate,
+    StorageResponse,
+    StorageUpdate,
+)
+
+# Transaction schemas
+from .transaction import (
+    EstadoTransaccion,
+    MetodoPago,
+    TransactionBase,
+    TransactionCreate,
+    TransactionRead,
+    TransactionResponse,
+    TransactionType,
+    TransactionUpdate,
+)
+
+# User schemas
+from .user import (
+    UserBase,
+    UserCreate,
+    UserRead,
+    UserResponse,
+    UserUpdate,
 )
 
 # Export all schemas for easy importing
@@ -80,14 +81,13 @@ __all__ = [
     "UserUpdate",
     "UserRead",
     "UserResponse",
-
     # Product schemas
     "ProductBase",
     "ProductCreate",
     "ProductUpdate",
+    "ProductPatch",
     "ProductRead",
     "ProductResponse",
-
     # Inventory schemas
     "InventoryBase",
     "InventoryCreate",
@@ -98,7 +98,6 @@ __all__ = [
     "MovimientoStockCreate",
     "MovimientoStockRead",
     "TipoMovimiento",
-
     # Transaction schemas
     "TransactionBase",
     "TransactionCreate",
@@ -108,7 +107,6 @@ __all__ = [
     "TransactionType",
     "MetodoPago",
     "EstadoTransaccion",
-
     # Financial reports schemas
     "MetricaVentas",
     "MetricaComisiones",
@@ -116,7 +114,6 @@ __all__ = [
     "DashboardFinanciero",
     "AnalyticsTransacciones",
     "ExportacionReporte",
-
     # Storage schemas
     "StorageBase",
     "StorageCreate",

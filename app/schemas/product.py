@@ -37,12 +37,12 @@ Validaciones implementadas:
 - Tags format y cantidad
 """
 
+from datetime import datetime
 from decimal import Decimal
 from typing import Dict, List, Optional
-from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator, model_validator, UUID4
+from pydantic import UUID4, BaseModel, Field, field_validator, model_validator
 
 from app.models.product import ProductStatus
 
@@ -50,10 +50,11 @@ from app.models.product import ProductStatus
 # Configuración base para todos los schemas Product
 class ProductConfig:
     """Configuración común para schemas Product"""
+
     from_attributes = True
     json_encoders = {
         Decimal: float,  # Convertir Decimal a float para JSON
-        UUID: str        # Convertir UUID a string para JSON
+        UUID: str,  # Convertir UUID a string para JSON
     }
 
 
@@ -67,66 +68,44 @@ class ProductBase(BaseModel):
 
     # === CAMPOS BÁSICOS ===
     sku: str = Field(
-        ..., 
-        min_length=3, 
+        ...,
+        min_length=3,
         max_length=50,
-        description="SKU único del producto (formato empresarial)"
+        description="SKU único del producto (formato empresarial)",
     )
     name: str = Field(
-        ..., 
-        min_length=2, 
-        max_length=200,
-        description="Nombre del producto"
+        ..., min_length=2, max_length=200, description="Nombre del producto"
     )
     description: Optional[str] = Field(
-        None, 
-        max_length=1000,
-        description="Descripción detallada del producto"
+        None, max_length=1000, description="Descripción detallada del producto"
     )
     status: ProductStatus = Field(
-        default=ProductStatus.TRANSITO,
-        description="Estado actual del producto"
+        default=ProductStatus.TRANSITO, description="Estado actual del producto"
     )
 
     # === CAMPOS PRICING ===
     precio_venta: Optional[Decimal] = Field(
-        None, 
-        ge=100, 
-        le=100000000,
-        description="Precio de venta en COP (100 - 100M)"
+        None, ge=100, le=100000000, description="Precio de venta en COP (100 - 100M)"
     )
     precio_costo: Optional[Decimal] = Field(
-        None, 
-        ge=0, 
-        le=100000000,
-        description="Precio de costo en COP"
+        None, ge=0, le=100000000, description="Precio de costo en COP"
     )
     comision_mestocker: Optional[Decimal] = Field(
-        None, 
-        ge=0,
-        description="Comisión MeStocker en COP"
+        None, ge=0, description="Comisión MeStocker en COP"
     )
 
     # === CAMPOS FULFILLMENT ===
     peso: Optional[Decimal] = Field(
-        None, 
-        ge=0.001, 
-        le=1000,
-        description="Peso en kilogramos (0.001 - 1000 kg)"
+        None, ge=0.001, le=1000, description="Peso en kilogramos (0.001 - 1000 kg)"
     )
     dimensiones: Optional[Dict[str, float]] = Field(
-        None,
-        description="Dimensiones en cm: {largo, ancho, alto}"
+        None, description="Dimensiones en cm: {largo, ancho, alto}"
     )
     categoria: Optional[str] = Field(
-        None, 
-        max_length=100,
-        description="Categoría del producto"
+        None, max_length=100, description="Categoría del producto"
     )
     tags: Optional[List[str]] = Field(
-        None, 
-        max_items=10,
-        description="Tags del producto (máximo 10)"
+        None, max_items=10, description="Tags del producto (máximo 10)"
     )
 
     class Config(ProductConfig):
@@ -142,7 +121,7 @@ class ProductBase(BaseModel):
                 "peso": 2.500,
                 "dimensiones": {"largo": 35.0, "ancho": 25.0, "alto": 3.0},
                 "categoria": "Electronics",
-                "tags": ["laptop", "gaming", "rgb"]
+                "tags": ["laptop", "gaming", "rgb"],
             }
         }
 
@@ -155,20 +134,20 @@ class ProductBase(BaseModel):
         Validar formato SKU empresarial.
 
         Formato: Alfanumérico con guiones, 3-50 caracteres.
-        Sugerido: PREFIX-CATEGORY-### 
+        Sugerido: PREFIX-CATEGORY-###
         """
         import re
 
-        if not re.match(r'^[A-Za-z0-9\-]+$', v):
+        if not re.match(r"^[A-Za-z0-9\-]+$", v):
             raise ValueError("SKU debe contener solo letras, números y guiones")
 
-        if v.count('-') < 1:
+        if v.count("-") < 1:
             raise ValueError("SKU debe tener formato PREFIX-CATEGORY-### (con guiones)")
 
         return v.upper()  # Normalizar a mayúsculas
 
     @field_validator("precio_venta")
-    @classmethod  
+    @classmethod
     def validate_precio_venta(cls, v: Optional[Decimal]) -> Optional[Decimal]:
         """Validar precio venta razonable para marketplace."""
         if v is not None:
@@ -191,7 +170,9 @@ class ProductBase(BaseModel):
 
     @field_validator("dimensiones")
     @classmethod
-    def validate_dimensiones(cls, v: Optional[Dict[str, float]]) -> Optional[Dict[str, float]]:
+    def validate_dimensiones(
+        cls, v: Optional[Dict[str, float]]
+    ) -> Optional[Dict[str, float]]:
         """
         Validar estructura y valores de dimensiones.
 
@@ -229,6 +210,7 @@ class ProductBase(BaseModel):
                 raise ValueError("Máximo 10 tags permitidos")
 
             import re
+
             validated_tags = []
 
             for tag in v:
@@ -242,8 +224,10 @@ class ProductBase(BaseModel):
                 if len(tag_clean) > 30:
                     raise ValueError("Tags máximo 30 caracteres")
 
-                if not re.match(r'^[a-z0-9\-_]+$', tag_clean):
-                    raise ValueError(f"Tag '{tag}' contiene caracteres inválidos (solo a-z, 0-9, -, _)")
+                if not re.match(r"^[a-z0-9\-_]+$", tag_clean):
+                    raise ValueError(
+                        f"Tag '{tag}' contiene caracteres inválidos (solo a-z, 0-9, -, _)"
+                    )
 
                 validated_tags.append(tag_clean)
 
@@ -259,7 +243,7 @@ class ProductBase(BaseModel):
 
         return v
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def validate_pricing_coherence(self):
         """
         Validar coherencia entre precios del marketplace.
@@ -273,12 +257,13 @@ class ProductBase(BaseModel):
                 raise ValueError("Precio venta debe ser >= precio costo")
 
         if self.precio_venta and self.comision_mestocker:
-            max_comision = self.precio_venta * Decimal('0.30')
+            max_comision = self.precio_venta * Decimal("0.30")
             if self.comision_mestocker > max_comision:
-                raise ValueError(f"Comisión máxima permitida: {max_comision} COP (30% precio venta)")
+                raise ValueError(
+                    f"Comisión máxima permitida: {max_comision} COP (30% precio venta)"
+                )
 
         return self
-
 
 
 class ProductCreate(ProductBase):
@@ -291,16 +276,16 @@ class ProductCreate(ProductBase):
 
     # Campos obligatorios para creación
     sku: str = Field(
-        ..., 
-        min_length=3, 
+        ...,
+        min_length=3,
         max_length=50,
-        description="SKU único del producto (obligatorio)"
+        description="SKU único del producto (obligatorio)",
     )
     name: str = Field(
-        ..., 
-        min_length=2, 
+        ...,
+        min_length=2,
         max_length=200,
-        description="Nombre del producto (obligatorio)"
+        description="Nombre del producto (obligatorio)",
     )
 
     class Config(ProductConfig):
@@ -315,7 +300,7 @@ class ProductCreate(ProductBase):
                 "peso": 2.800,
                 "dimensiones": {"largo": 38.0, "ancho": 26.0, "alto": 3.5},
                 "categoria": "Electronics",
-                "tags": ["laptop", "gaming", "rgb", "professional"]
+                "tags": ["laptop", "gaming", "rgb", "professional"],
             }
         }
 
@@ -330,62 +315,35 @@ class ProductUpdate(BaseModel):
 
     # === CAMPOS OPCIONALES PARA UPDATE ===
     sku: Optional[str] = Field(
-        None, 
-        min_length=3, 
-        max_length=50,
-        description="SKU del producto"
+        None, min_length=3, max_length=50, description="SKU del producto"
     )
     name: Optional[str] = Field(
-        None, 
-        min_length=2, 
-        max_length=200,
-        description="Nombre del producto"
+        None, min_length=2, max_length=200, description="Nombre del producto"
     )
     description: Optional[str] = Field(
-        None, 
-        max_length=1000,
-        description="Descripción del producto"
+        None, max_length=1000, description="Descripción del producto"
     )
-    status: Optional[ProductStatus] = Field(
-        None,
-        description="Estado del producto"
-    )
+    status: Optional[ProductStatus] = Field(None, description="Estado del producto")
     precio_venta: Optional[Decimal] = Field(
-        None, 
-        ge=100, 
-        le=100000000,
-        description="Precio de venta en COP"
+        None, ge=100, le=100000000, description="Precio de venta en COP"
     )
     precio_costo: Optional[Decimal] = Field(
-        None, 
-        ge=0, 
-        le=100000000,
-        description="Precio de costo en COP"
+        None, ge=0, le=100000000, description="Precio de costo en COP"
     )
     comision_mestocker: Optional[Decimal] = Field(
-        None, 
-        ge=0,
-        description="Comisión MeStocker en COP"
+        None, ge=0, description="Comisión MeStocker en COP"
     )
     peso: Optional[Decimal] = Field(
-        None, 
-        ge=0.001, 
-        le=1000,
-        description="Peso en kilogramos"
+        None, ge=0.001, le=1000, description="Peso en kilogramos"
     )
     dimensiones: Optional[Dict[str, float]] = Field(
-        None,
-        description="Dimensiones en cm"
+        None, description="Dimensiones en cm"
     )
     categoria: Optional[str] = Field(
-        None, 
-        max_length=100,
-        description="Categoría del producto"
+        None, max_length=100, description="Categoría del producto"
     )
     tags: Optional[List[str]] = Field(
-        None, 
-        max_items=10,
-        description="Tags del producto"
+        None, max_items=10, description="Tags del producto"
     )
 
     class Config(ProductConfig):
@@ -394,7 +352,7 @@ class ProductUpdate(BaseModel):
                 "name": "Laptop Gaming RGB Pro Updated",
                 "precio_venta": 3200000.00,
                 "status": "disponible",
-                "tags": ["laptop", "gaming", "rgb", "updated"]
+                "tags": ["laptop", "gaming", "rgb", "updated"],
             }
         }
 
@@ -406,16 +364,19 @@ class ProductUpdate(BaseModel):
         """Validar formato SKU en updates."""
         if v is not None:
             import re
-            if not re.match(r'^[A-Za-z0-9\-]+$', v):
+
+            if not re.match(r"^[A-Za-z0-9\-]+$", v):
                 raise ValueError("SKU debe contener solo letras, números y guiones")
-            if v.count('-') < 1:
+            if v.count("-") < 1:
                 raise ValueError("SKU debe tener formato PREFIX-CATEGORY-###")
             return v.upper()
         return v
 
     @field_validator("status")
     @classmethod
-    def validate_status_transition(cls, v: Optional[ProductStatus]) -> Optional[ProductStatus]:
+    def validate_status_transition(
+        cls, v: Optional[ProductStatus]
+    ) -> Optional[ProductStatus]:
         """
         Validar transiciones de estado válidas.
 
@@ -427,9 +388,9 @@ class ProductUpdate(BaseModel):
         if v is not None:
             valid_statuses = [
                 ProductStatus.TRANSITO,
-                ProductStatus.VERIFICADO, 
+                ProductStatus.VERIFICADO,
                 ProductStatus.DISPONIBLE,
-                ProductStatus.VENDIDO
+                ProductStatus.VENDIDO,
             ]
             if v not in valid_statuses:
                 raise ValueError(f"Estado inválido: {v}")
@@ -437,7 +398,7 @@ class ProductUpdate(BaseModel):
 
     # Reutilizar validaciones de ProductBase
     @field_validator("precio_venta")
-    @classmethod  
+    @classmethod
     def validate_precio_venta_update(cls, v: Optional[Decimal]) -> Optional[Decimal]:
         """Validar precio venta en updates."""
         if v is not None:
@@ -460,7 +421,9 @@ class ProductUpdate(BaseModel):
 
     @field_validator("dimensiones")
     @classmethod
-    def validate_dimensiones_update(cls, v: Optional[Dict[str, float]]) -> Optional[Dict[str, float]]:
+    def validate_dimensiones_update(
+        cls, v: Optional[Dict[str, float]]
+    ) -> Optional[Dict[str, float]]:
         """Validar dimensiones en updates."""
         if v is not None:
             required_keys = {"largo", "ancho", "alto"}
@@ -487,6 +450,7 @@ class ProductUpdate(BaseModel):
                 raise ValueError("Máximo 10 tags permitidos")
 
             import re
+
             validated_tags = []
 
             for tag in v:
@@ -500,7 +464,7 @@ class ProductUpdate(BaseModel):
                 if len(tag_clean) > 30:
                     raise ValueError("Tags máximo 30 caracteres")
 
-                if not re.match(r'^[a-z0-9\-_]+$', tag_clean):
+                if not re.match(r"^[a-z0-9\-_]+$", tag_clean):
                     raise ValueError(f"Tag '{tag}' contiene caracteres inválidos")
 
                 validated_tags.append(tag_clean)
@@ -516,7 +480,7 @@ class ProductUpdate(BaseModel):
             return unique_tags
         return v
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def validate_pricing_coherence_update(self):
         """Validar coherencia pricing en updates parciales."""
         if self.precio_venta and self.precio_costo:
@@ -524,9 +488,11 @@ class ProductUpdate(BaseModel):
                 raise ValueError("Precio venta debe ser >= precio costo")
 
         if self.precio_venta and self.comision_mestocker:
-            max_comision = self.precio_venta * Decimal('0.30')
+            max_comision = self.precio_venta * Decimal("0.30")
             if self.comision_mestocker > max_comision:
-                raise ValueError(f"Comisión máxima: {max_comision} COP (30% precio venta)")
+                raise ValueError(
+                    f"Comisión máxima: {max_comision} COP (30% precio venta)"
+                )
 
         return self
 
@@ -540,37 +506,25 @@ class ProductRead(ProductBase):
     """
 
     # === CAMPOS DE TRACKING Y METADATA ===
-    id: UUID4 = Field(
-        ...,
-        description="ID único del producto"
-    )
+    id: UUID4 = Field(..., description="ID único del producto")
     vendedor_id: Optional[UUID4] = Field(
-        None,
-        description="ID del vendedor propietario"
+        None, description="ID del vendedor propietario"
     )
     created_by_id: Optional[UUID4] = Field(
-        None,
-        description="ID del usuario que creó el producto"
+        None, description="ID del usuario que creó el producto"
     )
     updated_by_id: Optional[UUID4] = Field(
-        None,
-        description="ID del usuario que actualizó por última vez"
+        None, description="ID del usuario que actualizó por última vez"
     )
     version: int = Field(
-        ...,
-        description="Versión del producto para optimistic locking"
+        ..., description="Versión del producto para optimistic locking"
     )
-    created_at: datetime = Field(
-        ...,
-        description="Fecha y hora de creación"
-    )
+    created_at: datetime = Field(..., description="Fecha y hora de creación")
     updated_at: datetime = Field(
-        ...,
-        description="Fecha y hora de última actualización"
+        ..., description="Fecha y hora de última actualización"
     )
     deleted_at: Optional[datetime] = Field(
-        None,
-        description="Fecha y hora de eliminación (soft delete)"
+        None, description="Fecha y hora de eliminación (soft delete)"
     )
 
     class Config(ProductConfig):
@@ -592,7 +546,7 @@ class ProductRead(ProductBase):
                 "version": 1,
                 "created_at": "2025-01-28T10:30:00",
                 "updated_at": "2025-01-28T10:30:00",
-                "deleted_at": None
+                "deleted_at": None,
             }
         }
 
@@ -604,4 +558,39 @@ class ProductResponse(ProductRead):
     Idéntico a ProductRead pero con nombre más semántico para APIs.
     Usado en endpoints que retornan productos completos.
     """
+
     pass
+
+
+class ProductPatch(BaseModel):
+    """
+    Schema para operaciones PATCH específicas en productos.
+    Enfocado en cambios rápidos sin validaciones complejas de business logic.
+    Diferente de ProductUpdate: menos validaciones, más directo.
+    """
+
+    # Campos para operaciones PATCH rápidas
+    precio_venta: Optional[Decimal] = Field(
+        None, gt=0, description="Cambio rápido de precio de venta"
+    )
+    stock_quantity: Optional[int] = Field(
+        None, ge=0, description="Ajuste directo de cantidad en stock"
+    )
+    is_active: Optional[bool] = Field(
+        None, description="Cambio de estado activo/inactivo"
+    )
+    peso: Optional[Decimal] = Field(
+        None, gt=0, description="Peso del producto en kilogramos"
+    )
+    categoria: Optional[str] = Field(
+        None, max_length=100, description="Categoría del producto"
+    )
+
+    class Config(ProductConfig):
+        json_schema_extra = {
+            "example": {
+                "precio_venta": 150000.0,
+                "stock_quantity": 25,
+                "is_active": True,
+            }
+        }

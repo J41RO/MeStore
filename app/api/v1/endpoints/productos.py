@@ -9,13 +9,14 @@
 # Ruta: ~/app/api/v1/endpoints/productos.py
 # Autor: Jairo
 # Fecha de Creación: 2025-01-14
-# Última Actualización: 2025-01-14
-# Versión: 1.0.0
+# Última Actualización: 2025-08-05
+# Versión: 1.1.0
 # Propósito: Endpoints de gestión de productos para la API v1
 #            Implementa CRUD operations con validaciones empresariales
 #
 # Modificaciones:
 # 2025-01-14 - Implementación inicial del endpoint POST /productos
+# 2025-08-05 - Agregado endpoint PATCH /productos/{id} para actualización parcial
 #
 # ---------------------------------------------------------------------------------------------
 
@@ -24,6 +25,10 @@ Endpoints de gestión de productos para la API v1.
 
 Este módulo contiene:
 - POST /productos: Crear nuevos productos con validaciones
+- GET /productos: Listar productos con filtros y paginación
+- GET /productos/{id}: Obtener producto específico por ID
+- PUT /productos/{id}: Actualizar producto completo
+- PATCH /productos/{id}: Actualizar producto parcial (operaciones rápidas)
 - Validaciones empresariales (SKU único, datos requeridos)
 - Manejo de errores específicos del dominio
 - Logging estructurado para auditoría
@@ -33,14 +38,18 @@ import logging
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi import Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import and_, asc, desc, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc, asc, or_, and_
 
 from app.core.database import get_db
 from app.models.product import Product
-from app.schemas.product import ProductCreate, ProductUpdate, ProductResponse
+from app.schemas.product import (
+    ProductCreate,
+    ProductPatch,
+    ProductResponse,
+    ProductUpdate,
+)
 
 # Configurar logging
 logger = logging.getLogger(__name__)
@@ -117,39 +126,40 @@ async def create_producto(
         )
 
 
-
 @router.get(
     "/",
     response_model=List[ProductResponse],
     status_code=status.HTTP_200_OK,
     summary="Listar productos",
     description="Obtener lista de productos con filtros avanzados y paginación",
-    tags=["productos"]
+    tags=["productos"],
 )
 async def get_productos(
     # Filtros de búsqueda
-    search: Optional[str] = Query(None, description="Búsqueda por nombre, descripción o SKU"),
+    search: Optional[str] = Query(
+        None, description="Búsqueda por nombre, descripción o SKU"
+    ),
     categoria: Optional[str] = Query(None, description="Filtrar por categoría"),
-    status_filter: Optional[str] = Query(None, alias="status", description="Filtrar por estado"),
-
+    status_filter: Optional[str] = Query(
+        None, alias="status", description="Filtrar por estado"
+    ),
     # Filtros de precio
     precio_min: Optional[float] = Query(None, ge=0, description="Precio mínimo"),
     precio_max: Optional[float] = Query(None, ge=0, description="Precio máximo"),
-
     # Ordenamiento
     sort_by: Optional[str] = Query("created_at", description="Campo para ordenar"),
-    sort_order: Optional[str] = Query("desc", regex="^(asc|desc)$", description="Orden de clasificación"),
-
+    sort_order: Optional[str] = Query(
+        "desc", regex="^(asc|desc)$", description="Orden de clasificación"
+    ),
     # Paginación básica
     skip: int = Query(0, ge=0, description="Elementos a saltar"),
     limit: int = Query(100, ge=1, le=500, description="Límite de elementos"),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ) -> List[ProductResponse]:
     """
     Obtener lista de productos con paginación básica.
     """
     try:
-        # Query básica con paginación
         # Construir query base
         stmt = select(Product)
 
@@ -161,7 +171,7 @@ async def get_productos(
             search_filter = or_(
                 Product.name.ilike(f"%{search}%"),
                 Product.description.ilike(f"%{search}%"),
-                Product.sku.ilike(f"%{search}%")
+                Product.sku.ilike(f"%{search}%"),
             )
             where_conditions.append(search_filter)
 
@@ -210,19 +220,20 @@ async def get_productos(
         logger.error(f"Error al obtener productos: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error interno al obtener productos"
+            detail="Error interno al obtener productos",
         )
+
+
 @router.get(
     "/{producto_id}",
     response_model=ProductResponse,
     status_code=status.HTTP_200_OK,
     summary="Obtener producto por ID",
     description="Obtener detalles específicos de un producto por su ID único",
-    tags=["productos"]
+    tags=["productos"],
 )
 async def get_producto_by_id(
-    producto_id: UUID,
-    db: AsyncSession = Depends(get_db)
+    producto_id: UUID, db: AsyncSession = Depends(get_db)
 ) -> ProductResponse:
     """
     Obtener un producto específico por su ID.
@@ -252,7 +263,7 @@ async def get_producto_by_id(
             logger.warning(f"Producto no encontrado: ID={producto_id}")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Producto con ID {producto_id} no encontrado"
+                detail=f"Producto con ID {producto_id} no encontrado",
             )
 
         logger.info(f"Producto encontrado: SKU={producto.sku}, ID={producto.id}")
@@ -266,9 +277,8 @@ async def get_producto_by_id(
         logger.error(f"Error al obtener producto por ID {producto_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error interno del servidor"
+            detail="Error interno del servidor",
         )
-
 
 
 @router.put(
@@ -277,12 +287,10 @@ async def get_producto_by_id(
     status_code=status.HTTP_200_OK,
     summary="Actualizar producto",
     description="Actualizar un producto existente por su ID con datos parciales o completos",
-    tags=["productos"]
+    tags=["productos"],
 )
 async def update_producto(
-    producto_id: UUID,
-    producto_data: ProductUpdate,
-    db: AsyncSession = Depends(get_db)
+    producto_id: UUID, producto_data: ProductUpdate, db: AsyncSession = Depends(get_db)
 ) -> ProductResponse:
     """
     Actualizar un producto existente.
@@ -305,16 +313,15 @@ async def update_producto(
 
         # Buscar producto existente
         from sqlalchemy import select
-        result = await db.execute(
-            select(Product).where(Product.id == producto_id)
-        )
+
+        result = await db.execute(select(Product).where(Product.id == producto_id))
         producto = result.scalar_one_or_none()
 
         if not producto:
             logger.warning(f"Producto no encontrado: {producto_id}")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Producto con ID {producto_id} no encontrado"
+                detail=f"Producto con ID {producto_id} no encontrado",
             )
 
         # Actualizar solo campos proporcionados (no None)
@@ -324,22 +331,21 @@ async def update_producto(
             logger.warning(f"No se proporcionaron datos para actualizar: {producto_id}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No se proporcionaron datos para actualizar"
+                detail="No se proporcionaron datos para actualizar",
             )
 
         # Validar SKU único si se está actualizando
         if "sku" in update_data and update_data["sku"] != producto.sku:
             existing_sku = await db.execute(
                 select(Product).where(
-                    Product.sku == update_data["sku"],
-                    Product.id != producto_id
+                    Product.sku == update_data["sku"], Product.id != producto_id
                 )
             )
             if existing_sku.scalar_one_or_none():
                 logger.warning(f"SKU ya existe: {update_data['sku']}")
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"El SKU {update_data['sku']} ya está en uso"
+                    detail=f"El SKU {update_data['sku']} ya está en uso",
                 )
 
         # Aplicar actualizaciones
@@ -347,7 +353,7 @@ async def update_producto(
             setattr(producto, field, value)
 
         # Actualizar metadatos de tracking si el método existe
-        if hasattr(producto, 'update_tracking'):
+        if hasattr(producto, "update_tracking"):
             producto.update_tracking(user_id=None)  # TODO: Obtener user_id del token
 
         # Guardar cambios
@@ -364,5 +370,76 @@ async def update_producto(
         logger.error(f"Error al actualizar producto {producto_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error interno del servidor"
+            detail="Error interno del servidor",
+        )
+
+
+@router.patch(
+    "/{producto_id}",
+    response_model=ProductResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Modificación rápida de producto",
+    description="Operaciones PATCH específicas para cambios rápidos sin validaciones complejas de business logic",
+    tags=["productos"],
+)
+async def patch_producto(
+    producto_id: UUID, producto_data: ProductPatch, db: AsyncSession = Depends(get_db)
+) -> ProductResponse:
+    """
+    Operaciones PATCH rápidas para producto.
+    Diferente de PUT: enfocado en cambios específicos sin validaciones complejas.
+
+    Args:
+        producto_id: ID único del producto
+        producto_data: Datos específicos para PATCH
+        db: Sesión de base de datos
+    Returns:
+        ProductResponse: Producto modificado
+    """
+    try:
+        logger.info(f"Aplicando PATCH a producto ID: {producto_id}")
+
+        # Buscar producto existente (reutilizar patrón del PUT)
+        from sqlalchemy import select
+
+        result = await db.execute(select(Product).where(Product.id == producto_id))
+        producto = result.scalar_one_or_none()
+
+        if not producto:
+            logger.warning(f"Producto no encontrado para PATCH: {producto_id}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Producto con ID {producto_id} no encontrado",
+            )
+
+        # Obtener solo campos PATCH enviados
+        patch_data = producto_data.model_dump(exclude_unset=True, exclude_none=True)
+
+        if not patch_data:
+            logger.warning(f"No se proporcionaron datos PATCH: {producto_id}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No se proporcionaron datos para PATCH",
+            )
+
+        # Aplicar cambios PATCH directos (sin validaciones complejas)
+        for field, value in patch_data.items():
+            setattr(producto, field, value)
+            logger.info(f"PATCH aplicado - {field}: {value}")
+
+        # Guardar cambios
+        await db.commit()
+        await db.refresh(producto)
+
+        logger.info(f"PATCH exitoso para producto: {producto_id}")
+        return ProductResponse.model_validate(producto)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error en PATCH producto {producto_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor en operación PATCH",
         )
