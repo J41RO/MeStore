@@ -679,3 +679,77 @@ class TestProductosPATCH:
         )
 
         assert response.status_code == 422  # Validation error
+
+
+
+# ========================================================================
+# TESTS PARA ENDPOINT DELETE /productos/{id} - SOFT DELETE
+# ========================================================================
+
+class TestProductosDELETE:
+    """Tests para endpoint DELETE /productos/{id} - soft delete"""
+
+    async def test_delete_producto_exitoso(self, async_client, sample_product_data):
+        """Test DELETE exitoso con soft delete"""
+        # Crear producto
+        create_response = await async_client.post("/api/v1/productos/", json=sample_product_data)
+        assert create_response.status_code == 201
+        producto_id = create_response.json()["id"]
+
+        # Eliminar producto (soft delete)
+        response = await async_client.delete(f"/api/v1/productos/{producto_id}")
+
+        assert response.status_code == 200
+        result = response.json()
+        assert result["id"] == producto_id
+        assert result["deleted_at"] is not None  # Verificar soft delete
+
+        # Verificar que no aparece en GET
+        get_response = await async_client.get(f"/api/v1/productos/{producto_id}")
+        assert get_response.status_code == 404
+
+    async def test_delete_producto_no_encontrado(self, async_client):
+        """Test DELETE producto no encontrado"""
+        import uuid
+        producto_id = str(uuid.uuid4())
+
+        response = await async_client.delete(f"/api/v1/productos/{producto_id}")
+        assert response.status_code == 404
+        assert "no encontrado" in response.json()["detail"].lower()
+
+    async def test_delete_producto_ya_eliminado(self, async_client, sample_product_data):
+        """Test DELETE producto ya eliminado devuelve 404"""
+        # Crear y eliminar producto
+        create_response = await async_client.post("/api/v1/productos/", json=sample_product_data)
+        producto_id = create_response.json()["id"]
+
+        # Primera eliminación - debe funcionar
+        delete_response1 = await async_client.delete(f"/api/v1/productos/{producto_id}")
+        assert delete_response1.status_code == 200
+
+        # Segunda eliminación - debe fallar con 404
+        delete_response2 = await async_client.delete(f"/api/v1/productos/{producto_id}")
+        assert delete_response2.status_code == 404
+        assert "ya eliminado" in delete_response2.json()["detail"].lower()
+
+    async def test_delete_no_aparece_en_lista(self, async_client, sample_product_data):
+        """Test producto eliminado no aparece en lista"""
+        # Crear producto
+        create_response = await async_client.post("/api/v1/productos/", json=sample_product_data)
+        producto_id = create_response.json()["id"]
+        sku = create_response.json()["sku"]
+
+        # Verificar que aparece en lista antes de eliminar
+        list_response = await async_client.get("/api/v1/productos/")
+        productos = list_response.json()
+        assert any(p["id"] == producto_id for p in productos)
+
+        # Eliminar producto
+        delete_response = await async_client.delete(f"/api/v1/productos/{producto_id}")
+        assert delete_response.status_code == 200
+
+        # Verificar que NO aparece en lista después de eliminar
+        list_response2 = await async_client.get("/api/v1/productos/")
+        productos2 = list_response2.json()
+        assert not any(p["id"] == producto_id for p in productos2)
+        assert not any(p["sku"] == sku for p in productos2)

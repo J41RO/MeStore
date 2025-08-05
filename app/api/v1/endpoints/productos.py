@@ -165,6 +165,8 @@ async def get_productos(
 
         # Lista para condiciones WHERE
         where_conditions = []
+        # Siempre excluir productos eliminados (soft delete)
+        where_conditions.append(Product.deleted_at.is_(None))
 
         # Aplicar filtro de búsqueda
         if search:
@@ -255,7 +257,10 @@ async def get_producto_by_id(
         logger.info(f"Buscando producto con ID: {producto_id}")
 
         # Buscar producto por ID
-        stmt = select(Product).where(Product.id == producto_id)
+        stmt = select(Product).where(
+            Product.id == producto_id,
+            Product.deleted_at.is_(None)  # Excluir productos eliminados
+        )
         result = await db.execute(stmt)
         producto = result.scalar_one_or_none()
 
@@ -270,15 +275,80 @@ async def get_producto_by_id(
 
         # Convertir a ProductResponse
         return ProductResponse.model_validate(producto)
-
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error al obtener producto por ID {producto_id}: {str(e)}")
+        await db.rollback()
+        logger.error(f"Error al obtener producto {producto_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error interno del servidor",
+            detail="Error interno del servidor"
         )
+
+
+
+
+@router.delete(
+    "/{producto_id}",
+    response_model=ProductResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Eliminar producto (soft delete)",
+    description="Eliminación lógica de producto - no se borra físicamente, se marca como eliminado",
+    tags=["productos"]
+)
+async def delete_producto(
+    producto_id: UUID,
+    db: AsyncSession = Depends(get_db)
+) -> ProductResponse:
+    """
+    Soft delete de un producto existente.
+    
+    Args:
+        producto_id: ID único del producto a eliminar
+        db: Sesión de base de datos
+    Returns:
+        ProductResponse: Producto marcado como eliminado
+    """
+    try:
+        logger.info(f"Eliminando producto (soft delete) ID: {producto_id}")
+
+        # Buscar producto existente (solo activos - excluir ya eliminados)
+        from sqlalchemy import select
+        result = await db.execute(
+            select(Product).where(
+                Product.id == producto_id,
+                Product.deleted_at.is_(None)  # Solo productos activos
+            )
+        )
+        producto = result.scalar_one_or_none()
+
+        if not producto:
+            logger.warning(f"Producto no encontrado o ya eliminado: {producto_id}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Producto con ID {producto_id} no encontrado o ya eliminado"
+            )
+
+        # Aplicar soft delete - marcar deleted_at
+        from datetime import datetime
+        producto.deleted_at = datetime.utcnow()
+
+        # Guardar cambios
+        await db.commit()
+        await db.refresh(producto)
+
+        logger.info(f"Producto eliminado exitosamente (soft delete): {producto_id}")
+        return ProductResponse.model_validate(producto)
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error al eliminar producto {producto_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor en eliminación"
+        )
+
 
 
 @router.put(

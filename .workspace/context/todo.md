@@ -250,7 +250,7 @@
     ✅ 1.3.2.2 Implementar endpoint GET /productos con filtros y paginación
     ✅ 1.3.2.3 Crear endpoint GET /productos/{id} para detalle específico
     ✅ 1.3.2.4 Implementar endpoint PUT /productos/{id} para actualización completa
-    ⬜ 1.3.2.5 Crear endpoint PATCH /productos/{id} para actualización parcial
+    ✅ 1.3.2.5 Crear endpoint PATCH /productos/{id} para actualización parcial
     ⬜ 1.3.2.6 Implementar endpoint DELETE /productos/{id} con soft delete
 ⬜ 1.3.3 API upload de imágenes con compresión automática
     ⬜ 1.3.3.1 Crear endpoint POST /productos/{id}/imagenes para upload múltiple
