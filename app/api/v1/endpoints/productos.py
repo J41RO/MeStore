@@ -64,6 +64,8 @@ from app.schemas.product_image import (
     ProductImageResponse,
     ProductImageUploadResponse,
 )
+from app.utils.file_validator import validate_multiple_files, get_image_dimensions
+
 
 # Configurar logging
 logger = logging.getLogger(__name__)
@@ -558,18 +560,50 @@ async def upload_producto_imagenes(
     Raises:
         HTTPException: Si el producto no existe o hay errores de validación
     """
-    # TODO: Implementar lógica del endpoint
-    # 1. Verificar que el producto existe
-    # 2. Validar cantidad de archivos
-    # 3. Validar tipos y tamaños
-    # 4. Procesar y guardar cada imagen
-    # 5. Crear registros en base de datos
-    # 6. Retornar respuesta con resultados
-    
-    return ProductImageUploadResponse(
-        success=True,
-        uploaded_count=0,
-        total_files=len(files),
-        images=[],
-        errors=["Endpoint en desarrollo - lógica pendiente de implementación"]
-    )
+    try:
+        logger.info(f"Iniciando upload de {len(files)} archivos para producto {producto_id}")
+        
+        # 1. Verificar que el producto existe
+        result = await db.execute(
+            select(Product).where(
+                Product.id == producto_id,
+                Product.deleted_at.is_(None)
+            )
+        )
+        producto = result.scalar_one_or_none()
+        
+        if not producto:
+            logger.warning(f"Producto no encontrado para upload: {producto_id}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Producto con ID {producto_id} no encontrado"
+            )
+        
+        # 2. Validar archivos
+        valid_files, validation_errors = await validate_multiple_files(files)
+        
+        if not valid_files:
+            logger.warning(f"No hay archivos válidos para upload: {validation_errors}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"No hay archivos válidos. Errores: {'; '.join(validation_errors)}"
+            )
+        
+        logger.info(f"Validación completada: {len(valid_files)} válidos, {len(validation_errors)} errores")
+        
+        # Retornar respuesta temporal con validaciones
+        return ProductImageUploadResponse(
+            success=True,
+            uploaded_count=len(valid_files),
+            total_files=len(files),
+            images=[],
+            errors=validation_errors
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error en upload producto {producto_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor en upload"
+        )

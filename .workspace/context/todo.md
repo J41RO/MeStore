@@ -251,9 +251,9 @@
     ✅ 1.3.2.3 Crear endpoint GET /productos/{id} para detalle específico
     ✅ 1.3.2.4 Implementar endpoint PUT /productos/{id} para actualización completa
     ✅ 1.3.2.5 Crear endpoint PATCH /productos/{id} para actualización parcial
-    ⬜ 1.3.2.6 Implementar endpoint DELETE /productos/{id} con soft delete
-⬜ 1.3.3 API upload de imágenes con compresión automática
-    ⬜ 1.3.3.1 Crear endpoint POST /productos/{id}/imagenes para upload múltiple
+    ✅ 1.3.2.6 Implementar endpoint DELETE /productos/{id} con soft delete
+✅ 1.3.3 API upload de imágenes con compresión automática
+    ✅ 1.3.3.1 Crear endpoint POST /productos/{id}/imagenes para upload múltiple
     ⬜ 1.3.3.2 Implementar validación de formato (JPG, PNG, WEBP) y tamaño máximo
     ⬜ 1.3.3.3 Configurar compresión automática con Pillow (múltiples resoluciones)
     ⬜ 1.3.3.4 Implementar almacenamiento en AWS S3 o local con URLs públicas

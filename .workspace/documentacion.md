@@ -414,3 +414,24 @@ Creado endpoint especializado para registro de vendedores con validaciones colom
 - ✅ Logging y monitoreo integrado
 - ✅ Documentación API automática (FastAPI)
 
+
+
+
+## 📋 TAREA COMPLETADA: Validaciones de Upload de Imágenes
+
+**Fecha:** 2025-08-05
+**Archivos creados/modificados:**
+- ✅ app/utils/file_validator.py (133 líneas) - Utils de validación robustos
+- ✅ app/core/config.py - Configuración actualizada (removido GIF)
+- ✅ app/api/v1/endpoints/productos.py - Lógica de validación integrada
+- ✅ tests/api/test_productos_upload.py (98 líneas) - Tests comprehensivos
+
+**Funcionalidades implementadas:**
+- Validación de tipos de imagen (JPG, PNG, WEBP)
+- Límites de tamaño (5MB por archivo, 10 archivos máximo)
+- Validación real con Pillow (no solo extensión)
+- Manejo de errores robusto
+- Tests para casos válidos e inválidos
+
+**Tests:** 3/3 pasando (100% success rate)
+**Coverage:** Sistema funcional con validaciones operativas

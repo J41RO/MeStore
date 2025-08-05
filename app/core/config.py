@@ -162,14 +162,14 @@ class Settings(BaseSettings):
         "image/jpeg",
         "image/png", 
         "image/webp",
-        "image/gif"
+
     }
     ALLOWED_EXTENSIONS: set = {
         ".jpg",
         ".jpeg",
         ".png",
         ".webp",
-        ".gif"
+
     }
     
     # URLs para servir archivos estáticos
