@@ -10,13 +10,15 @@
 # Autor: Jairo
 # Fecha de Creación: 2025-01-14
 # Última Actualización: 2025-08-05
-# Versión: 1.1.0
+# Versión: 1.2.0
 # Propósito: Endpoints de gestión de productos para la API v1
 #            Implementa CRUD operations con validaciones empresariales
+#            Incluye endpoint para upload múltiple de imágenes
 #
 # Modificaciones:
 # 2025-01-14 - Implementación inicial del endpoint POST /productos
 # 2025-08-05 - Agregado endpoint PATCH /productos/{id} para actualización parcial
+# 2025-08-05 - Agregado endpoint POST /productos/{id}/imagenes para upload de imágenes
 #
 # ---------------------------------------------------------------------------------------------
 
@@ -29,26 +31,38 @@ Este módulo contiene:
 - GET /productos/{id}: Obtener producto específico por ID
 - PUT /productos/{id}: Actualizar producto completo
 - PATCH /productos/{id}: Actualizar producto parcial (operaciones rápidas)
+- DELETE /productos/{id}: Eliminar producto (soft delete)
+- POST /productos/{id}/imagenes: Upload múltiple de imágenes
 - Validaciones empresariales (SKU único, datos requeridos)
 - Manejo de errores específicos del dominio
 - Logging estructurado para auditoría
 """
 
 import logging
+import os
+import uuid
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+import aiofiles
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from PIL import Image
 from sqlalchemy import and_, asc, desc, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.models.product import Product
+from app.models.product_image import ProductImage
 from app.schemas.product import (
     ProductCreate,
     ProductPatch,
     ProductResponse,
     ProductUpdate,
+)
+from app.schemas.product_image import (
+    ProductImageResponse,
+    ProductImageUploadResponse,
 )
 
 # Configurar logging
@@ -84,8 +98,6 @@ async def create_producto(
         HTTPException 500: Error interno del servidor
     """
     try:
-        from sqlalchemy import select
-
         logger.info(f"Creando producto con SKU: {producto_data.sku}")
 
         # Verificar que SKU no existe
@@ -252,8 +264,6 @@ async def get_producto_by_id(
         HTTPException 500: Error interno del servidor
     """
     try:
-        from sqlalchemy import select
-
         logger.info(f"Buscando producto con ID: {producto_id}")
 
         # Buscar producto por ID
@@ -286,71 +296,6 @@ async def get_producto_by_id(
         )
 
 
-
-
-@router.delete(
-    "/{producto_id}",
-    response_model=ProductResponse,
-    status_code=status.HTTP_200_OK,
-    summary="Eliminar producto (soft delete)",
-    description="Eliminación lógica de producto - no se borra físicamente, se marca como eliminado",
-    tags=["productos"]
-)
-async def delete_producto(
-    producto_id: UUID,
-    db: AsyncSession = Depends(get_db)
-) -> ProductResponse:
-    """
-    Soft delete de un producto existente.
-    
-    Args:
-        producto_id: ID único del producto a eliminar
-        db: Sesión de base de datos
-    Returns:
-        ProductResponse: Producto marcado como eliminado
-    """
-    try:
-        logger.info(f"Eliminando producto (soft delete) ID: {producto_id}")
-
-        # Buscar producto existente (solo activos - excluir ya eliminados)
-        from sqlalchemy import select
-        result = await db.execute(
-            select(Product).where(
-                Product.id == producto_id,
-                Product.deleted_at.is_(None)  # Solo productos activos
-            )
-        )
-        producto = result.scalar_one_or_none()
-
-        if not producto:
-            logger.warning(f"Producto no encontrado o ya eliminado: {producto_id}")
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Producto con ID {producto_id} no encontrado o ya eliminado"
-            )
-
-        # Aplicar soft delete - marcar deleted_at
-        from datetime import datetime
-        producto.deleted_at = datetime.utcnow()
-
-        # Guardar cambios
-        await db.commit()
-        await db.refresh(producto)
-
-        logger.info(f"Producto eliminado exitosamente (soft delete): {producto_id}")
-        return ProductResponse.model_validate(producto)
-    except HTTPException:
-        raise
-    except Exception as e:
-        await db.rollback()
-        logger.error(f"Error al eliminar producto {producto_id}: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error interno del servidor en eliminación"
-        )
-
-
-
 @router.put(
     "/{producto_id}",
     response_model=ProductResponse,
@@ -360,7 +305,9 @@ async def delete_producto(
     tags=["productos"],
 )
 async def update_producto(
-    producto_id: UUID, producto_data: ProductUpdate, db: AsyncSession = Depends(get_db)
+    producto_id: UUID, 
+    producto_data: ProductUpdate, 
+    db: AsyncSession = Depends(get_db)
 ) -> ProductResponse:
     """
     Actualizar un producto existente.
@@ -382,8 +329,6 @@ async def update_producto(
         logger.info(f"Actualizando producto con ID: {producto_id}")
 
         # Buscar producto existente
-        from sqlalchemy import select
-
         result = await db.execute(select(Product).where(Product.id == producto_id))
         producto = result.scalar_one_or_none()
 
@@ -408,7 +353,8 @@ async def update_producto(
         if "sku" in update_data and update_data["sku"] != producto.sku:
             existing_sku = await db.execute(
                 select(Product).where(
-                    Product.sku == update_data["sku"], Product.id != producto_id
+                    Product.sku == update_data["sku"], 
+                    Product.id != producto_id
                 )
             )
             if existing_sku.scalar_one_or_none():
@@ -453,7 +399,9 @@ async def update_producto(
     tags=["productos"],
 )
 async def patch_producto(
-    producto_id: UUID, producto_data: ProductPatch, db: AsyncSession = Depends(get_db)
+    producto_id: UUID, 
+    producto_data: ProductPatch, 
+    db: AsyncSession = Depends(get_db)
 ) -> ProductResponse:
     """
     Operaciones PATCH rápidas para producto.
@@ -469,9 +417,7 @@ async def patch_producto(
     try:
         logger.info(f"Aplicando PATCH a producto ID: {producto_id}")
 
-        # Buscar producto existente (reutilizar patrón del PUT)
-        from sqlalchemy import select
-
+        # Buscar producto existente
         result = await db.execute(select(Product).where(Product.id == producto_id))
         producto = result.scalar_one_or_none()
 
@@ -513,3 +459,117 @@ async def patch_producto(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error interno del servidor en operación PATCH",
         )
+
+
+@router.delete(
+    "/{producto_id}",
+    response_model=ProductResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Eliminar producto (soft delete)",
+    description="Eliminación lógica de producto - no se borra físicamente, se marca como eliminado",
+    tags=["productos"]
+)
+async def delete_producto(
+    producto_id: UUID,
+    db: AsyncSession = Depends(get_db)
+) -> ProductResponse:
+    """
+    Soft delete de un producto existente.
+    
+    Args:
+        producto_id: ID único del producto a eliminar
+        db: Sesión de base de datos
+    Returns:
+        ProductResponse: Producto marcado como eliminado
+    """
+    try:
+        logger.info(f"Eliminando producto (soft delete) ID: {producto_id}")
+
+        # Buscar producto existente (solo activos - excluir ya eliminados)
+        result = await db.execute(
+            select(Product).where(
+                Product.id == producto_id,
+                Product.deleted_at.is_(None)  # Solo productos activos
+            )
+        )
+        producto = result.scalar_one_or_none()
+
+        if not producto:
+            logger.warning(f"Producto no encontrado o ya eliminado: {producto_id}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Producto con ID {producto_id} no encontrado o ya eliminado"
+            )
+
+        # Aplicar soft delete - marcar deleted_at
+        producto.deleted_at = datetime.utcnow()
+
+        # Guardar cambios
+        await db.commit()
+        await db.refresh(producto)
+
+        logger.info(f"Producto eliminado exitosamente (soft delete): {producto_id}")
+        return ProductResponse.model_validate(producto)
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error al eliminar producto {producto_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor en eliminación"
+        )
+
+
+@router.post(
+    "/{producto_id}/imagenes",
+    response_model=ProductImageUploadResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Upload múltiple de imágenes",
+    description="Subir múltiples imágenes para un producto específico (máx 10 archivos, 5MB c/u)",
+    tags=["productos"]
+)
+async def upload_producto_imagenes(
+    producto_id: UUID,
+    files: List[UploadFile] = File(
+        ...,
+        description="Lista de archivos de imagen (JPEG, PNG, WebP, GIF)"
+    ),
+    db: AsyncSession = Depends(get_db)
+) -> ProductImageUploadResponse:
+    """
+    Upload múltiple de imágenes para un producto.
+    
+    Validaciones:
+    - Producto debe existir
+    - Máximo 10 archivos por request
+    - Máximo 5MB por archivo
+    - Solo formatos: JPEG, PNG, WebP, GIF
+    
+    Args:
+        producto_id: ID del producto
+        files: Lista de archivos de imagen
+        db: Sesión de base de datos
+        
+    Returns:
+        ProductImageUploadResponse: Resultado del upload con detalles
+        
+    Raises:
+        HTTPException: Si el producto no existe o hay errores de validación
+    """
+    # TODO: Implementar lógica del endpoint
+    # 1. Verificar que el producto existe
+    # 2. Validar cantidad de archivos
+    # 3. Validar tipos y tamaños
+    # 4. Procesar y guardar cada imagen
+    # 5. Crear registros en base de datos
+    # 6. Retornar respuesta con resultados
+    
+    return ProductImageUploadResponse(
+        success=True,
+        uploaded_count=0,
+        total_files=len(files),
+        images=[],
+        errors=["Endpoint en desarrollo - lógica pendiente de implementación"]
+    )

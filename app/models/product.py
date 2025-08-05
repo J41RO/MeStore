@@ -462,3 +462,6 @@ class Product(BaseModel):
             str: Formato 'SKU - Name' para displays
         """
         return f"{self.sku} - {self.name}"
+
+    # Relación con imágenes
+    images = relationship("ProductImage", back_populates="product", cascade="all, delete-orphan")

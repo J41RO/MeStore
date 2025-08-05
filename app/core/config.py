@@ -153,4 +153,30 @@ class Settings(BaseSettings):
         env_file = [".env.test", ".env.production", ".env"]
 
 
+
+    # Configuración de uploads
+    UPLOAD_DIR: str = "uploads"
+    MAX_FILE_SIZE: int = 5 * 1024 * 1024  # 5MB por archivo
+    MAX_FILES_PER_UPLOAD: int = 10  # Máximo 10 archivos por request
+    ALLOWED_IMAGE_TYPES: set = {
+        "image/jpeg",
+        "image/png", 
+        "image/webp",
+        "image/gif"
+    }
+    ALLOWED_EXTENSIONS: set = {
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".webp",
+        ".gif"
+    }
+    
+    # URLs para servir archivos estáticos
+    STATIC_URL: str = "/static"
+    MEDIA_URL: str = "/media"
+    
+    # Configuración de thumbnails
+    THUMBNAIL_SIZE: tuple = (300, 300)
+    THUMBNAIL_QUALITY: int = 85
 settings = Settings()
