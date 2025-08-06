@@ -422,3 +422,19 @@ class MovimientoStockRead(MovimientoStockBase):
                 "tipo_descripcion": "Ingreso de stock"
             }
         }
+
+class AlertasMetadata(BaseModel):
+    """Metadata para response de alertas"""
+    total_alertas: int = Field(..., description="Total de alertas encontradas")
+    stock_bajo: int = Field(..., description="Cantidad de alertas por stock bajo")
+    sin_movimiento: int = Field(..., description="Cantidad de alertas por sin movimiento")
+    stock_agotado: int = Field(..., description="Cantidad de alertas por stock agotado")
+    criticos: int = Field(..., description="Productos críticos (ambas condiciones)")
+
+class AlertasResponse(BaseModel):
+    """Response completa para alertas de inventario"""
+    alertas: List[InventoryResponse] = Field(..., description="Lista de inventario con alertas")
+    metadata: AlertasMetadata = Field(..., description="Metadatos de las alertas")
+
+    class Config:
+        from_attributes = True

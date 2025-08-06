@@ -6,8 +6,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
 from app.core.database import get_db
+from sqlalchemy import or_, and_
+from enum import Enum
+
+class TipoAlerta(str, Enum):
+    """Tipos de alertas de inventario"""
+    STOCK_BAJO = "STOCK_BAJO"
+    SIN_MOVIMIENTO = "SIN_MOVIMIENTO"
+    STOCK_AGOTADO = "STOCK_AGOTADO"
+    CRITICO = "CRITICO"  # Combinación de stock bajo + sin movimiento
 from app.models.inventory import Inventory
-from app.schemas.inventory import InventoryResponse, MovimientoStockCreate, TipoMovimiento, MovimientoResponse, InventoryUpdate
+from app.schemas.inventory import InventoryResponse, MovimientoStockCreate, TipoMovimiento, MovimientoResponse, InventoryUpdate, AlertasResponse
 from app.utils.crud import DatabaseUtils
 
 import logging
@@ -332,4 +341,110 @@ async def cambiar_ubicacion(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error interno actualizando ubicación"
+        )
+
+
+@router.get(
+    "/alertas",
+    response_model=AlertasResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Consultar alertas de inventario",
+    description="Obtener productos con stock bajo y sin movimiento reciente",
+    tags=["inventory"]
+)
+async def get_alertas_inventario(
+    stock_minimo: int = Query(10, ge=1, le=1000, description="Umbral para stock bajo"),
+    dias_sin_movimiento: int = Query(30, ge=1, le=365, description="Días sin movimiento para alerta"),
+    tipo_alerta: Optional[TipoAlerta] = Query(None, description="Filtrar por tipo específico de alerta"),
+    limit: int = Query(100, ge=1, le=500, description="Límite de resultados"),
+    offset: int = Query(0, ge=0, description="Offset para paginación"),
+    db: AsyncSession = Depends(get_db)
+) -> AlertasResponse:
+    """
+    Consultar alertas de inventario por stock bajo y productos sin movimiento.
+
+    Args:
+        stock_minimo: Umbral mínimo de stock disponible para generar alerta
+        dias_sin_movimiento: Días sin movimiento para considerar producto inactivo
+        tipo_alerta: Tipo específico de alerta a consultar
+        limit: Límite de resultados (1-500)
+        offset: Offset para paginación
+        db: Sesión de base de datos
+
+    Returns:
+        AlertasResponse: Lista de alertas con metadatos por tipo
+    """
+    try:
+        logger.info(f"Consultando alertas - stock_min: {stock_minimo}, dias: {dias_sin_movimiento}, tipo: {tipo_alerta}")
+
+        # Importar datetime para cálculos
+        from datetime import datetime, timedelta
+
+        # Calcular fecha límite para "sin movimiento"
+        fecha_limite = datetime.utcnow() - timedelta(days=dias_sin_movimiento)
+
+        # Construir query base
+        stmt = select(Inventory)
+
+        # Condiciones de alertas
+        condiciones_alertas = []
+
+        # Definir condiciones según tipo de alerta
+        if not tipo_alerta or tipo_alerta == TipoAlerta.STOCK_BAJO:
+            condiciones_alertas.append(
+                and_(Inventory.cantidad > 0, Inventory.cantidad <= stock_minimo)
+            )
+
+        if not tipo_alerta or tipo_alerta == TipoAlerta.SIN_MOVIMIENTO:
+            condiciones_alertas.append(Inventory.fecha_ultimo_movimiento <= fecha_limite)
+
+        if not tipo_alerta or tipo_alerta == TipoAlerta.STOCK_AGOTADO:
+            condiciones_alertas.append(Inventory.cantidad == 0)
+
+        # Para CRITICO: stock bajo Y sin movimiento
+        if not tipo_alerta or tipo_alerta == TipoAlerta.CRITICO:
+            condiciones_alertas.append(
+                and_(
+                    Inventory.cantidad > 0,
+                    Inventory.cantidad <= stock_minimo,
+                    Inventory.fecha_ultimo_movimiento <= fecha_limite
+                )
+            )
+
+        # Aplicar condiciones con OR
+        if condiciones_alertas:
+            stmt = stmt.where(or_(*condiciones_alertas))
+        else:
+            # Si no hay condiciones, devolver empty
+            stmt = stmt.where(Inventory.id == None)  # Resultado vacío
+
+        # Paginación y orden
+        stmt = stmt.order_by(Inventory.updated_at.desc()).offset(offset).limit(limit)
+
+        # Ejecutar query
+        result = await db.execute(stmt)
+        alertas = result.scalars().all()
+
+        logger.info(f"Alertas encontradas: {len(alertas)} registros")
+
+        # Convertir a response schemas
+        inventario_responses = [InventoryResponse.model_validate(item) for item in alertas]
+
+        # Calcular metadata por tipo de alerta
+        metadata = AlertasMetadata(
+            total_alertas=len(alertas),
+            stock_bajo=len([a for a in alertas if 0 < a.cantidad <= stock_minimo]),
+            sin_movimiento=len([a for a in alertas if a.dias_desde_ultimo_movimiento() >= dias_sin_movimiento]),
+            stock_agotado=len([a for a in alertas if a.cantidad == 0]),
+            criticos=len([a for a in alertas if 0 < a.cantidad <= stock_minimo and a.dias_desde_ultimo_movimiento() >= dias_sin_movimiento])
+        )
+
+        return AlertasResponse(alertas=inventario_responses, metadata=metadata)
+
+
+    except Exception as e:
+        logger.error(f"Error consultando alertas de inventario: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno consultando alertas de inventario"
         )
