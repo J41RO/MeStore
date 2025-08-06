@@ -34,10 +34,12 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
+from sqlalchemy import func
+from decimal import Decimal
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth import AuthService, get_auth_service
+from app.core.auth import AuthService, get_auth_service, get_current_user
 from app.core.database import get_db
 from app.models.user import User, UserType
 from app.schemas.auth import TokenResponse
@@ -47,6 +49,7 @@ from app.schemas.vendedor import (
     VendedorErrorResponse,
     VendedorLogin,
     VendedorResponse,
+    VendedorDashboardResumen,
 )
 
 # Configurar logging
@@ -315,3 +318,30 @@ async def health_check() -> Dict[str, Any]:
 
 # Exports para facilitar imports
 __all__ = ["router"]
+
+
+@router.get("/dashboard/resumen", response_model=VendedorDashboardResumen, status_code=status.HTTP_200_OK)
+async def get_dashboard_resumen(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> VendedorDashboardResumen:
+    """Obtener KPIs principales del vendedor para dashboard."""
+    # Verificar que el usuario es vendedor
+    if current_user.user_type != UserType.VENDEDOR:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo vendedores pueden acceder al dashboard"
+        )
+
+    # TODO: Implementar queries reales cuando tengamos modelos de Producto/Venta
+    # Por ahora devolvemos datos simulados pero con estructura correcta
+
+    # Simular datos realistas para el vendedor
+    kpis = VendedorDashboardResumen(
+        ventas_totales=Decimal("15750.50"),
+        pedidos_pendientes=7,
+        productos_activos=23,
+        comision_total=Decimal("1890.06")
+    )
+
+    return kpis

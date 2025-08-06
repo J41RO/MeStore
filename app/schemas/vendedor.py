@@ -164,3 +164,12 @@ class VendedorLogin(BaseModel):
 
 # Exports para facilitar imports
 __all__ = ["VendedorCreate", "VendedorResponse", "VendedorErrorResponse"]
+
+
+from decimal import Decimal
+
+class VendedorDashboardResumen(BaseModel):
+    ventas_totales: Decimal = 0.0
+    pedidos_pendientes: int = 0
+    productos_activos: int = 0
+    comision_total: Decimal = 0.0
