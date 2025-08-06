@@ -255,8 +255,8 @@
 ✅ 1.3.3 API upload de imágenes con compresión automática
     ✅ 1.3.3.1 Crear endpoint POST /productos/{id}/imagenes para upload múltiple
     ✅ 1.3.3.2 Implementar validación de formato (JPG, PNG, WEBP) y tamaño máximo + SISTEMA COMPLETO DE COMPRESIÓN AUTOMÁTICA
-    ⬜ 1.3.3.3 Configurar compresión automática con Pillow (múltiples resoluciones)
-    ⬜ 1.3.3.4 Implementar almacenamiento en AWS S3 o local con URLs públicas
+    ✅ 1.3.3.3 Configurar compresión automática con Pillow (múltiples resoluciones)
+    ✅ 1.3.3.4 Implementar almacenamiento en AWS S3 o local con URLs públicas
     ⬜ 1.3.3.5 Crear endpoint DELETE /imagenes/{id} para eliminar imágenes
     ⬜ 1.3.3.6 Implementar watermark automático con logo MeStocker
 ⬜ 1.3.4 API gestión de inventario (stock, ubicaciones)

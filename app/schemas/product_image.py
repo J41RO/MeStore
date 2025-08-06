@@ -86,3 +86,13 @@ class ProductImagesListResponse(BaseModel):
     )
     
     model_config = ConfigDict(from_attributes=True)
+
+
+class ProductImageDeleteResponse(BaseModel):
+    """Schema para respuesta de eliminación de imagen."""
+
+    success: bool = Field(..., description="Indica si la eliminación fue exitosa")
+    message: str = Field(..., description="Mensaje de confirmación")
+    deleted_image_id: UUID = Field(..., description="ID de la imagen eliminada")
+
+    model_config = ConfigDict(from_attributes=True)

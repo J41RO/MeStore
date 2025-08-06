@@ -61,10 +61,11 @@ from app.schemas.product import (
     ProductUpdate,
 )
 from app.schemas.product_image import (
+    ProductImageDeleteResponse,
     ProductImageResponse,
     ProductImageUploadResponse,
 )
-from app.utils.file_validator import validate_multiple_files, get_image_dimensions, compress_image_multiple_resolutions
+from app.utils.file_validator import validate_multiple_files, get_image_dimensions, compress_image_multiple_resolutions, delete_image_files
 
 
 # Configurar logging
@@ -691,4 +692,60 @@ async def upload_producto_imagenes(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error interno del servidor en upload"
+        )
+
+
+
+@router.delete(
+    "/imagenes/{imagen_id}",
+    response_model=ProductImageDeleteResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Eliminar imagen de producto",
+    description="Eliminación de imagen específica (soft delete + archivos físicos)",
+    tags=["productos"]
+)
+async def delete_producto_imagen(
+    imagen_id: UUID,
+    db: AsyncSession = Depends(get_db)
+):
+    """Eliminar imagen de producto."""
+    try:
+        # Buscar imagen existente (solo activas)
+        result = await db.execute(
+            select(ProductImage).where(
+                ProductImage.id == imagen_id,
+                ProductImage.deleted_at.is_(None)
+            )
+        )
+        imagen = result.scalar_one_or_none()
+
+        if not imagen:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Imagen con ID {imagen_id} no encontrada"
+            )
+
+        # Soft delete en BD
+        imagen.deleted_at = datetime.utcnow()
+
+        # Eliminar archivos físicos
+        await delete_image_files(imagen.file_path)
+
+        # Confirmar transacción
+        await db.commit()
+
+        return ProductImageDeleteResponse(
+            success=True,
+            message="Imagen eliminada exitosamente",
+            deleted_image_id=imagen_id
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error eliminando imagen {imagen_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
         )

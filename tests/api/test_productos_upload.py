@@ -120,3 +120,43 @@ def test_url_helper_functionality():
     assert build_public_url("/") == "/media//"
 
     print("✅ Todos los tests de url_helper pasaron")
+
+
+def test_delete_imagen_helper():
+    """Test helper delete_image_files."""
+    from app.utils.file_validator import delete_image_files
+    import asyncio
+
+    # Test que el helper existe y es async
+    assert callable(delete_image_files)
+    assert asyncio.iscoroutinefunction(delete_image_files)
+
+    print("✅ Helper delete_image_files disponible y es async")
+
+
+def test_delete_imagen_schema():
+    """Test schema ProductImageDeleteResponse."""
+    from app.schemas.product_image import ProductImageDeleteResponse
+    from uuid import uuid4
+
+    # Test creación de schema con datos válidos
+    test_data = {
+        "success": True,
+        "message": "Imagen eliminada exitosamente",
+        "deleted_image_id": uuid4()
+    }
+
+    schema = ProductImageDeleteResponse(**test_data)
+
+    # Validar campos
+    assert schema.success is True
+    assert "eliminada" in schema.message
+    assert schema.deleted_image_id is not None
+
+    # Validar serialización
+    dict_output = schema.model_dump()
+    assert "success" in dict_output
+    assert "message" in dict_output
+    assert "deleted_image_id" in dict_output
+
+    print("✅ Schema ProductImageDeleteResponse funcional")

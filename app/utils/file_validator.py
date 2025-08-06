@@ -215,3 +215,23 @@ async def compress_image_multiple_resolutions(
     except Exception as e:
         logger.error(f"Error en compresión múltiple: {str(e)}")
         raise FileValidationError(f"Error procesando imagen: {str(e)}")
+
+
+async def delete_image_files(file_path: str) -> bool:
+    """
+    Eliminar archivos físicos de todas las resoluciones.
+    Args: file_path: Ruta del archivo original
+    Returns: True si eliminación exitosa
+    """
+    try:
+        base_path = Path(file_path).parent
+        filename_base = Path(file_path).stem.replace("_original", "")
+
+        for resolution in settings.IMAGE_RESOLUTIONS.keys():
+            file_to_delete = base_path / f"{filename_base}_{resolution}.jpg"
+            if file_to_delete.exists():
+                os.remove(file_to_delete)
+        return True
+    except Exception as e:
+        logger.error(f"Error eliminando archivos: {str(e)}")
+        return False

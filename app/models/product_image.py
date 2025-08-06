@@ -60,6 +60,12 @@ class ProductImage(BaseModel):
         default=False, 
         comment="Indica si es la imagen principal del producto"
     )
+    deleted_at = Column(
+        DateTime,
+        nullable=True,
+        comment="Fecha de eliminación (soft delete)"
+    )
+    
     # Relación inversa con Product
     product = relationship("Product", back_populates="images")
     
