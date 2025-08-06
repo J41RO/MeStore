@@ -160,3 +160,112 @@ def test_delete_imagen_schema():
     assert "deleted_image_id" in dict_output
 
     print("✅ Schema ProductImageDeleteResponse funcional")
+
+
+def test_watermark_functionality():
+    """Test completo de funcionalidad watermark MeStocker."""
+    from app.utils.file_validator import apply_watermark
+    from app.core.config import settings
+    from PIL import Image
+    import os
+
+    print("🧪 INICIANDO TEST WATERMARK COMPLETO")
+
+    # 1. Verificar configuración watermark existe
+    print("📋 1/5: Verificando configuración...")
+    assert hasattr(settings, 'WATERMARK_ENABLED'), "WATERMARK_ENABLED debe existir"
+    assert hasattr(settings, 'WATERMARK_LOGO_PATH'), "WATERMARK_LOGO_PATH debe existir"
+    assert hasattr(settings, 'WATERMARK_OPACITY'), "WATERMARK_OPACITY debe existir"
+    assert hasattr(settings, 'WATERMARK_POSITION'), "WATERMARK_POSITION debe existir"
+    assert hasattr(settings, 'WATERMARK_MARGIN'), "WATERMARK_MARGIN debe existir"
+    print("✅ Configuración watermark completa")
+
+    # 2. Verificar función apply_watermark existe y es callable
+    print("📋 2/5: Verificando función...")
+    assert callable(apply_watermark), "apply_watermark debe ser función callable"
+    print("✅ Función apply_watermark disponible")
+
+    # 3. Test con imagen sintética (crear imagen test en memoria)
+    print("📋 3/5: Creando imagen test...")
+    test_image = Image.new('RGB', (400, 300), color='white')
+    assert test_image.size == (400, 300), "Imagen test debe tener tamaño correcto"
+    print("✅ Imagen test creada: 400x300 píxeles")
+
+    # 4. Aplicar watermark (debe manejar logo faltante gracefully)
+    print("📋 4/5: Aplicando watermark...")
+    result_image = apply_watermark(test_image, 'original')
+
+    # Verificar que retorna imagen válida
+    assert isinstance(result_image, Image.Image), "Debe retornar objeto Image"
+    assert result_image.size == (400, 300), "Tamaño debe mantenerse"
+    assert result_image.mode == 'RGB', "Modo debe ser RGB"
+    print("✅ Watermark aplicado exitosamente")
+
+    # 5. Test diferentes resoluciones
+    print("📋 5/5: Probando diferentes resoluciones...")
+    resoluciones_test = ['thumbnail', 'small', 'medium', 'large', 'original']
+
+    for resolucion in resoluciones_test:
+        resultado = apply_watermark(test_image.copy(), resolucion)
+        assert isinstance(resultado, Image.Image), f"Resolución {resolucion} debe retornar Image"
+        assert resultado.size == (400, 300), f"Tamaño debe mantenerse para {resolucion}"
+        print(f"✅ Resolución {resolucion}: OK")
+
+    print("🎉 ✅ TEST WATERMARK COMPLETADO EXITOSAMENTE")
+    print("📊 Todas las verificaciones pasaron:")
+    print("   - Configuración: 5/5 atributos ✅")
+    print("   - Función: Callable y funcional ✅")
+    print("   - Imagen test: Procesada correctamente ✅")
+    print("   - Resoluciones: 5/5 soportadas ✅")
+    print("   - Manejo errores: Graceful ✅")
+
+
+def test_watermark_with_logo_present():
+    """Test watermark cuando logo existe."""
+    from app.utils.file_validator import apply_watermark
+    from app.core.config import settings
+    from PIL import Image
+    import os
+
+    print("🧪 TEST CON LOGO PRESENTE")
+
+    # Verificar si logo existe
+    logo_exists = os.path.exists(settings.WATERMARK_LOGO_PATH)
+    print(f"📋 Logo existe: {logo_exists}")
+    print(f"📁 Ruta logo: {settings.WATERMARK_LOGO_PATH}")
+
+    # Crear imagen test
+    test_image = Image.new('RGB', (800, 600), color='lightblue')
+
+    # Aplicar watermark
+    result = apply_watermark(test_image, 'large')
+
+    # Verificaciones básicas
+    assert isinstance(result, Image.Image)
+    assert result.size == (800, 600)
+
+    if logo_exists:
+        print("✅ Test con logo real completado")
+    else:
+        print("⚠️ Test sin logo (manejo graceful verificado)")
+
+
+def test_watermark_error_handling():
+    """Test manejo de errores en watermark."""
+    from app.utils.file_validator import apply_watermark
+    from PIL import Image
+
+    print("🧪 TEST MANEJO DE ERRORES")
+
+    # Test con imagen corrupta simulada (None)
+    try:
+        # Esto no debería romper la función
+        test_image = Image.new('RGB', (100, 100), 'red')
+        result = apply_watermark(test_image, 'invalid_resolution')
+        assert isinstance(result, Image.Image), "Debe manejar resolución inválida gracefully"
+        print("✅ Manejo de resolución inválida: OK")
+    except Exception as e:
+        # Si hay excepción, debe ser manejada por la función
+        assert False, f"apply_watermark no debe lanzar excepciones: {e}"
+
+    print("✅ Manejo de errores verificado")

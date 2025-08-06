@@ -143,6 +143,74 @@ def get_image_dimensions(image_path: str) -> Tuple[int, int]:
         return (0, 0)
 
 
+def apply_watermark(image: Image.Image, resolution: str) -> Image.Image:
+    """
+    Aplicar watermark MeStocker a imagen con escalado dinámico.
+
+    Args:
+        image: Imagen PIL a la que aplicar watermark
+        resolution: Resolución actual ('thumbnail', 'small', 'medium', 'large', 'original')
+
+    Returns:
+        Imagen con watermark aplicado, o imagen original si falla
+    """
+    try:
+        # Verificar si watermark está habilitado
+        if not settings.WATERMARK_ENABLED:
+            return image
+
+        # Verificar que el logo existe
+        logo_path = Path(settings.WATERMARK_LOGO_PATH)
+        if not logo_path.exists():
+            logger.warning(f"Logo watermark no encontrado: {logo_path}")
+            return image
+
+        # Cargar logo con transparencia
+        logo = Image.open(logo_path).convert("RGBA")
+
+        # Escalar logo según resolución (más pequeño para thumbnails)
+        if resolution in ["thumbnail", "small"]:
+            logo_size = (80, 24)  # Pequeño para thumbnails
+        elif resolution == "medium":
+            logo_size = (120, 36)  # Mediano
+        else:  # large, original
+            logo_size = (160, 48)  # Grande para alta resolución
+
+        logo = logo.resize(logo_size, Image.Resampling.LANCZOS)
+
+        # Calcular posición en esquina inferior derecha
+        image_width, image_height = image.size
+        logo_width, logo_height = logo.size
+
+        x = image_width - logo_width - settings.WATERMARK_MARGIN
+        y = image_height - logo_height - settings.WATERMARK_MARGIN
+
+        # Asegurar que el watermark no se salga de los bordes
+        x = max(0, x)
+        y = max(0, y)
+
+        # Aplicar watermark preservando transparencia
+        watermarked = image.copy().convert("RGBA")
+
+        # Crear máscara de transparencia para el logo
+        if logo.mode == "RGBA":
+            # Aplicar opacidad configurada
+            alpha = logo.split()[3]  # Canal alpha
+            alpha = alpha.point(lambda p: int(p * settings.WATERMARK_OPACITY))
+            logo.putalpha(alpha)
+
+        # Componer watermark sobre imagen
+        watermarked.paste(logo, (x, y), logo)
+
+        # Convertir de vuelta a RGB para guardar como JPEG
+        return watermarked.convert("RGB")
+
+    except Exception as e:
+        logger.error(f"Error aplicando watermark: {str(e)}")
+        return image  # Retornar imagen original si algo falla
+
+
+
 async def compress_image_multiple_resolutions(
     file: UploadFile, 
     base_filename: str,
@@ -189,6 +257,8 @@ async def compress_image_multiple_resolutions(
                 filename = f"{base_filename}_{resolution_name}.jpg"
                 file_path = resolution_dir / filename
 
+            # Aplicar watermark antes de guardar
+                processed_image = apply_watermark(processed_image, resolution_name)
                 processed_image.save(
                     file_path,
                     format=settings.OUTPUT_FORMAT,

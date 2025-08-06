@@ -193,6 +193,13 @@ class Settings(BaseSettings):
         "small": 75
     }
 
+    # Configuración de watermark MeStocker
+    WATERMARK_ENABLED: bool = True
+    WATERMARK_LOGO_PATH: str = "app/static/logos/mestocker_logo.png"
+    WATERMARK_OPACITY: float = 0.7  # 70% opacidad
+    WATERMARK_POSITION: str = "bottom_right"  # Posición esquina inferior derecha
+    WATERMARK_MARGIN: int = 10  # Margen desde bordes en píxeles
+
     # Formato de salida estandarizado
     OUTPUT_FORMAT: str = "JPEG"
 settings = Settings()
