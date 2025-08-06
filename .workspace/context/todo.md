@@ -261,8 +261,8 @@
     ✅ 1.3.3.6 Implementar watermark automático con logo MeStocker
 ✅ 1.3.4 API gestión de inventario (stock, ubicaciones)
     ✅ 1.3.4.1 Crear endpoint GET /inventario para consultar stock por vendedor
-    ⬜ 1.3.4.2 Implementar endpoint POST /inventario/movimiento para registrar entrada/salida
-    ⬜ 1.3.4.3 Crear endpoint GET /inventario/ubicaciones para consultar posiciones físicas
+    ✅ 1.3.4.2 Implementar endpoint POST /inventario/movimiento para registrar entrada/salida
+    ✅ 1.3.4.3 Crear endpoint GET /inventario/ubicaciones para consultar posiciones físicas
     ⬜ 1.3.4.4 Implementar endpoint PUT /inventario/{id}/ubicacion para cambiar posición
     ⬜ 1.3.4.5 Crear endpoint GET /inventario/alertas para stock bajo y productos sin movimiento
     ⬜ 1.3.4.6 Implementar endpoint POST /inventario/reserva para reservar stock pre-venta

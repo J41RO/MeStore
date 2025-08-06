@@ -172,3 +172,69 @@ async def registrar_movimiento(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error interno registrando movimiento"
         )
+
+
+@router.get(
+    "/ubicaciones",
+    response_model=List[InventoryResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Consultar posiciones físicas de inventario",
+    description="Obtener ubicaciones físicas disponibles en el almacén",
+    tags=["inventory"]
+)
+async def get_ubicaciones(
+    zona: Optional[str] = Query(None, description="Filtrar por zona específica"),
+    disponible_solo: bool = Query(True, description="Solo ubicaciones con stock disponible"),
+    limit: int = Query(100, ge=1, le=500, description="Límite de resultados"),
+    offset: int = Query(0, ge=0, description="Offset para paginación"),
+    db: AsyncSession = Depends(get_db)
+) -> List[InventoryResponse]:
+    """
+    Consultar posiciones físicas de inventario disponibles.
+
+    Args:
+        zona: Filtro opcional por zona del almacén
+        disponible_solo: Si True, solo muestra ubicaciones con stock > 0
+        limit: Límite de resultados (1-500)
+        offset: Offset para paginación
+        db: Sesión de base de datos
+
+    Returns:
+        List[InventoryResponse]: Lista de ubicaciones físicas con inventario
+    """
+    try:
+        logger.info(f"Consultando ubicaciones - zona: {zona}, disponible_solo: {disponible_solo}")
+
+        # Construir query base para ubicaciones
+        stmt = select(Inventory).distinct(Inventory.zona, Inventory.estante, Inventory.posicion)
+
+        # Filtro por zona si se especifica
+        if zona:
+            stmt = stmt.where(Inventory.zona == zona.upper())
+
+        # Filtro por disponibilidad
+        if disponible_solo:
+            stmt = stmt.where(Inventory.cantidad > 0)
+
+        # Paginación y orden por zona-estante-posicion
+        stmt = stmt.order_by(Inventory.zona, Inventory.estante, Inventory.posicion)
+        stmt = stmt.offset(offset).limit(limit)
+
+        # Ejecutar query
+        result = await db.execute(stmt)
+        ubicaciones = result.scalars().all()
+
+        logger.info(f"Ubicaciones encontradas: {len(ubicaciones)} registros")
+
+        # Convertir a schema response
+        return [InventoryResponse.model_validate(item) for item in ubicaciones]
+
+
+
+
+    except Exception as e:
+        logger.error(f"Error consultando ubicaciones: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno consultando ubicaciones físicas"
+        )
