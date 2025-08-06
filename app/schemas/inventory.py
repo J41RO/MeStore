@@ -121,6 +121,23 @@ class InventoryCreate(InventoryBase):
 
     class Config:
         from_attributes = True
+
+
+
+class MovimientoResponse(BaseModel):
+    """Schema para respuesta de movimientos."""
+
+    success: bool = Field(..., description="Indica si el movimiento fue exitoso")
+    message: str = Field(..., description="Mensaje de confirmación")
+    inventory_id: UUID4 = Field(..., description="ID del inventario actualizado")
+    tipo_movimiento: TipoMovimiento = Field(..., description="Tipo de movimiento realizado")
+    cantidad_anterior: int = Field(..., ge=0, description="Cantidad antes del movimiento")
+    cantidad_nueva: int = Field(..., ge=0, description="Cantidad después del movimiento")
+    cantidad_disponible: int = Field(..., ge=0, description="Cantidad disponible actual")
+    fecha_movimiento: datetime = Field(..., description="Fecha y hora del movimiento")
+
+    class Config:
+        from_attributes = True
         json_schema_extra = {
             "example": {
                 "product_id": "123e4567-e89b-12d3-a456-426614174000",

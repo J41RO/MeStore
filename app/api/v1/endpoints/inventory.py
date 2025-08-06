@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.models.inventory import Inventory
-from app.schemas.inventory import InventoryResponse
+from app.schemas.inventory import InventoryResponse, MovimientoStockCreate, TipoMovimiento, MovimientoResponse
 import logging
 
 logger = logging.getLogger(__name__)
@@ -75,4 +75,100 @@ async def get_inventario(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error interno consultando inventario"
+        )
+@router.post(
+    "/movimiento",
+    response_model=MovimientoResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Registrar movimiento de inventario",
+    description="Registrar entrada/salida de stock con actualización automática",
+    tags=["inventory"]
+)
+async def registrar_movimiento(
+    movimiento: MovimientoStockCreate,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Registrar movimiento de entrada/salida en inventario.
+    
+    Args:
+        movimiento: Datos del movimiento a registrar
+        db: Sesión de base de datos
+    
+    Returns:
+        Confirmación del movimiento registrado
+    """
+    try:
+        logger.info(f"Registrando movimiento {movimiento.tipo_movimiento} para inventario {movimiento.inventory_id}")
+        
+        # 1. Buscar inventario existente
+        result = await db.execute(
+            select(Inventory).where(Inventory.id == movimiento.inventory_id)
+        )
+        inventario = result.scalar_one_or_none()
+        
+        if not inventario:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Inventario con ID {movimiento.inventory_id} no encontrado"
+            )
+        
+        # 2. Validar cantidad anterior coincide
+        if inventario.cantidad != movimiento.cantidad_anterior:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Cantidad anterior no coincide. Esperado: {inventario.cantidad}, Recibido: {movimiento.cantidad_anterior}"
+            )
+        
+        # 3. Aplicar movimiento según tipo
+        if movimiento.tipo_movimiento in [TipoMovimiento.INGRESO, TipoMovimiento.AJUSTE_POSITIVO]:
+            # Entrada: diferencia positiva
+            diferencia = movimiento.cantidad_nueva - movimiento.cantidad_anterior
+            inventario.ajustar_stock(diferencia, movimiento.user_id)
+        elif movimiento.tipo_movimiento == TipoMovimiento.AJUSTE_NEGATIVO:
+            # Salida: diferencia negativa  
+            diferencia = movimiento.cantidad_nueva - movimiento.cantidad_anterior
+            inventario.ajustar_stock(diferencia, movimiento.user_id)
+        else:
+            # Otros tipos: actualización directa
+            inventario.actualizar_stock(movimiento.cantidad_nueva, movimiento.user_id)
+        
+        # 4. Agregar observaciones si existen
+        if movimiento.observaciones:
+            inventario.agregar_nota_almacen(
+                f"[{movimiento.tipo_movimiento}] {movimiento.observaciones}", 
+                movimiento.user_id
+            )
+        
+        # 5. Confirmar transacción
+        await db.commit()
+        await db.refresh(inventario)
+        
+        logger.info(f"Movimiento registrado exitosamente: {movimiento.tipo_movimiento}")
+        
+        return MovimientoResponse(
+            success=True,
+            message="Movimiento registrado exitosamente",
+            inventory_id=movimiento.inventory_id,
+            tipo_movimiento=movimiento.tipo_movimiento,
+            cantidad_anterior=movimiento.cantidad_anterior,
+            cantidad_nueva=inventario.cantidad,
+            cantidad_disponible=inventario.cantidad_disponible(),
+            fecha_movimiento=inventario.fecha_ultimo_movimiento
+        )
+        
+    except HTTPException:
+        raise
+    except ValueError as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error en movimiento: {str(e)}"
+        )
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error registrando movimiento: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno registrando movimiento"
         )
