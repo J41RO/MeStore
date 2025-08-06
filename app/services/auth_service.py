@@ -22,6 +22,7 @@ Modificaciones:
 """
 
 import asyncio
+import logging
 from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
 from passlib.context import CryptContext
@@ -30,6 +31,9 @@ from app.models.user import User
 from app.services.otp_service import OTPService
 from app.services.email_service import EmailService
 from app.services.sms_service import SMSService
+
+# Configurar logger
+logger = logging.getLogger(__name__)
 from typing import Tuple
 
 

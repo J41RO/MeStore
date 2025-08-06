@@ -104,3 +104,86 @@ async def test_get_user_verification_status_basic(auth_service, mock_db):
         assert result['phone_verified'] is False
         assert result['fully_verified'] is False
         mock_status.assert_called_once_with(mock_db, mock_user)
+
+@pytest.mark.asyncio
+async def test_cleanup_expired_otps(auth_service, mock_db):
+    """Test limpieza de OTPs expirados."""
+    with patch.object(auth_service.otp_service, 'cleanup_expired_otps', return_value=5) as mock_cleanup:
+        result = await auth_service.cleanup_expired_otps(mock_db)
+        assert result == 5
+        mock_cleanup.assert_called_once()
+
+@pytest.mark.asyncio
+async def test_send_email_verification_otp_success_real(auth_service, mock_db):
+    """Test envío exitoso de OTP por email (flujo completo)."""
+    # Mock user
+    mock_user = Mock()
+    mock_user.email = "test@example.com"
+    mock_user.nombre = "Test User"
+
+    # Mock todas las validaciones para éxito
+    with patch.object(auth_service.otp_service, 'can_send_otp', return_value=(True, "OK")) as mock_can_send,          patch.object(auth_service.otp_service, 'create_otp_for_user', return_value=("123456", "2024-01-01")) as mock_create,          patch.object(auth_service.email_service, 'send_otp_email', return_value=True) as mock_send:
+
+        result = await auth_service.send_email_verification_otp(mock_db, mock_user)
+
+        # Verificar resultado exitoso
+        success, message = result
+        assert success is True
+        assert "test@example.com" in message
+
+        # Verificar llamadas
+        mock_can_send.assert_called_once()
+        mock_create.assert_called_once()
+        mock_send.assert_called_once()
+
+@pytest.mark.asyncio
+async def test_send_sms_verification_otp_success(auth_service, mock_db):
+    """Test envío exitoso de OTP por SMS."""
+    # Mock user con teléfono
+    mock_user = Mock()
+    mock_user.telefono = "+57123456789"
+    mock_user.nombre = "Test User"
+
+    # Mock todas las validaciones para éxito
+    with patch.object(auth_service.otp_service, 'can_send_otp', return_value=(True, "OK")) as mock_can_send,          patch.object(auth_service.otp_service, 'create_otp_for_user', return_value=("123456", "2024-01-01")) as mock_create,          patch.object(auth_service.sms_service, 'send_otp_sms', return_value=True) as mock_send:
+
+        result = await auth_service.send_sms_verification_otp(mock_db, mock_user)
+
+        # Verificar resultado exitoso
+        success, message = result
+        assert success is True
+        assert "+57123456789" in message
+
+        # Verificar llamadas
+        mock_can_send.assert_called_once()
+        mock_create.assert_called_once()
+        mock_send.assert_called_once()
+
+@pytest.mark.asyncio
+async def test_send_sms_verification_otp_no_phone(auth_service, mock_db):
+    """Test fallo por usuario sin teléfono."""
+    # Mock user sin teléfono
+    mock_user = Mock()
+    mock_user.telefono = None
+
+    result = await auth_service.send_sms_verification_otp(mock_db, mock_user)
+
+    # Verificar fallo
+    success, message = result
+    assert success is False
+    assert "no tiene teléfono" in message.lower()
+
+@pytest.mark.asyncio
+async def test_cleanup_expired_reset_tokens(auth_service, mock_db):
+    """Test limpieza de tokens de reset expirados."""
+    # Mock de database query result
+    mock_db.query.return_value.filter.return_value.all.return_value = [Mock(), Mock()]  # 2 usuarios
+    mock_db.commit = Mock()
+
+    result = await auth_service.cleanup_expired_reset_tokens(mock_db)
+
+    # Verificar que retorna número de tokens limpiados
+    assert result == 2
+
+    # Verificar que se hizo commit
+    mock_db.commit.assert_called_once()
