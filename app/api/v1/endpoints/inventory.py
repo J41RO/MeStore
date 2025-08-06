@@ -16,7 +16,7 @@ class TipoAlerta(str, Enum):
     STOCK_AGOTADO = "STOCK_AGOTADO"
     CRITICO = "CRITICO"  # Combinación de stock bajo + sin movimiento
 from app.models.inventory import Inventory
-from app.schemas.inventory import InventoryResponse, MovimientoStockCreate, TipoMovimiento, MovimientoResponse, InventoryUpdate, AlertasResponse
+from app.schemas.inventory import InventoryResponse, MovimientoStockCreate, TipoMovimiento, MovimientoResponse, InventoryUpdate, AlertasResponse, ReservaStockCreate, ReservaResponse
 from app.utils.crud import DatabaseUtils
 
 import logging
@@ -82,6 +82,15 @@ async def get_inventario(
         # Convertir a schema response
         return [InventoryResponse.model_validate(item) for item in inventario]
 
+    except HTTPException:
+        raise
+    except ValueError as e:
+        await db.rollback()
+        logger.error(f"Error de validación en reserva: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error en reserva: {str(e)}"
+        )
     except Exception as e:
         logger.error(f"Error consultando inventario: {str(e)}")
         raise HTTPException(
@@ -89,6 +98,92 @@ async def get_inventario(
             detail="Error interno consultando inventario"
         )
 
+
+
+@router.post(
+    "/reserva",
+    response_model=ReservaResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Reservar stock para pre-venta",
+    description="Reservar cantidad específica de inventario para pre-venta o apartado",
+    tags=["inventory"]
+)
+async def reservar_stock(
+    reserva: ReservaStockCreate,
+    db: AsyncSession = Depends(get_db)
+) -> ReservaResponse:
+    """
+    Reservar stock específico para pre-venta o apartado.
+
+    Args:
+        reserva: Datos de la reserva (inventory_id, cantidad, user_id, motivo)
+        db: Sesión de base de datos
+
+    Returns:
+        ReservaResponse: Confirmación de reserva con cantidades actualizadas
+    """
+    try:
+        logger.info(f"Reservando stock - inventory: {reserva.inventory_id}, cantidad: {reserva.cantidad}, user: {reserva.user_id}")
+# Obtener inventario existente
+        inventario = await DatabaseUtils.get_by_id(db, Inventory, reserva.inventory_id)
+        
+        if not inventario:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Inventario con ID {reserva.inventory_id} no encontrado"
+            )
+
+        # Agregar motivo como nota si se proporciona
+        if reserva.motivo:
+            inventario.agregar_nota_almacen(
+                f"[RESERVA] {reserva.motivo}",
+                reserva.user_id
+            )
+
+        # Confirmar transacción
+        await db.commit()
+        await db.refresh(inventario)
+
+        logger.info(f"Reserva exitosa - Reservado: {inventario.cantidad_reservada}, Disponible: {inventario.cantidad_disponible()}")
+
+        # Construir response exitosa
+        from datetime import datetime
+
+        return ReservaResponse(
+            success=True,
+            message="Reserva realizada exitosamente",
+            inventory_id=reserva.inventory_id,
+            cantidad_reservada=inventario.cantidad_reservada,
+            cantidad_disponible=inventario.cantidad_disponible(),
+            cantidad_solicitada=reserva.cantidad,
+            user_id=reserva.user_id,
+            fecha_reserva=datetime.utcnow()
+        )
+            
+        logger.info(f"Inventario encontrado: {inventario.get_ubicacion_completa()}, disponible: {inventario.cantidad_disponible()}")
+
+        # Validar que hay stock suficiente disponible
+        if not inventario.puede_satisfacer(reserva.cantidad):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Stock insuficiente. Disponible: {inventario.cantidad_disponible()}, solicitado: {reserva.cantidad}"
+            )
+
+        # Realizar reserva usando método del modelo
+        reserva_exitosa = inventario.reservar_cantidad(reserva.cantidad, reserva.user_id)
+
+        if not reserva_exitosa:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No se pudo realizar la reserva. Verifique disponibilidad."
+            )
+        
+    except Exception as e:
+        logger.error(f"Error en reserva de stock: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno procesando reserva de stock"
+        )
 
 @router.post(
     "/movimiento",

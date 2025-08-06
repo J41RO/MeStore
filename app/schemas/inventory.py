@@ -125,16 +125,87 @@ class InventoryCreate(InventoryBase):
 
 
 class MovimientoResponse(BaseModel):
+    """Schema para respuesta de movimientos de stock"""
+
+    success: bool = Field(..., description="Indica si el movimiento fue exitoso")
+    message: str = Field(..., description="Mensaje de confirmación")
+    inventory_id: UUID4 = Field(..., description="ID del inventario afectado")
+    cantidad_anterior: int = Field(..., ge=0, description="Cantidad antes del movimiento")
+    cantidad_nueva: int = Field(..., ge=0, description="Cantidad después del movimiento")
+
+    class Config:
+        from_attributes = True
+
+
+class ReservaStockCreate(BaseModel):
+    """Schema para crear reserva de stock"""
+
+    inventory_id: UUID4 = Field(..., description="ID del inventario a reservar")
+    cantidad: int = Field(..., ge=1, le=10000, description="Cantidad a reservar")
+    user_id: UUID4 = Field(..., description="ID del usuario que realiza la reserva")
+    motivo: Optional[str] = Field(None, max_length=500, description="Motivo de la reserva")
+
+    class Config:
+        from_attributes = True
+        json_schema_extra = {
+            "example": {
+                "inventory_id": "123e4567-e89b-12d3-a456-426614174000",
+                "cantidad": 5,
+                "user_id": "123e4567-e89b-12d3-a456-426614174001",
+"motivo": "Reserva para pre-venta cliente premium"
+            }
+        }
+
+
+class ReservaResponse(BaseModel):
+    """Schema para respuesta de reserva de stock"""
+    
+    success: bool = Field(..., description="Indica si la reserva fue exitosa")
+    message: str = Field(..., description="Mensaje de confirmación")
+    inventory_id: UUID4 = Field(..., description="ID del inventario reservado")
+    cantidad_reservada: int = Field(..., ge=0, description="Cantidad total reservada después de la operación")
+    cantidad_disponible: int = Field(..., ge=0, description="Cantidad disponible restante")
+    cantidad_solicitada: int = Field(..., ge=0, description="Cantidad que se solicitó reservar")
+    user_id: UUID4 = Field(..., description="ID del usuario que realizó la reserva")
+    fecha_reserva: datetime = Field(..., description="Fecha y hora de la reserva")
+    
+    class Config:
+        from_attributes = True
+        json_schema_extra = {
+            "example": {
+                "success": True,
+                "message": "Reserva realizada exitosamente",
+                "inventory_id": "123e4567-e89b-12d3-a456-426614174000",
+                "cantidad_reservada": 25,
+                "cantidad_disponible": 75,
+                "cantidad_solicitada": 5,
+                "user_id": "123e4567-e89b-12d3-a456-426614174001",
+                "fecha_reserva": "2025-08-06T10:30:00Z"
+            }
+        }
+    
+
+    class Config:
+        from_attributes = True
+        json_schema_extra = {
+            "example": {
+                "success": True,
+                "message": "Reserva realizada exitosamente",
+                "inventory_id": "123e4567-e89b-12d3-a456-426614174000",
+                "cantidad_reservada": 25,
+                "cantidad_disponible": 75,
+                "cantidad_solicitada": 5,
+                "user_id": "123e4567-e89b-12d3-a456-426614174001",
+                "fecha_reserva": "2025-08-06T10:30:00Z"
+            }
+        }
+        
     """Schema para respuesta de movimientos."""
 
     success: bool = Field(..., description="Indica si el movimiento fue exitoso")
     message: str = Field(..., description="Mensaje de confirmación")
     inventory_id: UUID4 = Field(..., description="ID del inventario actualizado")
-    tipo_movimiento: TipoMovimiento = Field(..., description="Tipo de movimiento realizado")
-    cantidad_anterior: int = Field(..., ge=0, description="Cantidad antes del movimiento")
-    cantidad_nueva: int = Field(..., ge=0, description="Cantidad después del movimiento")
     cantidad_disponible: int = Field(..., ge=0, description="Cantidad disponible actual")
-    fecha_movimiento: datetime = Field(..., description="Fecha y hora del movimiento")
 
     class Config:
         from_attributes = True
