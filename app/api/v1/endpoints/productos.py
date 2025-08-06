@@ -64,11 +64,14 @@ from app.schemas.product_image import (
     ProductImageResponse,
     ProductImageUploadResponse,
 )
-from app.utils.file_validator import validate_multiple_files, get_image_dimensions
+from app.utils.file_validator import validate_multiple_files, get_image_dimensions, compress_image_multiple_resolutions
 
 
 # Configurar logging
 logger = logging.getLogger(__name__)
+
+# Logger ya configurado arriba - verificando que funciona
+# logger = logging.getLogger(__name__)  # Ya existe
 
 # Crear router
 router = APIRouter()
@@ -591,13 +594,95 @@ async def upload_producto_imagenes(
         
         logger.info(f"Validación completada: {len(valid_files)} válidos, {len(validation_errors)} errores")
         
-        # Retornar respuesta temporal con validaciones
+        # 3. Procesar y comprimir imágenes válidas
+        processed_images = []
+        save_directory = f"uploads/productos/imagenes"
+        
+        for i, file in enumerate(valid_files):
+            try:
+                logger.info(f"Procesando imagen {i+1}/{len(valid_files)}: {file.filename}")
+                
+                # Generar nombre único para archivo
+                file_extension = file.filename.split('.')[-1].lower()
+                unique_filename = f"{uuid.uuid4().hex}"
+                
+                # Comprimir en múltiples resoluciones
+                resolutions_info = await compress_image_multiple_resolutions(
+                    file, unique_filename, save_directory
+                )
+                
+                # Crear registro para cada resolución
+                for resolution_data in resolutions_info:
+                    try:
+                        # Crear instancia ProductImage para cada resolución
+                        product_image = ProductImage(
+                            product_id=producto_id,
+                            filename=resolution_data["filename"],
+                            original_filename=file.filename,
+                            file_path=resolution_data["file_path"],
+                            file_size=resolution_data["file_size"],
+                            mime_type=file.content_type,
+                            width=resolution_data["width"],
+                            height=resolution_data["height"],
+                            order_index=i,
+                            resolution=resolution_data["resolution"],
+                            is_primary=(i == 0 and resolution_data["resolution"] == "original")
+                        )
+                        
+                        db.add(product_image)
+                        processed_images.append(product_image)
+                        
+                    except Exception as e:
+                        logger.error(f"Error creando registro para resolución {resolution_data['resolution']}: {str(e)}")
+                        continue
+                
+                logger.info(f"Imagen {file.filename} procesada en {len(resolutions_info)} resoluciones")
+                
+            except Exception as e:
+                print(f"Error procesando imagen {file.filename}: {str(e)}")
+                validation_errors.append(f"Error procesando {file.filename}: {str(e)}")
+                continue
+        
+        # 4. Confirmar transacción
+        try:
+            await db.commit()
+            logger.info(f"Upload completado: {len(processed_images)} imágenes guardadas")
+        except Exception as e:
+            await db.rollback()
+            logger.error(f"Error en commit de upload: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error guardando imágenes en base de datos"
+            )
+        
+        # 5. Preparar respuesta con imágenes procesadas
+        images_response = []
+        for img in processed_images:
+            if img.resolution == "original":  # Solo mostrar originales en respuesta
+                images_response.append(ProductImageResponse(
+                    id=img.id,
+                    product_id=img.product_id,
+                    filename=img.filename,
+                    original_filename=img.original_filename,
+                    file_path=img.file_path,
+                    file_size=img.file_size,
+                    mime_type=img.mime_type,
+                    width=img.width,
+                    height=img.height,
+                    order_index=img.order_index,
+                    resolution=img.resolution,
+                    is_primary=img.is_primary,
+                    created_at=img.created_at,
+                    updated_at=img.updated_at
+                ))
+        
         return ProductImageUploadResponse(
             success=True,
-            uploaded_count=len(valid_files),
+            uploaded_count=len([img for img in processed_images if img.resolution == "original"]),
             total_files=len(files),
-            images=[],
-            errors=validation_errors
+            images=images_response,
+            errors=validation_errors,
+            resolutions_created=["original", "large", "medium", "thumbnail", "small"]
         )
     except HTTPException:
         raise

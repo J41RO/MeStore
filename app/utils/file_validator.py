@@ -32,6 +32,15 @@ Descripción detallada de qué contiene este módulo:
 import os
 from typing import List, Tuple, Optional
 from PIL import Image
+import asyncio
+from pathlib import Path
+from io import BytesIO
+import logging
+
+logger = logging.getLogger(__name__)
+import logging
+logger = logging.getLogger(__name__)
+from app.core.config import settings
 from fastapi import UploadFile, HTTPException
 from app.core.config import settings
 import mimetypes
@@ -132,3 +141,77 @@ def get_image_dimensions(image_path: str) -> Tuple[int, int]:
             return img.size
     except Exception:
         return (0, 0)
+
+
+async def compress_image_multiple_resolutions(
+    file: UploadFile, 
+    base_filename: str,
+    save_directory: str
+) -> List[dict]:
+    """
+    Comprimir imagen en múltiples resoluciones.
+
+    Args:
+        file: Archivo de imagen original
+        base_filename: Nombre base sin extensión
+        save_directory: Directorio base para guardar
+    Returns:
+        List[dict]: Lista con información de cada resolución creada
+    """
+    resolutions_info = []
+
+    try:
+        # Leer imagen original
+        contents = await file.read()
+        original_image = Image.open(BytesIO(contents))
+
+        # Convertir a RGB si es necesario (para JPEG)
+        if original_image.mode in ('RGBA', 'LA', 'P'):
+            original_image = original_image.convert('RGB')
+
+        # Procesar cada resolución
+        for resolution_name, size in settings.IMAGE_RESOLUTIONS.items():
+            try:
+                # Crear directorio específico
+                resolution_dir = Path(save_directory) / resolution_name
+                resolution_dir.mkdir(parents=True, exist_ok=True)
+
+                # Procesar imagen
+                if resolution_name == "original":
+                    # Guardar original con compresión mínima
+                    processed_image = original_image.copy()
+                else:
+                    # Redimensionar manteniendo aspecto
+                    processed_image = original_image.copy()
+                    processed_image.thumbnail(size, Image.Resampling.LANCZOS)
+
+                # Guardar con calidad específica
+                filename = f"{base_filename}_{resolution_name}.jpg"
+                file_path = resolution_dir / filename
+
+                processed_image.save(
+                    file_path,
+                    format=settings.OUTPUT_FORMAT,
+                    quality=settings.IMAGE_QUALITY[resolution_name],
+                    optimize=True
+                )
+
+                # Información de la resolución
+                resolutions_info.append({
+                    "resolution": resolution_name,
+                    "filename": filename,
+                    "file_path": str(file_path),
+                    "width": processed_image.width,
+                    "height": processed_image.height,
+                    "file_size": file_path.stat().st_size
+                })
+
+            except Exception as e:
+                logger.error(f"Error procesando resolución {resolution_name}: {str(e)}")
+                continue
+
+        return resolutions_info
+
+    except Exception as e:
+        logger.error(f"Error en compresión múltiple: {str(e)}")
+        raise FileValidationError(f"Error procesando imagen: {str(e)}")

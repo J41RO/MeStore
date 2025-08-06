@@ -50,6 +50,7 @@ class ProductImageResponse(ProductImageBase):
 
 
 class ProductImageUploadResponse(BaseModel):
+    resolutions_created: List[str] = Field(default_factory=list, description="Resoluciones creadas automáticamente")
     """Schema para respuesta de upload múltiple."""
     
     success: bool = Field(..., description="Indica si el upload fue exitoso")

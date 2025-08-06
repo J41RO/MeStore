@@ -11,7 +11,7 @@ Este módulo define el modelo ProductImage que gestiona las imágenes
 asociadas a los productos con relación 1:N.
 """
 
-from sqlalchemy import Column, String, Integer, ForeignKey, Index, Text
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Index, Boolean, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -49,6 +49,17 @@ class ProductImage(BaseModel):
     height = Column(Integer, comment="Alto en píxeles")
     order_index = Column(Integer, default=0, comment="Orden de visualización (0 = principal)")
     
+    resolution = Column(
+        String(20), 
+        nullable=False, 
+        default="original",
+        comment="Resolución de la imagen (original, large, medium, thumbnail, small)"
+    )
+    is_primary = Column(
+        Boolean, 
+        default=False, 
+        comment="Indica si es la imagen principal del producto"
+    )
     # Relación inversa con Product
     product = relationship("Product", back_populates="images")
     
@@ -56,6 +67,7 @@ class ProductImage(BaseModel):
     __table_args__ = (
         Index('ix_product_image_product_order', 'product_id', 'order_index'),
         Index('ix_product_image_filename', 'filename'),
+        Index('ix_product_image_resolution', 'product_id', 'resolution'),  # AGREGAR ESTA LÍNEA
     )
     
     def __repr__(self) -> str:

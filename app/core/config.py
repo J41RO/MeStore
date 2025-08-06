@@ -176,7 +176,23 @@ class Settings(BaseSettings):
     STATIC_URL: str = "/static"
     MEDIA_URL: str = "/media"
     
-    # Configuración de thumbnails
-    THUMBNAIL_SIZE: tuple = (300, 300)
-    THUMBNAIL_QUALITY: int = 85
+    # Configuración de múltiples resoluciones
+    IMAGE_RESOLUTIONS: dict = {
+        "original": None,  # Sin redimensionar
+        "large": (1200, 1200),
+        "medium": (600, 600), 
+        "thumbnail": (300, 300),
+        "small": (150, 150)
+    }
+    # Calidad de compresión por resolución
+    IMAGE_QUALITY: dict = {
+        "original": 95,  # Calidad alta para original
+        "large": 90,
+        "medium": 85,
+        "thumbnail": 80,
+        "small": 75
+    }
+
+    # Formato de salida estandarizado
+    OUTPUT_FORMAT: str = "JPEG"
 settings = Settings()
