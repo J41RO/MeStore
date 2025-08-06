@@ -12,6 +12,7 @@ from app.api.v1.endpoints.agents import router as agents_router
 from app.api.v1.endpoints.auth import router as auth_router
 from app.api.v1.endpoints.embeddings import router as embeddings_router
 from app.api.v1.endpoints.fulfillment import router as fulfillment_router
+from app.api.v1.endpoints.inventory import router as inventory_router
 from app.api.v1.endpoints.health import router as health_simple_router
 from app.api.v1.endpoints.health_complete import router as health_complete_router
 from app.api.v1.endpoints.logs import router as logs_router
@@ -47,3 +48,4 @@ api_router.include_router(agents_router, prefix="/agents", tags=["agents"])
 api_router.include_router(auth_router, prefix="/auth", tags=["auth"])
 api_router.include_router(vendedores_router, tags=["vendedores"])
 api_router.include_router(productos_router, prefix="/productos", tags=["productos"])
+api_router.include_router(inventory_router, prefix="/inventario", tags=["inventory"])
