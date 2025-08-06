@@ -26,16 +26,17 @@ Este módulo contiene endpoints especializados para:
 - Registro de vendedores con validaciones obligatorias
 - Integración con sistema de autenticación existente
 - Manejo de errores específicos para vendedores
+- Dashboard con estadísticas y rankings
 """
 
 import logging
 from datetime import datetime
-from typing import Any, Dict
-
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy import select
-from sqlalchemy import func
 from decimal import Decimal
+from typing import Dict, Any, Optional
+
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -45,14 +46,18 @@ from app.models.user import User, UserType
 from app.schemas.auth import TokenResponse
 from app.schemas.user import UserRead
 from app.schemas.vendedor import (
+    DashboardComisionesResponse, ComisionDetalle, EstadoComision,
+    DashboardProductosTopResponse,
+    DashboardVentasResponse,
+    PeriodoVentas,
+    ProductoTop,
+    TipoRankingProducto,
     VendedorCreate,
+    VendedorDashboardResumen,
     VendedorErrorResponse,
     VendedorLogin,
     VendedorResponse,
-    VendedorDashboardResumen,
-    VendedorDashboardResumen,
-    DashboardVentasResponse, 
-    PeriodoVentas,
+    VentasPorPeriodo,
 )
 
 # Configurar logging
@@ -179,7 +184,6 @@ async def registrar_vendedor(
 
     except IntegrityError as e:
         # Errores de integridad de BD
-        # await db.rollback()  # CORREGIDO: get_db() maneja rollback automáticamente
         logger.error(f"Error de integridad en registro: {str(e)}")
 
         if "email" in str(e).lower():
@@ -200,7 +204,6 @@ async def registrar_vendedor(
 
     except ValueError as e:
         # Errores de validación de Pydantic
-        # await db.rollback()  # CORREGIDO: get_db() maneja rollback automáticamente
         logger.error(f"Error de validación: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -209,7 +212,6 @@ async def registrar_vendedor(
 
     except Exception as e:
         # Errores inesperados
-        # await db.rollback()  # CORREGIDO: get_db() maneja rollback automáticamente
         logger.error(f"Error inesperado en registro de vendedor: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -247,7 +249,6 @@ async def login_vendedor(
 
         if not user:
             logger.warning(f"Login vendedor fallido - credenciales inválidas: {login_data.email}")
-
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Credenciales inválidas",
@@ -256,8 +257,6 @@ async def login_vendedor(
         # Verificar que el usuario sea tipo VENDEDOR
         if user.user_type != UserType.VENDEDOR:
             logger.warning(f"Login vendedor fallido - tipo incorrecto: {login_data.email}, tipo: {user.user_type.value}")
-
-
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Este endpoint es solo para vendedores",
@@ -299,30 +298,6 @@ async def login_vendedor(
         )
 
 
-@router.get(
-    "/health",
-    summary="Health check vendedores",
-    description="Endpoint de verificación de salud del módulo vendedores",
-)
-async def health_check() -> Dict[str, Any]:
-    """
-    Verificar estado del módulo vendedores.
-
-    Returns:
-        Dict con información de estado del módulo
-    """
-    return {
-        "status": "healthy",
-        "module": "vendedores",
-        "version": "1.0.0",
-        "endpoints": ["POST /vendedores/registro", "GET /vendedores/health"],
-    }
-
-
-# Exports para facilitar imports
-__all__ = ["router"]
-
-
 @router.get("/dashboard/resumen", response_model=VendedorDashboardResumen, status_code=status.HTTP_200_OK)
 async def get_dashboard_resumen(
     current_user: User = Depends(get_current_user),
@@ -341,13 +316,16 @@ async def get_dashboard_resumen(
 
     # Simular datos realistas para el vendedor
     kpis = VendedorDashboardResumen(
-        ventas_totales=Decimal("15750.50"),
-        pedidos_pendientes=7,
+        total_productos=25,
         productos_activos=23,
-        comision_total=Decimal("1890.06")
+        ventas_mes=42,
+        ingresos_mes=Decimal("15750.50"),
+        comision_total=Decimal("1890.06"),
+        estadisticas_mes="Incremento del 15% vs mes anterior"
     )
 
     return kpis
+
 
 @router.get("/dashboard/ventas", response_model=DashboardVentasResponse, status_code=status.HTTP_200_OK)
 async def get_dashboard_ventas(
@@ -366,7 +344,7 @@ async def get_dashboard_ventas(
     
     # TODO: Implementar queries reales por período cuando tengamos modelo Venta
     # Por ahora simulamos datos por período
-# Datos simulados según el período solicitado
+    # Datos simulados según el período solicitado
     if periodo == PeriodoVentas.MENSUAL:
         datos_ejemplo = [
             VentasPorPeriodo(periodo="2025-06", ventas_cantidad=15, ventas_monto=Decimal("4500.00")),
@@ -388,5 +366,158 @@ async def get_dashboard_ventas(
         periodo_solicitado=periodo,
         datos_grafico=datos_ejemplo[:limite],
         total_ventas=sum(d.ventas_monto for d in datos_ejemplo[:limite]),
-        total_transacciones=sum(d.ventas_cantidad for d in datos_ejemplo[:limite])
+        total_transacciones=sum(d.ventas_cantidad for d in datos_ejemplo[:limite]),
+        ventas_totales=sum(d.ventas_monto for d in datos_ejemplo[:limite]),
+        pedidos_pendientes=7,
+        productos_activos=23,
+        comision_total=Decimal("1890.06")
     )
+
+
+@router.get("/dashboard/productos-top", response_model=DashboardProductosTopResponse, status_code=status.HTTP_200_OK)
+async def get_dashboard_productos_top(
+    ranking: TipoRankingProducto = Query(TipoRankingProducto.VENTAS, description="Tipo de ranking a generar"),
+    limite: int = Query(10, ge=1, le=50, description="Número de productos top a retornar"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> DashboardProductosTopResponse:
+    """Obtener ranking de productos top del vendedor."""
+    # Verificar permisos de vendedor (reutilizar patrón exacto)
+    if current_user.user_type != UserType.VENDEDOR:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo vendedores pueden acceder al dashboard de productos"
+        )
+    
+    # TODO: Implementar queries reales cuando tengamos modelo Venta/Producto
+    # Por ahora simulamos ranking con productos ejemplo
+    # Datos simulados según el tipo de ranking
+    if ranking == TipoRankingProducto.VENTAS:
+        productos_ejemplo = [
+            ProductoTop(sku="PROD-001", nombre="Camiseta Premium", ventas_cantidad=45, ingresos_total=Decimal("2250.00"), precio_venta=Decimal("50.00"), posicion_ranking=1),
+            ProductoTop(sku="PROD-015", nombre="Pantalón Clásico", ventas_cantidad=32, ingresos_total=Decimal("2880.00"), precio_venta=Decimal("90.00"), posicion_ranking=2),
+            ProductoTop(sku="PROD-008", nombre="Zapatos Deportivos", ventas_cantidad=28, ingresos_total=Decimal("4200.00"), precio_venta=Decimal("150.00"), posicion_ranking=3)
+        ]
+    elif ranking == TipoRankingProducto.INGRESOS:
+        productos_ejemplo = [
+            ProductoTop(sku="PROD-008", nombre="Zapatos Deportivos", ventas_cantidad=28, ingresos_total=Decimal("4200.00"), precio_venta=Decimal("150.00"), posicion_ranking=1),
+            ProductoTop(sku="PROD-015", nombre="Pantalón Clásico", ventas_cantidad=32, ingresos_total=Decimal("2880.00"), precio_venta=Decimal("90.00"), posicion_ranking=2),
+            ProductoTop(sku="PROD-001", nombre="Camiseta Premium", ventas_cantidad=45, ingresos_total=Decimal("2250.00"), precio_venta=Decimal("50.00"), posicion_ranking=3)
+        ]
+    else:  # POPULARIDAD
+        productos_ejemplo = [
+            ProductoTop(sku="PROD-020", nombre="Accesorio Tendencia", ventas_cantidad=52, ingresos_total=Decimal("1560.00"), precio_venta=Decimal("30.00"), posicion_ranking=1),
+            ProductoTop(sku="PROD-001", nombre="Camiseta Premium", ventas_cantidad=45, ingresos_total=Decimal("2250.00"), precio_venta=Decimal("50.00"), posicion_ranking=2)
+        ]
+
+    # Datos simulados según el tipo de ranking
+    if ranking == TipoRankingProducto.VENTAS:
+        productos_ejemplo = [
+            ProductoTop(sku="PROD-001", nombre="Camiseta Premium", ventas_cantidad=45, ingresos_total=Decimal("2250.00"), precio_venta=Decimal("50.00"), posicion_ranking=1),
+            ProductoTop(sku="PROD-015", nombre="Pantalón Clásico", ventas_cantidad=32, ingresos_total=Decimal("2880.00"), precio_venta=Decimal("90.00"), posicion_ranking=2),
+            ProductoTop(sku="PROD-008", nombre="Zapatos Deportivos", ventas_cantidad=28, ingresos_total=Decimal("4200.00"), precio_venta=Decimal("150.00"), posicion_ranking=3)
+        ]
+    elif ranking == TipoRankingProducto.INGRESOS:
+        productos_ejemplo = [
+            ProductoTop(sku="PROD-008", nombre="Zapatos Deportivos", ventas_cantidad=28, ingresos_total=Decimal("4200.00"), precio_venta=Decimal("150.00"), posicion_ranking=1),
+            ProductoTop(sku="PROD-015", nombre="Pantalón Clásico", ventas_cantidad=32, ingresos_total=Decimal("2880.00"), precio_venta=Decimal("90.00"), posicion_ranking=2),
+            ProductoTop(sku="PROD-001", nombre="Camiseta Premium", ventas_cantidad=45, ingresos_total=Decimal("2250.00"), precio_venta=Decimal("50.00"), posicion_ranking=3)
+        ]
+    else:  # POPULARIDAD
+        productos_ejemplo = [
+            ProductoTop(sku="PROD-020", nombre="Accesorio Tendencia", ventas_cantidad=52, ingresos_total=Decimal("1560.00"), precio_venta=Decimal("30.00"), posicion_ranking=1),
+            ProductoTop(sku="PROD-001", nombre="Camiseta Premium", ventas_cantidad=45, ingresos_total=Decimal("2250.00"), precio_venta=Decimal("50.00"), posicion_ranking=2)
+        ]
+
+    return DashboardProductosTopResponse(
+        productos_ranking=productos_simulados[:limite],
+        tipo_ranking=tipo_ranking,
+        total_productos_analizados=len(productos_simulados),
+        periodo_analisis="últimos_30_días"
+    )
+
+
+@router.get("/dashboard/comisiones", response_model=DashboardComisionesResponse, status_code=status.HTTP_200_OK)
+async def get_dashboard_comisiones(
+    estado: Optional[EstadoComision] = Query(None, description="Filtrar por estado de comisión"),
+    limite: int = Query(20, ge=1, le=100, description="Número de comisiones a retornar"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> DashboardComisionesResponse:
+    """Obtener detalle de comisiones y earnings del vendedor."""
+    # Verificar permisos de vendedor (reutilizar patrón exacto)
+    if current_user.user_type != UserType.VENDEDOR:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo vendedores pueden acceder al dashboard de comisiones"
+        )
+
+# Generar datos simulados de comisiones
+    from datetime import date
+    comisiones_ejemplo = [
+        ComisionDetalle(
+            transaccion_id="TXN-001", fecha_transaccion=date(2025, 8, 5), producto_sku="PROD-001",
+            monto_venta=Decimal("150.00"), comision_porcentaje=Decimal("15.0"), 
+            comision_monto=Decimal("22.50"), monto_vendedor=Decimal("127.50"), estado=EstadoComision.PAGADA
+        ),
+        ComisionDetalle(
+            transaccion_id="TXN-002", fecha_transaccion=date(2025, 8, 6), producto_sku="PROD-015", 
+            monto_venta=Decimal("280.00"), comision_porcentaje=Decimal("12.0"),
+            comision_monto=Decimal("33.60"), monto_vendedor=Decimal("246.40"), estado=EstadoComision.PENDIENTE
+        ),
+        ComisionDetalle(
+            transaccion_id="TXN-003", fecha_transaccion=date(2025, 8, 4), producto_sku="PROD-008",
+            monto_venta=Decimal("450.00"), comision_porcentaje=Decimal("18.0"),
+            comision_monto=Decimal("81.00"), monto_vendedor=Decimal("369.00"), estado=EstadoComision.PAGADA
+        )
+    ]
+
+    # Filtrar por estado si se especifica
+    if estado:
+        comisiones_filtradas = [c for c in comisiones_ejemplo if c.estado == estado]
+    else:
+        comisiones_filtradas = comisiones_ejemplo
+
+    # Aplicar límite
+    comisiones_resultado = comisiones_filtradas[:limite]
+
+    # Calcular totales
+    total_comisiones = sum(c.comision_monto for c in comisiones_resultado)
+    total_earnings = sum(c.monto_vendedor for c in comisiones_resultado)  
+    pendientes = sum(c.comision_monto for c in comisiones_resultado if c.estado == EstadoComision.PENDIENTE)
+
+    return DashboardComisionesResponse(
+        comisiones_detalle=comisiones_resultado,
+        total_comisiones_generadas=total_comisiones,
+        total_earnings_vendedor=total_earnings,
+        comisiones_pendientes=pendientes,
+        periodo_analisis="último_mes"
+    )
+
+
+@router.get("/health", status_code=status.HTTP_200_OK)
+async def health_check() -> Dict[str, Any]:
+    """
+    Health check endpoint para monitorear el estado del módulo vendedores.
+    
+    Returns:
+        Dict con información de estado del módulo
+    """
+    return {
+        "status": "healthy",
+        "module": "vendedores",
+        "version": "1.0.0",
+        "endpoints": [
+            "POST /vendedores/registro",
+            "POST /vendedores/login",
+            "GET /vendedores/dashboard/resumen",
+            "GET /vendedores/dashboard/ventas",
+            "GET /vendedores/dashboard/productos-top",
+            "GET /vendedores/dashboard/comisiones",
+            "GET /vendedores/health"
+        ],
+    }
+
+
+# Exports para facilitar imports
+__all__ = ["router"]

@@ -26,9 +26,12 @@ Este módulo contiene schemas especializados para:
 - Registro de vendedores con campos obligatorios
 - Validaciones específicas colombianas
 - Response schemas optimizados para vendedores
+- Dashboard y estadísticas de vendedores
 """
 
-from typing import Optional
+from decimal import Decimal
+from enum import Enum
+from typing import List, Optional
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
@@ -36,6 +39,10 @@ from app.models.user import UserType
 from app.schemas.user import UserCreate, UserRead
 from app.utils.validators import validate_celular_colombiano
 
+
+# =============================================================================
+# SCHEMAS DE REGISTRO Y AUTENTICACIÓN
+# =============================================================================
 
 class VendedorCreate(UserCreate):
     """
@@ -162,13 +169,13 @@ class VendedorLogin(BaseModel):
         }
 
 
-# Exports para facilitar imports
-__all__ = ["VendedorCreate", "VendedorResponse", "VendedorErrorResponse"]
-
-
-from decimal import Decimal
+# =============================================================================
+# SCHEMAS DE DASHBOARD Y ESTADÍSTICAS
+# =============================================================================
 
 class VendedorDashboardResumen(BaseModel):
+    """Schema para el resumen del dashboard del vendedor."""
+    
     total_productos: int = Field(0, description="Total de productos del vendedor")
     productos_activos: int = Field(0, description="Productos publicados y activos")
     ventas_mes: int = Field(0, description="Ventas realizadas este mes")
@@ -177,44 +184,121 @@ class VendedorDashboardResumen(BaseModel):
     estadisticas_mes: Optional[str] = Field(None, description="Resumen estadísticas del mes")
 
 
-from typing import List, Optional
-from enum import Enum
+# =============================================================================
+# SCHEMAS DE GRÁFICOS DE VENTAS
+# =============================================================================
 
 class PeriodoVentas(str, Enum):
+    """Enum para tipos de período de análisis de ventas."""
     DIARIO = "diario"
-    SEMANAL = "semanal" 
+    SEMANAL = "semanal"
     MENSUAL = "mensual"
 
+
 class VentasPorPeriodo(BaseModel):
+    """Schema para datos de ventas agrupados por período."""
+    
     periodo: str = Field(..., description="Etiqueta del período (ej: '2025-08', 'Semana 32')")
     ventas_cantidad: int = Field(0, description="Número de ventas en el período")
     ventas_monto: Decimal = Field(Decimal("0.0"), description="Monto total vendido")
 
+
 class DashboardVentasResponse(BaseModel):
+    """Schema de respuesta para el dashboard de ventas por período."""
+    
     periodo_solicitado: PeriodoVentas = Field(..., description="Tipo de período solicitado")
     datos_grafico: List[VentasPorPeriodo] = Field(default_factory=list, description="Datos para el gráfico")
     total_ventas: Decimal = Field(Decimal("0.0"), description="Total de ventas en todos los períodos")
     total_transacciones: int = Field(0, description="Total de transacciones")
-    ventas_totales: Decimal = 0.0
-    pedidos_pendientes: int = 0
-    productos_activos: int = 0
-    comision_total: Decimal = 0.0
+    ventas_totales: Decimal = Field(Decimal("0.0"), description="Total de ventas (alias)")
+    pedidos_pendientes: int = Field(0, description="Pedidos pendientes de procesar")
+    productos_activos: int = Field(0, description="Productos activos del vendedor")
+    comision_total: Decimal = Field(Decimal("0.0"), description="Comisión total acumulada")
 
-# Schemas para gráficos de ventas por período
+
+# =============================================================================
+# SCHEMAS DE RANKING DE PRODUCTOS
+# =============================================================================
+
+class TipoRankingProducto(str, Enum):
+    """Enum para tipos de ranking de productos."""
+    VENTAS = "ventas"
+    INGRESOS = "ingresos"
+    POPULARIDAD = "popularidad"
+
+
+class ProductoTop(BaseModel):
+    """Schema para un producto en el ranking top."""
+    
+    sku: str = Field(..., description="SKU del producto")
+    nombre: str = Field(..., description="Nombre del producto")
+    ventas_cantidad: int = Field(0, description="Cantidad de unidades vendidas")
+    ingresos_total: Decimal = Field(Decimal("0.0"), description="Ingresos totales generados")
+    precio_venta: Decimal = Field(Decimal("0.0"), description="Precio de venta actual")
+    posicion_ranking: int = Field(1, description="Posición en el ranking")
+
+
+class DashboardProductosTopResponse(BaseModel):
+    """Schema de respuesta para el dashboard de productos top."""
+    
+    tipo_ranking: TipoRankingProducto = Field(..., description="Tipo de ranking solicitado")
+    productos_ranking: List[ProductoTop] = Field(default_factory=list, description="Lista de productos en ranking")
+    total_productos_analizados: int = Field(0, description="Total de productos analizados para el ranking")
+    periodo_analisis: str = Field("último_mes", description="Período de análisis del ranking")
+
+
+from datetime import date
 from enum import Enum
 
-class PeriodoVentas(str, Enum):
-    DIARIO = "diario"
-    SEMANAL = "semanal" 
-    MENSUAL = "mensual"
+class EstadoComision(str, Enum):
+    PENDIENTE = "pendiente"
+    PAGADA = "pagada"
+    RETENIDA = "retenida"
 
-class VentasPorPeriodo(BaseModel):
-    periodo: str = Field(..., description="Etiqueta del período (ej: '2025-08', 'Semana 32')")
-    ventas_cantidad: int = Field(0, description="Número de ventas en el período")
-    ventas_monto: Decimal = Field(Decimal("0.0"), description="Monto total vendido")
+class ComisionDetalle(BaseModel):
+    transaccion_id: str = Field(..., description="ID de la transacción")
+    fecha_transaccion: date = Field(..., description="Fecha de la transacción")
+    producto_sku: str = Field(..., description="SKU del producto vendido")
+    monto_venta: Decimal = Field(..., description="Monto total de la venta")
+    comision_porcentaje: Decimal = Field(..., description="Porcentaje de comisión aplicado")
+    comision_monto: Decimal = Field(..., description="Monto de comisión generado")
+    monto_vendedor: Decimal = Field(..., description="Monto que recibe el vendedor")
+    estado: EstadoComision = Field(..., description="Estado de la comisión")
 
-class DashboardVentasResponse(BaseModel):
-    periodo_solicitado: PeriodoVentas = Field(..., description="Tipo de período solicitado")
-    datos_grafico: List[VentasPorPeriodo] = Field(default_factory=list, description="Datos para el gráfico")
-    total_ventas: Decimal = Field(Decimal("0.0"), description="Total de ventas en todos los períodos")
-    total_transacciones: int = Field(0, description="Total de transacciones")
+class DashboardComisionesResponse(BaseModel):
+    """Schema de respuesta para el dashboard de comisiones."""
+    
+    comisiones_detalle: List[ComisionDetalle] = Field(default_factory=list, description="Detalle de comisiones")
+    total_comisiones_generadas: Decimal = Field(Decimal("0.0"), description="Total de comisiones generadas")
+    total_earnings_vendedor: Decimal = Field(Decimal("0.0"), description="Total de earnings del vendedor")
+    comisiones_pendientes: Decimal = Field(Decimal("0.0"), description="Comisiones pendientes de pago")
+    periodo_analisis: str = Field("último_mes", description="Período de análisis")
+    """Schema de respuesta para el dashboard de productos top."""
+    
+    tipo_ranking: TipoRankingProducto = Field(..., description="Tipo de ranking solicitado")
+    productos_ranking: List[ProductoTop] = Field(default_factory=list, description="Lista de productos en ranking")
+    total_productos_analizados: int = Field(0, description="Total de productos analizados para el ranking")
+    periodo_analisis: str = Field("último_mes", description="Período de análisis del ranking")
+
+
+# =============================================================================
+# EXPORTS
+# =============================================================================
+
+__all__ = [
+    # Registro y autenticación
+    "VendedorCreate",
+    "VendedorResponse", 
+    "VendedorErrorResponse",
+    "VendedorLogin",
+    # Dashboard
+    "VendedorDashboardResumen",
+    # Ventas
+    "PeriodoVentas",
+    "VentasPorPeriodo",
+    "DashboardVentasResponse",
+    # Ranking de productos
+    "TipoRankingProducto",
+    "ProductoTop",
+    "DashboardProductosTopResponse",
+]

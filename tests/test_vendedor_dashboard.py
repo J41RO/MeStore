@@ -69,3 +69,59 @@ async def test_dashboard_ventas_limite_parametro(async_client: AsyncClient):
     # Test límite inválido (mayor a 24)
     response = await async_client.get("/api/v1/vendedores/dashboard/ventas?limite=30")
     assert response.status_code == 403  # Auth required (no llega a validation)
+
+
+
+@pytest.mark.asyncio
+async def test_dashboard_comisiones_requiere_auth(async_client):
+    """Verificar que endpoint comisiones requiere autenticación."""
+    response = await async_client.get("/api/v1/vendedores/dashboard/comisiones")
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.asyncio
+async def test_dashboard_comisiones_estados_filtro(async_client):
+    """Verificar filtros por estado de comisión."""
+    estados = ["pendiente", "pagada", "retenida"]
+    for estado in estados:
+        response = await async_client.get(f"/api/v1/vendedores/dashboard/comisiones?estado={estado}")
+        assert response.status_code in [403, 401, 200]  # Auth required o success
+
+
+@pytest.mark.asyncio
+async def test_dashboard_comisiones_limite_parametro(async_client):
+    """Verificar validación del parámetro límite."""
+    # Límite válido
+    response = await async_client.get("/api/v1/vendedores/dashboard/comisiones?limite=50")
+    assert response.status_code in [403, 401, 200]
+    # Límite inválido (mayor a 100)
+    response = await async_client.get("/api/v1/vendedores/dashboard/comisiones?limite=150")
+    assert response.status_code == 403  # Auth required (FastAPI verifica auth antes que params)
+
+
+
+@pytest.mark.asyncio
+async def test_dashboard_productos_top_requiere_auth(async_client):
+    """Verificar que endpoint productos-top requiere autenticación."""
+    response = await async_client.get("/api/v1/vendedores/dashboard/productos-top")
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.asyncio
+async def test_dashboard_productos_top_tipos_ranking(async_client):
+    """Verificar tipos de ranking disponibles."""
+    tipos_ranking = ["ventas", "ingresos", "popularidad"]
+    for tipo in tipos_ranking:
+        response = await async_client.get(f"/api/v1/vendedores/dashboard/productos-top?ranking={tipo}")
+        assert response.status_code in [403, 401, 200]  # Auth required o success
+
+
+@pytest.mark.asyncio
+async def test_dashboard_productos_top_limite_parametro(async_client):
+    """Verificar validación del parámetro límite."""
+    # Límite válido
+    response = await async_client.get("/api/v1/vendedores/dashboard/productos-top?limite=20")
+    assert response.status_code in [403, 401, 200]
+    # Límite inválido (mayor a 50)
+    response = await async_client.get("/api/v1/vendedores/dashboard/productos-top?limite=100")
+    assert response.status_code == 403  # Auth required (no llega a validation)

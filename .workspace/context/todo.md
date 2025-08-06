@@ -268,9 +268,9 @@
     ✅ 1.3.4.6 Implementar endpoint POST /inventario/reserva para reservar stock pre-venta
 ✅ 1.3.5 API dashboard vendedores (métricas y reportes)
     ✅ 1.3.5.1 Crear endpoint GET /dashboard/resumen con KPIs principales del vendedor
-    ⬜ 1.3.5.2 Implementar endpoint GET /dashboard/ventas con gráficos por período
-    ⬜ 1.3.5.3 Crear endpoint GET /dashboard/productos-top con ranking de productos
-    ⬜ 1.3.5.4 Implementar endpoint GET /dashboard/comisiones con detalle de earnings
+    ✅ 1.3.5.2 Implementar endpoint GET /dashboard/ventas con gráficos por período
+    ✅ 1.3.5.3 Crear endpoint GET /dashboard/productos-top con ranking de productos
+    ✅ 1.3.5.4 Implementar endpoint GET /dashboard/comisiones con detalle de earnings
     ⬜ 1.3.5.5 Crear endpoint GET /dashboard/inventario con métricas de stock
     ⬜ 1.3.5.6 Implementar endpoint GET /dashboard/exportar para descargar reportes PDF/Excel
 ⬜ 1.3.6 API sistema de comisiones y pagos
