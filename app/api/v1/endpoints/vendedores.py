@@ -32,7 +32,7 @@ import logging
 from datetime import datetime
 from typing import Any, Dict
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy import select
 from sqlalchemy import func
 from decimal import Decimal
@@ -50,6 +50,9 @@ from app.schemas.vendedor import (
     VendedorLogin,
     VendedorResponse,
     VendedorDashboardResumen,
+    VendedorDashboardResumen,
+    DashboardVentasResponse, 
+    PeriodoVentas,
 )
 
 # Configurar logging
@@ -345,3 +348,45 @@ async def get_dashboard_resumen(
     )
 
     return kpis
+
+@router.get("/dashboard/ventas", response_model=DashboardVentasResponse, status_code=status.HTTP_200_OK)
+async def get_dashboard_ventas(
+    periodo: PeriodoVentas = Query(PeriodoVentas.MENSUAL, description="Tipo de período para agrupar ventas"),
+    limite: int = Query(12, ge=1, le=24, description="Número máximo de períodos a retornar"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> DashboardVentasResponse:
+    """Obtener datos de ventas agrupados por período para gráficos del dashboard."""
+    # Verificar permisos de vendedor (reutilizar patrón)
+    if current_user.user_type != UserType.VENDEDOR:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo vendedores pueden acceder al dashboard de ventas"
+        )
+    
+    # TODO: Implementar queries reales por período cuando tengamos modelo Venta
+    # Por ahora simulamos datos por período
+# Datos simulados según el período solicitado
+    if periodo == PeriodoVentas.MENSUAL:
+        datos_ejemplo = [
+            VentasPorPeriodo(periodo="2025-06", ventas_cantidad=15, ventas_monto=Decimal("4500.00")),
+            VentasPorPeriodo(periodo="2025-07", ventas_cantidad=23, ventas_monto=Decimal("6750.50")),
+            VentasPorPeriodo(periodo="2025-08", ventas_cantidad=18, ventas_monto=Decimal("5200.00"))
+        ]
+    elif periodo == PeriodoVentas.SEMANAL:
+        datos_ejemplo = [
+            VentasPorPeriodo(periodo="Semana 30", ventas_cantidad=8, ventas_monto=Decimal("2400.00")),
+            VentasPorPeriodo(periodo="Semana 31", ventas_cantidad=12, ventas_monto=Decimal("3600.50"))
+        ]
+    else:  # DIARIO
+        datos_ejemplo = [
+            VentasPorPeriodo(periodo="2025-08-05", ventas_cantidad=3, ventas_monto=Decimal("890.00")),
+            VentasPorPeriodo(periodo="2025-08-06", ventas_cantidad=5, ventas_monto=Decimal("1450.50"))
+        ]
+
+    return DashboardVentasResponse(
+        periodo_solicitado=periodo,
+        datos_grafico=datos_ejemplo[:limite],
+        total_ventas=sum(d.ventas_monto for d in datos_ejemplo[:limite]),
+        total_transacciones=sum(d.ventas_cantidad for d in datos_ejemplo[:limite])
+    )

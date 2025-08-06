@@ -169,7 +169,52 @@ __all__ = ["VendedorCreate", "VendedorResponse", "VendedorErrorResponse"]
 from decimal import Decimal
 
 class VendedorDashboardResumen(BaseModel):
+    total_productos: int = Field(0, description="Total de productos del vendedor")
+    productos_activos: int = Field(0, description="Productos publicados y activos")
+    ventas_mes: int = Field(0, description="Ventas realizadas este mes")
+    ingresos_mes: Decimal = Field(Decimal("0.0"), description="Ingresos generados este mes")
+    comision_total: Decimal = Field(Decimal("0.0"), description="Comisión total acumulada")
+    estadisticas_mes: Optional[str] = Field(None, description="Resumen estadísticas del mes")
+
+
+from typing import List, Optional
+from enum import Enum
+
+class PeriodoVentas(str, Enum):
+    DIARIO = "diario"
+    SEMANAL = "semanal" 
+    MENSUAL = "mensual"
+
+class VentasPorPeriodo(BaseModel):
+    periodo: str = Field(..., description="Etiqueta del período (ej: '2025-08', 'Semana 32')")
+    ventas_cantidad: int = Field(0, description="Número de ventas en el período")
+    ventas_monto: Decimal = Field(Decimal("0.0"), description="Monto total vendido")
+
+class DashboardVentasResponse(BaseModel):
+    periodo_solicitado: PeriodoVentas = Field(..., description="Tipo de período solicitado")
+    datos_grafico: List[VentasPorPeriodo] = Field(default_factory=list, description="Datos para el gráfico")
+    total_ventas: Decimal = Field(Decimal("0.0"), description="Total de ventas en todos los períodos")
+    total_transacciones: int = Field(0, description="Total de transacciones")
     ventas_totales: Decimal = 0.0
     pedidos_pendientes: int = 0
     productos_activos: int = 0
     comision_total: Decimal = 0.0
+
+# Schemas para gráficos de ventas por período
+from enum import Enum
+
+class PeriodoVentas(str, Enum):
+    DIARIO = "diario"
+    SEMANAL = "semanal" 
+    MENSUAL = "mensual"
+
+class VentasPorPeriodo(BaseModel):
+    periodo: str = Field(..., description="Etiqueta del período (ej: '2025-08', 'Semana 32')")
+    ventas_cantidad: int = Field(0, description="Número de ventas en el período")
+    ventas_monto: Decimal = Field(Decimal("0.0"), description="Monto total vendido")
+
+class DashboardVentasResponse(BaseModel):
+    periodo_solicitado: PeriodoVentas = Field(..., description="Tipo de período solicitado")
+    datos_grafico: List[VentasPorPeriodo] = Field(default_factory=list, description="Datos para el gráfico")
+    total_ventas: Decimal = Field(Decimal("0.0"), description="Total de ventas en todos los períodos")
+    total_transacciones: int = Field(0, description="Total de transacciones")
