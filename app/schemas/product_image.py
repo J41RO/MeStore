@@ -15,7 +15,8 @@ from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
+from app.utils.url_helper import build_public_url
 
 
 class ProductImageBase(BaseModel):
@@ -47,6 +48,12 @@ class ProductImageResponse(ProductImageBase):
     updated_at: datetime
     
     model_config = ConfigDict(from_attributes=True)
+
+    @computed_field
+    @property
+    def public_url(self) -> str:
+        """URL pública para acceder a la imagen."""
+        return build_public_url(self.file_path)
 
 
 class ProductImageUploadResponse(BaseModel):

@@ -97,3 +97,26 @@ class TestProductosUploadValidation:
 
         assert response.status_code == 400
         assert "excede" in response.json()["detail"].lower()
+
+
+def test_url_helper_functionality():
+    """Test funcionalidad del helper de URLs."""
+    from app.utils.url_helper import build_public_url
+
+    # Test casos normales
+    assert build_public_url("uploads/productos/imagenes/test.jpg") == "/media/productos/imagenes/test.jpg"
+    assert build_public_url("productos/imagenes/test.jpg") == "/media/productos/imagenes/test.jpg"
+
+    # Test rutas sin uploads/
+    assert build_public_url("test.jpg") == "/media/test.jpg"
+
+    # Verificar formato correcto
+    result = build_public_url("uploads/productos/imagenes/abc123.jpg")
+    assert result.startswith("/media/")
+    assert "uploads/" not in result
+
+    # Test casos edge
+    assert build_public_url("") == "/media/"
+    assert build_public_url("/") == "/media//"
+
+    print("✅ Todos los tests de url_helper pasaron")

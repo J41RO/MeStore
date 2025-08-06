@@ -28,7 +28,7 @@ from app.middleware import RequestLoggingMiddleware, SecurityHeadersMiddleware, 
 from app.core.middleware.ip_detection import SuspiciousIPMiddleware
 from app.middleware.rate_limiter import RateLimitMiddleware
 from app.models.user import User
-
+from fastapi.staticfiles import StaticFiles
 # Metadata para categorización de endpoints
 tags_metadata = [
     {"name": "health", "description": "Monitoreo de estado y readiness del sistema"},
@@ -68,6 +68,9 @@ app = FastAPI(
     redoc_url="/redoc",
     openapi_url="/openapi.json"
 )
+
+# Agregar después de crear app:
+app.mount("/media", StaticFiles(directory="uploads"), name="media")
 
 # Registrar exception handlers
 register_exception_handlers(app)
