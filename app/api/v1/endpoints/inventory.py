@@ -1,12 +1,15 @@
 from typing import List, Optional
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, Path, Body
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 
 from app.core.database import get_db
 from app.models.inventory import Inventory
-from app.schemas.inventory import InventoryResponse, MovimientoStockCreate, TipoMovimiento, MovimientoResponse
+from app.schemas.inventory import InventoryResponse, MovimientoStockCreate, TipoMovimiento, MovimientoResponse, InventoryUpdate
+from app.utils.crud import DatabaseUtils
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -76,6 +79,8 @@ async def get_inventario(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error interno consultando inventario"
         )
+
+
 @router.post(
     "/movimiento",
     response_model=MovimientoResponse,
@@ -229,12 +234,102 @@ async def get_ubicaciones(
         # Convertir a schema response
         return [InventoryResponse.model_validate(item) for item in ubicaciones]
 
-
-
-
     except Exception as e:
         logger.error(f"Error consultando ubicaciones: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error interno consultando ubicaciones físicas"
+        )
+
+
+@router.put(
+    "/{id}/ubicacion",
+    response_model=InventoryResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Cambiar ubicación física de inventario",
+    description="Actualizar posición física (zona, estante, posición) de un registro de inventario",
+    tags=["inventory"]
+)
+async def cambiar_ubicacion(
+    id: UUID = Path(..., description="ID del registro de inventario"),
+    ubicacion_data: InventoryUpdate = Body(..., description="Nueva ubicación (zona, estante, posicion)"),
+    db: AsyncSession = Depends(get_db)
+) -> InventoryResponse:
+    """
+    Cambiar ubicación física de un registro de inventario.
+
+    Args:
+        id: ID del registro de inventario a actualizar
+        ubicacion_data: Datos de la nueva ubicación (solo zona, estante, posicion)
+        db: Sesión de base de datos
+    """
+    try:
+        logger.info(f"Cambiando ubicación inventario ID: {id}")
+        
+        # Validar que se proporcionan campos de ubicación
+        ubicacion_fields = ['zona', 'estante', 'posicion']
+        provided_fields = [field for field in ubicacion_fields 
+                          if getattr(ubicacion_data, field) is not None]
+        
+        if not provided_fields:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Debe proporcionar al menos zona, estante o posición"
+            )
+        
+        # Obtener inventario existente
+        inventario = await DatabaseUtils.get_by_id(db, Inventory, id)
+        
+        if not inventario:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Inventario con ID {id} no encontrado"
+            )
+            
+        logger.info(f"Inventario encontrado: {inventario.get_ubicacion_completa()}")
+        
+        # Preparar datos para actualización (solo campos de ubicación)
+        update_data = {}
+        if ubicacion_data.zona is not None:
+            update_data['zona'] = ubicacion_data.zona
+        if ubicacion_data.estante is not None:
+            update_data['estante'] = ubicacion_data.estante  
+        if ubicacion_data.posicion is not None:
+            update_data['posicion'] = ubicacion_data.posicion
+            
+        nueva_ubicacion = f"{update_data.get('zona', inventario.zona)}-{update_data.get('estante', inventario.estante)}-{update_data.get('posicion', inventario.posicion)}"
+        logger.info(f"Nueva ubicación: {nueva_ubicacion}")
+        
+        # Actualizar inventario con manejo de constraint violation
+        try:
+            inventario_actualizado = await DatabaseUtils.update_record(
+                db, Inventory, id, update_data
+            )
+            
+            await db.commit()
+            await db.refresh(inventario_actualizado)
+            
+            logger.info(f"Ubicación actualizada exitosamente: {inventario_actualizado.get_ubicacion_completa()}")
+            return InventoryResponse.model_validate(inventario_actualizado)
+            
+        except IntegrityError as e:
+            await db.rollback()
+            error_msg = str(e.orig) if hasattr(e, 'orig') else str(e)
+            if 'uq_product_location' in error_msg:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"La ubicación {nueva_ubicacion} ya está ocupada por este producto"
+                )
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Conflicto de integridad en la base de datos"
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error cambiando ubicación inventario {id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno actualizando ubicación"
         )
