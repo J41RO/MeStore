@@ -32,6 +32,7 @@ Este módulo contiene schemas especializados para:
 """
 
 from datetime import date
+from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 from typing import List, Optional
@@ -44,6 +45,43 @@ from app.utils.validators import validate_celular_colombiano
 
 
 # =============================================================================
+
+# =============================================================================
+# SCHEMAS DE EXPORTACIÓN  
+# =============================================================================
+
+class FormatoExport(str, Enum):
+    """Formatos disponibles para exportación."""
+    PDF = "pdf"
+    EXCEL = "excel"
+
+
+class TipoReporte(str, Enum):
+    """Tipos de reportes disponibles."""
+    RESUMEN = "resumen"
+    VENTAS = "ventas"
+    PRODUCTOS_TOP = "productos_top"
+    COMISIONES = "comisiones"
+    INVENTARIO = "inventario"
+    COMPLETO = "completo"
+
+
+class ExportRequest(BaseModel):
+    """Schema para solicitud de exportación."""
+    tipo_reporte: TipoReporte = Field(..., description="Tipo de reporte a exportar")
+    formato: FormatoExport = Field(..., description="Formato de exportación")
+    incluir_graficos: bool = Field(False, description="Incluir gráficos en el reporte")
+    periodo_dias: int = Field(30, ge=1, le=365, description="Período en días para el reporte")
+
+
+class ExportResponse(BaseModel):
+    """Schema para respuesta de exportación."""
+    success: bool = Field(..., description="Indica si la exportación fue exitosa")
+    filename: str = Field(..., description="Nombre del archivo generado")
+    download_url: str = Field(..., description="URL para descargar el archivo")
+    file_size: int = Field(..., description="Tamaño del archivo en bytes")
+    formato: FormatoExport = Field(..., description="Formato del archivo generado")
+    fecha_generacion: datetime = Field(default_factory=datetime.now, description="Fecha de generación")
 # SCHEMAS DE REGISTRO Y AUTENTICACIÓN
 # =============================================================================
 
@@ -146,6 +184,12 @@ class VendedorErrorResponse(BaseModel):
     """Schema para respuestas de error específicas de vendedores."""
 
     error: str = Field(..., description="Mensaje de error")
+    # Exportación
+    "FormatoExport",
+    "TipoReporte", 
+    "ExportRequest",
+    "ExportResponse",
+
     details: Optional[str] = Field(None, description="Detalles adicionales del error")
 
     class Config:

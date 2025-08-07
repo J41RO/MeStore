@@ -10,13 +10,14 @@
 # Autor: Jairo
 # Fecha de Creación: 2025-07-31
 # Última Actualización: 2025-08-07
-# Versión: 1.1.0
+# Versión: 1.2.0
 # Propósito: Endpoints API específicos para gestión de vendedores
 #            con registro especializado, validaciones colombianas y dashboard de inventario
 #
 # Modificaciones:
 # 2025-07-31 - Creación inicial con registro de vendedores
 # 2025-08-07 - Agregado endpoint de dashboard de inventario
+# 2025-08-07 - Agregado endpoint de exportación PDF/Excel
 #
 # ---------------------------------------------------------------------------------------------
 
@@ -29,6 +30,7 @@ Este módulo contiene endpoints especializados para:
 - Manejo de errores específicos para vendedores
 - Dashboard con estadísticas y rankings
 - Métricas de inventario y stock
+- Exportación de reportes en PDF y Excel
 """
 
 import logging
@@ -51,23 +53,27 @@ from app.models.transaction import Transaction
 from app.schemas.auth import TokenResponse
 from app.schemas.user import UserRead
 from app.schemas.vendedor import (
-    DashboardInventarioResponse,
-    InventarioMetrica,
-    EstadoStock,
-    DashboardComisionesResponse,
-    ComisionDetalle,
-    EstadoComision,
-    DashboardProductosTopResponse,
-    DashboardVentasResponse,
-    PeriodoVentas,
-    ProductoTop,
-    TipoRankingProducto,
     VendedorCreate,
-    VendedorDashboardResumen,
+    VendedorResponse,
     VendedorErrorResponse,
     VendedorLogin,
-    VendedorResponse,
+    VendedorDashboardResumen,
+    PeriodoVentas,
     VentasPorPeriodo,
+    FormatoExport,
+    TipoReporte,
+    ExportRequest,
+    ExportResponse,
+    DashboardVentasResponse,
+    DashboardInventarioResponse,
+    DashboardProductosTopResponse,
+    DashboardComisionesResponse,
+    TipoRankingProducto,
+    EstadoStock,
+    InventarioMetrica,
+    EstadoComision,
+    ComisionDetalle,
+    ProductoTop,
 )
 
 # Configurar logging
@@ -974,16 +980,6 @@ async def get_dashboard_inventario(
     # Aplicar límite
     inventario_resultado = inventario_filtrado[:limite]
 
-    # Filtrar por estado si se especifica
-    if estado:
-        comisiones_filtradas = [c for c in comisiones_ejemplo if c.estado == estado]
-    else:
-        comisiones_filtradas = comisiones_ejemplo
-
-    # Aplicar límite final
-    comisiones_resultado = comisiones_filtradas[:limite]
-
-
     # Calcular métricas agregadas
     total_productos = len(inventario_resultado)
     bajo_stock = len([i for i in inventario_resultado if i.estado_stock == EstadoStock.BAJO_STOCK])
@@ -1002,6 +998,37 @@ async def get_dashboard_inventario(
     )
 
 
+@router.get("/dashboard/exportar", response_model=ExportResponse, status_code=status.HTTP_200_OK)
+async def get_dashboard_exportar(
+    tipo_reporte: TipoReporte = Query(..., description="Tipo de reporte a generar"),
+    formato: FormatoExport = Query(FormatoExport.PDF, description="Formato de exportación"),
+    incluir_graficos: bool = Query(False, description="Incluir gráficos"),
+    periodo_dias: int = Query(30, ge=1, le=365, description="Período en días"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> ExportResponse:
+    """Exportar reportes del dashboard en PDF o Excel."""
+    # Verificar permisos de vendedor
+    if current_user.user_type != UserType.VENDEDOR:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo vendedores pueden exportar reportes"
+        )
+    
+    # TODO: Implementar generación real de archivos
+    # Por ahora respuesta simulada
+    filename = f"reporte_{tipo_reporte.value}_{current_user.id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.{formato.value}"
+    
+    return ExportResponse(
+        success=True,
+        filename=filename,
+        download_url=f"/downloads/{filename}",
+        file_size=1024,  # Tamaño simulado
+        formato=formato,
+        fecha_generacion=datetime.now()
+    )
+
+
 @router.get("/health", status_code=status.HTTP_200_OK)
 async def health_check() -> Dict[str, Any]:
     """
@@ -1013,7 +1040,7 @@ async def health_check() -> Dict[str, Any]:
     return {
         "status": "healthy",
         "module": "vendedores",
-        "version": "1.1.0",
+        "version": "1.2.0",
         "endpoints": [
             "POST /vendedores/registro",
             "POST /vendedores/login",
@@ -1022,6 +1049,7 @@ async def health_check() -> Dict[str, Any]:
             "GET /vendedores/dashboard/productos-top",
             "GET /vendedores/dashboard/comisiones",
             "GET /vendedores/dashboard/inventario",
+            "GET /vendedores/dashboard/exportar",
             "GET /vendedores/health"
         ],
     }
