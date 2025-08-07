@@ -9,13 +9,14 @@
 # Ruta: ~/app/api/v1/endpoints/vendedores.py
 # Autor: Jairo
 # Fecha de Creación: 2025-07-31
-# Última Actualización: 2025-07-31
-# Versión: 1.0.0
+# Última Actualización: 2025-08-07
+# Versión: 1.1.0
 # Propósito: Endpoints API específicos para gestión de vendedores
-#            con registro especializado y validaciones colombianas
+#            con registro especializado, validaciones colombianas y dashboard de inventario
 #
 # Modificaciones:
 # 2025-07-31 - Creación inicial con registro de vendedores
+# 2025-08-07 - Agregado endpoint de dashboard de inventario
 #
 # ---------------------------------------------------------------------------------------------
 
@@ -27,13 +28,13 @@ Este módulo contiene endpoints especializados para:
 - Integración con sistema de autenticación existente
 - Manejo de errores específicos para vendedores
 - Dashboard con estadísticas y rankings
+- Métricas de inventario y stock
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, date
 from decimal import Decimal
 from typing import Dict, Any, Optional
-
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
@@ -46,7 +47,12 @@ from app.models.user import User, UserType
 from app.schemas.auth import TokenResponse
 from app.schemas.user import UserRead
 from app.schemas.vendedor import (
-    DashboardComisionesResponse, ComisionDetalle, EstadoComision,
+    DashboardInventarioResponse,
+    InventarioMetrica,
+    EstadoStock,
+    DashboardComisionesResponse,
+    ComisionDetalle,
+    EstadoComision,
     DashboardProductosTopResponse,
     DashboardVentasResponse,
     PeriodoVentas,
@@ -410,29 +416,10 @@ async def get_dashboard_productos_top(
             ProductoTop(sku="PROD-001", nombre="Camiseta Premium", ventas_cantidad=45, ingresos_total=Decimal("2250.00"), precio_venta=Decimal("50.00"), posicion_ranking=2)
         ]
 
-    # Datos simulados según el tipo de ranking
-    if ranking == TipoRankingProducto.VENTAS:
-        productos_ejemplo = [
-            ProductoTop(sku="PROD-001", nombre="Camiseta Premium", ventas_cantidad=45, ingresos_total=Decimal("2250.00"), precio_venta=Decimal("50.00"), posicion_ranking=1),
-            ProductoTop(sku="PROD-015", nombre="Pantalón Clásico", ventas_cantidad=32, ingresos_total=Decimal("2880.00"), precio_venta=Decimal("90.00"), posicion_ranking=2),
-            ProductoTop(sku="PROD-008", nombre="Zapatos Deportivos", ventas_cantidad=28, ingresos_total=Decimal("4200.00"), precio_venta=Decimal("150.00"), posicion_ranking=3)
-        ]
-    elif ranking == TipoRankingProducto.INGRESOS:
-        productos_ejemplo = [
-            ProductoTop(sku="PROD-008", nombre="Zapatos Deportivos", ventas_cantidad=28, ingresos_total=Decimal("4200.00"), precio_venta=Decimal("150.00"), posicion_ranking=1),
-            ProductoTop(sku="PROD-015", nombre="Pantalón Clásico", ventas_cantidad=32, ingresos_total=Decimal("2880.00"), precio_venta=Decimal("90.00"), posicion_ranking=2),
-            ProductoTop(sku="PROD-001", nombre="Camiseta Premium", ventas_cantidad=45, ingresos_total=Decimal("2250.00"), precio_venta=Decimal("50.00"), posicion_ranking=3)
-        ]
-    else:  # POPULARIDAD
-        productos_ejemplo = [
-            ProductoTop(sku="PROD-020", nombre="Accesorio Tendencia", ventas_cantidad=52, ingresos_total=Decimal("1560.00"), precio_venta=Decimal("30.00"), posicion_ranking=1),
-            ProductoTop(sku="PROD-001", nombre="Camiseta Premium", ventas_cantidad=45, ingresos_total=Decimal("2250.00"), precio_venta=Decimal("50.00"), posicion_ranking=2)
-        ]
-
     return DashboardProductosTopResponse(
-        productos_ranking=productos_simulados[:limite],
-        tipo_ranking=tipo_ranking,
-        total_productos_analizados=len(productos_simulados),
+        tipo_ranking=ranking,
+        productos_ranking=productos_ejemplo[:limite],
+        total_productos_analizados=len(productos_ejemplo),
         periodo_analisis="últimos_30_días"
     )
 
@@ -452,8 +439,7 @@ async def get_dashboard_comisiones(
             detail="Solo vendedores pueden acceder al dashboard de comisiones"
         )
 
-# Generar datos simulados de comisiones
-    from datetime import date
+    # Generar datos simulados de comisiones
     comisiones_ejemplo = [
         ComisionDetalle(
             transaccion_id="TXN-001", fecha_transaccion=date(2025, 8, 5), producto_sku="PROD-001",
@@ -483,15 +469,84 @@ async def get_dashboard_comisiones(
 
     # Calcular totales
     total_comisiones = sum(c.comision_monto for c in comisiones_resultado)
-    total_earnings = sum(c.monto_vendedor for c in comisiones_resultado)  
+    pagadas = sum(c.comision_monto for c in comisiones_resultado if c.estado == EstadoComision.PAGADA)
     pendientes = sum(c.comision_monto for c in comisiones_resultado if c.estado == EstadoComision.PENDIENTE)
+    retenidas = sum(c.comision_monto for c in comisiones_resultado if c.estado == EstadoComision.RETENIDA)
 
     return DashboardComisionesResponse(
         comisiones_detalle=comisiones_resultado,
         total_comisiones_generadas=total_comisiones,
-        total_earnings_vendedor=total_earnings,
         comisiones_pendientes=pendientes,
+        comisiones_pagadas=pagadas,
+        comisiones_retenidas=retenidas,
         periodo_analisis="último_mes"
+    )
+
+
+@router.get("/dashboard/inventario", response_model=DashboardInventarioResponse, status_code=status.HTTP_200_OK)
+async def get_dashboard_inventario(
+    estado: Optional[EstadoStock] = Query(None, description="Filtrar por estado de stock"),
+    limite: int = Query(25, ge=1, le=100, description="Número de productos de inventario a retornar"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> DashboardInventarioResponse:
+    """Obtener métricas de inventario y stock del vendedor."""
+    # Verificar permisos de vendedor (reutilizar patrón exacto)
+    if current_user.user_type != UserType.VENDEDOR:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo vendedores pueden acceder al dashboard de inventario"
+        )
+    
+    # TODO: Implementar queries reales cuando tengamos modelo Inventory completo
+    # Generar datos simulados de inventario
+    inventario_ejemplo = [
+        InventarioMetrica(
+            producto_sku="PROD-001", nombre_producto="Camiseta Premium", ubicacion="A1-E2-P3",
+            cantidad_total=50, cantidad_reservada=8, cantidad_disponible=42, 
+            estado_stock=EstadoStock.DISPONIBLE, ultimo_movimiento=date(2025, 8, 5)
+        ),
+        InventarioMetrica(
+            producto_sku="PROD-015", nombre_producto="Pantalón Clásico", ubicacion="B2-E1-P5", 
+            cantidad_total=15, cantidad_reservada=12, cantidad_disponible=3,
+            estado_stock=EstadoStock.BAJO_STOCK, ultimo_movimiento=date(2025, 8, 4)
+        ),
+        InventarioMetrica(
+            producto_sku="PROD-008", nombre_producto="Zapatos Deportivos", ubicacion="C1-E3-P2",
+            cantidad_total=0, cantidad_reservada=0, cantidad_disponible=0,
+            estado_stock=EstadoStock.AGOTADO, ultimo_movimiento=date(2025, 8, 3)
+        ),
+        InventarioMetrica(
+            producto_sku="PROD-020", nombre_producto="Accesorio Tendencia", ubicacion="A3-E1-P1",
+            cantidad_total=80, cantidad_reservada=25, cantidad_disponible=55,
+            estado_stock=EstadoStock.RESERVADO, ultimo_movimiento=date(2025, 8, 6)
+        )
+    ]
+
+    # Filtrar por estado si se especifica
+    if estado:
+        inventario_filtrado = [i for i in inventario_ejemplo if i.estado_stock == estado]
+    else:
+        inventario_filtrado = inventario_ejemplo
+
+    # Aplicar límite
+    inventario_resultado = inventario_filtrado[:limite]
+
+    # Calcular métricas agregadas
+    total_productos = len(inventario_resultado)
+    bajo_stock = len([i for i in inventario_resultado if i.estado_stock == EstadoStock.BAJO_STOCK])
+    agotados = len([i for i in inventario_resultado if i.estado_stock == EstadoStock.AGOTADO])
+    total_unidades = sum(i.cantidad_disponible for i in inventario_resultado)
+    # Simular valor estimado (cantidad_disponible * precio_promedio estimado)
+    valor_estimado = sum(i.cantidad_disponible * Decimal("45.00") for i in inventario_resultado)
+    # Por ahora simulamos métricas de inventario
+    return DashboardInventarioResponse(
+        inventario_metricas=inventario_resultado,
+        total_productos_inventario=total_productos,
+        productos_bajo_stock=bajo_stock,
+        productos_agotados=agotados,
+        total_unidades_disponibles=total_unidades,
+        valor_inventario_estimado=valor_estimado
     )
 
 
@@ -506,7 +561,7 @@ async def health_check() -> Dict[str, Any]:
     return {
         "status": "healthy",
         "module": "vendedores",
-        "version": "1.0.0",
+        "version": "1.1.0",
         "endpoints": [
             "POST /vendedores/registro",
             "POST /vendedores/login",
@@ -514,6 +569,7 @@ async def health_check() -> Dict[str, Any]:
             "GET /vendedores/dashboard/ventas",
             "GET /vendedores/dashboard/productos-top",
             "GET /vendedores/dashboard/comisiones",
+            "GET /vendedores/dashboard/inventario",
             "GET /vendedores/health"
         ],
     }

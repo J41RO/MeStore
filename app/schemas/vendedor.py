@@ -9,13 +9,14 @@
 # Ruta: ~/app/schemas/vendedor.py
 # Autor: Jairo
 # Fecha de Creación: 2025-07-31
-# Última Actualización: 2025-07-31
-# Versión: 1.0.0
+# Última Actualización: 2025-08-07
+# Versión: 1.1.0
 # Propósito: Schemas específicos para registro y gestión de vendedores
-#            con validaciones obligatorias colombianas
+#            con validaciones obligatorias colombianas y schemas de inventario
 #
 # Modificaciones:
 # 2025-07-31 - Creación inicial con herencia de UserCreate
+# 2025-08-07 - Agregados schemas de inventario y corrección de DashboardComisionesResponse
 #
 # ---------------------------------------------------------------------------------------------
 
@@ -27,8 +28,10 @@ Este módulo contiene schemas especializados para:
 - Validaciones específicas colombianas
 - Response schemas optimizados para vendedores
 - Dashboard y estadísticas de vendedores
+- Métricas de inventario y stock
 """
 
+from datetime import date
 from decimal import Decimal
 from enum import Enum
 from typing import List, Optional
@@ -247,15 +250,19 @@ class DashboardProductosTopResponse(BaseModel):
     periodo_analisis: str = Field("último_mes", description="Período de análisis del ranking")
 
 
-from datetime import date
-from enum import Enum
+# =============================================================================
+# SCHEMAS DE COMISIONES
+# =============================================================================
 
 class EstadoComision(str, Enum):
+    """Estados posibles de las comisiones."""
     PENDIENTE = "pendiente"
     PAGADA = "pagada"
     RETENIDA = "retenida"
 
+
 class ComisionDetalle(BaseModel):
+    """Schema para detalle de comisiones individuales."""
     transaccion_id: str = Field(..., description="ID de la transacción")
     fecha_transaccion: date = Field(..., description="Fecha de la transacción")
     producto_sku: str = Field(..., description="SKU del producto vendido")
@@ -265,20 +272,49 @@ class ComisionDetalle(BaseModel):
     monto_vendedor: Decimal = Field(..., description="Monto que recibe el vendedor")
     estado: EstadoComision = Field(..., description="Estado de la comisión")
 
+
 class DashboardComisionesResponse(BaseModel):
-    """Schema de respuesta para el dashboard de comisiones."""
-    
-    comisiones_detalle: List[ComisionDetalle] = Field(default_factory=list, description="Detalle de comisiones")
+    """Schema de respuesta para el dashboard de comisiones del vendedor."""
+    comisiones_detalle: List[ComisionDetalle] = Field(default_factory=list, description="Lista de comisiones detalladas")
     total_comisiones_generadas: Decimal = Field(Decimal("0.0"), description="Total de comisiones generadas")
-    total_earnings_vendedor: Decimal = Field(Decimal("0.0"), description="Total de earnings del vendedor")
     comisiones_pendientes: Decimal = Field(Decimal("0.0"), description="Comisiones pendientes de pago")
-    periodo_analisis: str = Field("último_mes", description="Período de análisis")
-    """Schema de respuesta para el dashboard de productos top."""
-    
-    tipo_ranking: TipoRankingProducto = Field(..., description="Tipo de ranking solicitado")
-    productos_ranking: List[ProductoTop] = Field(default_factory=list, description="Lista de productos en ranking")
-    total_productos_analizados: int = Field(0, description="Total de productos analizados para el ranking")
-    periodo_analisis: str = Field("último_mes", description="Período de análisis del ranking")
+    comisiones_pagadas: Decimal = Field(Decimal("0.0"), description="Comisiones ya pagadas")
+    comisiones_retenidas: Decimal = Field(Decimal("0.0"), description="Comisiones retenidas")
+    periodo_analisis: str = Field("último_mes", description="Período de análisis de comisiones")
+
+
+# =============================================================================
+# SCHEMAS DE INVENTARIO
+# =============================================================================
+
+class EstadoStock(str, Enum):
+    """Estados posibles del stock de inventario."""
+    DISPONIBLE = "disponible"
+    BAJO_STOCK = "bajo_stock"
+    AGOTADO = "agotado"
+    RESERVADO = "reservado"
+
+
+class InventarioMetrica(BaseModel):
+    """Métrica individual de inventario."""
+    producto_sku: str = Field(..., description="SKU del producto")
+    nombre_producto: str = Field(..., description="Nombre del producto")
+    ubicacion: str = Field(..., description="Ubicación física en almacén")
+    cantidad_total: int = Field(0, description="Cantidad total en stock")
+    cantidad_reservada: int = Field(0, description="Cantidad reservada")
+    cantidad_disponible: int = Field(0, description="Cantidad disponible para venta")
+    estado_stock: EstadoStock = Field(..., description="Estado actual del stock")
+    ultimo_movimiento: date = Field(..., description="Fecha del último movimiento")
+
+
+class DashboardInventarioResponse(BaseModel):
+    """Response schema para métricas de inventario del dashboard."""
+    inventario_metricas: List[InventarioMetrica] = Field(default_factory=list, description="Métricas de inventario")
+    total_productos_inventario: int = Field(0, description="Total de productos en inventario")
+    productos_bajo_stock: int = Field(0, description="Productos con stock bajo")
+    productos_agotados: int = Field(0, description="Productos agotados")
+    total_unidades_disponibles: int = Field(0, description="Total de unidades disponibles")
+    valor_inventario_estimado: Decimal = Field(Decimal("0.0"), description="Valor estimado del inventario")
 
 
 # =============================================================================
@@ -301,4 +337,12 @@ __all__ = [
     "TipoRankingProducto",
     "ProductoTop",
     "DashboardProductosTopResponse",
+    # Comisiones
+    "EstadoComision",
+    "ComisionDetalle",
+    "DashboardComisionesResponse",
+    # Inventario
+    "EstadoStock",
+    "InventarioMetrica",
+    "DashboardInventarioResponse",
 ]

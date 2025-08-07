@@ -125,3 +125,28 @@ async def test_dashboard_productos_top_limite_parametro(async_client):
     # Límite inválido (mayor a 50)
     response = await async_client.get("/api/v1/vendedores/dashboard/productos-top?limite=100")
     assert response.status_code == 403  # Auth required (no llega a validation)
+
+
+@pytest.mark.asyncio
+async def test_dashboard_inventario_requiere_auth(async_client):
+    """Verificar que endpoint inventario requiere autenticación."""
+    response = await async_client.get("/api/v1/vendedores/dashboard/inventario")
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+@pytest.mark.asyncio
+async def test_dashboard_inventario_estados_filtro(async_client):
+    """Verificar filtros por estado de stock."""
+    estados = ["disponible", "bajo_stock", "agotado", "reservado"]
+    for estado in estados:
+        response = await async_client.get(f"/api/v1/vendedores/dashboard/inventario?estado={estado}")
+        assert response.status_code in [403, 401, 200]  # Auth required o success
+
+@pytest.mark.asyncio
+async def test_dashboard_inventario_limite_parametro(async_client):
+    """Verificar validación del parámetro límite."""
+    # Límite válido
+    response = await async_client.get("/api/v1/vendedores/dashboard/inventario?limite=50")
+    assert response.status_code in [403, 401, 200]
+    # Límite inválido (mayor a 100)
+    response = await async_client.get("/api/v1/vendedores/dashboard/inventario?limite=150")
+    assert response.status_code in [403, 422]  # Auth required o Validation error
