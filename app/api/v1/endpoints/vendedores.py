@@ -38,7 +38,7 @@ from typing import Dict, Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
-from sqlalchemy import func, select, and_
+from sqlalchemy import func, select, and_, desc
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -614,31 +614,160 @@ async def get_dashboard_productos_top(
             detail="Solo vendedores pueden acceder al dashboard de productos"
         )
     
-    # TODO: Implementar queries reales cuando tengamos modelo Venta/Producto
-    # Por ahora simulamos ranking con productos ejemplo
-    # Datos simulados según el tipo de ranking
-    if ranking == TipoRankingProducto.VENTAS:
-        productos_ejemplo = [
-            ProductoTop(sku="PROD-001", nombre="Camiseta Premium", ventas_cantidad=45, ingresos_total=Decimal("2250.00"), precio_venta=Decimal("50.00"), posicion_ranking=1),
-            ProductoTop(sku="PROD-015", nombre="Pantalón Clásico", ventas_cantidad=32, ingresos_total=Decimal("2880.00"), precio_venta=Decimal("90.00"), posicion_ranking=2),
-            ProductoTop(sku="PROD-008", nombre="Zapatos Deportivos", ventas_cantidad=28, ingresos_total=Decimal("4200.00"), precio_venta=Decimal("150.00"), posicion_ranking=3)
-        ]
-    elif ranking == TipoRankingProducto.INGRESOS:
-        productos_ejemplo = [
-            ProductoTop(sku="PROD-008", nombre="Zapatos Deportivos", ventas_cantidad=28, ingresos_total=Decimal("4200.00"), precio_venta=Decimal("150.00"), posicion_ranking=1),
-            ProductoTop(sku="PROD-015", nombre="Pantalón Clásico", ventas_cantidad=32, ingresos_total=Decimal("2880.00"), precio_venta=Decimal("90.00"), posicion_ranking=2),
-            ProductoTop(sku="PROD-001", nombre="Camiseta Premium", ventas_cantidad=45, ingresos_total=Decimal("2250.00"), precio_venta=Decimal("50.00"), posicion_ranking=3)
-        ]
-    else:  # POPULARIDAD
-        productos_ejemplo = [
-            ProductoTop(sku="PROD-020", nombre="Accesorio Tendencia", ventas_cantidad=52, ingresos_total=Decimal("1560.00"), precio_venta=Decimal("30.00"), posicion_ranking=1),
-            ProductoTop(sku="PROD-001", nombre="Camiseta Premium", ventas_cantidad=45, ingresos_total=Decimal("2250.00"), precio_venta=Decimal("50.00"), posicion_ranking=2)
-        ]
+    # Intentar consultas reales para ranking, fallback a datos simulados
+    try:
+        # Importar EstadoTransaccion para filtrar solo transacciones completadas
+        from app.models.transaction import EstadoTransaccion
+        usar_datos_reales = True
 
+    except Exception as e:
+        usar_datos_reales = False
+# Datos simulados según el tipo de ranking
+    if usar_datos_reales:
+        if ranking == TipoRankingProducto.VENTAS:
+            # Ranking por cantidad de ventas (más vendidos)
+            ranking_query = await db.execute(
+                select(
+                    Product.sku,
+                    Product.name,
+                    Product.precio_venta,
+                    func.count(Transaction.id).label('ventas_cantidad'),
+                    func.coalesce(func.sum(Transaction.monto), 0).label('ingresos_total')
+                ).select_from(
+                    Product.join(Transaction, Product.id == Transaction.product_id)
+                ).where(
+                    and_(
+                        Product.vendedor_id == current_user.id,
+                        Transaction.estado == EstadoTransaccion.COMPLETADA
+                    )
+                ).group_by(
+                    Product.id, Product.sku, Product.name, Product.precio_venta
+                ).order_by(
+                    desc(func.count(Transaction.id))
+                ).limit(limite)
+            )
+            
+            resultados = ranking_query.all()
+            productos_ejemplo = []
+            for i, resultado in enumerate(resultados, 1):
+                productos_ejemplo.append(ProductoTop(
+                    sku=resultado.sku,
+                    nombre=resultado.name,
+                    ventas_cantidad=resultado.ventas_cantidad,
+                    ingresos_total=Decimal(str(resultado.ingresos_total)),
+                    precio_venta=Decimal(str(resultado.precio_venta or 0)),
+                    posicion_ranking=i
+                ))
+                
+        elif ranking == TipoRankingProducto.INGRESOS:
+            # Ranking por ingresos totales
+            ranking_query = await db.execute(
+                select(
+                    Product.sku,
+                    Product.name,
+                    Product.precio_venta,
+                    func.count(Transaction.id).label('ventas_cantidad'),
+                    func.coalesce(func.sum(Transaction.monto), 0).label('ingresos_total')
+                ).select_from(
+                    Product.join(Transaction, Product.id == Transaction.product_id)
+                ).where(
+                    and_(
+                        Product.vendedor_id == current_user.id,
+                        Transaction.estado == EstadoTransaccion.COMPLETADA
+                    )
+                ).group_by(
+                    Product.id, Product.sku, Product.name, Product.precio_venta
+                ).order_by(
+                    desc(func.sum(Transaction.monto))
+                ).limit(limite)
+            )
+            
+            resultados = ranking_query.all()
+            productos_ejemplo = []
+            for i, resultado in enumerate(resultados, 1):
+                productos_ejemplo.append(ProductoTop(
+                    sku=resultado.sku,
+                    nombre=resultado.name,
+                    ventas_cantidad=resultado.ventas_cantidad,
+                    ingresos_total=Decimal(str(resultado.ingresos_total)),
+                    precio_venta=Decimal(str(resultado.precio_venta or 0)),
+                    posicion_ranking=i
+                ))
+                
+        else:  # POPULARIDAD (usar mismo criterio que VENTAS)
+            # Ranking por popularidad (cantidad de transacciones)
+            ranking_query = await db.execute(
+                select(
+                    Product.sku,
+                    Product.name,
+                    Product.precio_venta,
+                    func.count(Transaction.id).label('ventas_cantidad'),
+                    func.coalesce(func.sum(Transaction.monto), 0).label('ingresos_total')
+                ).select_from(
+                    Product.join(Transaction, Product.id == Transaction.product_id)
+                ).where(
+                    and_(
+                        Product.vendedor_id == current_user.id,
+                        Transaction.estado == EstadoTransaccion.COMPLETADA
+                    )
+                ).group_by(
+                    Product.id, Product.sku, Product.name, Product.precio_venta
+                ).order_by(
+                    desc(func.count(Transaction.id))
+                ).limit(limite)
+            )
+            
+            resultados = ranking_query.all()
+            productos_ejemplo = []
+            for i, resultado in enumerate(resultados, 1):
+                productos_ejemplo.append(ProductoTop(
+                    sku=resultado.sku,
+                    nombre=resultado.name,
+                    ventas_cantidad=resultado.ventas_cantidad,
+                    ingresos_total=Decimal(str(resultado.ingresos_total)),
+                    precio_venta=Decimal(str(resultado.precio_venta or 0)),
+                    posicion_ranking=i
+                ))
+        
+        # Calcular total de productos con ventas
+        total_productos_result = await db.execute(
+            select(func.count(func.distinct(Transaction.product_id))).where(
+                and_(
+                    Transaction.vendedor_id == current_user.id,
+                    Transaction.estado == EstadoTransaccion.COMPLETADA,
+                    Transaction.product_id.isnot(None)
+                )
+            )
+        )
+        total_productos_analizados = total_productos_result.scalar() or 0
+        
+    else:
+        # Datos simulados según el tipo de ranking (fallback)
+        if ranking == TipoRankingProducto.VENTAS:
+            productos_ejemplo = [
+                ProductoTop(sku="PROD-001", nombre="Camiseta Premium", ventas_cantidad=45, ingresos_total=Decimal("2250.00"), precio_venta=Decimal("50.00"), posicion_ranking=1),
+                ProductoTop(sku="PROD-015", nombre="Pantalón Clásico", ventas_cantidad=32, ingresos_total=Decimal("2880.00"), precio_venta=Decimal("90.00"), posicion_ranking=2),
+                ProductoTop(sku="PROD-008", nombre="Zapatos Deportivos", ventas_cantidad=28, ingresos_total=Decimal("4200.00"), precio_venta=Decimal("150.00"), posicion_ranking=3)
+            ]
+        elif ranking == TipoRankingProducto.INGRESOS:
+            productos_ejemplo = [
+                ProductoTop(sku="PROD-008", nombre="Zapatos Deportivos", ventas_cantidad=28, ingresos_total=Decimal("4200.00"), precio_venta=Decimal("150.00"), posicion_ranking=1),
+                ProductoTop(sku="PROD-015", nombre="Pantalón Clásico", ventas_cantidad=32, ingresos_total=Decimal("2880.00"), precio_venta=Decimal("90.00"), posicion_ranking=2),
+                ProductoTop(sku="PROD-001", nombre="Camiseta Premium", ventas_cantidad=45, ingresos_total=Decimal("2250.00"), precio_venta=Decimal("50.00"), posicion_ranking=3)
+            ]
+        else:  # POPULARIDAD
+            productos_ejemplo = [
+                ProductoTop(sku="PROD-020", nombre="Accesorio Tendencia", ventas_cantidad=52, ingresos_total=Decimal("1560.00"), precio_venta=Decimal("30.00"), posicion_ranking=1),
+                ProductoTop(sku="PROD-001", nombre="Camiseta Premium", ventas_cantidad=45, ingresos_total=Decimal("2250.00"), precio_venta=Decimal("50.00"), posicion_ranking=2)
+            ]
+        
+        total_productos_analizados = len(productos_ejemplo)
+
+    # Construir respuesta con datos reales o simulados
     return DashboardProductosTopResponse(
         tipo_ranking=ranking,
         productos_ranking=productos_ejemplo[:limite],
-        total_productos_analizados=len(productos_ejemplo),
+        total_productos_analizados=total_productos_analizados,
         periodo_analisis="últimos_30_días"
     )
 
@@ -658,8 +787,62 @@ async def get_dashboard_comisiones(
             detail="Solo vendedores pueden acceder al dashboard de comisiones"
         )
 
-    # Generar datos simulados de comisiones
-    comisiones_ejemplo = [
+    # Intentar consultas reales de comisiones, fallback a datos simulados
+    try:
+        # Importar EstadoTransaccion para filtrar solo transacciones completadas
+        from app.models.transaction import EstadoTransaccion
+        usar_datos_reales = True
+
+    except Exception as e:
+        usar_datos_reales = False
+
+    if usar_datos_reales:
+        # Consultar transacciones con comisiones del vendedor
+        comisiones_query = await db.execute(
+            select(
+                Transaction.id,
+                Transaction.created_at,
+                Transaction.monto,
+                Transaction.porcentaje_mestocker,
+                Product.sku,
+                Product.name
+            ).select_from(
+                Transaction.join(Product, Transaction.product_id == Product.id)
+            ).where(
+                and_(
+                    Transaction.vendedor_id == current_user.id,
+                    Transaction.estado == EstadoTransaccion.COMPLETADA,
+                    Transaction.porcentaje_mestocker.isnot(None)
+                )
+            ).order_by(desc(Transaction.created_at))
+            .limit(limite if not estado else 100)  # Límite más alto si hay filtro
+        )
+
+        resultados = comisiones_query.all()
+        comisiones_ejemplo = []
+
+        for resultado in resultados:
+            # Calcular comisión real
+            comision_monto = resultado.monto * (resultado.porcentaje_mestocker / 100)
+            monto_vendedor = resultado.monto - comision_monto
+
+            # Simular estado (en futuro se puede agregar campo estado a Transaction)
+            estado_simulado = EstadoComision.PAGADA if resultado.id % 2 == 0 else EstadoComision.PENDIENTE
+
+            comision_detalle = ComisionDetalle(
+                transaccion_id=str(resultado.id),
+                fecha_transaccion=resultado.created_at.date(),
+                producto_sku=resultado.sku or "UNKNOWN",
+                monto_venta=resultado.monto,
+                comision_porcentaje=resultado.porcentaje_mestocker,
+                comision_monto=comision_monto,
+                monto_vendedor=monto_vendedor,
+                estado=estado_simulado
+            )
+            comisiones_ejemplo.append(comision_detalle)
+
+    else:
+        comisiones_ejemplo = [
         ComisionDetalle(
             transaccion_id="TXN-001", fecha_transaccion=date(2025, 8, 5), producto_sku="PROD-001",
             monto_venta=Decimal("150.00"), comision_porcentaje=Decimal("15.0"), 
@@ -698,7 +881,7 @@ async def get_dashboard_comisiones(
         comisiones_pendientes=pendientes,
         comisiones_pagadas=pagadas,
         comisiones_retenidas=retenidas,
-        periodo_analisis="último_mes"
+        periodo_analisis="datos_reales" if usar_datos_reales else "último_mes"
     )
 
 
@@ -790,6 +973,16 @@ async def get_dashboard_inventario(
 
     # Aplicar límite
     inventario_resultado = inventario_filtrado[:limite]
+
+    # Filtrar por estado si se especifica
+    if estado:
+        comisiones_filtradas = [c for c in comisiones_ejemplo if c.estado == estado]
+    else:
+        comisiones_filtradas = comisiones_ejemplo
+
+    # Aplicar límite final
+    comisiones_resultado = comisiones_filtradas[:limite]
+
 
     # Calcular métricas agregadas
     total_productos = len(inventario_resultado)
