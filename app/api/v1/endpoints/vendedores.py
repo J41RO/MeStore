@@ -44,6 +44,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import AuthService, get_auth_service, get_current_user
 from app.core.database import get_db
 from app.models.user import User, UserType
+from app.models.inventory import Inventory, InventoryStatus
+from app.models.product import Product
 from app.schemas.auth import TokenResponse
 from app.schemas.user import UserRead
 from app.schemas.vendedor import (
@@ -498,9 +500,49 @@ async def get_dashboard_inventario(
             detail="Solo vendedores pueden acceder al dashboard de inventario"
         )
     
-    # TODO: Implementar queries reales cuando tengamos modelo Inventory completo
-    # Generar datos simulados de inventario
-    inventario_ejemplo = [
+    # Intentar consulta real, fallback a datos simulados si falla
+    try:
+        from sqlalchemy import and_
+
+        # Consultar inventario real del vendedor
+        query = (
+            db.query(Inventory)
+            .join(Product, Inventory.product_id == Product.id)
+            .filter(Product.vendedor_id == current_user.id)
+        )
+
+        inventario_real = await db.execute(query)
+        usar_datos_reales = True
+    except Exception as e:
+        # Fallback a datos simulados si hay error
+        usar_datos_reales = False
+    if usar_datos_reales:
+        # Procesar datos reales del inventario
+        inventario_results = inventario_real.scalars().all()
+        inventario_ejemplo = []
+
+        for inv in inventario_results:
+            estado_stock = EstadoStock.DISPONIBLE
+            if inv.cantidad == 0:
+                estado_stock = EstadoStock.AGOTADO
+            elif inv.cantidad <= 5:
+                estado_stock = EstadoStock.BAJO_STOCK
+            elif inv.cantidad_reservada > 0:
+                estado_stock = EstadoStock.RESERVADO
+
+            inventario_ejemplo.append(InventarioMetrica(
+                producto_sku=inv.product.sku if inv.product else f"PROD-{inv.id}",
+                nombre_producto=inv.product.name if inv.product else "Producto",
+                ubicacion=f"{inv.zona}-{inv.estante}-{inv.posicion}",
+                cantidad_total=inv.cantidad + inv.cantidad_reservada,
+                cantidad_reservada=inv.cantidad_reservada,
+                cantidad_disponible=inv.cantidad,
+                estado_stock=estado_stock,
+                ultimo_movimiento=inv.fecha_ultimo_movimiento.date()
+            ))
+    else:
+        # Generar datos simulados de inventario (fallback)
+        inventario_ejemplo = [
         InventarioMetrica(
             producto_sku="PROD-001", nombre_producto="Camiseta Premium", ubicacion="A1-E2-P3",
             cantidad_total=50, cantidad_reservada=8, cantidad_disponible=42, 

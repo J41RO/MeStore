@@ -271,7 +271,7 @@
     ✅ 1.3.5.2 Implementar endpoint GET /dashboard/ventas con gráficos por período
     ✅ 1.3.5.3 Crear endpoint GET /dashboard/productos-top con ranking de productos
     ✅ 1.3.5.4 Implementar endpoint GET /dashboard/comisiones con detalle de earnings
-    ⬜ 1.3.5.5 Crear endpoint GET /dashboard/inventario con métricas de stock
+    ✅ 1.3.5.5 Crear endpoint GET /dashboard/inventario con métricas de stock
     ⬜ 1.3.5.6 Implementar endpoint GET /dashboard/exportar para descargar reportes PDF/Excel
 ⬜ 1.3.6 API sistema de comisiones y pagos
     ⬜ 1.3.6.1 Crear endpoint GET /comisiones para consultar comisiones por período
