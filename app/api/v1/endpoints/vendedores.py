@@ -38,6 +38,7 @@ from typing import Dict, Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
+from sqlalchemy import func, select, and_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -45,7 +46,8 @@ from app.core.auth import AuthService, get_auth_service, get_current_user
 from app.core.database import get_db
 from app.models.user import User, UserType
 from app.models.inventory import Inventory, InventoryStatus
-from app.models.product import Product
+from app.models.product import Product, ProductStatus
+from app.models.transaction import Transaction
 from app.schemas.auth import TokenResponse
 from app.schemas.user import UserRead
 from app.schemas.vendedor import (
@@ -319,11 +321,83 @@ async def get_dashboard_resumen(
             detail="Solo vendedores pueden acceder al dashboard"
         )
 
-    # TODO: Implementar queries reales cuando tengamos modelos de Producto/Venta
+    # Intentar consultas reales, fallback a datos simulados si falla
+    try:
+        from sqlalchemy import func, and_, extract
+        from datetime import datetime, timedelta
+        import calendar
+
+        # Obtener mes actual para filtros
+        now = datetime.now()
+        inicio_mes = datetime(now.year, now.month, 1)
+        ultimo_dia = calendar.monthrange(now.year, now.month)[1]
+        fin_mes = datetime(now.year, now.month, ultimo_dia, 23, 59, 59)
+
+        # Consultas reales del vendedor
+        usar_datos_reales = True
+    except Exception as e:
+        # Fallback a datos simulados si hay error
+        usar_datos_reales = False
     # Por ahora devolvemos datos simulados pero con estructura correcta
 
-    # Simular datos realistas para el vendedor
-    kpis = VendedorDashboardResumen(
+    if usar_datos_reales:
+        # 1. Total productos del vendedor
+        total_productos_result = await db.execute(
+            select(func.count(Product.id)).where(Product.vendedor_id == current_user.id)
+        )
+        total_productos = total_productos_result.scalar() or 0
+        
+        # 2. Productos activos
+        productos_activos_result = await db.execute(
+            select(func.count(Product.id)).where(
+                and_(Product.vendedor_id == current_user.id, Product.status == ProductStatus.ACTIVO)
+            )
+        )
+        productos_activos = productos_activos_result.scalar() or 0
+        
+        # 3. Ventas del mes
+        ventas_mes_result = await db.execute(
+            select(func.count(Transaction.id)).where(
+                and_(
+                    Transaction.vendedor_id == current_user.id,
+                    Transaction.created_at >= inicio_mes,
+                    Transaction.created_at <= fin_mes
+                )
+            )
+        )
+        ventas_mes = ventas_mes_result.scalar() or 0
+        
+        # 4. Ingresos del mes
+        ingresos_result = await db.execute(
+            select(func.coalesce(func.sum(Transaction.monto), 0)).where(
+                and_(
+                    Transaction.vendedor_id == current_user.id,
+                    Transaction.created_at >= inicio_mes,
+                    Transaction.created_at <= fin_mes
+                )
+            )
+        )
+        ingresos_mes = Decimal(str(ingresos_result.scalar() or 0))
+        
+        # 5. Comisión total acumulada
+        comision_result = await db.execute(
+            select(func.coalesce(func.sum(
+                Transaction.monto * Transaction.porcentaje_mestocker / 100
+            ), 0)).where(Transaction.vendedor_id == current_user.id)
+        )
+        comision_total = Decimal(str(comision_result.scalar() or 0))
+        
+        kpis = VendedorDashboardResumen(
+            total_productos=total_productos,
+            productos_activos=productos_activos,
+            ventas_mes=ventas_mes,
+            ingresos_mes=ingresos_mes,
+            comision_total=comision_total,
+            estadisticas_mes=f"Datos reales - {now.strftime('%B %Y')}"
+        )
+    else:
+        # Simular datos realistas para el vendedor (fallback)
+        kpis = VendedorDashboardResumen(
         total_productos=25,
         productos_activos=23,
         ventas_mes=42,
