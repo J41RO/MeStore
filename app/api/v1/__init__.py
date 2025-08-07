@@ -48,6 +48,6 @@ api_router.include_router(
 api_router.include_router(agents_router, prefix="/agents", tags=["agents"])
 api_router.include_router(auth_router, prefix="/auth", tags=["auth"])
 api_router.include_router(vendedores_router, tags=["vendedores"])
-api_router.include_router(comisiones_router, tags=["comisiones"])
+api_router.include_router(comisiones_router, prefix="/comisiones", tags=["comisiones"])
 api_router.include_router(productos_router, prefix="/productos", tags=["productos"])
 api_router.include_router(inventory_router, prefix="/inventario", tags=["inventory"])

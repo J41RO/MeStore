@@ -42,6 +42,10 @@ from sqlalchemy.sql import func
 from enum import Enum as PyEnum
 from sqlalchemy import Enum
 from sqlalchemy.orm import relationship
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.models.payout_request import PayoutRequest
 
 from app.models.base import BaseModel
 
@@ -63,6 +67,8 @@ class UserType(PyEnum):
 
 
 class User(BaseModel):
+    # Relationships
+    payout_requests = relationship('PayoutRequest', back_populates='vendedor')
     """
     Modelo SQLAlchemy para usuarios del sistema.
 

@@ -274,8 +274,8 @@
     ✅ 1.3.5.5 Crear endpoint GET /dashboard/inventario con métricas de stock
     ✅ 1.3.5.6 Implementar endpoint GET /dashboard/exportar para descargar reportes PDF/Excel
 ✅ 1.3.6 API sistema de comisiones y pagos
-    ⬜ 1.3.6.1 Crear endpoint GET /comisiones para consultar comisiones por período
-    ⬜ 1.3.6.2 Implementar endpoint POST /comisiones/solicitar-pago para request payout
+    ✅ 1.3.6.1 Crear endpoint GET /comisiones para consultar comisiones por período
+    ✅ 1.3.6.2 Implementar endpoint POST /comisiones/solicitar-pago para request payout
     ⬜ 1.3.6.3 Crear endpoint GET /pagos/historial con histórico de transferencias
     ⬜ 1.3.6.4 Implementar endpoint PUT /perfil/datos-bancarios para configurar cuenta
     ⬜ 1.3.6.5 Crear endpoint GET /comisiones/detalle/{transaction_id} para breakdown
