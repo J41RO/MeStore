@@ -14,3 +14,5 @@
 
 // Placeholder - se llenará conforme se agreguen hooks
 export {};
+export { useTheme } from './useTheme';
+export type { Theme, UseThemeReturn } from './useTheme';

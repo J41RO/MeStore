@@ -22,3 +22,4 @@ export { default as OTPVerification } from './auth/OTPVerification';
 export { default as ForgotPassword } from './auth/ForgotPassword';
 export { default as ResetPassword } from './auth/ResetPassword';
 export { default as BaseComponentsDemo } from './BaseComponentsDemo';
+export { default as DarkModeDemo } from './DarkModeDemo';
