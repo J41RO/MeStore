@@ -34,3 +34,4 @@
 // Placeholder - se llenará conforme se agreguen componentes
 export {};
 export { default as ThemeExample } from './ThemeExample';
+export { default as UtilityClassesDemo } from './UtilityClassesDemo';
