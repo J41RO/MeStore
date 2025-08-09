@@ -291,7 +291,7 @@
     ✅ 1.4.1.5 Setup Prettier para formateo consistente de código
     ✅ 1.4.1.6 Crear estructura de carpetas src/ con componentes modulares
 🔁 1.4.2 Configurar Tailwind CSS + diseño base
-    ⬜ 1.4.2.1 Instalar y configurar Tailwind CSS con PostCSS
+    ✅ 1.4.2.1 Instalar y configurar Tailwind CSS con PostCSS
     ⬜ 1.4.2.2 Crear tema personalizado MeStocker (colores, fonts, spacing)
     ⬜ 1.4.2.3 Configurar purge/JIT para optimización de bundle size
     ⬜ 1.4.2.4 Crear utility classes personalizadas para branding
