@@ -152,6 +152,11 @@ class UserUpdate(BaseModel):
     direccion: Optional[str] = Field(None, max_length=300)
     is_verified: Optional[bool] = None
 
+    # === CAMPOS BANCARIOS PARA PERFIL ===
+    banco: Optional[str] = Field(None, max_length=100, description="Nombre del banco")
+    tipo_cuenta: Optional[str] = Field(None, pattern="^(AHORROS|CORRIENTE)$", description="Tipo de cuenta bancaria")
+    numero_cuenta: Optional[str] = Field(None, min_length=8, max_length=50, description="Número de cuenta bancaria")
+
     # Reutilizar validadores de UserBase (Pydantic V2)
     @field_validator("cedula")
     @classmethod

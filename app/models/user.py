@@ -120,6 +120,25 @@ class User(BaseModel):
         comment="Identificador único UUID del usuario"
     )
 
+    # === CAMPOS BANCARIOS PARA PERFIL ===
+    banco = Column(
+        String(100),
+        nullable=True,
+        comment="Nombre del banco para transferencias (opcional)"
+    )
+
+    tipo_cuenta = Column(
+        String(20),
+        nullable=True,
+        comment="Tipo de cuenta: AHORROS o CORRIENTE (opcional)"
+    )
+
+    numero_cuenta = Column(
+        String(50),
+        nullable=True,
+        comment="Número de cuenta bancaria (opcional)"
+    )
+
     # === CAMPOS DE RESET DE CONTRASEÑA ===
     reset_token = Column(
         String(100),

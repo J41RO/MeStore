@@ -21,6 +21,7 @@ from app.api.v1.endpoints.productos import router as productos_router
 from app.api.v1.endpoints.vendedores import router as vendedores_router
 from app.api.v1.endpoints.comisiones import router as comisiones_router
 from app.api.v1.endpoints.pagos import router as pagos_router
+from app.api.v1.endpoints.perfil import router as perfil_router
 
 # Router principal que unifica todos los endpoints v1
 api_router = APIRouter()
@@ -53,3 +54,4 @@ api_router.include_router(comisiones_router, prefix="/comisiones", tags=["comisi
 api_router.include_router(productos_router, prefix="/productos", tags=["productos"])
 api_router.include_router(inventory_router, prefix="/inventario", tags=["inventory"])
 api_router.include_router(pagos_router, prefix="/pagos", tags=["pagos"])
+api_router.include_router(perfil_router, prefix="/perfil", tags=["perfil"])
