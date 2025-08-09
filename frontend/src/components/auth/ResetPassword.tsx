@@ -18,7 +18,9 @@ const ResetPassword: React.FC = () => {
   const [validatingToken, setValidatingToken] = useState(true);
   const [tokenValid, setTokenValid] = useState(false);
   const [message, setMessage] = useState('');
-  const [messageType, setMessageType] = useState<'success' | 'error'>('success');
+  const [messageType, setMessageType] = useState<'success' | 'error'>(
+    'success'
+  );
   const [resetSuccess, setResetSuccess] = useState(false);
 
   // Validar token al cargar componente
@@ -28,9 +30,12 @@ const ResetPassword: React.FC = () => {
 
   const validateToken = async () => {
     try {
-      const response = await fetch(`/api/v1/auth/validate-reset-token?token=${token}`, {
-        method: 'POST',
-      });
+      const response = await fetch(
+        `/api/v1/auth/validate-reset-token?token=${token}`,
+        {
+          method: 'POST',
+        }
+      );
 
       const data: ApiResponse = await response.json();
 
@@ -50,7 +55,7 @@ const ResetPassword: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (newPassword !== confirmPassword) {
       setMessage('Las contraseñas no coinciden');
       setMessageType('error');
@@ -85,7 +90,7 @@ const ResetPassword: React.FC = () => {
         setResetSuccess(true);
         setMessage(data.message);
         setMessageType('success');
-        
+
         // Simular redirección después de 3 segundos
         setTimeout(() => {
           console.log('Redirecting to login...');
@@ -114,9 +119,9 @@ const ResetPassword: React.FC = () => {
 
   if (validatingToken) {
     return (
-      <div className="reset-password-container">
-        <div className="reset-password-card">
-          <div className="loading-spinner">🔄</div>
+      <div className='reset-password-container'>
+        <div className='reset-password-card'>
+          <div className='loading-spinner'>🔄</div>
           <p>Validando enlace de recuperación...</p>
         </div>
       </div>
@@ -125,11 +130,11 @@ const ResetPassword: React.FC = () => {
 
   if (!tokenValid) {
     return (
-      <div className="reset-password-container">
-        <div className="reset-password-card">
-          <div className="error-icon">❌</div>
+      <div className='reset-password-container'>
+        <div className='reset-password-card'>
+          <div className='error-icon'>❌</div>
           <h2>Enlace inválido</h2>
-          <p className="error-message">{message}</p>
+          <p className='error-message'>{message}</p>
           <button onClick={() => console.log('Navigate to forgot password')}>
             Solicitar nuevo enlace
           </button>
@@ -140,11 +145,11 @@ const ResetPassword: React.FC = () => {
 
   if (resetSuccess) {
     return (
-      <div className="reset-password-container">
-        <div className="reset-password-card">
-          <div className="success-icon">✅</div>
+      <div className='reset-password-container'>
+        <div className='reset-password-card'>
+          <div className='success-icon'>✅</div>
           <h2>Contraseña actualizada</h2>
-          <p className="success-message">{message}</p>
+          <p className='success-message'>{message}</p>
           <p>Serás redirigido al login en unos segundos...</p>
           <button onClick={() => console.log('Navigate to login')}>
             Ir al login
@@ -155,67 +160,78 @@ const ResetPassword: React.FC = () => {
   }
 
   const strength = getPasswordStrength();
-  const strengthText = strength === 4 ? 'Muy fuerte' : 
-                      strength === 3 ? 'Fuerte' : 
-                      strength === 2 ? 'Media' : 'Débil';
+  const strengthText =
+    strength === 4
+      ? 'Muy fuerte'
+      : strength === 3
+        ? 'Fuerte'
+        : strength === 2
+          ? 'Media'
+          : 'Débil';
 
   return (
-    <div className="reset-password-container">
-      <div className="reset-password-card">
+    <div className='reset-password-container'>
+      <div className='reset-password-card'>
         <h2>Nueva contraseña</h2>
         <p>Ingresa tu nueva contraseña. Debe ser segura y fácil de recordar.</p>
 
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="newPassword">Nueva contraseña</label>
+          <div className='form-group'>
+            <label htmlFor='newPassword'>Nueva contraseña</label>
             <input
-              type="password"
-              id="newPassword"
+              type='password'
+              id='newPassword'
               value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
+              onChange={e => setNewPassword(e.target.value)}
               required
               disabled={loading}
-              placeholder="Mínimo 8 caracteres"
+              placeholder='Mínimo 8 caracteres'
             />
-            
+
             {newPassword && (
-              <div className="password-strength">
+              <div className='password-strength'>
                 <div className={`strength-bar strength-${strength}`}>
-                  <div className="strength-fill"></div>
+                  <div className='strength-fill'></div>
                 </div>
-                <p className="strength-text">Fortaleza: {strengthText}</p>
+                <p className='strength-text'>Fortaleza: {strengthText}</p>
               </div>
             )}
           </div>
 
-          <div className="form-group">
-            <label htmlFor="confirmPassword">Confirmar contraseña</label>
+          <div className='form-group'>
+            <label htmlFor='confirmPassword'>Confirmar contraseña</label>
             <input
-              type="password"
-              id="confirmPassword"
+              type='password'
+              id='confirmPassword'
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={e => setConfirmPassword(e.target.value)}
               required
               disabled={loading}
-              placeholder="Repite la contraseña"
+              placeholder='Repite la contraseña'
             />
-            
+
             {confirmPassword && (
-              <div className={`match-indicator ${newPassword === confirmPassword ? 'match' : 'no-match'}`}>
-                {newPassword === confirmPassword ? '✅ Las contraseñas coinciden' : '❌ Las contraseñas no coinciden'}
+              <div
+                className={`match-indicator ${newPassword === confirmPassword ? 'match' : 'no-match'}`}
+              >
+                {newPassword === confirmPassword
+                  ? '✅ Las contraseñas coinciden'
+                  : '❌ Las contraseñas no coinciden'}
               </div>
             )}
           </div>
 
           {message && (
-            <div className={`message message--${messageType}`}>
-              {message}
-            </div>
+            <div className={`message message--${messageType}`}>{message}</div>
           )}
 
-          <button 
-            type="submit" 
-            disabled={loading || newPassword !== confirmPassword || newPassword.length < 8}
+          <button
+            type='submit'
+            disabled={
+              loading ||
+              newPassword !== confirmPassword ||
+              newPassword.length < 8
+            }
           >
             {loading ? 'Actualizando...' : 'Actualizar contraseña'}
           </button>

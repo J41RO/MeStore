@@ -33,13 +33,14 @@ class FrontendLogger {
 
   constructor(config: Partial<LoggerConfig> = {}) {
     this.config = {
-      enableRemote: import.meta.env.PROD && import.meta.env.VITE_LOG_REMOTE === 'true',
+      enableRemote:
+        import.meta.env.PROD && import.meta.env.VITE_LOG_REMOTE === 'true',
       remoteEndpoint: import.meta.env.VITE_LOG_ENDPOINT || '/api/v1/logs',
       minLevel: import.meta.env.PROD ? 'warn' : 'debug',
       enableConsole: true,
       batchSize: 10,
       flushInterval: 5000,
-      ...config
+      ...config,
     };
 
     this.sessionId = this.generateSessionId();
@@ -49,7 +50,7 @@ class FrontendLogger {
     console.log('🚀 Frontend Logger initialized:', {
       remote: this.config.enableRemote,
       endpoint: this.config.remoteEndpoint,
-      minLevel: this.config.minLevel
+      minLevel: this.config.minLevel,
     });
   }
 
@@ -64,7 +65,11 @@ class FrontendLogger {
     return currentIndex >= minIndex;
   }
 
-  private createLogEntry(level: LogEntry['level'], message: string, extra?: Record<string, any>): LogEntry {
+  private createLogEntry(
+    level: LogEntry['level'],
+    message: string,
+    extra?: Record<string, any>
+  ): LogEntry {
     return {
       level,
       message,
@@ -73,13 +78,14 @@ class FrontendLogger {
       userAgent: navigator.userAgent,
       userId: this.getCurrentUserId(),
       sessionId: this.sessionId,
-      extra
+      extra,
     };
   }
 
   private getCurrentUserId(): string | undefined {
     try {
-      const user = localStorage.getItem('user') || sessionStorage.getItem('user');
+      const user =
+        localStorage.getItem('user') || sessionStorage.getItem('user');
       if (user) {
         const userData = JSON.parse(user);
         return userData.id || userData.email || 'unknown';
@@ -95,7 +101,7 @@ class FrontendLogger {
 
     const timestamp = new Date(entry.timestamp).toLocaleTimeString();
     const prefix = `[LOGGER ${timestamp}] ${entry.url.split('/').pop()}`;
-    
+
     switch (entry.level) {
       case 'debug':
         console.debug(`${prefix} 🐛`, entry.message, entry.extra || '');
@@ -116,7 +122,7 @@ class FrontendLogger {
     if (!this.config.enableRemote) return;
 
     this.logQueue.push(entry);
-    
+
     if (this.logQueue.length >= this.config.batchSize) {
       this.flush();
     }
@@ -137,12 +143,16 @@ class FrontendLogger {
         body: JSON.stringify({
           logs: logsToSend,
           source: 'frontend',
-          timestamp: new Date().toISOString()
-        })
+          timestamp: new Date().toISOString(),
+        }),
       });
 
       if (!response.ok) {
-        console.warn('Failed to send logs to remote endpoint:', response.status, response.statusText);
+        console.warn(
+          'Failed to send logs to remote endpoint:',
+          response.status,
+          response.statusText
+        );
         this.logQueue.unshift(...logsToSend);
       }
     } catch (error) {
@@ -165,34 +175,38 @@ class FrontendLogger {
         lineno,
         colno,
         stack: error?.stack,
-        type: 'javascript_error'
+        type: 'javascript_error',
       });
       return false;
     };
 
-    window.addEventListener('unhandledrejection', (event) => {
+    window.addEventListener('unhandledrejection', event => {
       this.error('Unhandled Promise Rejection', {
         reason: event.reason?.toString(),
         stack: event.reason?.stack,
-        type: 'promise_rejection'
+        type: 'promise_rejection',
       });
     });
 
-    window.addEventListener('error', (event) => {
-      if (event.target !== window) {
-        this.error('Resource Loading Error', {
-          elementType: (event.target as any)?.tagName,
-          source: (event.target as any)?.src || (event.target as any)?.href,
-          type: 'resource_error'
-        });
-      }
-    }, true);
+    window.addEventListener(
+      'error',
+      event => {
+        if (event.target !== window) {
+          this.error('Resource Loading Error', {
+            elementType: (event.target as any)?.tagName,
+            source: (event.target as any)?.src || (event.target as any)?.href,
+            type: 'resource_error',
+          });
+        }
+      },
+      true
+    );
   }
 
   // Métodos públicos para logging
   debug(message: string, extra?: Record<string, any>): void {
     if (!this.shouldLog('debug')) return;
-    
+
     const entry = this.createLogEntry('debug', message, extra);
     this.logToConsole(entry);
     this.addToQueue(entry);
@@ -200,7 +214,7 @@ class FrontendLogger {
 
   info(message: string, extra?: Record<string, any>): void {
     if (!this.shouldLog('info')) return;
-    
+
     const entry = this.createLogEntry('info', message, extra);
     this.logToConsole(entry);
     this.addToQueue(entry);
@@ -208,7 +222,7 @@ class FrontendLogger {
 
   warn(message: string, extra?: Record<string, any>): void {
     if (!this.shouldLog('warn')) return;
-    
+
     const entry = this.createLogEntry('warn', message, extra);
     this.logToConsole(entry);
     this.addToQueue(entry);
@@ -216,7 +230,7 @@ class FrontendLogger {
 
   error(message: string, extra?: Record<string, any>): void {
     if (!this.shouldLog('error')) return;
-    
+
     const entry = this.createLogEntry('error', message, extra);
     this.logToConsole(entry);
     this.addToQueue(entry);

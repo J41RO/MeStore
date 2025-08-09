@@ -7,10 +7,10 @@
 
 /**
  * Hooks Index - Exportación centralizada de custom hooks
- * 
+ *
  * Permite imports como:
  * import { useAuth, useProducts, useCart } from '@/hooks'
  */
 
 // Placeholder - se llenará conforme se agreguen hooks
-export {}
+export {};

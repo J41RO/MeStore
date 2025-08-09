@@ -31,6 +31,6 @@ export const useLogger = (component: string): Logger => {
     },
     logUserAction: (action: string, component: string, data?: any) => {
       console.log(`[${component}] USER ACTION: ${action}`, data || '');
-    }
+    },
   };
 };

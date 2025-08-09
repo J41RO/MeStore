@@ -18,7 +18,7 @@ const OTPDemo: React.FC = () => {
     <div style={{ padding: '20px', maxWidth: '600px', margin: '0 auto' }}>
       <h1>🔐 Demo Verificación OTP</h1>
       <p>Componente de verificación OTP por Email/SMS</p>
-      
+
       {!showOTP && (
         <div>
           <button
@@ -30,7 +30,7 @@ const OTPDemo: React.FC = () => {
               border: 'none',
               borderRadius: '4px',
               cursor: 'pointer',
-              fontSize: '16px'
+              fontSize: '16px',
             }}
           >
             🚀 Abrir Verificación OTP
@@ -39,18 +39,20 @@ const OTPDemo: React.FC = () => {
       )}
 
       {showOTP && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+        >
           <OTPVerification
             onVerificationSuccess={handleVerificationSuccess}
             onClose={handleClose}
@@ -59,14 +61,16 @@ const OTPDemo: React.FC = () => {
       )}
 
       {verificationResult && (
-        <div style={{
-          marginTop: '20px',
-          padding: '15px',
-          background: '#d4edda',
-          border: '1px solid #c3e6cb',
-          borderRadius: '4px',
-          color: '#155724'
-        }}>
+        <div
+          style={{
+            marginTop: '20px',
+            padding: '15px',
+            background: '#d4edda',
+            border: '1px solid #c3e6cb',
+            borderRadius: '4px',
+            color: '#155724',
+          }}
+        >
           {verificationResult}
         </div>
       )}

@@ -6,7 +6,7 @@ import '@testing-library/jest-dom/jest-globals';
   root: Element | null = null;
   rootMargin: string = '';
   thresholds: ReadonlyArray<number> = [];
-  
+
   constructor() {}
   observe() {
     return null;

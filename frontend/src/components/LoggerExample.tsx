@@ -3,7 +3,8 @@ import { useLogger } from '../hooks/useLogger';
 
 const LoggerExample: React.FC = () => {
   const [count, setCount] = useState(0);
-  const { logInfo, logError, logWarn, logUserAction } = useLogger('LoggerExample');
+  const { logInfo, logError, logWarn, logUserAction } =
+    useLogger('LoggerExample');
 
   const handleInfoClick = () => {
     setCount(prev => prev + 1);
@@ -15,7 +16,10 @@ const LoggerExample: React.FC = () => {
       // Simular error
       throw new Error('Error simulado para testing');
     } catch (error) {
-      logError('Error simulado capturado', { error: (error as Error).message, count });
+      logError('Error simulado capturado', {
+        error: (error as Error).message,
+        count,
+      });
     }
   };
 
@@ -33,17 +37,21 @@ const LoggerExample: React.FC = () => {
     <div style={{ padding: '20px', maxWidth: '600px', margin: '0 auto' }}>
       <h2>🔍 Logger Example Component</h2>
       <p>Componente de ejemplo para testing del sistema de logging frontend</p>
-      
+
       <div style={{ marginBottom: '20px' }}>
-        <p><strong>Contador:</strong> {count}</p>
+        <p>
+          <strong>Contador:</strong> {count}
+        </p>
       </div>
 
-      <div style={{ 
-        display: 'flex', 
-        gap: '10px', 
-        flexWrap: 'wrap',
-        marginBottom: '20px' 
-      }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: '10px',
+          flexWrap: 'wrap',
+          marginBottom: '20px',
+        }}
+      >
         <button
           onClick={handleInfoClick}
           style={{
@@ -52,7 +60,7 @@ const LoggerExample: React.FC = () => {
             color: 'white',
             border: 'none',
             borderRadius: '4px',
-            cursor: 'pointer'
+            cursor: 'pointer',
           }}
         >
           📝 Log Info
@@ -66,7 +74,7 @@ const LoggerExample: React.FC = () => {
             color: 'white',
             border: 'none',
             borderRadius: '4px',
-            cursor: 'pointer'
+            cursor: 'pointer',
           }}
         >
           ❌ Log Error
@@ -80,7 +88,7 @@ const LoggerExample: React.FC = () => {
             color: 'black',
             border: 'none',
             borderRadius: '4px',
-            cursor: 'pointer'
+            cursor: 'pointer',
           }}
         >
           ⚠️ Log Warning
@@ -94,19 +102,21 @@ const LoggerExample: React.FC = () => {
             color: 'white',
             border: 'none',
             borderRadius: '4px',
-            cursor: 'pointer'
+            cursor: 'pointer',
           }}
         >
           👤 User Action
         </button>
       </div>
 
-      <div style={{
-        backgroundColor: '#f8f9fa',
-        padding: '15px',
-        borderRadius: '4px',
-        border: '1px solid #dee2e6'
-      }}>
+      <div
+        style={{
+          backgroundColor: '#f8f9fa',
+          padding: '15px',
+          borderRadius: '4px',
+          border: '1px solid #dee2e6',
+        }}
+      >
         <h4>📋 Funcionalidades del Logger:</h4>
         <ul>
           <li>✅ Log de información general</li>
@@ -115,7 +125,9 @@ const LoggerExample: React.FC = () => {
           <li>✅ Log de acciones de usuario</li>
           <li>✅ Auto-log de mount/unmount de componentes</li>
         </ul>
-        <p><em>Abre DevTools Console para ver los logs</em></p>
+        <p>
+          <em>Abre DevTools Console para ver los logs</em>
+        </p>
       </div>
     </div>
   );

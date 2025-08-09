@@ -21,7 +21,7 @@
 
 /**
  * Components Index - Exportación centralizada de componentes
- * 
+ *
  * Permite imports limpio como:
  * import { Header, Footer, ProductCard } from '@/components'
  */
@@ -32,4 +32,4 @@
 // export { ProductCard } from './ProductCard'
 
 // Placeholder - se llenará conforme se agreguen componentes
-export {}
+export {};

@@ -10,7 +10,7 @@ describe('Helper Functions', () => {
 
   test('string formatting test', () => {
     const formatCurrency = (amount: number) => `$${amount.toFixed(2)}`;
-    
+
     expect(formatCurrency(1000)).toBe('$1000.00');
     expect(formatCurrency(1234.567)).toBe('$1234.57');
   });

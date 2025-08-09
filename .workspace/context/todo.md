@@ -279,18 +279,18 @@
     ✅ 1.3.6.3 Crear endpoint GET /pagos/historial con histórico de transferencias
     ✅ 1.3.6.4 Implementar endpoint PUT /perfil/datos-bancarios para configurar cuenta
     ✅ 1.3.6.5 Crear endpoint GET /comisiones/detalle/{transaction_id} para breakdown
-    🔁 1.3.6.6 Implementar endpoint POST /comisiones/dispute para reportar discrepancias
+    ✅ 1.3.6.6 Implementar endpoint POST /comisiones/dispute para reportar discrepancias
 
 ## 1.4 Frontend React MVP
 
-🔁 1.4.1 Setup React 18 con TypeScript
-    ⬜ 1.4.1.1 Crear proyecto React 18 con Vite y template TypeScript
-    ⬜ 1.4.1.2 Configurar tsconfig.json con strict mode y path aliases
-    ⬜ 1.4.1.3 Instalar tipos de TypeScript para React y DOM
-    ⬜ 1.4.1.4 Configurar ESLint con reglas TypeScript y React hooks
-    ⬜ 1.4.1.5 Setup Prettier para formateo consistente de código
-    ⬜ 1.4.1.6 Crear estructura de carpetas src/ con componentes modulares
-⬜ 1.4.2 Configurar Tailwind CSS + diseño base
+✅ 1.4.1 Setup React 18 con TypeScript
+    ✅ 1.4.1.1 Crear proyecto React 18 con Vite y template TypeScript
+    ✅ 1.4.1.2 Configurar tsconfig.json con strict mode y path aliases
+    ✅ 1.4.1.3 Instalar tipos de TypeScript para React y DOM
+    ✅ 1.4.1.4 Configurar ESLint con reglas TypeScript y React hooks
+    ✅ 1.4.1.5 Setup Prettier para formateo consistente de código
+    ✅ 1.4.1.6 Crear estructura de carpetas src/ con componentes modulares
+🔁 1.4.2 Configurar Tailwind CSS + diseño base
     ⬜ 1.4.2.1 Instalar y configurar Tailwind CSS con PostCSS
     ⬜ 1.4.2.2 Crear tema personalizado MeStocker (colores, fonts, spacing)
     ⬜ 1.4.2.3 Configurar purge/JIT para optimización de bundle size
@@ -329,47 +329,47 @@
 ## 1.5 Interfaces de Vendedor
 
 ⬜ 1.5.1 Página de registro/login vendedores
-⬜ 1.5.1.1 Crear componente LoginForm con validación de email y password
-⬜ 1.5.1.2 Implementar RegisterForm con campos colombianos (cédula, teléfono)
-⬜ 1.5.1.3 Añadir validación en tiempo real con react-hook-form + yup
-⬜ 1.5.1.4 Crear componente OTPVerification para verificación SMS
-⬜ 1.5.1.5 Implementar ForgotPassword flow con email recovery
-⬜ 1.5.1.6 Diseñar landing page atractiva con beneficios para vendedores
+    ⬜ 1.5.1.1 Crear componente LoginForm con validación de email y password
+    ⬜ 1.5.1.2 Implementar RegisterForm con campos colombianos (cédula, teléfono)
+    ⬜ 1.5.1.3 Añadir validación en tiempo real con react-hook-form + yup
+    ⬜ 1.5.1.4 Crear componente OTPVerification para verificación SMS
+    ⬜ 1.5.1.5 Implementar ForgotPassword flow con email recovery
+    ⬜ 1.5.1.6 Diseñar landing page atractiva con beneficios para vendedores
 ⬜ 1.5.2 Dashboard principal con métricas
-⬜ 1.5.2.1 Crear componente DashboardLayout con sidebar y header
-⬜ 1.5.2.2 Implementar cards de KPIs (ventas, productos, comisiones, stock)
-⬜ 1.5.2.3 Añadir gráficos de ventas con Chart.js o Recharts
-⬜ 1.5.2.4 Crear widget de productos más vendidos con thumbnails
-⬜ 1.5.2.5 Implementar alertas de stock bajo y productos sin movimiento
-⬜ 1.5.2.6 Añadir quick actions (añadir producto, ver comisiones, contactar soporte)
+    ⬜ 1.5.2.1 Crear componente DashboardLayout con sidebar y header
+    ⬜ 1.5.2.2 Implementar cards de KPIs (ventas, productos, comisiones, stock)
+    ⬜ 1.5.2.3 Añadir gráficos de ventas con Chart.js o Recharts
+    ⬜ 1.5.2.4 Crear widget de productos más vendidos con thumbnails
+    ⬜ 1.5.2.5 Implementar alertas de stock bajo y productos sin movimiento
+    ⬜ 1.5.2.6 Añadir quick actions (añadir producto, ver comisiones, contactar soporte)
 ⬜ 1.5.3 Gestión de productos (añadir, editar, eliminar)
-⬜ 1.5.3.1 Crear ProductList con tabla paginada y filtros de búsqueda
-⬜ 1.5.3.2 Implementar ProductForm para crear/editar con validaciones
-⬜ 1.5.3.3 Añadir campos específicos (SKU, categoría, dimensiones, peso)
-⬜ 1.5.3.4 Crear componente ProductCard para vista grid/lista
-⬜ 1.5.3.5 Implementar ProductDetail modal con toda la información
-⬜ 1.5.3.6 Añadir bulk actions (eliminar múltiples, cambiar estado)
+    ⬜ 1.5.3.1 Crear ProductList con tabla paginada y filtros de búsqueda
+    ⬜ 1.5.3.2 Implementar ProductForm para crear/editar con validaciones
+    ⬜ 1.5.3.3 Añadir campos específicos (SKU, categoría, dimensiones, peso)
+    ⬜ 1.5.3.4 Crear componente ProductCard para vista grid/lista
+    ⬜ 1.5.3.5 Implementar ProductDetail modal con toda la información
+    ⬜ 1.5.3.6 Añadir bulk actions (eliminar múltiples, cambiar estado)
 ⬜ 1.5.4 Upload de imágenes con preview
-⬜ 1.5.4.1 Crear componente ImageUpload con drag & drop
-⬜ 1.5.4.2 Implementar preview de imágenes antes de upload
-⬜ 1.5.4.3 Añadir progress bar y validación de formato/tamaño
-⬜ 1.5.4.4 Crear ImageGallery para gestionar múltiples imágenes
-⬜ 1.5.4.5 Implementar crop/resize tool básico con react-image-crop
-⬜ 1.5.4.6 Añadir reordenamiento de imágenes con drag & drop
+    ⬜ 1.5.4.1 Crear componente ImageUpload con drag & drop
+    ⬜ 1.5.4.2 Implementar preview de imágenes antes de upload
+    ⬜ 1.5.4.3 Añadir progress bar y validación de formato/tamaño
+    ⬜ 1.5.4.4 Crear ImageGallery para gestionar múltiples imágenes
+    ⬜ 1.5.4.5 Implementar crop/resize tool básico con react-image-crop
+    ⬜ 1.5.4.6 Añadir reordenamiento de imágenes con drag & drop
 ⬜ 1.5.5 Control de inventario y stock
-⬜ 1.5.5.1 Crear InventoryTable con filtros por estado y ubicación
-⬜ 1.5.5.2 Implementar StockMovements para registrar entrada/salida
-⬜ 1.5.5.3 Añadir LocationMap visual del almacén con posiciones
-⬜ 1.5.5.4 Crear AlertsPanel para notificaciones de stock y calidad
-⬜ 1.5.5.5 Implementar BarcodeScanner simulation para picking
-⬜ 1.5.5.6 Añadir filtros por fecha, producto y tipo de movimiento
+    ⬜ 1.5.5.1 Crear InventoryTable con filtros por estado y ubicación
+    ⬜ 1.5.5.2 Implementar StockMovements para registrar entrada/salida
+    ⬜ 1.5.5.3 Añadir LocationMap visual del almacén con posiciones
+    ⬜ 1.5.5.4 Crear AlertsPanel para notificaciones de stock y calidad
+    ⬜ 1.5.5.5 Implementar BarcodeScanner simulation para picking
+    ⬜ 1.5.5.6 Añadir filtros por fecha, producto y tipo de movimiento
 ⬜ 1.5.6 Reportes de ventas y comisiones
-⬜ 1.5.6.1 Crear SalesReport con gráficos por período y producto
-⬜ 1.5.6.2 Implementar CommissionReport con breakdown detallado
-⬜ 1.5.6.3 Añadir filtros de fecha, estado y método de pago
-⬜ 1.5.6.4 Crear exportación a PDF/Excel con react-pdf/xlsx
-⬜ 1.5.6.5 Implementar PayoutHistory con tracking de transferencias
-⬜ 1.5.6.6 Añadir comparativa período actual vs anterior con KPIs
+    ⬜ 1.5.6.1 Crear SalesReport con gráficos por período y producto
+    ⬜ 1.5.6.2 Implementar CommissionReport con breakdown detallado
+    ⬜ 1.5.6.3 Añadir filtros de fecha, estado y método de pago
+    ⬜ 1.5.6.4 Crear exportación a PDF/Excel con react-pdf/xlsx
+    ⬜ 1.5.6.5 Implementar PayoutHistory con tracking de transferencias
+    ⬜ 1.5.6.6 Añadir comparativa período actual vs anterior con KPIs
 
 ## 1.6 Panel de Administración MVP
 

@@ -13,7 +13,9 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBackToLogin }) => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-  const [messageType, setMessageType] = useState<'success' | 'error'>('success');
+  const [messageType, setMessageType] = useState<'success' | 'error'>(
+    'success'
+  );
   const [emailSent, setEmailSent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -50,15 +52,18 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBackToLogin }) => {
 
   if (emailSent) {
     return (
-      <div className="forgot-password-container">
-        <div className="forgot-password-card">
-          <div className="success-icon">✅</div>
+      <div className='forgot-password-container'>
+        <div className='forgot-password-card'>
+          <div className='success-icon'>✅</div>
           <h2>Revisa tu email</h2>
-          <p>Se ha enviado un enlace de recuperación a <strong>{email}</strong></p>
-          <p className="security-note">
-            El enlace expira en 1 hora. Si no ves el email, revisa tu carpeta de spam.
+          <p>
+            Se ha enviado un enlace de recuperación a <strong>{email}</strong>
           </p>
-          <button type="button" onClick={onBackToLogin}>
+          <p className='security-note'>
+            El enlace expira en 1 hora. Si no ves el email, revisa tu carpeta de
+            spam.
+          </p>
+          <button type='button' onClick={onBackToLogin}>
             Volver al login
           </button>
         </div>
@@ -67,37 +72,38 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBackToLogin }) => {
   }
 
   return (
-    <div className="forgot-password-container">
-      <div className="forgot-password-card">
+    <div className='forgot-password-container'>
+      <div className='forgot-password-card'>
         <h2>Recuperar contraseña</h2>
-        <p>Ingresa tu email y te enviaremos un enlace para restablecer tu contraseña.</p>
+        <p>
+          Ingresa tu email y te enviaremos un enlace para restablecer tu
+          contraseña.
+        </p>
 
         <form onSubmit={handleSubmit}>
           <div>
-            <label htmlFor="email">Email</label>
+            <label htmlFor='email'>Email</label>
             <input
-              type="email"
-              id="email"
+              type='email'
+              id='email'
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={e => setEmail(e.target.value)}
               required
-              placeholder="tu@email.com"
+              placeholder='tu@email.com'
               disabled={loading}
             />
           </div>
 
           {message && (
-            <div className={`message message--${messageType}`}>
-              {message}
-            </div>
+            <div className={`message message--${messageType}`}>{message}</div>
           )}
 
-          <button type="submit" disabled={loading || !email}>
+          <button type='submit' disabled={loading || !email}>
             {loading ? 'Enviando...' : 'Enviar enlace de recuperación'}
           </button>
         </form>
 
-        <button type="button" onClick={onBackToLogin}>
+        <button type='button' onClick={onBackToLogin}>
           ← Volver al login
         </button>
       </div>
