@@ -33,10 +33,10 @@ const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
 // Efecto para el cooldown
 useEffect(() => {
-  if (cooldown > 0) {
-    const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
-    return () => clearTimeout(timer);
-  }
+  if (cooldown <= 0) return;
+  
+  const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+  return () => clearTimeout(timer);
 }, [cooldown]);
 
 // Verificar si el código está completo

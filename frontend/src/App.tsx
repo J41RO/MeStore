@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import './App.css'
 import OTPDemo from './components/OTPDemo'
 import ForgotPassword from './components/auth/ForgotPassword'

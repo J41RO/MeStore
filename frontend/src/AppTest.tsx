@@ -1,4 +1,4 @@
-import React from 'react'
+// React import removido - no necesario con react-jsx
 
 function AppTest() {
   return (
