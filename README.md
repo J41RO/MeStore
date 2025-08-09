@@ -419,3 +419,6 @@ python3 -m pytest --cov=scripts tests/test_migrations_script.py --cov-report=ter
 # Test de integración con Docker
 docker-compose --profile migrations run --rm migrations \
   python3 scripts/run_migrations.py --validate --env test
+## 🔧 Solución de Problemas Comunes
+
+### Alembic: "Can't locate revision identified by..."

@@ -278,12 +278,12 @@
     ✅ 1.3.6.2 Implementar endpoint POST /comisiones/solicitar-pago para request payout
     ✅ 1.3.6.3 Crear endpoint GET /pagos/historial con histórico de transferencias
     ✅ 1.3.6.4 Implementar endpoint PUT /perfil/datos-bancarios para configurar cuenta
-    ⬜ 1.3.6.5 Crear endpoint GET /comisiones/detalle/{transaction_id} para breakdown
-    ⬜ 1.3.6.6 Implementar endpoint POST /comisiones/dispute para reportar discrepancias
+    ✅ 1.3.6.5 Crear endpoint GET /comisiones/detalle/{transaction_id} para breakdown
+    🔁 1.3.6.6 Implementar endpoint POST /comisiones/dispute para reportar discrepancias
 
 ## 1.4 Frontend React MVP
 
-⬜ 1.4.1 Setup React 18 con TypeScript
+🔁 1.4.1 Setup React 18 con TypeScript
     ⬜ 1.4.1.1 Crear proyecto React 18 con Vite y template TypeScript
     ⬜ 1.4.1.2 Configurar tsconfig.json con strict mode y path aliases
     ⬜ 1.4.1.3 Instalar tipos de TypeScript para React y DOM

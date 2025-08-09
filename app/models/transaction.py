@@ -138,6 +138,12 @@ class Transaction(BaseModel):
         "Inventory",
         back_populates="transacciones"
     )
+    # Relationship con disputes
+    disputes = relationship(
+        "ComissionDispute",
+        back_populates="transaction"
+    )
+    
 
     # FK para relación con Inventory
     inventory_id = Column(

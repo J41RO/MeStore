@@ -3,16 +3,19 @@ from datetime import date
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.schemas.financial_reports import ComisionBreakdown
+from app.models.commission_dispute import ComissionDispute
+from app.schemas.commission_dispute import DisputeCreate, DisputeResponse
 
 router = APIRouter()
 
 from decimal import Decimal
 from typing import Any, Dict, List
+from uuid import UUID
 
 from sqlalchemy import and_, func, select
 
@@ -146,4 +149,85 @@ async def get_comision_detalle(
         monto_comision=monto_comision,
         monto_vendedor=monto_vendedor,
         fecha_transaccion=transaction.created_at,
+    )
+
+
+
+@router.post("/dispute", response_model=DisputeResponse, status_code=status.HTTP_201_CREATED)
+async def reportar_disputa_comision(
+    dispute_data: DisputeCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Reportar discrepancia en comisión de transacción.
+
+    Permite a vendedores reportar cuando consideran que
+    la comisión cobrada no es correcta.
+    """
+
+    # Verificar que el usuario puede reportar disputas
+    if current_user.user_type not in ["VENDEDOR", "ADMIN", "SUPERUSER"]:
+        raise HTTPException(
+            status_code=403,
+            detail="Solo vendedores pueden reportar disputas de comisiones"
+        )
+
+    # Verificar que la transacción existe
+    query = select(Transaction).where(Transaction.id == dispute_data.transaction_id)
+    result = await db.execute(query)
+    transaction = result.scalars().first()
+
+    if not transaction:
+        raise HTTPException(
+            status_code=404,
+            detail="Transacción no encontrada"
+        )
+
+    # Verificar que la transacción tiene datos de comisión
+    if not transaction.porcentaje_mestocker:
+        raise HTTPException(
+            status_code=400,
+            detail="La transacción no tiene información de comisiones para disputar"
+        )
+
+    # Verificar que el usuario es el vendedor de la transacción (excepto admins)
+    if current_user.user_type == "VENDEDOR" and str(transaction.vendedor_id) != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="Solo puedes disputar tus propias transacciones"
+        )
+
+    # Verificar que no existe una disputa activa para esta transacción
+    existing_dispute_query = select(ComissionDispute).where(
+        and_(
+            ComissionDispute.transaction_id == dispute_data.transaction_id,
+            ComissionDispute.estado.in_(["ABIERTO", "EN_REVISION"])
+        )
+    )
+    existing_result = await db.execute(existing_dispute_query)
+    existing_dispute = existing_result.scalars().first()
+
+    if existing_dispute:
+        raise HTTPException(
+            status_code=400,
+            detail="Ya existe una disputa activa para esta transacción"
+        )
+
+    # Crear la disputa
+    new_dispute = ComissionDispute(
+        transaction_id=dispute_data.transaction_id,
+        usuario_id=UUID(current_user.id),
+        motivo=dispute_data.motivo,
+        descripcion=dispute_data.descripcion
+    )
+
+    db.add(new_dispute)
+    await db.commit()
+    await db.refresh(new_dispute)
+
+    return DisputeResponse(
+        message="Disputa de comisión reportada exitosamente",
+        dispute_id=new_dispute.id,
+        estado=new_dispute.estado
     )

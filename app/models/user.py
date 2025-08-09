@@ -9,8 +9,8 @@
 # Ruta: ~/app/models/user.py
 # Autor: Jairo
 # Fecha de Creación: 2025-07-25
-# Última Actualización: 2025-08-01
-# Versión: 1.2.0
+# Última Actualización: 2025-08-09
+# Versión: 1.3.0
 # Propósito: Modelo SQLAlchemy para gestión de usuarios del sistema con OTP
 #            Incluye campos básicos, OTP verification, constraints de seguridad
 #
@@ -18,6 +18,7 @@
 # 2025-07-25 - Creación inicial del modelo User básico
 # 2025-07-25 - Agregados campos nombre y apellido
 # 2025-08-01 - Agregados campos OTP para verificación email/SMS
+# 2025-08-09 - Agregado relationship con ComissionDispute
 #
 # ---------------------------------------------------------------------------------------------
 
@@ -67,8 +68,6 @@ class UserType(PyEnum):
 
 
 class User(BaseModel):
-    # Relationships
-    payout_requests = relationship('PayoutRequest', back_populates='vendedor')
     """
     Modelo SQLAlchemy para usuarios del sistema.
 
@@ -313,6 +312,9 @@ class User(BaseModel):
     )
 
     # === RELATIONSHIPS ===
+    # Relationship con PayoutRequest
+    payout_requests = relationship('PayoutRequest', back_populates='vendedor')
+
     # Relationship con Storage
     espacios_storage = relationship(
         "Storage",
@@ -345,6 +347,13 @@ class User(BaseModel):
         "Inventory",
         back_populates="user",
         overlaps="inventarios_actualizados,updated_by"
+    )
+
+    # Relationship con commission disputes
+    commission_disputes = relationship(
+        "ComissionDispute",
+        foreign_keys="ComissionDispute.usuario_id",
+        back_populates="usuario"
     )
 
     # === ÍNDICES OPTIMIZADOS ===
@@ -444,7 +453,6 @@ class User(BaseModel):
     def is_otp_blocked(self) -> bool:
         """Verifica si está bloqueado por demasiados intentos fallidos."""
         return self.otp_attempts >= 5  # Máximo 5 intentos
-
 
     # === MÉTODOS PASSWORD RESET ===
     def can_request_password_reset(self) -> bool:
