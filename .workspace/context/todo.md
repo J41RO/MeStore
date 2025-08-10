@@ -299,7 +299,7 @@
     ✅ 1.4.2.6 Implementar dark mode toggle con persistencia localStorage
 🔁 1.4.3 Implementar sistema de routing (React Router)
     ✅ 1.4.3.1 Instalar React Router v6 con tipos TypeScript
-    ⬜ 1.4.3.2 Crear estructura de rutas para vendedores (/dashboard, /productos)
+    ✅ 1.4.3.2 Crear estructura de rutas para vendedores (/dashboard, /productos)
     ⬜ 1.4.3.3 Implementar rutas protegidas con AuthGuard component
     ⬜ 1.4.3.4 Configurar lazy loading de páginas con React.Suspense
     ⬜ 1.4.3.5 Crear breadcrumb navigation automático por ruta

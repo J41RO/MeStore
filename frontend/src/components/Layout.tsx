@@ -1,7 +1,10 @@
+import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
+import { useAuthStore } from '../stores/authStore';
 
 const Layout: React.FC = () => {
   const location = useLocation();
+  const { user, logout } = useAuthStore();
   
   return (
     <div className="min-h-screen bg-gray-50">
@@ -34,6 +37,14 @@ const Layout: React.FC = () => {
                   Productos
                 </Link>
               </div>
+            </div>
+            <div className="flex items-center">
+              <button
+                onClick={logout}
+                className="px-3 py-2 rounded-md text-sm font-medium text-gray-500 hover:text-gray-700"
+              >
+                Cerrar Sesión ({user?.email})
+              </button>
             </div>
           </div>
         </div>

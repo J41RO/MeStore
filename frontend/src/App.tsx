@@ -1,7 +1,9 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
+import AuthGuard from './components/AuthGuard';
 import Dashboard from './pages/Dashboard';
 import Productos from './pages/Productos';
+import Login from './pages/Login';
 import './App.css';
 
 // Componentes de auth existentes (preservados)
@@ -13,14 +15,19 @@ import './components/auth/PasswordReset.css';
 function App() {
   return (
     <Routes>
-      {/* Rutas principales con Layout */}
-      <Route path="/" element={<Layout />}>
+      {/* Rutas protegidas con Layout */}
+      <Route path="/" element={
+        <AuthGuard>
+          <Layout />
+        </AuthGuard>
+      }>
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="productos" element={<Productos />} />
       </Route>
       
-      {/* Rutas de auth sin Layout (preservadas del sistema actual) */}
+      {/* Rutas públicas de autenticación */}
+      <Route path="/auth/login" element={<Login />} />
       <Route path="/auth/otp" element={<OTPDemo />} />
       <Route path="/auth/forgot-password" element={
         <ForgotPassword onBackToLogin={() => window.history.back()} />
