@@ -46,6 +46,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkAuth: zustandCheckAuth
   } = useAuthStore();
 
+  // Listener para logout automático desde interceptores
+  React.useEffect(() => {
+    const handleAutoLogout = () => {
+      logout();
+    };
+
+    window.addEventListener('auth:logout', handleAutoLogout);
+    
+    return () => {
+      window.removeEventListener('auth:logout', handleAutoLogout);
+    };
+  }, []);
+
   // Wrapper methods para agregar funcionalidad adicional
   const login = async (token: string, user: User): Promise<void> => {
     try {

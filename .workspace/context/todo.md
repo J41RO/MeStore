@@ -307,9 +307,9 @@
 🔁 1.4.4 Crear contextos de autenticación y estado global
     ✅ 1.4.4.1 Crear AuthContext con login/logout y persistencia de JWT
     ✅ 1.4.4.2 Implementar UserContext para datos del vendedor actual
-    ⬜ 1.4.4.3 Configurar Zustand store para estado global de la app
-    ⬜ 1.4.4.4 Crear hook useAuth para manejo simple de autenticación
-    ⬜ 1.4.4.5 Implementar token refresh automático en background
+    ✅ 1.4.4.3 Configurar Zustand store para estado global de la app
+    ✅ 1.4.4.4 Crear hook useAuth para manejo simple de autenticación
+    ✅ 1.4.4.5 Implementar token refresh automático en background
     ⬜ 1.4.4.6 Crear NotificationContext para toast messages y alertas
 ⬜ 1.4.5 Configurar Axios para comunicación con API
     ⬜ 1.4.5.1 Instalar Axios y configurar instancia base con baseURL
