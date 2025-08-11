@@ -10,6 +10,7 @@ import './App.css';
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Productos = lazy(() => import('./pages/Productos'));
 const Login = lazy(() => import('./pages/Login'));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Componentes de auth con lazy loading
 const OTPDemo = lazy(() => import('./components/OTPDemo'));
@@ -46,6 +47,12 @@ function App() {
         <Route path="/auth/otp" element={
           <Suspense fallback={<PageLoader />}>
             <OTPDemo />
+          </Suspense>
+        } />
+        {/* Ruta 404 - DEBE IR AL FINAL */}
+        <Route path="*" element={
+          <Suspense fallback={<PageLoader />}>
+            <NotFound />
           </Suspense>
         } />
       </Routes>

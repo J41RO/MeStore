@@ -16,3 +16,6 @@
 export {};
 export { useTheme } from './useTheme';
 export type { Theme, UseThemeReturn } from './useTheme';
+
+export { useAuth } from './useAuth';
+export type { UseAuthReturn } from './useAuth';
