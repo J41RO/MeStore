@@ -1,4 +1,4 @@
-import React from 'react';
+// React import removed - not needed with new JSX transform
 import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 
