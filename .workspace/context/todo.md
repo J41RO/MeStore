@@ -300,9 +300,9 @@
 🔁 1.4.3 Implementar sistema de routing (React Router)
     ✅ 1.4.3.1 Instalar React Router v6 con tipos TypeScript
     ✅ 1.4.3.2 Crear estructura de rutas para vendedores (/dashboard, /productos)
-    ⬜ 1.4.3.3 Implementar rutas protegidas con AuthGuard component
-    ⬜ 1.4.3.4 Configurar lazy loading de páginas con React.Suspense
-    ⬜ 1.4.3.5 Crear breadcrumb navigation automático por ruta
+    ✅ 1.4.3.3 Implementar rutas protegidas con AuthGuard component
+    ✅ 1.4.3.4 Configurar lazy loading de páginas con React.Suspense
+    ✅ 1.4.3.5 Crear breadcrumb navigation automático por ruta
     ⬜ 1.4.3.6 Implementar 404 page y error boundaries para rutas
 ⬜ 1.4.4 Crear contextos de autenticación y estado global
     ⬜ 1.4.4.1 Crear AuthContext con login/logout y persistencia de JWT

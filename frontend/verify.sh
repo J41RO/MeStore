@@ -31,8 +31,10 @@ else
 fi
 
 echo -e "${BLUE}3. Test Suite...${NC}"
-if npm run test > /dev/null 2>&1; then
-    echo -e "${GREEN}✅ Tests: PASS${NC}"
+test_output=$(npm run test 2>&1)
+test_count=$(echo "$test_output" | grep "Tests:" | grep -o '[0-9]\+ passed' | grep -o '[0-9]\+')
+if [[ "$test_count" -gt 0 ]]; then
+    echo -e "${GREEN}✅ Tests: PASS ($test_count tests executed)${NC}"
 else
     echo -e "${YELLOW}⚠️  Tests: WARNINGS (no tests found)${NC}"
     ((warnings++))

@@ -9,3 +9,5 @@ export type { CardProps, CardVariant } from './Card';
 export type { ModalProps, ModalSize } from './Modal';
 export { default as ThemeToggle } from './ThemeToggle';
 export type { ThemeToggleProps } from './ThemeToggle';
+
+export { Breadcrumb } from './Breadcrumb';
