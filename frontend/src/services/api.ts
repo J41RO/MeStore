@@ -1,48 +1,60 @@
+import { AxiosResponse } from 'axios';
 import { apiClient } from './authInterceptors';
+import {
+  LoginCredentials,
+  RegisterData,
+  AuthResponse,
+  UserProfile,
+  UpdateUserData,
+  Product,
+  CreateProductData,
+  UpdateProductData,
+} from '../types/api.types';
 
-// Servicio API que usa el cliente con interceptores
+// Servicio API tipado que usa el cliente con interceptores
 export const api = {
   // Métodos de autenticación
   auth: {
-    login: (credentials: { email: string; password: string }) => 
+    login: (credentials: LoginCredentials): Promise<AxiosResponse<AuthResponse>> =>
       apiClient.post('/api/auth/login', credentials),
     
-    register: (userData: any) => 
+    register: (userData: RegisterData): Promise<AxiosResponse<AuthResponse>> =>
       apiClient.post('/api/auth/register', userData),
     
-    refresh: (refreshToken: string) => 
+    refresh: (refreshToken: string): Promise<AxiosResponse<AuthResponse>> =>
       apiClient.post('/api/auth/refresh', { refresh_token: refreshToken }),
     
-    logout: () => 
+    logout: (): Promise<AxiosResponse<void>> =>
       apiClient.post('/api/auth/logout'),
   },
 
-  // Métodos de usuarios (con token automático)
+  // Métodos de usuarios
   users: {
-    getProfile: () => 
-      apiClient.get('/api/users/me'),
+    getProfile: (): Promise<AxiosResponse<UserProfile>> =>
+      apiClient.get('/api/users/profile'),
     
-    updateProfile: (data: any) => 
-      apiClient.put('/api/users/me', data),
+    updateProfile: (userData: UpdateUserData): Promise<AxiosResponse<UserProfile>> =>
+      apiClient.put('/api/users/profile', userData),
+    
+    getAllUsers: (): Promise<AxiosResponse<UserProfile[]>> =>
+      apiClient.get('/api/users'),
   },
 
-  // Métodos de productos (con token automático)
+  // Métodos de productos
   products: {
-    getAll: () => 
+    getAll: (): Promise<AxiosResponse<Product[]>> =>
       apiClient.get('/api/products'),
     
-    getById: (id: string) => 
+    getById: (id: string): Promise<AxiosResponse<Product>> =>
       apiClient.get(`/api/products/${id}`),
     
-    create: (productData: any) => 
+    create: (productData: CreateProductData): Promise<AxiosResponse<Product>> =>
       apiClient.post('/api/products', productData),
     
-    update: (id: string, productData: any) => 
+    update: (id: string, productData: UpdateProductData): Promise<AxiosResponse<Product>> =>
       apiClient.put(`/api/products/${id}`, productData),
     
-    delete: (id: string) => 
+    delete: (id: string): Promise<AxiosResponse<void>> =>
       apiClient.delete(`/api/products/${id}`),
   },
 };
-
-export default api;
