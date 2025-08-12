@@ -304,16 +304,16 @@
     ✅ 1.4.3.4 Configurar lazy loading de páginas con React.Suspense
     ✅ 1.4.3.5 Crear breadcrumb navigation automático por ruta
     ✅ 1.4.3.6 Implementar 404 page y error boundaries para rutas
-🔁 1.4.4 Crear contextos de autenticación y estado global
+✅ 1.4.4 Crear contextos de autenticación y estado global
     ✅ 1.4.4.1 Crear AuthContext con login/logout y persistencia de JWT
     ✅ 1.4.4.2 Implementar UserContext para datos del vendedor actual
     ✅ 1.4.4.3 Configurar Zustand store para estado global de la app
     ✅ 1.4.4.4 Crear hook useAuth para manejo simple de autenticación
     ✅ 1.4.4.5 Implementar token refresh automático en background
-    ⬜ 1.4.4.6 Crear NotificationContext para toast messages y alertas
-⬜ 1.4.5 Configurar Axios para comunicación con API
-    ⬜ 1.4.5.1 Instalar Axios y configurar instancia base con baseURL
-    ⬜ 1.4.5.2 Crear interceptors para añadir JWT token automáticamente
+    ✅ 1.4.4.6 Crear NotificationContext para toast messages y alertas
+🔁 1.4.5 Configurar Axios para comunicación con API
+    ✅ 1.4.5.1 Instalar Axios y configurar instancia base con baseURL
+    ✅ 1.4.5.2 Crear interceptors para añadir JWT token automáticamente
     ⬜ 1.4.5.3 Implementar interceptor de response para manejo de errores
     ⬜ 1.4.5.4 Configurar timeout y retry logic para requests fallidos
     ⬜ 1.4.5.5 Crear API service layer con funciones tipadas TypeScript

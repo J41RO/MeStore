@@ -1,6 +1,26 @@
 import { AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { apiClient } from './apiClient';
 
+// Función para transformar errores para la UI
+const transformErrorForUI = (error: AxiosError) => {
+  const transformedError = {
+    ...error,
+    userMessage: 'Error desconocido',
+    statusCode: error.response?.status || 0,
+    timestamp: new Date().toISOString()
+  };
+
+  if (error.response) {
+    const status = error.response.status;
+    transformedError.userMessage = status >= 500 
+      ? 'Error del servidor. Intenta más tarde.'
+      : (error.response.data as any)?.message || 'Error en la solicitud';
+  }
+
+  return transformedError;
+};
+
+
 // Flag para evitar loops infinitos durante refresh
 let isRefreshing = false;
 let failedQueue: Array<{
@@ -30,6 +50,42 @@ apiClient.interceptors.request.use(
     return config;
   },
   (error: AxiosError) => {
+    // Manejo de otros códigos de error HTTP
+      // Manejo de errores de red y timeout
+      if (!error.response) {  // ← AGREGAR ESTA LÍNEA
+        if (error.code === 'ECONNABORTED') {
+        console.error('Request timeout:', error.message);
+        error.message = 'La solicitud ha tardado demasiado. Intenta de nuevo.';
+      } else if (error.message === 'Network Error') {
+        console.error('Network error:', error.message);
+        error.message = 'Error de conexión. Verifica tu conexión a internet.';
+      } else {
+        console.error('Request error:', error.message);
+        error.message = 'Error de solicitud. Intenta de nuevo más tarde.';
+      }
+      return Promise.reject(transformErrorForUI(error));
+    }
+    if (error.response) {
+      const status = error.response.status;
+      const message = (error.response.data as any)?.message || error.message;
+      
+      switch (status) {
+        case 403:
+          console.error('Acceso denegado:', message);
+          break;
+        case 404:
+          console.error('Recurso no encontrado:', message);
+          break;
+        case 500:
+          console.error('Error interno del servidor:', message);
+          break;
+        default:
+          if (status >= 500) {
+            console.error('Error del servidor:', message);
+          }
+      }
+    }
+    
     return Promise.reject(error);
   }
 );
