@@ -15,12 +15,12 @@ const Input: React.FC<InputProps> = ({
 }) => {
   const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
 
-  const baseClasses = 'input-mestocker transition-all duration-200';
+  const baseClasses = 'input-mestocker transition-all duration-200 rounded sm:rounded-md focus:ring-1 sm:focus:ring-2';
   
   const sizeClasses = {
-    sm: 'px-2.5 py-1.5 text-sm',
-    md: 'px-3 py-2 text-base',
-    lg: 'px-4 py-3 text-lg',
+    sm: 'px-2 sm:px-2.5 py-1 sm:py-1.5 text-xs sm:text-sm',
+    md: 'px-2.5 sm:px-3 py-1.5 sm:py-2 text-sm sm:text-base',
+    lg: 'px-3 sm:px-4 py-2 sm:py-3 text-base sm:text-lg',
   };
 
   const stateClasses = {
@@ -43,7 +43,7 @@ const Input: React.FC<InputProps> = ({
   return (
     <div className={fullWidth ? 'w-full' : ''}>
       {label && (
-        <label htmlFor={inputId} className="block text-sm font-medium text-neutral-700 mb-1">
+        <label htmlFor={inputId} className="block text-xs sm:text-sm font-medium text-neutral-700 mb-1">
           {label}
         </label>
       )}
@@ -62,10 +62,10 @@ const Input: React.FC<InputProps> = ({
         />
       </div>
       {error && (
-        <p className="mt-1 text-sm text-red-600">{error}</p>
+        <p className="mt-1 text-xs sm:text-sm text-red-600">{error}</p>
       )}
       {helper && !error && (
-        <p className="mt-1 text-sm text-neutral-500">{helper}</p>
+        <p className="mt-1 text-xs sm:text-sm text-neutral-500">{helper}</p>
       )}
     </div>
   );

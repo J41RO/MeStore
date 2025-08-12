@@ -12,7 +12,7 @@ const Button: React.FC<ButtonProps> = ({
   className,
   ...props
 }) => {
-  const baseClasses = 'inline-flex items-center justify-center font-medium rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
+  const baseClasses = 'inline-flex items-center justify-center font-medium rounded sm:rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
   
   const variantClasses = {
     primary: 'btn-primary focus:ring-primary-500',
@@ -23,9 +23,9 @@ const Button: React.FC<ButtonProps> = ({
   };
 
   const sizeClasses = {
-    sm: 'px-3 py-1.5 text-sm gap-1.5',
-    md: 'px-4 py-2 text-base gap-2',
-    lg: 'px-6 py-3 text-lg gap-2.5',
+    sm: 'px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm gap-1 sm:gap-1.5',
+    md: 'px-3 sm:px-4 py-1.5 sm:py-2 text-sm sm:text-base gap-1.5 sm:gap-2',
+    lg: 'px-4 sm:px-6 py-2 sm:py-3 text-base sm:text-lg gap-2 sm:gap-2.5',
   };
 
   const widthClasses = fullWidth ? 'w-full' : '';

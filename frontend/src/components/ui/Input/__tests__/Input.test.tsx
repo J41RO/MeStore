@@ -85,21 +85,21 @@ describe('Input Component', () => {
     render(<Input size="sm" placeholder="Small input" />);
     
     const input = screen.getByPlaceholderText('Small input');
-    expect(input).toHaveClass('px-2.5', 'py-1.5', 'text-sm');
+    expect(input).toHaveClass('px-2', 'sm:px-2.5', 'py-1', 'sm:py-1.5', 'text-xs', 'sm:text-sm');
   });
 
   test('should apply medium size styles by default', () => {
     render(<Input placeholder="Medium input" />);
     
     const input = screen.getByPlaceholderText('Medium input');
-    expect(input).toHaveClass('px-3', 'py-2', 'text-base');
+    expect(input).toHaveClass('px-2.5', 'sm:px-3', 'py-1.5', 'sm:py-2', 'text-sm', 'sm:text-base');
   });
 
   test('should apply large size styles', () => {
     render(<Input size="lg" placeholder="Large input" />);
     
     const input = screen.getByPlaceholderText('Large input');
-    expect(input).toHaveClass('px-4', 'py-3', 'text-lg');
+    expect(input).toHaveClass('px-3', 'sm:px-4', 'py-2', 'sm:py-3', 'text-base', 'sm:text-lg');
   });
 
   test('should handle focus and blur events', async () => {

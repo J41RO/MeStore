@@ -79,21 +79,21 @@ describe('Button Component', () => {
     render(<Button size="sm">Small Button</Button>);
     
     const button = screen.getByRole('button');
-    expect(button).toHaveClass('px-3', 'py-1.5', 'text-sm', 'gap-1.5');
+    expect(button).toHaveClass('px-2', 'sm:px-3', 'py-1', 'sm:py-1.5', 'text-xs', 'sm:text-sm', 'gap-1', 'sm:gap-1.5');
   });
 
   test('should apply medium size styles by default', () => {
     render(<Button>Medium Button</Button>);
     
     const button = screen.getByRole('button');
-    expect(button).toHaveClass('px-4', 'py-2', 'text-base', 'gap-2');
+    expect(button).toHaveClass('px-3', 'sm:px-4', 'py-1.5', 'sm:py-2', 'text-sm', 'sm:text-base', 'gap-1.5', 'sm:gap-2');
   });
 
   test('should apply large size styles', () => {
     render(<Button size="lg">Large Button</Button>);
     
     const button = screen.getByRole('button');
-    expect(button).toHaveClass('px-6', 'py-3', 'text-lg', 'gap-2.5');
+    expect(button).toHaveClass('px-4', 'sm:px-6', 'py-2', 'sm:py-3', 'text-base', 'sm:text-lg', 'gap-2', 'sm:gap-2.5');
   });
 
   test('should apply fullWidth styles', () => {
@@ -146,7 +146,7 @@ describe('Button Component', () => {
       'items-center', 
       'justify-center',
       'font-medium',
-      'rounded-md',
+      'rounded', 'sm:rounded-md',
       'transition-all',
       'focus:outline-none',
       'focus:ring-2',

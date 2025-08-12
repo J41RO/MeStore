@@ -24,7 +24,7 @@ describe('Card Component', () => {
     );
     
     const card = screen.getByTestId('default-card');
-    expect(card).toHaveClass('rounded-lg', 'overflow-hidden', 'card-mestocker');
+    expect(card).toHaveClass('rounded-md', 'sm:rounded-lg', 'overflow-hidden', 'card-mestocker');
   });
 
   test('should apply outlined variant styles', () => {
@@ -99,7 +99,7 @@ describe('Card Component', () => {
     
     const header = screen.getByTestId('card-header');
     expect(header).toBeInTheDocument();
-    expect(header).toHaveClass('px-6', 'py-4', 'border-b', 'border-neutral-200');
+    expect(header).toHaveClass('px-4', 'sm:px-6', 'py-3', 'sm:py-4', 'border-b', 'border-neutral-200');
     expect(screen.getByText('Card Header')).toBeInTheDocument();
   });
 
@@ -114,7 +114,7 @@ describe('Card Component', () => {
     
     const body = screen.getByTestId('card-body');
     expect(body).toBeInTheDocument();
-    expect(body).toHaveClass('px-6', 'py-4');
+    expect(body).toHaveClass('px-4', 'sm:px-6', 'py-3', 'sm:py-4');
     expect(screen.getByText('Card body content')).toBeInTheDocument();
   });
 
@@ -130,7 +130,7 @@ describe('Card Component', () => {
     
     const footer = screen.getByTestId('card-footer');
     expect(footer).toBeInTheDocument();
-    expect(footer).toHaveClass('px-6', 'py-4', 'border-t', 'border-neutral-200', 'bg-neutral-50');
+    expect(footer).toHaveClass('px-4', 'sm:px-6', 'py-3', 'sm:py-4', 'border-t', 'border-neutral-200', 'bg-neutral-50');
     expect(screen.getByText('Save')).toBeInTheDocument();
     expect(screen.getByText('Cancel')).toBeInTheDocument();
   });
@@ -170,7 +170,7 @@ describe('Card Component', () => {
     
     const header = screen.getByTestId('custom-header');
     expect(header).toHaveClass('custom-header-class');
-    expect(header).toHaveClass('px-6', 'py-4'); // Should keep default classes
+    expect(header).toHaveClass('px-4', 'sm:px-6', 'py-3', 'sm:py-4'); // Should keep default classes
   });
 
   test('should allow custom className on Body component', () => {
@@ -184,7 +184,7 @@ describe('Card Component', () => {
     
     const body = screen.getByTestId('custom-body');
     expect(body).toHaveClass('custom-body-class');
-    expect(body).toHaveClass('px-6', 'py-4'); // Should keep default classes
+    expect(body).toHaveClass('px-4', 'sm:px-6', 'py-3', 'sm:py-4'); // Should keep default classes
   });
 
   test('should allow custom className on Footer component', () => {
@@ -198,7 +198,7 @@ describe('Card Component', () => {
     
     const footer = screen.getByTestId('custom-footer');
     expect(footer).toHaveClass('custom-footer-class');
-    expect(footer).toHaveClass('px-6', 'py-4'); // Should keep default classes
+    expect(footer).toHaveClass('px-4', 'sm:px-6', 'py-3', 'sm:py-4'); // Should keep default classes
   });
 
   test('should handle click events when passed to main Card', () => {

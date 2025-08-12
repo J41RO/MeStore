@@ -15,9 +15,9 @@ const Modal: React.FC<ModalProps> = ({
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
   const sizeClasses = {
-    sm: 'max-w-md',
-    md: 'max-w-lg',
-    lg: 'max-w-2xl',
+    sm: 'w-full sm:w-96 md:max-w-md',
+    md: 'w-full sm:w-96 md:w-[32rem] lg:max-w-lg',
+    lg: 'w-full sm:w-96 md:w-[32rem] lg:w-[40rem] xl:max-w-2xl',
     xl: 'max-w-4xl',
     full: 'max-w-full mx-4',
   };
@@ -61,7 +61,7 @@ const Modal: React.FC<ModalProps> = ({
 
   const modalContent = (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-8"
       onClick={handleOverlayClick}
     >
       {/* Backdrop */}
@@ -70,7 +70,7 @@ const Modal: React.FC<ModalProps> = ({
       {/* Modal */}
       <div
         ref={modalRef}
-        className={`relative bg-white rounded-lg shadow-mestocker-xl w-full ${sizeClasses[size]} max-h-[90vh] overflow-hidden`}
+        className={`relative bg-white rounded sm:rounded-lg shadow-mestocker-xl w-full ${sizeClasses[size]} max-h-[90vh] overflow-hidden`}
         tabIndex={-1}
         role="dialog"
         aria-modal="true"
@@ -78,8 +78,8 @@ const Modal: React.FC<ModalProps> = ({
       >
         {/* Header */}
         {title && (
-          <div className="flex items-center justify-between p-6 border-b border-neutral-200">
-            <h2 id="modal-title" className="text-lg font-semibold text-neutral-900">
+          <div className="flex items-center justify-between p-4 sm:p-6 border-b border-neutral-200">
+            <h2 id="modal-title" className="text-base sm:text-lg font-semibold text-neutral-900">
               {title}
             </h2>
             <button

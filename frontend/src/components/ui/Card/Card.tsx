@@ -8,7 +8,7 @@ const CardComponent: React.FC<CardProps> = ({
   className,
   ...props
 }) => {
-  const baseClasses = 'rounded-lg overflow-hidden';
+  const baseClasses = 'rounded-md sm:rounded-lg overflow-hidden';
   
   const variantClasses = {
     default: 'card-mestocker',
@@ -33,7 +33,7 @@ const CardComponent: React.FC<CardProps> = ({
 // Sub-componentes
 const CardHeader: React.FC<CardHeaderProps> = ({ children, className, ...props }) => {
   return (
-    <div className={`px-6 py-4 border-b border-neutral-200 ${className || ''}`} {...props}>
+    <div className={`px-4 sm:px-6 py-3 sm:py-4 border-b border-neutral-200 ${className || ''}`} {...props}>
       {children}
     </div>
   );
@@ -41,7 +41,7 @@ const CardHeader: React.FC<CardHeaderProps> = ({ children, className, ...props }
 
 const CardBody: React.FC<CardBodyProps> = ({ children, className, ...props }) => {
   return (
-    <div className={`px-6 py-4 ${className || ''}`} {...props}>
+    <div className={`px-4 sm:px-6 py-3 sm:py-4 ${className || ''}`} {...props}>
       {children}
     </div>
   );
@@ -49,7 +49,7 @@ const CardBody: React.FC<CardBodyProps> = ({ children, className, ...props }) =>
 
 const CardFooter: React.FC<CardFooterProps> = ({ children, className, ...props }) => {
   return (
-    <div className={`px-6 py-4 border-t border-neutral-200 bg-neutral-50 ${className || ''}`} {...props}>
+    <div className={`px-4 sm:px-6 py-3 sm:py-4 border-t border-neutral-200 bg-neutral-50 ${className || ''}`} {...props}>
       {children}
     </div>
   );
