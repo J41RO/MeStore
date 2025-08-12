@@ -6,3 +6,5 @@ export { default as ResetPassword } from './ResetPassword';
 
 // Types
 export type { LoginFormProps } from './LoginForm';
+
+export { default as RegisterForm } from './RegisterForm';

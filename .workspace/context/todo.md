@@ -329,7 +329,7 @@
 ## 1.5 Interfaces de Vendedor
 
 🔁 1.5.1 Página de registro/login vendedores
-    ⬜ 1.5.1.1 Crear componente LoginForm con validación de email y password
+    ✅ 1.5.1.1 Crear componente LoginForm con validación de email y password
     ⬜ 1.5.1.2 Implementar RegisterForm con campos colombianos (cédula, teléfono)
     ⬜ 1.5.1.3 Añadir validación en tiempo real con react-hook-form + yup
     ⬜ 1.5.1.4 Crear componente OTPVerification para verificación SMS
