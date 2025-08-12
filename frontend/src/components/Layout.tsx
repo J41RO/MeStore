@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { useApp } from '../hooks/useApp';
+import HamburgerIcon from './ui/HamburgerIcon/HamburgerIcon';
+import MobileMenu from './ui/MobileMenu/MobileMenu';
 
 const Layout: React.FC = () => {
   const location = useLocation();
@@ -12,6 +14,11 @@ const Layout: React.FC = () => {
     notifications,
     showSuccessNotification
   } = useApp();
+
+  // Mobile menu state
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const closeMobileMenu = () => setIsMobileMenuOpen(false);
+  const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
   
   return (
     <div className={`min-h-screen ${isDarkMode ? 'dark bg-gray-900' : 'bg-gray-50'}`}>
@@ -19,6 +26,11 @@ const Layout: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center space-x-8">
+              {/* Hamburger Icon para mobile */}
+              <HamburgerIcon 
+                isOpen={isMobileMenuOpen} 
+                onClick={toggleMobileMenu}
+              />
               {/* Contador de notificaciones */}
               {notifications.hasUnread && (
                 <div className="relative">
@@ -85,6 +97,12 @@ const Layout: React.FC = () => {
           </div>
         </div>
       </nav>
+      
+      {/* Mobile Menu */}
+      <MobileMenu 
+        isOpen={isMobileMenuOpen} 
+        onClose={closeMobileMenu} 
+      />
       <main>
         <Outlet />
       </main>
