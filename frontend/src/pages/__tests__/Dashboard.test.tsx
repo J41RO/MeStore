@@ -48,4 +48,15 @@ describe('Dashboard Component', () => {
     const gridContainer = container.querySelector('.grid');
     expect(gridContainer).toBeInTheDocument();
   });
+  test('should have responsive grid structure for metrics', () => {
+    const { container } = renderDashboard();
+    const metricsGrid = container.querySelector('.grid.grid-cols-1.sm\\:grid-cols-2.md\\:grid-cols-2.lg\\:grid-cols-4.xl\\:grid-cols-4');
+    expect(metricsGrid).toBeInTheDocument();
+  });
+
+  test('should have responsive padding and max-width container', () => {
+    const { container } = renderDashboard();
+    const mainContainer = container.querySelector('.p-4.md\\:p-6.lg\\:p-8.max-w-7xl.mx-auto');
+    expect(mainContainer).toBeInTheDocument();
+  });
 });
