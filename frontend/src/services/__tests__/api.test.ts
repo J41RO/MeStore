@@ -50,7 +50,7 @@ describe('api helper', () => {
     it('should call get profile endpoint', () => {
       api.users.getProfile();
       
-      expect(mockedApiClient.get).toHaveBeenCalledWith('/api/users/me');
+      expect(mockedApiClient.get).toHaveBeenCalledWith('/api/users/profile');
     });
 
     it('should call update profile endpoint with data', () => {
@@ -58,7 +58,7 @@ describe('api helper', () => {
       
       api.users.updateProfile(profileData);
       
-      expect(mockedApiClient.put).toHaveBeenCalledWith('/api/users/me', profileData);
+      expect(mockedApiClient.put).toHaveBeenCalledWith('/api/users/profile', profileData);
     });
   });
 

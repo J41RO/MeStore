@@ -12,11 +12,14 @@
  * - Estado de UI (sidebar, modals, loading)
  * - Notificaciones y alerts
  * - Configuración global de la app
+ * - Error handling centralizado
+ * - Loading states automáticos
  */
 
 import { create } from 'zustand';
 import { persist, devtools } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
+import { enableMapSet } from 'immer';
 import { 
   AppStoreType, 
   AppTheme, 
@@ -83,6 +86,9 @@ const calculateIsDarkMode = (theme: AppTheme): boolean => {
   }
 };
 
+// Habilitar soporte para Map y Set en Immer
+enableMapSet();
+
 // Crear el store de app
 export const useAppStore = create<AppStoreType>()(
   devtools(
@@ -95,6 +101,13 @@ export const useAppStore = create<AppStoreType>()(
         sidebarCollapsed: false,
         isAppLoading: false,
         isPageTransitioning: false,
+        
+        // Error handling centralizado
+        globalError: null,
+        activeRequests: new Set<string>(),
+        hasActiveRequests: false,
+        
+        // Estados de modal y overlay
         activeModal: null,
         modalData: null,
         notifications: [],
@@ -164,6 +177,30 @@ export const useAppStore = create<AppStoreType>()(
         setPageTransitioning: (transitioning: boolean) => {
           set((state) => {
             state.isPageTransitioning = transitioning;
+          });
+        },
+        
+        // ACCIONES DE ERROR HANDLING CENTRALIZADO
+        setGlobalError: (error: string | null) => {
+          set((state) => {
+            state.globalError = error;
+          });
+        },
+
+        clearGlobalError: () => {
+          set((state) => {
+            state.globalError = null;
+          });
+        },
+
+        setRequestLoading: (requestId: string, loading: boolean) => {
+          set((state) => {
+            if (loading) {
+              state.activeRequests.add(requestId);
+            } else {
+              state.activeRequests.delete(requestId);
+            }
+            state.hasActiveRequests = state.activeRequests.size > 0;
           });
         },
         
@@ -288,6 +325,10 @@ export const useAppStore = create<AppStoreType>()(
             state.modalData = null;
             state.notifications = [];
             state.alerts = [];
+            // Reset error handling state
+            state.globalError = null;
+            state.activeRequests.clear();
+            state.hasActiveRequests = false;
           });
         },
         
@@ -328,7 +369,13 @@ export const appSelectors = {
   
   loadingState: (state: AppStoreType) => ({
     isAppLoading: state.isAppLoading,
-    isPageTransitioning: state.isPageTransitioning
+    isPageTransitioning: state.isPageTransitioning,
+    hasActiveRequests: state.hasActiveRequests
+  }),
+  
+  errorState: (state: AppStoreType) => ({
+    globalError: state.globalError,
+    hasError: state.globalError !== null
   }),
   
   modalState: (state: AppStoreType) => ({

@@ -117,6 +117,11 @@ export interface AppState extends UIState {
   version: string;
   buildNumber: string;
   environment: 'development' | 'staging' | 'production';
+
+  // Error handling centralizado
+  globalError: string | null;
+  activeRequests: Set<string>;
+  hasActiveRequests: boolean;
 }
 
 // Tipos para acciones del store
@@ -157,6 +162,11 @@ export interface AppActions {
   // Acciones de utilidad
   resetAppState: () => void;
   updatePerformanceMetrics: (metrics: Partial<PerformanceState>) => void;
+
+  // Acciones de error handling centralizado
+  setGlobalError: (error: string | null) => void;
+  clearGlobalError: () => void;
+  setRequestLoading: (requestId: string, loading: boolean) => void;
 }
 
 // Tipo combinado del store

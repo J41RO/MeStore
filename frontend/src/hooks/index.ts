@@ -19,3 +19,6 @@ export type { UseAuthReturn } from './useAuth';
 
 export { useVendor } from './useVendor';
 export type { UseVendorReturn } from './useVendor';
+
+// Hook para manejo automático de API requests con loading y error handling
+export { useApiRequest, default as useApiRequestDefault } from './useApiRequest';
