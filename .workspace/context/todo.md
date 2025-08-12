@@ -319,7 +319,7 @@
     ✅ 1.4.5.5 Crear API service layer con funciones tipadas TypeScript
     ✅ 1.4.5.6 Implementar loading states y error handling centralizado
 🔁 1.4.6 Setup responsive design mobile-first
-    ⬜ 1.4.6.1 Configurar breakpoints de Tailwind para mobile/tablet/desktop
+    ✅ 1.4.6.1 Configurar breakpoints de Tailwind para mobile/tablet/desktop
     ⬜ 1.4.6.2 Crear componentes responsivos con utility-first approach
     ⬜ 1.4.6.3 Implementar navegación mobile con hamburger menu
     ⬜ 1.4.6.4 Configurar meta viewport y touch-friendly interactions
@@ -1933,7 +1933,7 @@
 ⬜ 11.2.2.1 Configurar pytest execution con coverage reporting
 ⬜ 11.2.2.2 Implementar frontend testing con Jest y React Testing Library
 ⬜ 11.2.2.3 Añadir end-to-end testing con Playwright o Cypress
-🔁 11.2.2.4 Crear API testing con Postman/Newman collections
+⬜ 11.2.2.4 Crear API testing con Postman/Newman collections
 ⬜ 11.2.2.5 Implementar performance testing con k6 o Artillery
 ⬜ 11.2.2.6 Añadir test result reporting y failure notifications
 ⬜ 11.2.3 Deploy automático a staging

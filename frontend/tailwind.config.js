@@ -133,6 +133,26 @@ export default {
         'mestocker': '0 4px 6px -1px rgba(59, 130, 246, 0.1), 0 2px 4px -1px rgba(59, 130, 246, 0.06)',
         'mestocker-lg': '0 10px 15px -3px rgba(59, 130, 246, 0.1), 0 4px 6px -2px rgba(59, 130, 246, 0.05)',
         'mestocker-xl': '0 20px 25px -5px rgba(59, 130, 246, 0.1), 0 10px 10px -5px rgba(59, 130, 246, 0.04)',
+      },
+      // Breakpoints personalizados para mobile/tablet/desktop
+      screens: {
+        'xs': '475px',     // Extra small devices (large phones)
+        'sm': '640px',     // Small devices (landscape phones)
+        'md': '768px',     // Medium devices (tablets)
+        'lg': '1024px',    // Large devices (desktops)
+        'xl': '1280px',    // Extra large devices (large desktops)
+        '2xl': '1536px',   // 2X Extra large devices (larger desktops)
+        
+        // Breakpoints específicos para el proyecto
+        'mobile': '475px',       // Móviles en landscape
+        'tablet': '768px',       // Tablets
+        'desktop': '1024px',     // Desktop estándar
+        'desktop-lg': '1280px',  // Desktop grande
+        
+        // Breakpoints para rangos específicos
+        'tablet-only': {'min': '768px', 'max': '1023px'},
+        'desktop-only': {'min': '1024px'},
+        'mobile-only': {'max': '767px'}
       }
     },
   },
