@@ -40,3 +40,29 @@
 .read-the-docs {
   color: #888;
 }
+
+
+
+/* ===== TOUCH OPTIMIZATIONS FOR MOBILE ===== */
+
+/* 1. Smooth scrolling optimization */
+html {
+  scroll-behavior: smooth;
+}
+
+/* 2. Touch callout and tap highlight disabled */
+* {
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 3. Touch action optimization */
+html, body {
+  touch-action: manipulation;
+}
+
+/* 4. Minimum touch targets for accessibility */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}

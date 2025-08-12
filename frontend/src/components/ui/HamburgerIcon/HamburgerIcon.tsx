@@ -14,7 +14,7 @@ const HamburgerIcon: React.FC<HamburgerIconProps> = ({
   return (
     <button
       onClick={onClick}
-      className={`w-6 h-6 sm:hidden flex flex-col justify-center items-center cursor-pointer ${className}`}
+      className={`w-6 h-6 sm:hidden flex flex-col justify-center items-center cursor-pointer touch-target active:scale-90 p-2 ${className}`}
       type="button"
       aria-label="Toggle mobile menu"
     >

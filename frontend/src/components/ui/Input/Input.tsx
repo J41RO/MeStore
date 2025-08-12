@@ -15,7 +15,7 @@ const Input: React.FC<InputProps> = ({
 }) => {
   const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
 
-  const baseClasses = 'input-mestocker transition-all duration-200 rounded sm:rounded-md focus:ring-1 sm:focus:ring-2';
+  const baseClasses = 'input-mestocker transition-all duration-200 rounded sm:rounded-md focus:ring-1 sm:focus:ring-2 touch-target active:scale-[0.98]';
   
   const sizeClasses = {
     sm: 'px-2 sm:px-2.5 py-1 sm:py-1.5 text-xs sm:text-sm',
@@ -24,8 +24,8 @@ const Input: React.FC<InputProps> = ({
   };
 
   const stateClasses = {
-    default: 'border-neutral-300 focus:border-primary-500 focus:ring-primary-500',
-    error: 'border-red-500 focus:border-red-500 focus:ring-red-500',
+    default: 'border-neutral-300 focus:border-primary-500 focus:ring-primary-500 active:border-primary-600',
+    error: 'border-red-500 focus:border-red-500 focus:ring-red-500 active:border-red-600',
     success: 'border-green-500 focus:border-green-500 focus:ring-green-500',
   };
 

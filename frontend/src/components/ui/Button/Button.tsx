@@ -12,14 +12,14 @@ const Button: React.FC<ButtonProps> = ({
   className,
   ...props
 }) => {
-  const baseClasses = 'inline-flex items-center justify-center font-medium rounded sm:rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
+  const baseClasses = 'inline-flex items-center justify-center font-medium rounded sm:rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 active:transform touch-target';
   
   const variantClasses = {
-    primary: 'btn-primary focus:ring-primary-500',
-    secondary: 'btn-secondary focus:ring-secondary-500',
+    primary: 'btn-primary focus:ring-primary-500 active:bg-primary-700',
+    secondary: 'btn-secondary focus:ring-secondary-500 active:bg-secondary-700',
     outline: 'btn-outline-primary focus:ring-primary-500',
     ghost: 'btn-ghost focus:ring-primary-500',
-    danger: 'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500',
+    danger: 'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500 active:bg-red-800',
   };
 
   const sizeClasses = {
