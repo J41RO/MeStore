@@ -15,6 +15,8 @@ interface AuthState {
   login: (token: string, user: User) => void;
   logout: () => void;
   checkAuth: () => boolean;
+  registerVendor: (vendorData: any) => Promise<boolean>;
+  verifyOTP: (telefono: string, otp: string) => Promise<boolean>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -42,6 +44,38 @@ export const useAuthStore = create<AuthState>()(
         }
         return false;
       },
+              registerVendor: async (vendorData: any) => {
+          try {
+            const response = await fetch('/api/v1/vendedores/registro', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(vendorData)
+            });
+            return response.ok;
+          } catch (error) {
+            console.error('Error en registro:', error);
+            return false;
+          }
+        },
+
+        verifyOTP: async (telefono: string, otp: string) => {
+          try {
+            const response = await fetch('/api/v1/auth/verify-phone-otp', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ telefono, otp })
+            });
+            if (response.ok) {
+              const data = await response.json();
+              set({ token: data.token, user: data.user, isAuthenticated: true });
+              return true;
+            }
+            return false;
+          } catch (error) {
+            console.error('Error en verificación OTP:', error);
+            return false;
+          }
+        },
     }),
     {
       name: 'mestore-auth',

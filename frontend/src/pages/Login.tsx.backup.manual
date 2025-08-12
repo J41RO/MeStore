@@ -14,25 +14,12 @@ const Login: React.FC = () => {
     return <Navigate to={from} replace />;
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Conectar con API real de vendedores
-    try {
-      const response = await fetch('/api/v1/vendedores/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        login(data.token, data.user);
-      } else {
-        console.error('Error de autenticación');
-      }
-    } catch (error) {
-      console.error('Error de conexión:', error);
-    }
+    // Simulación temporal de login exitoso
+    const mockUser = { id: '1', email, name: 'Usuario Demo' };
+    const mockToken = 'demo_token_' + Date.now();
+    login(mockToken, mockUser);
   };
 
   return (

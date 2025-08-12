@@ -11,6 +11,8 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Productos = lazy(() => import('./pages/Productos'));
 const Login = lazy(() => import('./pages/Login'));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const RegisterVendor = lazy(() => import('./pages/RegisterVendor'));
+const OTPVerification = lazy(() => import('./components/OTPVerification'));
 
 // Componentes de auth con lazy loading
 const OTPDemo = lazy(() => import('./components/OTPDemo'));
@@ -42,6 +44,16 @@ function App() {
         <Route path="/auth/login" element={
           <Suspense fallback={<PageLoader />}>
             <Login />
+          </Suspense>
+        } />
+        <Route path="/register" element={
+          <Suspense fallback={<PageLoader />}>
+            <RegisterVendor />
+          </Suspense>
+        } />
+        <Route path="/verify-otp" element={
+          <Suspense fallback={<PageLoader />}>
+            <OTPVerification />
           </Suspense>
         } />
         <Route path="/auth/otp" element={

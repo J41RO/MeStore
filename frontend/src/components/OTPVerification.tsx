@@ -1,0 +1,189 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuthStore } from '../stores/authStore';
+
+interface OTPVerificationProps {
+  telefono?: string;
+}
+
+const OTPVerification: React.FC<OTPVerificationProps> = ({ telefono }) => {
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [timeLeft, setTimeLeft] = useState(60);
+  const [canResend, setCanResend] = useState(false);
+  
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { } = useAuthStore();
+  
+  const phoneNumber = telefono || location.state?.telefono;
+
+  useEffect(() => {
+    if (timeLeft > 0) {
+      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+      return () => clearTimeout(timer);
+    } else {
+      setCanResend(true);
+      return undefined;
+    }
+  }, [timeLeft]);
+
+  const handleOtpChange = (index: number, value: string) => {
+    if (value.length > 1) return;
+    
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
+    
+    // Auto-focus next input
+    if (value && index < 5) {
+      const nextInput = document.getElementById(`otp-${index + 1}`);
+      nextInput?.focus();
+    }
+  };
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+      const prevInput = document.getElementById(`otp-${index - 1}`);
+      prevInput?.focus();
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const otpCode = otp.join('');
+    
+    if (otpCode.length !== 6) {
+      setError('Por favor ingresa el código completo');
+      return;
+    }
+    
+    setLoading(true);
+    setError('');
+    
+    try {
+      const response = await fetch('/api/v1/auth/verify-phone-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          telefono: phoneNumber,
+          otp: otpCode 
+        })
+      });
+      
+      if (response.ok) {
+        await response.json();
+        // Verificación exitosa, redirigir al dashboard
+        navigate('/dashboard');
+      } else {
+        const errorData = await response.json();
+        setError(errorData.message || 'Código OTP inválido');
+      }
+    } catch (error) {
+      setError('Error de conexión');
+    }
+    
+    setLoading(false);
+  };
+
+  const handleResendOTP = async () => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      const response = await fetch('/api/v1/auth/send-verification-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telefono: phoneNumber })
+      });
+      
+      if (response.ok) {
+        setTimeLeft(60);
+        setCanResend(false);
+        setOtp(['', '', '', '', '', '']);
+      } else {
+        setError('Error al reenviar código');
+      }
+    } catch (error) {
+      setError('Error de conexión');
+    }
+    
+    setLoading(false);
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="max-w-md w-full space-y-8">
+        <div className="text-center">
+          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
+            Verificación SMS
+          </h2>
+          <p className="mt-2 text-sm text-gray-600">
+            Hemos enviado un código de 6 dígitos al {phoneNumber}
+          </p>
+        </div>
+        
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          {error && (
+            <div className="bg-red-100 text-red-700 p-3 rounded">
+              {error}
+            </div>
+          )}
+          
+          <div className="flex justify-center space-x-2">
+            {otp.map((digit, index) => (
+              <input
+                key={index}
+                id={`otp-${index}`}
+                type="text"
+                maxLength={1}
+                value={digit}
+                onChange={(e) => handleOtpChange(index, e.target.value)}
+                onKeyDown={(e) => handleKeyDown(index, e)}
+                className="w-12 h-12 text-center text-xl font-bold border-2 border-gray-300 rounded-md focus:border-blue-500 focus:outline-none"
+              />
+            ))}
+          </div>
+          
+          <button
+            type="submit"
+            disabled={loading || otp.join('').length !== 6}
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400"
+          >
+            {loading ? 'Verificando...' : 'Verificar Código'}
+          </button>
+          
+          <div className="text-center">
+            {canResend ? (
+              <button
+                type="button"
+                onClick={handleResendOTP}
+                disabled={loading}
+                className="text-blue-600 hover:text-blue-800"
+              >
+                Reenviar código
+              </button>
+            ) : (
+              <p className="text-gray-600">
+                Reenviar código en {timeLeft}s
+              </p>
+            )}
+          </div>
+          
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => navigate('/register')}
+              className="text-gray-600 hover:text-gray-800"
+            >
+              Volver al registro
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default OTPVerification;

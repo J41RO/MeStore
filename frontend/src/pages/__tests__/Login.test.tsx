@@ -10,6 +10,9 @@ jest.mock('../../stores/authStore');
 const mockUseAuthStore = useAuthStore as jest.MockedFunction<typeof useAuthStore>;
 
 // Mock react-router-dom Navigate
+
+// Mock fetch globally
+global.fetch = jest.fn();
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   Navigate: ({ to }: { to: string }) => (
@@ -69,6 +72,15 @@ describe('Login', () => {
   });
 
   test('should handle form submission and call login', async () => {
+    // Mock fetch response
+    const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        token: 'demo_token_123',
+        user: { id: '1', email: 'test@example.com', name: 'Usuario Demo' }
+      })
+    } as Response);
     mockUseAuthStore.mockReturnValue({
       isAuthenticated: false,
       login: mockLogin,
