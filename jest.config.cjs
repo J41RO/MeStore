@@ -3,23 +3,20 @@ module.exports = {
   testEnvironment: 'jsdom',
   setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1',
+    '^@/(.*)$': '<rootDir>/src/',
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy'
   },
   transform: {
     '^.+\\.(ts|tsx)$': ['ts-jest', {
+      useESM: true,
       tsconfig: {
-        jsx: 'react-jsx',
-        module: 'CommonJS',
-        target: 'ES2020',
-        moduleResolution: 'node',
-        allowSyntheticDefaultImports: true,
-        esModuleInterop: true,
-        skipLibCheck: true
+        module: 'ES2020',
+        target: 'ES2020'
       }
     }],
     '^.+\\.(js|jsx)$': ['babel-jest', { presets: ['@babel/preset-env'] }]
   },
+  extensionsToTreatAsEsm: ['.ts', '.tsx'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   testMatch: [
     '<rootDir>/src/**/__tests__/**/*.(ts|tsx|js)',
@@ -33,7 +30,9 @@ module.exports = {
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
-  transformIgnorePatterns: [
-    'node_modules/(?!(@testing-library)/)'
-  ]
+  globals: {
+    'ts-jest': {
+      useESM: true
+    }
+  }
 };

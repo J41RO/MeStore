@@ -1,11 +1,49 @@
 import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
+
+// Schema de validación Yup para campos colombianos
+const registerSchema = yup.object({
+  nombre: yup
+    .string()
+    .required('Nombre completo es requerido')
+    .test('palabras-minimas', 'Debe tener al menos 2 nombres y solo letras', (value) => {
+      const words = value.trim().split(/\s+/);
+      return words.length >= 2 && /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(value);
+    }),
+  email: yup
+    .string()
+    .required('Correo electrónico es requerido')
+    .email('Formato de email inválido'),
+  cedula: yup
+    .string()
+    .required('Cédula es requerida')
+    .test('cedula-colombiana', 'Cédula debe tener entre 8-10 dígitos numéricos', (value) => {
+      const numericValue = value.replace(/\D/g, '');
+      return numericValue.length >= 8 && numericValue.length <= 10 && /^\d+$/.test(numericValue);
+    }),
+  telefono: yup
+    .string()
+    .required('Teléfono es requerido')
+    .matches(/^\+57\s?\d{3}\s?\d{3}\s?\d{4}$/, 'Formato: +57 300 123 4567'),
+  password: yup
+    .string()
+    .required('Contraseña es requerida')
+    .min(8, 'Mínimo 8 caracteres')
+    .matches(/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Mínimo 8 caracteres con mayúscula, minúscula y número'),
+  confirmPassword: yup
+    .string()
+    .required('Confirmación de contraseña es requerida')
+    .oneOf([yup.ref('password')], 'Las contraseñas no coinciden')
+});
 
 /**
  * Componente RegisterForm para usuarios colombianos
  *
  * Características:
  * - Campos específicos para Colombia: cédula, teléfono +57
- * - Validación en tiempo real de todos los campos
+ * - Validación en tiempo real de todos los campos con react-hook-form + yup
  * - Integración con API /api/v1/auth/register
  * - Manejo de estados loading/success/error
  * - Callback opcional onRegisterSuccess
@@ -22,67 +60,24 @@ interface ApiResponse {
 }
 
 const RegisterForm: React.FC<RegisterFormProps> = ({ onRegisterSuccess }) => {
-  // Estados para campos colombianos
-  const [nombre, setNombre] = useState<string>('');
-  const [email, setEmail] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
-  const [confirmPassword, setConfirmPassword] = useState<string>('');
-  const [cedula, setCedula] = useState<string>('');
-  const [telefono, setTelefono] = useState<string>('');
-  
-  // Estados de control
+  // React Hook Form setup - MIGRACIÓN COMPLETA
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isValid },
+    reset
+  } = useForm({
+    resolver: yupResolver(registerSchema),
+    mode: 'onChange' // Validación en tiempo real
+  });
+
+  // Estados de control (conservados)
   const [loading, setLoading] = useState<boolean>(false);
   const [message, setMessage] = useState<string>('');
   const [messageType, setMessageType] = useState<'success' | 'error'>('error');
 
-  // Validaciones específicas para campos colombianos
-  const validateNombre = (value: string): boolean => {
-    const words = value.trim().split(/\s+/);
-    return words.length >= 2 && /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(value);
-  };
-
-  const validateEmail = (value: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(value);
-  };
-
-  const validatePassword = (value: string): boolean => {
-    return value.length >= 8 && /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(value);
-  };
-
-  const validateConfirmPassword = (value: string): boolean => {
-    return value === password && value.length > 0;
-  };
-
-  const validateCedula = (value: string): boolean => {
-    const numericValue = value.replace(/\D/g, '');
-    return numericValue.length >= 8 && numericValue.length <= 10 && /^\d+$/.test(numericValue);
-  };
-
-  const validateTelefono = (value: string): boolean => {
-    const phoneRegex = /^\+57\s?\d{3}\s?\d{3}\s?\d{4}$/;
-    return phoneRegex.test(value);
-  };
-
-  const isFormValid = (): boolean => {
-    return validateNombre(nombre) &&
-           validateEmail(email) &&
-           validatePassword(password) &&
-           validateConfirmPassword(confirmPassword) &&
-           validateCedula(cedula) &&
-           validateTelefono(telefono);
-  };
-
   // Implementación del handleSubmit con API integration
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!isFormValid()) {
-      setMessage('Por favor complete todos los campos correctamente');
-      setMessageType('error');
-      return;
-    }
-
+  const onSubmit = async (data: any) => {
     setLoading(true);
     setMessage('');
 
@@ -92,35 +87,24 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onRegisterSuccess }) => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          nombre,
-          email,
-          cedula: cedula.replace(/\D/g, ''), // Solo números para la API
-          telefono,
-          password,
-        }),
+        body: JSON.stringify(data),
       });
 
-      const data: ApiResponse = await response.json();
+      const result: ApiResponse = await response.json();
 
-      if (data.success) {
+      if (result.success) {
         setMessage('¡Registro exitoso! Bienvenido/a a MeStore');
         setMessageType('success');
         
-        // Limpiar formulario
-        setNombre('');
-        setEmail('');
-        setPassword('');
-        setConfirmPassword('');
-        setCedula('');
-        setTelefono('');
+        // Limpiar formulario usando react-hook-form
+        reset();
         
         // Llamar callback si existe
         if (onRegisterSuccess) {
           setTimeout(() => onRegisterSuccess(), 2000);
         }
       } else {
-        setMessage(data.message || 'Error en el registro');
+        setMessage(result.message || 'Error en el registro');
         setMessageType('error');
       }
     } catch (error) {
@@ -137,28 +121,27 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onRegisterSuccess }) => {
         Registro - Usuario Colombiano
       </h2>
 
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         {/* Nombre Completo */}
         <div>
           <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
             Nombre Completo *
           </label>
           <input
+            {...register('nombre')}
             type="text"
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
             placeholder="ejemplo: Juan Carlos Pérez"
             style={{
               width: '100%',
               padding: '10px',
-              border: '1px solid #ddd',
+              border: `1px solid ${errors.nombre ? 'red' : '#ddd'}`,
               borderRadius: '4px',
               fontSize: '16px'
             }}
           />
-          {nombre && !validateNombre(nombre) && (
+          {errors.nombre && (
             <div style={{ color: 'red', fontSize: '12px', marginTop: '5px' }}>
-              Debe tener al menos 2 nombres y solo letras
+              {errors.nombre.message}
             </div>
           )}
         </div>
@@ -169,21 +152,20 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onRegisterSuccess }) => {
             Correo Electrónico *
           </label>
           <input
+            {...register('email')}
             type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
             placeholder="ejemplo: juan@correo.com"
             style={{
               width: '100%',
               padding: '10px',
-              border: '1px solid #ddd',
+              border: `1px solid ${errors.email ? 'red' : '#ddd'}`,
               borderRadius: '4px',
               fontSize: '16px'
             }}
           />
-          {email && !validateEmail(email) && (
+          {errors.email && (
             <div style={{ color: 'red', fontSize: '12px', marginTop: '5px' }}>
-              Formato de email inválido
+              {errors.email.message}
             </div>
           )}
         </div>
@@ -194,21 +176,20 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onRegisterSuccess }) => {
             Cédula de Ciudadanía *
           </label>
           <input
+            {...register('cedula')}
             type="text"
-            value={cedula}
-            onChange={(e) => setCedula(e.target.value)}
             placeholder="ejemplo: 12345678"
             style={{
               width: '100%',
               padding: '10px',
-              border: '1px solid #ddd',
+              border: `1px solid ${errors.cedula ? 'red' : '#ddd'}`,
               borderRadius: '4px',
               fontSize: '16px'
             }}
           />
-          {cedula && !validateCedula(cedula) && (
+          {errors.cedula && (
             <div style={{ color: 'red', fontSize: '12px', marginTop: '5px' }}>
-              Cédula debe tener entre 8-10 dígitos numéricos
+              {errors.cedula.message}
             </div>
           )}
         </div>
@@ -219,21 +200,20 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onRegisterSuccess }) => {
             Teléfono Móvil *
           </label>
           <input
+            {...register('telefono')}
             type="tel"
-            value={telefono}
-            onChange={(e) => setTelefono(e.target.value)}
             placeholder="ejemplo: +57 300 123 4567"
             style={{
               width: '100%',
               padding: '10px',
-              border: '1px solid #ddd',
+              border: `1px solid ${errors.telefono ? 'red' : '#ddd'}`,
               borderRadius: '4px',
               fontSize: '16px'
             }}
           />
-          {telefono && !validateTelefono(telefono) && (
+          {errors.telefono && (
             <div style={{ color: 'red', fontSize: '12px', marginTop: '5px' }}>
-              Formato: +57 300 123 4567
+              {errors.telefono.message}
             </div>
           )}
         </div>
@@ -244,21 +224,20 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onRegisterSuccess }) => {
             Contraseña *
           </label>
           <input
+            {...register('password')}
             type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
             placeholder="Mínimo 8 caracteres, mayúscula, minúscula y número"
             style={{
               width: '100%',
               padding: '10px',
-              border: '1px solid #ddd',
+              border: `1px solid ${errors.password ? 'red' : '#ddd'}`,
               borderRadius: '4px',
               fontSize: '16px'
             }}
           />
-          {password && !validatePassword(password) && (
+          {errors.password && (
             <div style={{ color: 'red', fontSize: '12px', marginTop: '5px' }}>
-              Mínimo 8 caracteres con mayúscula, minúscula y número
+              {errors.password.message}
             </div>
           )}
         </div>
@@ -269,21 +248,20 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onRegisterSuccess }) => {
             Confirmar Contraseña *
           </label>
           <input
+            {...register('confirmPassword')}
             type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
             placeholder="Repetir la contraseña"
             style={{
               width: '100%',
               padding: '10px',
-              border: '1px solid #ddd',
+              border: `1px solid ${errors.confirmPassword ? 'red' : '#ddd'}`,
               borderRadius: '4px',
               fontSize: '16px'
             }}
           />
-          {confirmPassword && !validateConfirmPassword(confirmPassword) && (
+          {errors.confirmPassword && (
             <div style={{ color: 'red', fontSize: '12px', marginTop: '5px' }}>
-              Las contraseñas no coinciden
+              {errors.confirmPassword.message}
             </div>
           )}
         </div>
@@ -305,16 +283,16 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onRegisterSuccess }) => {
         {/* Botón de registro */}
         <button
           type="submit"
-          disabled={!isFormValid() || loading}
+          disabled={loading || !isValid}
           style={{
             padding: '12px',
-            backgroundColor: isFormValid() && !loading ? '#007bff' : '#ccc',
+            backgroundColor: !loading && isValid ? '#007bff' : '#ccc',
             color: 'white',
             border: 'none',
             borderRadius: '4px',
             fontSize: '16px',
             fontWeight: 'bold',
-            cursor: isFormValid() && !loading ? 'pointer' : 'not-allowed'
+            cursor: !loading && isValid ? 'pointer' : 'not-allowed'
           }}
         >
           {loading ? 'Registrando...' : 'Registrarse'}

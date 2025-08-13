@@ -1,0 +1,495 @@
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import RegisterForm from '../auth/RegisterForm';
+
+// Mock fetch para tests de API
+global.fetch = jest.fn();
+
+describe('RegisterForm - Validaciones Colombianas', () => {
+  beforeEach(() => {
+// Mock del fetch global
+global.fetch = jest.fn();
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import RegisterForm from '../auth/RegisterForm';
+
+// Mock del fetch global
+global.fetch = jest.fn();
+
+describe('RegisterForm - Validaciones Colombianas', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (global.fetch as jest.Mock).mockClear();
+  });
+
+  // Test 1: Renderizado de todos los campos
+  test('renderiza todos los campos requeridos', () => {
+    render(<RegisterForm />);
+    
+    expect(screen.getByPlaceholderText(/juan carlos pérez/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/juan@correo.com/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/12345678/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/\+57 300 123 4567/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/mínimo 8 caracteres/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/repetir la contraseña/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /registrarse/i })).toBeInTheDocument();
+  });
+
+  // Test 2: Validación de cédula colombiana
+  test('valida formato de cédula colombiana correctamente', async () => {
+    render(<RegisterForm />);
+    const cedulaInput = screen.getByPlaceholderText(/12345678/i);
+
+    // Test cédula válida (8 dígitos)
+    await userEvent.type(cedulaInput, '12345678');
+    expect(screen.queryByText(/cédula debe tener entre 8-10 dígitos numéricos/i)).not.toBeInTheDocument();
+
+    // Limpiar input
+    await userEvent.clear(cedulaInput);
+
+    // Test cédula válida (10 dígitos)
+    await userEvent.type(cedulaInput, '1234567890');
+    expect(screen.queryByText(/cédula debe tener entre 8-10 dígitos numéricos/i)).not.toBeInTheDocument();
+
+    // Limpiar input
+    await userEvent.clear(cedulaInput);
+
+    // Test cédula inválida (7 dígitos)
+    await userEvent.type(cedulaInput, '1234567');
+    await waitFor(() => {
+      expect(screen.getByText(/cédula debe tener entre 8-10 dígitos numéricos/i)).toBeInTheDocument();
+    });
+
+    // Test cédula inválida (con letras)
+    await userEvent.clear(cedulaInput);
+    await userEvent.type(cedulaInput, '123abc789');
+    await waitFor(() => {
+      expect(screen.getByText(/cédula debe tener entre 8-10 dígitos numéricos/i)).toBeInTheDocument();
+    });
+  });
+
+  // Test 3: Validación de teléfono colombiano
+  test('valida formato de teléfono colombiano correctamente', async () => {
+    render(<RegisterForm />);
+    const telefonoInput = screen.getByPlaceholderText(/\+57 300 123 4567/i);
+
+    // Test teléfono válido
+    await userEvent.type(telefonoInput, '+57 300 123 4567');
+    expect(screen.queryByText(/formato: \+57 300 123 4567/i)).not.toBeInTheDocument();
+
+    // Limpiar input
+    await userEvent.clear(telefonoInput);
+
+    // Test teléfono válido sin espacios
+    await userEvent.type(telefonoInput, '+573001234567');
+    expect(screen.queryByText(/formato: \+57 300 123 4567/i)).not.toBeInTheDocument();
+
+    // Limpiar input
+    await userEvent.clear(telefonoInput);
+
+    // Test teléfono inválido (sin +57)
+    await userEvent.type(telefonoInput, '300 123 4567');
+    await waitFor(() => {
+      expect(screen.getByText(/formato: \+57 300 123 4567/i)).toBeInTheDocument();
+    });
+
+    // Test teléfono inválido (formato incorrecto)
+    await userEvent.clear(telefonoInput);
+    await userEvent.type(telefonoInput, '+57 123');
+    await waitFor(() => {
+      expect(screen.getByText(/formato: \+57 300 123 4567/i)).toBeInTheDocument();
+    });
+  });
+
+  // Test 4: Validación de nombre completo
+  test('valida nombre completo colombiano correctamente', async () => {
+    render(<RegisterForm />);
+    const nombreInput = screen.getByPlaceholderText(/juan carlos pérez/i);
+
+    // Test nombre válido
+    await userEvent.type(nombreInput, 'Juan Carlos Pérez');
+    expect(screen.queryByText(/debe tener al menos 2 nombres y solo letras/i)).not.toBeInTheDocument();
+
+    // Test nombre inválido (una sola palabra)
+    await userEvent.clear(nombreInput);
+    await userEvent.type(nombreInput, 'Juan');
+    await waitFor(() => {
+      expect(screen.getByText(/debe tener al menos 2 nombres y solo letras/i)).toBeInTheDocument();
+    });
+
+    // Test nombre inválido (con números)
+    await userEvent.clear(nombreInput);
+    await userEvent.type(nombreInput, 'Juan 123 Pérez');
+    await waitFor(() => {
+      expect(screen.getByText(/debe tener al menos 2 nombres y solo letras/i)).toBeInTheDocument();
+    });
+  });
+
+  // Test 5: Validación de confirmación de contraseña
+  test('valida confirmación de contraseña correctamente', async () => {
+    render(<RegisterForm />);
+    const passwordInput = screen.getByPlaceholderText(/mínimo 8 caracteres/i);
+    const confirmPasswordInput = screen.getByPlaceholderText(/repetir la contraseña/i);
+
+    // Establecer password
+    await userEvent.type(passwordInput, 'Password123');
+
+    // Test confirmación correcta
+    await userEvent.type(confirmPasswordInput, 'Password123');
+    expect(screen.queryByText(/las contraseñas no coinciden/i)).not.toBeInTheDocument();
+
+    // Test confirmación incorrecta
+    await userEvent.clear(confirmPasswordInput);
+    await userEvent.type(confirmPasswordInput, 'Password456');
+    await waitFor(() => {
+      expect(screen.getByText(/las contraseñas no coinciden/i)).toBeInTheDocument();
+    });
+  });
+
+  // Test 6: Submit con datos colombianos válidos
+  test('envía datos colombianos al API correctamente', async () => {
+    const mockResponse = {
+      success: true,
+      message: '¡Registro exitoso! Bienvenido/a a MeStore'
+    };
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      json: async () => mockResponse,
+    });
+
+    const onRegisterSuccess = jest.fn();
+    render(<RegisterForm onRegisterSuccess={onRegisterSuccess} />);
+
+    // Llenar todos los campos con datos colombianos válidos usando userEvent
+    await userEvent.type(screen.getByPlaceholderText(/juan carlos pérez/i), 'Juan Carlos Pérez');
+    await userEvent.type(screen.getByPlaceholderText(/juan@correo.com/i), 'juan@correo.com');
+    await userEvent.type(screen.getByPlaceholderText(/12345678/i), '12345678');
+    await userEvent.type(screen.getByPlaceholderText(/\+57 300 123 4567/i), '+57 300 123 4567');
+    await userEvent.type(screen.getByPlaceholderText(/mínimo 8 caracteres/i), 'Password123');
+    await userEvent.type(screen.getByPlaceholderText(/repetir la contraseña/i), 'Password123');
+
+    // Esperar que el formulario sea válido
+    await waitFor(() => {
+      const submitButton = screen.getByRole('button', { name: /registrarse/i });
+      expect(submitButton).not.toBeDisabled();
+    });
+
+    // Submit del formulario
+    const submitButton = screen.getByRole('button', { name: /registrarse/i });
+    await userEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith('/api/v1/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nombre: 'Juan Carlos Pérez',
+          email: 'juan@correo.com',
+          cedula: '12345678',
+          telefono: '+57 300 123 4567',
+          password: 'Password123',
+          confirmPassword: 'Password123'
+        }),
+      });
+    });
+
+    // Verificar mensaje de éxito
+    await waitFor(() => {
+      expect(screen.getByText(/¡registro exitoso! bienvenido\/a a mestore/i)).toBeInTheDocument();
+    });
+  });
+
+  // Test 7: Manejo de estados loading y error
+  test('maneja estados de loading y error correctamente', async () => {
+    const mockResponse = {
+      success: false,
+      message: 'Error en el registro'
+    };
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      json: async () => mockResponse,
+    });
+
+    render(<RegisterForm />);
+
+    // Llenar formulario válido usando userEvent
+    await userEvent.type(screen.getByPlaceholderText(/juan carlos pérez/i), 'Juan Carlos Pérez');
+    await userEvent.type(screen.getByPlaceholderText(/juan@correo.com/i), 'juan@correo.com');
+    await userEvent.type(screen.getByPlaceholderText(/12345678/i), '12345678');
+    await userEvent.type(screen.getByPlaceholderText(/\+57 300 123 4567/i), '+57 300 123 4567');
+    await userEvent.type(screen.getByPlaceholderText(/mínimo 8 caracteres/i), 'Password123');
+    await userEvent.type(screen.getByPlaceholderText(/repetir la contraseña/i), 'Password123');
+
+    // Esperar que el formulario sea válido
+    await waitFor(() => {
+      const submitButton = screen.getByRole('button', { name: /registrarse/i });
+      expect(submitButton).not.toBeDisabled();
+    });
+
+    // Submit del formulario
+    const submitButton = screen.getByRole('button', { name: /registrarse/i });
+    await userEvent.click(submitButton);
+
+    // Verificar estado loading
+    await waitFor(() => {
+      expect(screen.getByText(/registrando\.\.\./i)).toBeInTheDocument();
+    });
+
+    // Verificar mensaje de error
+    await waitFor(() => {
+      expect(screen.getByText(/error en el registro/i)).toBeInTheDocument();
+    });
+  });
+
+  // Test 8: Validación de formulario incompleto
+  test('no permite submit con formulario incompleto', async () => {
+    render(<RegisterForm />);
+
+    // Llenar solo algunos campos
+    await userEvent.type(screen.getByPlaceholderText(/juan carlos pérez/i), 'Juan Carlos');
+    await userEvent.type(screen.getByPlaceholderText(/juan@correo.com/i), 'juan@correo.com');
+
+    // El botón debe permanecer deshabilitado
+    const submitButton = screen.getByRole('button', { name: /registrarse/i });
+    expect(submitButton).toBeDisabled();
+  });
+});ckClear();
+  });
+
+  afterEach(() => {
+    jest.resetAllMocks();
+  });
+
+  // Test 1: Renderizado de todos los campos
+  test('renderiza todos los campos colombianos', () => {
+    render(<RegisterForm />);
+    
+    expect(screen.getByPlaceholderText(/juan carlos pérez/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/juan@correo.com/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/12345678/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/\+57 300 123 4567/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/mínimo 8 caracteres/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/repetir la contraseña/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /registrarse/i })).toBeInTheDocument();
+  });
+
+  // Test 2: Validación de cédula colombiana
+  test('valida cédula colombiana correctamente', async () => {
+    render(<RegisterForm />);
+    const cedulaInput = screen.getByPlaceholderText(/12345678/i);
+
+    // Test cédula válida (8 dígitos)
+    fireEvent.change(cedulaInput, { target: { value: '12345678' } });
+    expect(screen.queryByText(/cédula debe tener entre 8-10 dígitos numéricos/i)).not.toBeInTheDocument();
+
+    // Test cédula válida (10 dígitos)
+    fireEvent.change(cedulaInput, { target: { value: '1234567890' } });
+    expect(screen.queryByText(/cédula debe tener entre 8-10 dígitos numéricos/i)).not.toBeInTheDocument();
+
+    // Test cédula inválida (7 dígitos)
+    fireEvent.change(cedulaInput, { target: { value: '1234567' } });
+    await waitFor(() => {
+      expect(screen.getByText(/cédula debe tener entre 8-10 dígitos numéricos/i)).toBeInTheDocument();
+    });
+
+    // Test cédula inválida (con letras)
+    fireEvent.change(cedulaInput, { target: { value: '123abc789' } });
+    await waitFor(() => {
+      expect(screen.getByText(/cédula debe tener entre 8-10 dígitos numéricos/i)).toBeInTheDocument();
+    });
+  });
+
+  // Test 3: Validación de teléfono colombiano
+  test('valida teléfono colombiano (+57) correctamente', async () => {
+    render(<RegisterForm />);
+    const telefonoInput = screen.getByPlaceholderText(/\+57 300 123 4567/i);
+
+    // Test teléfono válido
+    fireEvent.change(telefonoInput, { target: { value: '+57 300 123 4567' } });
+    expect(screen.queryByText(/formato: \+57 300 123 4567/i)).not.toBeInTheDocument();
+
+    // Test teléfono válido sin espacios
+    fireEvent.change(telefonoInput, { target: { value: '+573001234567' } });
+    expect(screen.queryByText(/formato: \+57 300 123 4567/i)).not.toBeInTheDocument();
+
+    // Test teléfono inválido (sin +57)
+    fireEvent.change(telefonoInput, { target: { value: '300 123 4567' } });
+    await waitFor(() => {
+      expect(screen.getByText(/formato: \+57 300 123 4567/i)).toBeInTheDocument();
+    });
+
+    // Test teléfono inválido (formato incorrecto)
+    fireEvent.change(telefonoInput, { target: { value: '+57 123' } });
+    await waitFor(() => {
+      expect(screen.getByText(/formato: \+57 300 123 4567/i)).toBeInTheDocument();
+    });
+  });
+
+  // Test 4: Validación de nombre completo
+  test('valida nombre completo colombiano', async () => {
+    render(<RegisterForm />);
+    const nombreInput = screen.getByPlaceholderText(/juan carlos pérez/i);
+
+    // Test nombre válido
+    fireEvent.change(nombreInput, { target: { value: 'Juan Carlos Pérez' } });
+    expect(screen.queryByText(/debe tener al menos 2 nombres y solo letras/i)).not.toBeInTheDocument();
+
+    // Test nombre inválido (una sola palabra)
+    fireEvent.change(nombreInput, { target: { value: 'Juan' } });
+    await waitFor(() => {
+      expect(screen.getByText(/debe tener al menos 2 nombres y solo letras/i)).toBeInTheDocument();
+    });
+
+    // Test nombre inválido (con números)
+    fireEvent.change(nombreInput, { target: { value: 'Juan 123 Pérez' } });
+    await waitFor(() => {
+      expect(screen.getByText(/debe tener al menos 2 nombres y solo letras/i)).toBeInTheDocument();
+    });
+  });
+
+  // Test 5: Validación de confirmación de password
+  test('valida confirmación de contraseña', async () => {
+    render(<RegisterForm />);
+    const passwordInput = screen.getByPlaceholderText(/mínimo 8 caracteres/i);
+    const confirmPasswordInput = screen.getByPlaceholderText(/repetir la contraseña/i);
+
+    // Establecer password
+    fireEvent.change(passwordInput, { target: { value: 'Password123' } });
+    
+    // Test confirmación correcta
+    fireEvent.change(confirmPasswordInput, { target: { value: 'Password123' } });
+    expect(screen.queryByText(/las contraseñas no coinciden/i)).not.toBeInTheDocument();
+
+    // Test confirmación incorrecta
+    fireEvent.change(confirmPasswordInput, { target: { value: 'Password456' } });
+    await waitFor(() => {
+      expect(screen.getByText(/las contraseñas no coinciden/i)).toBeInTheDocument();
+    });
+  });
+
+  // Test 6: Submit con datos colombianos válidos
+  test('envía datos colombianos al API correctamente', async () => {
+    const mockResponse = {
+      success: true,
+      message: '¡Registro exitoso! Bienvenido/a a MeStore'
+    };
+
+    (fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockResponse,
+    } as Response);
+
+    const onRegisterSuccess = jest.fn();
+    render(<RegisterForm onRegisterSuccess={onRegisterSuccess} />);
+
+    // Llenar todos los campos con datos colombianos válidos
+    fireEvent.change(screen.getByPlaceholderText(/juan carlos pérez/i), { 
+      target: { value: 'Juan Carlos Pérez' } 
+    });
+    fireEvent.change(screen.getByPlaceholderText(/juan@correo.com/i), { 
+      target: { value: 'juan@correo.com' } 
+    });
+    fireEvent.change(screen.getByPlaceholderText(/12345678/i), { 
+      target: { value: '12345678' } 
+    });
+    fireEvent.change(screen.getByPlaceholderText(/\+57 300 123 4567/i), { 
+      target: { value: '+57 300 123 4567' } 
+    });
+    fireEvent.change(screen.getByPlaceholderText(/mínimo 8 caracteres/i), { 
+      target: { value: 'Password123' } 
+    });
+    fireEvent.change(screen.getByPlaceholderText(/repetir la contraseña/i), { 
+      target: { value: 'Password123' } 
+    });
+
+    // Submit del formulario
+    fireEvent.click(screen.getByRole('button', { name: /registrarse/i }));
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith('/api/v1/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nombre: 'Juan Carlos Pérez',
+          email: 'juan@correo.com',
+          cedula: '12345678',
+          telefono: '+57 300 123 4567',
+          password: 'Password123',
+        }),
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/¡registro exitoso! bienvenido\/a a mestore/i)).toBeInTheDocument();
+    });
+  });
+
+  // Test 7: Estados de loading y error
+  test('maneja estados de loading y error correctamente', async () => {
+    // Mock error response
+    (fetch as jest.MockedFunction<typeof fetch>).mockRejectedValueOnce(
+      new Error('Error de conexión')
+    );
+
+    render(<RegisterForm />);
+
+    // Llenar formulario válido
+    fireEvent.change(screen.getByPlaceholderText(/juan carlos pérez/i), { 
+      target: { value: 'Juan Carlos Pérez' } 
+    });
+    fireEvent.change(screen.getByPlaceholderText(/juan@correo.com/i), { 
+      target: { value: 'juan@correo.com' } 
+    });
+    fireEvent.change(screen.getByPlaceholderText(/12345678/i), { 
+      target: { value: '12345678' } 
+    });
+    fireEvent.change(screen.getByPlaceholderText(/\+57 300 123 4567/i), { 
+      target: { value: '+57 300 123 4567' } 
+    });
+    fireEvent.change(screen.getByPlaceholderText(/mínimo 8 caracteres/i), { 
+      target: { value: 'Password123' } 
+    });
+    fireEvent.change(screen.getByPlaceholderText(/repetir la contraseña/i), { 
+      target: { value: 'Password123' } 
+    });
+
+    // Submit
+    fireEvent.click(screen.getByRole('button', { name: /registrarse/i }));
+
+    // Verificar estado loading
+    await waitFor(() => {
+      expect(screen.getByText(/registrando\.\.\./i)).toBeInTheDocument();
+    });
+
+    // Verificar mensaje de error
+    await waitFor(() => {
+      expect(screen.getByText(/error de conexión/i)).toBeInTheDocument();
+    });
+  });
+
+  // Test 8: Botón deshabilitado con formulario inválido
+  test('deshabilita botón cuando formulario es inválido', () => {
+    render(<RegisterForm />);
+    
+    const submitButton = screen.getByRole('button', { name: /registrarse/i });
+    
+    // Botón deshabilitado inicialmente
+    expect(submitButton).toBeDisabled();
+
+    // Llenar solo algunos campos
+    fireEvent.change(screen.getByPlaceholderText(/juan carlos pérez/i), { 
+      target: { value: 'Juan Carlos' } 
+    });
+    fireEvent.change(screen.getByPlaceholderText(/juan@correo.com/i), { 
+      target: { value: 'juan@correo.com' } 
+    });
+
+    // Botón sigue deshabilitado
+    expect(submitButton).toBeDisabled();
+  });
+});
