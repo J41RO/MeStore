@@ -45,7 +45,7 @@ const defaultConfig: AppConfig = {
   },
   
   api: {
-    baseUrl: import.meta.env.VITE_API_BASE_URL || 'http://192.168.1.137:8000',
+    baseUrl: process.env.VITE_API_BASE_URL || 'http://192.168.1.137:8000',
     timeout: 30000,
     retryAttempts: 3
   },
@@ -121,8 +121,8 @@ export const useAppStore = create<AppStoreType>()(
         
         // Meta información
         version: '1.0.0',
-        buildNumber: import.meta.env.VITE_BUILD_NUMBER || '1',
-        environment: (import.meta.env.MODE as any) || 'development',
+        buildNumber: process.env.VITE_BUILD_NUMBER || '1',
+        environment: process.env.NODE_ENV as any || 'development',
         
         // ACCIONES DE THEME
         setTheme: (theme: AppTheme) => {
