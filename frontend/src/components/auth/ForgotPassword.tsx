@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
 
 interface ForgotPasswordProps {
   onBackToLogin?: () => void;
@@ -9,8 +12,16 @@ interface ApiResponse {
   message: string;
 }
 
+const forgotPasswordSchema = yup.object({
+  email: yup
+    .string()
+    .required('El email es obligatorio')
+    .email('Formato de email inválido'),
+});
+
+type ForgotPasswordFormData = yup.InferType<typeof forgotPasswordSchema>;
+
 const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBackToLogin }) => {
-  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error'>(
@@ -18,8 +29,17 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBackToLogin }) => {
   );
   const [emailSent, setEmailSent] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isValid },
+    getValues,
+  } = useForm<ForgotPasswordFormData>({
+    resolver: yupResolver(forgotPasswordSchema),
+    mode: 'onChange',
+  });
+
+  const onSubmit = async (data: ForgotPasswordFormData) => {
     setLoading(true);
     setMessage('');
 
@@ -29,17 +49,17 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBackToLogin }) => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: data.email }),
       });
 
-      const data: ApiResponse = await response.json();
+      const result: ApiResponse = await response.json();
 
       if (response.ok) {
         setEmailSent(true);
-        setMessage(data.message);
+        setMessage(result.message);
         setMessageType('success');
       } else {
-        setMessage(data.message || 'Error al solicitar recuperación');
+        setMessage(result.message || 'Error al solicitar recuperación');
         setMessageType('error');
       }
     } catch (error) {
@@ -57,7 +77,7 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBackToLogin }) => {
           <div className='success-icon'>✅</div>
           <h2>Revisa tu email</h2>
           <p>
-            Se ha enviado un enlace de recuperación a <strong>{email}</strong>
+            Se ha enviado un enlace de recuperación a <strong>{getValues('email')}</strong>
           </p>
           <p className='security-note'>
             El enlace expira en 1 hora. Si no ves el email, revisa tu carpeta de
@@ -80,25 +100,26 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBackToLogin }) => {
           contraseña.
         </p>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit(onSubmit)}>
           <div>
             <label htmlFor='email'>Email</label>
             <input
               type='email'
               id='email'
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
+              {...register('email')}
               placeholder='tu@email.com'
               disabled={loading}
             />
+            {errors.email && (
+              <span className="error-message">{errors.email.message}</span>
+            )}
           </div>
 
           {message && (
             <div className={`message message--${messageType}`}>{message}</div>
           )}
 
-          <button type='submit' disabled={loading || !email}>
+          <button type='submit' disabled={loading || !isValid}>
             {loading ? 'Enviando...' : 'Enviar enlace de recuperación'}
           </button>
         </form>

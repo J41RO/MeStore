@@ -1,19 +1,36 @@
 import React, { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
 
 interface ApiResponse {
   success: boolean;
   message: string;
 }
 
+const resetPasswordSchema = yup.object({
+  newPassword: yup
+    .string()
+    .required('La nueva contraseña es obligatoria')
+    .min(8, 'La contraseña debe tener al menos 8 caracteres')
+    .matches(/[A-Z]/, 'Debe contener al menos una mayúscula')
+    .matches(/[a-z]/, 'Debe contener al menos una minúscula')
+    .matches(/\d/, 'Debe contener al menos un número'),
+  confirmPassword: yup
+    .string()
+    .required('Confirmar contraseña es obligatorio')
+    .oneOf([yup.ref('newPassword')], 'Las contraseñas deben coincidir'),
+});
+
+type ResetPasswordFormData = yup.InferType<typeof resetPasswordSchema>;
+
 const ResetPassword: React.FC = () => {
-  // Simular obtención del token desde URL params
+  // ✅ TOKEN URL REAL - No más hardcode
   const [token] = useState<string>(() => {
-    // En implementación real sería: new URLSearchParams(window.location.search).get('token')
-    return 'demo_token_123';
+    const params = new URLSearchParams(window.location.search);
+    return params.get('token') || '';
   });
 
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [validatingToken, setValidatingToken] = useState(true);
   const [tokenValid, setTokenValid] = useState(false);
@@ -23,10 +40,29 @@ const ResetPassword: React.FC = () => {
   );
   const [resetSuccess, setResetSuccess] = useState(false);
 
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors, isValid },
+  } = useForm<ResetPasswordFormData>({
+    resolver: yupResolver(resetPasswordSchema),
+    mode: 'onChange',
+  });
+
+  const newPassword = watch('newPassword', '');
+  const confirmPassword = watch('confirmPassword', '');
+
   // Validar token al cargar componente
   useEffect(() => {
-    validateToken();
-  }, []);
+    if (token) {
+      validateToken();
+    } else {
+      setMessage('Token no encontrado en la URL');
+      setMessageType('error');
+      setValidatingToken(false);
+    }
+  }, [token]);
 
   const validateToken = async () => {
     try {
@@ -53,21 +89,7 @@ const ResetPassword: React.FC = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (newPassword !== confirmPassword) {
-      setMessage('Las contraseñas no coinciden');
-      setMessageType('error');
-      return;
-    }
-
-    if (newPassword.length < 8) {
-      setMessage('La contraseña debe tener al menos 8 caracteres');
-      setMessageType('error');
-      return;
-    }
-
+  const onSubmit = async (data: ResetPasswordFormData) => {
     setLoading(true);
     setMessage('');
 
@@ -79,16 +101,16 @@ const ResetPassword: React.FC = () => {
         },
         body: JSON.stringify({
           token,
-          new_password: newPassword,
-          confirm_password: confirmPassword,
+          new_password: data.newPassword,
+          confirm_password: data.confirmPassword,
         }),
       });
 
-      const data: ApiResponse = await response.json();
+      const result: ApiResponse = await response.json();
 
       if (response.ok) {
         setResetSuccess(true);
-        setMessage(data.message);
+        setMessage(result.message);
         setMessageType('success');
 
         // Simular redirección después de 3 segundos
@@ -96,7 +118,7 @@ const ResetPassword: React.FC = () => {
           console.log('Redirecting to login...');
         }, 3000);
       } else {
-        setMessage(data.message || 'Error al restablecer contraseña');
+        setMessage(result.message || 'Error al restablecer contraseña');
         setMessageType('error');
       }
     } catch (error) {
@@ -175,18 +197,19 @@ const ResetPassword: React.FC = () => {
         <h2>Nueva contraseña</h2>
         <p>Ingresa tu nueva contraseña. Debe ser segura y fácil de recordar.</p>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit(onSubmit)}>
           <div className='form-group'>
             <label htmlFor='newPassword'>Nueva contraseña</label>
             <input
               type='password'
               id='newPassword'
-              value={newPassword}
-              onChange={e => setNewPassword(e.target.value)}
-              required
+              {...register('newPassword')}
               disabled={loading}
               placeholder='Mínimo 8 caracteres'
             />
+            {errors.newPassword && (
+              <span className="error-message">{errors.newPassword.message}</span>
+            )}
 
             {newPassword && (
               <div className='password-strength'>
@@ -203,12 +226,13 @@ const ResetPassword: React.FC = () => {
             <input
               type='password'
               id='confirmPassword'
-              value={confirmPassword}
-              onChange={e => setConfirmPassword(e.target.value)}
-              required
+              {...register('confirmPassword')}
               disabled={loading}
               placeholder='Repite la contraseña'
             />
+            {errors.confirmPassword && (
+              <span className="error-message">{errors.confirmPassword.message}</span>
+            )}
 
             {confirmPassword && (
               <div
@@ -225,14 +249,7 @@ const ResetPassword: React.FC = () => {
             <div className={`message message--${messageType}`}>{message}</div>
           )}
 
-          <button
-            type='submit'
-            disabled={
-              loading ||
-              newPassword !== confirmPassword ||
-              newPassword.length < 8
-            }
-          >
+          <button type='submit' disabled={loading || !isValid}>
             {loading ? 'Actualizando...' : 'Actualizar contraseña'}
           </button>
         </form>

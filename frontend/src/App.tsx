@@ -4,6 +4,7 @@ import Layout from './components/Layout';
 import AuthGuard from './components/AuthGuard';
 import ErrorBoundary from './components/ErrorBoundary';
 import PageLoader from './components/ui/Loading/PageLoader';
+import VendorLanding from './pages/VendorLanding';
 import './App.css';
 
 // Lazy loading de páginas principales
@@ -21,13 +22,16 @@ function App() {
   return (
     <ErrorBoundary>
       <Routes>
+        {/* Ruta principal pública - Landing Page */}
+        <Route path="/" element={<VendorLanding />} />
+        
         {/* Rutas protegidas con Layout */}
-        <Route path="/" element={
+        <Route path="/app" element={
           <AuthGuard>
             <Layout />
           </AuthGuard>
         }>
-          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route index element={<Navigate to="/app/dashboard" replace />} />
           <Route path="dashboard" element={
             <Suspense fallback={<PageLoader />}>
               <Dashboard />
