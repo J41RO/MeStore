@@ -1,5 +1,7 @@
 import React, { useEffect } from 'react';
 import { useVendor } from '../hooks/useVendor';
+import SalesChart from '../components/charts/SalesChart';
+import MonthlySalesChart from '../components/charts/MonthlySalesChart';
 
 const Dashboard: React.FC = () => {
   const { 
@@ -7,7 +9,9 @@ const Dashboard: React.FC = () => {
     metrics, 
     isLoading,  
     getCompletionStatus,
-    refreshMetrics 
+    refreshMetrics,
+    salesHistory,
+    monthlySales,
   } = useVendor();
 
   const completionStatus = getCompletionStatus();
@@ -111,6 +115,32 @@ const Dashboard: React.FC = () => {
             <h3 className="font-medium">Configurar Tienda</h3>
             <p className="text-sm text-gray-600">Personalizar tu perfil de vendedor</p>
           </button>
+        </div>
+      </div>
+      {/* Sección de Gráficos */}
+      <div className="mt-8">
+        <h2 className="text-2xl font-semibold text-gray-800 mb-6">
+          Análisis de Ventas
+        </h2>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Gráfico de Tendencias */}
+          <div className="col-span-1">
+            <SalesChart
+              data={salesHistory}
+              title="Tendencias de Ventas"
+              className="h-96"
+            />
+          </div>
+          
+          {/* Gráfico de Comparación Mensual */}
+          <div className="col-span-1">
+            <MonthlySalesChart
+              data={monthlySales}
+              title="Ventas vs Objetivos"
+              className="h-96"
+            />
+          </div>
         </div>
       </div>
     </div>

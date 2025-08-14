@@ -6,28 +6,6 @@ import { useUserContext } from '../contexts/UserContext';
  * Proporciona interfaz limpia para componentes que necesitan datos del vendedor
  */
 export const useVendor = () => {
-  // Datos históricos para gráficos de ventas
-  const salesHistory = [
-    { date: '2024-01', sales: 125, revenue: 15600 },
-    { date: '2024-02', sales: 142, revenue: 18400 },
-    { date: '2024-03', sales: 108, revenue: 13200 },
-    { date: '2024-04', sales: 176, revenue: 22800 },
-    { date: '2024-05', sales: 198, revenue: 26400 },
-    { date: '2024-06', sales: 165, revenue: 21000 },
-    { date: '2024-07', sales: 187, revenue: 24200 },
-    { date: '2024-08', sales: 203, revenue: 27800 }
-  ];
-
-  const monthlySales = [
-    { month: 'Ene', sales: 125, target: 150 },
-    { month: 'Feb', sales: 142, target: 150 },
-    { month: 'Mar', sales: 108, target: 150 },
-    { month: 'Abr', sales: 176, target: 150 },
-    { month: 'May', sales: 198, target: 180 },
-    { month: 'Jun', sales: 165, target: 180 },
-    { month: 'Jul', sales: 187, target: 180 },
-    { month: 'Ago', sales: 203, target: 200 }
-  ];
   const {
     vendorProfile,
     isLoading,
@@ -54,9 +32,6 @@ export const useVendor = () => {
   const metrics = vendorProfile?.businessMetrics || {
     totalSales: 0,
     totalRevenue: 0,
-    totalCommissions: 0,
-    stockLevel: 0,
-    lowStockItems: 0,
     activeProducts: 0,
     totalOrders: 0,
     averageRating: 0,
@@ -171,9 +146,7 @@ export const useVendor = () => {
     getCompletionStatus,
     getBusinessSummary,
     getProfileMissingFields,
-    isFieldComplete,
-    salesHistory,
-    monthlySales,
+    isFieldComplete
   };
 };
 

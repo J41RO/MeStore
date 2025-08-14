@@ -57,9 +57,6 @@ export interface VendorProfile {
   businessMetrics: {
     totalSales: number;
     totalRevenue: number;
-    totalCommissions: number;
-    stockLevel: number;
-    lowStockItems: number;
     activeProducts: number;
     totalOrders: number;
     averageRating: number;

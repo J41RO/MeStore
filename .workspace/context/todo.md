@@ -336,8 +336,8 @@
     ✅ 1.5.1.5 Implementar ForgotPassword flow con email recovery
     ✅ 1.5.1.6 Diseñar landing page atractiva con beneficios para vendedores
 🔁 1.5.2 Dashboard principal con métricas
-    ⬜ 1.5.2.1 Crear componente DashboardLayout con sidebar y header
-    ⬜ 1.5.2.2 Implementar cards de KPIs (ventas, productos, comisiones, stock)
+    ✅ 1.5.2.1 Crear componente DashboardLayout con sidebar y header
+    ✅ 1.5.2.2 Implementar cards de KPIs (ventas, productos, comisiones, stock)
     ⬜ 1.5.2.3 Añadir gráficos de ventas con Chart.js o Recharts
     ⬜ 1.5.2.4 Crear widget de productos más vendidos con thumbnails
     ⬜ 1.5.2.5 Implementar alertas de stock bajo y productos sin movimiento
