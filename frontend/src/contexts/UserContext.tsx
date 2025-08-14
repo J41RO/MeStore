@@ -53,6 +53,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       businessMetrics: {
         totalSales: Math.floor(Math.random() * 100),
         totalRevenue: Math.floor(Math.random() * 10000),
+        totalCommissions: Math.floor(Math.random() * 1000),
+        stockLevel: Math.floor(Math.random() * 100),
+        lowStockItems: Math.floor(Math.random() * 10),
         activeProducts: Math.floor(Math.random() * 50),
         totalOrders: Math.floor(Math.random() * 200),
         averageRating: 4.5,

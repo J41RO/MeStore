@@ -5,13 +5,11 @@ const Dashboard: React.FC = () => {
   const { 
     storeName, 
     metrics, 
-    isLoading, 
-    getBusinessSummary, 
+    isLoading,  
     getCompletionStatus,
     refreshMetrics 
   } = useVendor();
 
-  const businessSummary = getBusinessSummary();
   const completionStatus = getCompletionStatus();
 
       {/* MICRO-FASE 5: Alerta responsive con icono oculto en pantallas pequeñas */}
@@ -77,10 +75,10 @@ const Dashboard: React.FC = () => {
           <p className="text-sm text-gray-500">+5% vs mes anterior</p>
         </div>
         
-        <div className="bg-white p-3 md:p-4 rounded-lg shadow">
-          <h3 className="font-semibold text-gray-600">Ingresos</h3>
-          <p className="text-xl md:text-2xl font-bold text-blue-600">{businessSummary.revenue}</p>
-          <p className="text-sm text-gray-500">Total acumulado</p>
+      <div className="bg-white p-3 md:p-4 rounded-lg shadow">
+          <h3 className="font-semibold text-gray-600">Comisiones</h3>
+          <p className="text-xl md:text-2xl font-bold text-amber-600">${metrics.totalCommissions.toLocaleString()}</p>
+          <p className="text-sm text-gray-500">Ganadas este mes</p>
         </div>
         
         <div className="bg-white p-3 md:p-4 rounded-lg shadow">
@@ -90,9 +88,9 @@ const Dashboard: React.FC = () => {
         </div>
         
         <div className="bg-white p-3 md:p-4 rounded-lg shadow">
-          <h3 className="font-semibold text-gray-600">Calificación</h3>
-          <p className="text-2xl font-bold text-yellow-600">{businessSummary.rating} ⭐</p>
-          <p className="text-sm text-gray-500">{metrics.totalOrders} reseñas</p>
+          <h3 className="font-semibold text-gray-600">Stock</h3>
+          <p className="text-2xl font-bold text-red-600">{metrics.stockLevel}</p>
+          <p className="text-sm text-gray-500">Items disponibles</p>
         </div>
       </div>
 
