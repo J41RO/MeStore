@@ -9,6 +9,7 @@ import './App.css';
 
 // Lazy loading de páginas principales
 const Dashboard = lazy(() => import('./pages/Dashboard'));
+const DashboardLayout = lazy(() => import('./components/DashboardLayout'));
 const Productos = lazy(() => import('./pages/Productos'));
 const Login = lazy(() => import('./pages/Login'));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -34,7 +35,7 @@ function App() {
           <Route index element={<Navigate to="/app/dashboard" replace />} />
           <Route path="dashboard" element={
             <Suspense fallback={<PageLoader />}>
-              <Dashboard />
+              <DashboardLayout><Dashboard /></DashboardLayout>
             </Suspense>
           } />
           <Route path="productos" element={
