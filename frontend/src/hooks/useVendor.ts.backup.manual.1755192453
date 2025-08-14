@@ -134,64 +134,6 @@ export const useVendor = () => {
 
   return {
     // Estado básico
-    // Datos de productos más vendidos
-    topProducts: [
-      {
-        id: "1",
-        name: "Smartphone Pro Max",
-        price: 899,
-        thumbnail: "https://picsum.photos/64/64?random=1",
-        salesCount: 150,
-        category: "Electrónicos",
-        rating: 4.8,
-        rank: 1,
-        salesGrowth: "+15%"
-      },
-      {
-        id: "2",
-        name: "Laptop Gaming RGB",
-        price: 1299,
-        thumbnail: "https://picsum.photos/64/64?random=2",
-        salesCount: 89,
-        category: "Computadoras",
-        rating: 4.6,
-        rank: 2,
-        salesGrowth: "+8%"
-      },
-      {
-        id: "3",
-        name: "Auriculares Inalámbricos",
-        price: 199,
-        thumbnail: "https://picsum.photos/64/64?random=3",
-        salesCount: 245,
-        category: "Audio",
-        rating: 4.7,
-        rank: 3,
-        salesGrowth: "+22%"
-      },
-      {
-        id: "4",
-        name: "Smartwatch Deportivo",
-        price: 299,
-        thumbnail: "https://picsum.photos/64/64?random=4",
-        salesCount: 134,
-        category: "Wearables",
-        rating: 4.5,
-        rank: 4,
-        salesGrowth: "+12%"
-      },
-      {
-        id: "5",
-        name: "Tablet Pro 12 pulgadas",
-        price: 699,
-        thumbnail: "https://picsum.photos/64/64?random=5",
-        salesCount: 78,
-        category: "Tablets",
-        rating: 4.9,
-        rank: 5,
-        salesGrowth: "+5%"
-      }
-    ],
     vendorProfile,
     isLoading,
     error,

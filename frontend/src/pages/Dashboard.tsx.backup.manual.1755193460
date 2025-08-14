@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { useVendor } from '../hooks/useVendor';
 import SalesChart from '../components/charts/SalesChart';
 import MonthlySalesChart from '../components/charts/MonthlySalesChart';
-import TopProductsWidget from '../components/widgets/TopProductsWidget';
 
 const Dashboard: React.FC = () => {
   const { 
@@ -119,11 +118,6 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
       {/* Sección de Gráficos */}
-      {/* Sección de Productos Más Vendidos */}
-      <div className="mt-8">
-        <h2 className="text-2xl font-semibold text-gray-800 mb-6">Productos Más Vendidos</h2>
-        <TopProductsWidget className="mb-6" maxProducts={5} />
-      </div>
       <div className="mt-8">
         <h2 className="text-2xl font-semibold text-gray-800 mb-6">
           Análisis de Ventas
