@@ -35,19 +35,24 @@ Este módulo contiene el modelo SQLAlchemy para la entidad Product:
 - Índices para optimización: sku (unique), name (búsquedas), categoria
 """
 
-from sqlalchemy import Column, String, Text, Index
-
-from sqlalchemy import func, text
-from sqlalchemy.dialects.postgresql import JSON
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy import ForeignKey
-from sqlalchemy import Integer
-from sqlalchemy import DECIMAL
-from sqlalchemy import Enum
-from sqlalchemy.orm import validates
-from sqlalchemy.orm import relationship
+from datetime import datetime, timedelta
 from enum import Enum as PyEnum
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
+
+from sqlalchemy import (
+    DECIMAL,
+    Column,
+    Enum,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    func,
+    text,
+)
+from sqlalchemy.dialects.postgresql import JSON, UUID
+from sqlalchemy.orm import relationship, validates
 
 from app.models.base import BaseModel
 
@@ -62,6 +67,7 @@ class ProductStatus(PyEnum):
         DISPONIBLE: Producto disponible para venta
         VENDIDO: Producto vendido y no disponible
     """
+
     TRANSITO = "TRANSITO"
     VERIFICADO = "VERIFICADO"
     DISPONIBLE = "DISPONIBLE"
@@ -75,7 +81,7 @@ class Product(BaseModel):
     Hereda de BaseModel los campos:
     - id: UUID primary key
     - created_at: Timestamp de creación
-    - updated_at: Timestamp de última actualización  
+    - updated_at: Timestamp de última actualización
     - deleted_at: Timestamp de soft delete (nullable)
 
     Campos específicos:
@@ -83,12 +89,12 @@ class Product(BaseModel):
     - name: Nombre del producto (String 200 chars, indexed)
     - description: Descripción detallada (Text, optional)
     - status: Estado del producto (Enum ProductStatus)
-    
+
     Campos de pricing:
     - precio_venta: Precio de venta al público (DECIMAL 10,2)
     - precio_costo: Precio de costo/compra (DECIMAL 10,2)
     - comision_mestocker: Comisión de MeStore (DECIMAL 10,2)
-    
+
     Campos de fulfillment:
     - peso: Peso del producto en kilogramos (DECIMAL 8,3)
     - dimensiones: Dimensiones del producto en JSON {largo, ancho, alto} cm
@@ -100,11 +106,11 @@ class Product(BaseModel):
 
     # Campos específicos del producto
     sku = Column(
-        String(50), 
-        unique=True, 
-        nullable=False, 
+        String(50),
+        unique=True,
+        nullable=False,
         index=True,
-        comment="Código único del producto para identificación"
+        comment="Código único del producto para identificación",
     )
 
     # === MÉTODOS DE STOCK TRACKING AGREGADO ===
@@ -118,13 +124,17 @@ class Product(BaseModel):
         """Obtener stock disponible sumando todas las ubicaciones"""
         if not self.ubicaciones_inventario:
             return 0
-        return sum(ubicacion.cantidad_disponible() for ubicacion in self.ubicaciones_inventario)
+        return sum(
+            ubicacion.cantidad_disponible() for ubicacion in self.ubicaciones_inventario
+        )
 
     def get_stock_reservado(self) -> int:
         """Obtener stock reservado sumando todas las ubicaciones"""
         if not self.ubicaciones_inventario:
             return 0
-        return sum(ubicacion.cantidad_reservada for ubicacion in self.ubicaciones_inventario)
+        return sum(
+            ubicacion.cantidad_reservada for ubicacion in self.ubicaciones_inventario
+        )
 
     def get_ubicaciones_stock(self) -> List[Dict]:
         """Obtener resumen de stock por ubicación"""
@@ -139,7 +149,7 @@ class Product(BaseModel):
                 "posicion": ubicacion.posicion,
                 "cantidad_total": ubicacion.cantidad,
                 "cantidad_reservada": ubicacion.cantidad_reservada,
-                "cantidad_disponible": ubicacion.cantidad_disponible()
+                "cantidad_disponible": ubicacion.cantidad_disponible(),
             }
             for ubicacion in self.ubicaciones_inventario
         ]
@@ -148,7 +158,134 @@ class Product(BaseModel):
         """Verificar si hay stock disponible en cualquier ubicación"""
         return self.get_stock_disponible() > 0
 
-    def buscar_ubicacion_disponible(self, cantidad_requerida: int) -> Optional["Inventory"]:
+    # ===== MÉTODOS DE ALERTAS =====
+
+    def is_low_stock(self, umbral: int) -> bool:
+        """
+        Verificar si el producto tiene stock bajo.
+        Args:
+            umbral: Umbral mínimo de stock
+        Returns:
+            bool: True si el stock está por debajo del umbral
+        """
+        stock_total = self.get_stock_total()
+        return stock_total < umbral
+
+    def days_since_last_movement(self) -> int:
+        """
+        Calcular días desde el último movimiento del producto.
+        Returns:
+            int: Días desde la última actualización de inventory
+        """
+        from sqlalchemy import func
+        from sqlalchemy.orm import Session
+
+        from app.models.inventory import Inventory
+
+        # Buscar la última actualización en inventory para este producto
+        if hasattr(self, "_sa_instance_state") and self._sa_instance_state.session:
+            session = self._sa_instance_state.session
+            ultima_actualizacion = (
+                session.query(func.max(Inventory.updated_at))
+                .filter(Inventory.product_id == self.id)
+                .scalar()
+            )
+
+            if ultima_actualizacion:
+                delta = datetime.now() - ultima_actualizacion
+                return delta.days
+
+        # Si no hay datos de inventory, retornar días desde creación del producto
+        if self.created_at:
+            delta = datetime.now() - self.created_at
+            return delta.days
+
+        return 0
+
+    @classmethod
+    def get_low_stock_products(cls, session, umbral: int):
+        """
+        Obtener productos con stock bajo.
+        Args:
+            session: Sesión de SQLAlchemy
+            umbral: Umbral mínimo de stock
+        Returns:
+            List[Product]: Lista de productos con stock bajo
+        """
+        from sqlalchemy import func
+
+        from app.models.inventory import Inventory
+
+        # Subquery para calcular stock total por producto
+        stock_subquery = (
+            session.query(
+                Inventory.product_id,
+                func.coalesce(func.sum(Inventory.cantidad), 0).label("stock_total"),
+            )
+            .group_by(Inventory.product_id)
+            .subquery()
+        )
+
+        # Query principal con join
+        productos_bajo_stock = (
+            session.query(cls)
+            .join(stock_subquery, cls.id == stock_subquery.c.product_id)
+            .filter(stock_subquery.c.stock_total < umbral)
+            .all()
+        )
+
+        return productos_bajo_stock
+
+    @classmethod
+    def get_inactive_products(cls, session, dias: int):
+        """
+        Obtener productos sin movimiento en X días.
+        Args:
+            session: Sesión de SQLAlchemy
+            dias: Número de días para considerar inactivo
+        Returns:
+            List[Product]: Lista de productos sin movimiento
+        """
+        from sqlalchemy import func
+
+        from app.models.inventory import Inventory
+
+        fecha_limite = datetime.now() - timedelta(days=dias)
+
+        # Subquery para última actualización por producto
+        ultima_actualizacion_subquery = (
+            session.query(
+                Inventory.product_id,
+                func.max(Inventory.updated_at).label("ultima_actualizacion"),
+            )
+            .group_by(Inventory.product_id)
+            .subquery()
+        )
+
+        # Productos sin movimiento reciente
+        productos_inactivos = (
+            session.query(cls)
+            .join(
+                ultima_actualizacion_subquery,
+                cls.id == ultima_actualizacion_subquery.c.product_id,
+            )
+            .filter(ultima_actualizacion_subquery.c.ultima_actualizacion < fecha_limite)
+            .all()
+        )
+
+        # También incluir productos que nunca han tenido inventory
+        productos_sin_inventory = (
+            session.query(cls)
+            .outerjoin(Inventory, cls.id == Inventory.product_id)
+            .filter(Inventory.product_id.is_(None), cls.created_at < fecha_limite)
+            .all()
+        )
+
+        return productos_inactivos + productos_sin_inventory
+
+    def buscar_ubicacion_disponible(
+        self, cantidad_requerida: int
+    ) -> Optional["Inventory"]:
         """Encontrar ubicación con stock suficiente"""
         for ubicacion in self.ubicaciones_inventario:
             if ubicacion.cantidad_disponible() >= cantidad_requerida:
@@ -158,138 +295,122 @@ class Product(BaseModel):
     # Relationship con User (vendedor)
     vendedor_id = Column(
         UUID(as_uuid=True),
-        ForeignKey('users.id'),
+        ForeignKey("users.id"),
         nullable=True,
         index=True,
-        comment="ID del usuario vendedor que registró el producto"
+        comment="ID del usuario vendedor que registró el producto",
     )
 
     # Tracking de cambios
     created_by_id = Column(
         UUID(as_uuid=True),
-        ForeignKey('users.id'),
+        ForeignKey("users.id"),
         nullable=True,
-        comment="ID del usuario que creó el producto"
+        comment="ID del usuario que creó el producto",
     )
 
     updated_by_id = Column(
         UUID(as_uuid=True),
-        ForeignKey('users.id'),
+        ForeignKey("users.id"),
         nullable=True,
-        comment="ID del usuario que actualizó por última vez"
+        comment="ID del usuario que actualizó por última vez",
     )
 
     version = Column(
         Integer,
         default=1,
         nullable=False,
-        comment="Versión del producto para control de cambios"
+        comment="Versión del producto para control de cambios",
     )
     # Relationships
     vendedor = relationship(
-        "User",
-        foreign_keys=[vendedor_id],
-        back_populates="productos_vendidos"
+        "User", foreign_keys=[vendedor_id], back_populates="productos_vendidos"
     )
 
     created_by = relationship(
-        "User", 
-        foreign_keys=[created_by_id],
-        backref="productos_creados"
+        "User", foreign_keys=[created_by_id], backref="productos_creados"
     )
 
     updated_by = relationship(
-        "User",
-        foreign_keys=[updated_by_id],
-        backref="productos_actualizados"
+        "User", foreign_keys=[updated_by_id], backref="productos_actualizados"
     )
 
     # Inventory relationship
-    ubicaciones_inventario = relationship(
-        "Inventory",
-        back_populates="product"
-    )
+    ubicaciones_inventario = relationship("Inventory", back_populates="product")
 
     # Transaction relationship
-    transacciones = relationship(
-        "Transaction",
-        back_populates="product"
-    )
+    transacciones = relationship("Transaction", back_populates="product")
     name = Column(
-        String(200), 
-        nullable=False, 
+        String(200),
+        nullable=False,
         index=True,
-        comment="Nombre del producto para búsquedas"
+        comment="Nombre del producto para búsquedas",
     )
 
     description = Column(
-        Text, 
-        nullable=True,
-        comment="Descripción detallada del producto"
+        Text, nullable=True, comment="Descripción detallada del producto"
     )
 
     status = Column(
         Enum(ProductStatus),
         nullable=False,
         default=ProductStatus.TRANSITO,
-        comment="Estado actual del producto en el marketplace"
+        comment="Estado actual del producto en el marketplace",
     )
 
     # Campos de pricing
     precio_venta = Column(
-        DECIMAL(10, 2),
-        nullable=True,
-        comment="Precio de venta al público (COP)"
+        DECIMAL(10, 2), nullable=True, comment="Precio de venta al público (COP)"
     )
 
     precio_costo = Column(
-        DECIMAL(10, 2), 
+        DECIMAL(10, 2),
         nullable=True,
-        comment="Precio de costo/compra del producto (COP)"
+        comment="Precio de costo/compra del producto (COP)",
     )
 
     comision_mestocker = Column(
         DECIMAL(10, 2),
         nullable=True,
-        comment="Comisión de MeStore por venta del producto (COP)"
+        comment="Comisión de MeStore por venta del producto (COP)",
     )
 
     # Campos de fulfillment
     peso = Column(
-        DECIMAL(8, 3),
-        nullable=True,
-        comment="Peso del producto en kilogramos"
+        DECIMAL(8, 3), nullable=True, comment="Peso del producto en kilogramos"
     )
 
     dimensiones = Column(
         JSON,
         nullable=True,
-        comment="Dimensiones del producto: {largo, ancho, alto} en cm"
+        comment="Dimensiones del producto: {largo, ancho, alto} en cm",
     )
 
     categoria = Column(
         String(100),
         nullable=True,
         index=True,
-        comment="Categoría del producto para organización"
+        comment="Categoría del producto para organización",
     )
 
     tags = Column(
-        JSON,
-        nullable=True,
-        comment="Tags del producto como array JSON para búsquedas"
+        JSON, nullable=True, comment="Tags del producto como array JSON para búsquedas"
     )
 
     # Índices adicionales para optimización
     __table_args__ = (
-        Index('ix_product_name_sku', 'name', 'sku'),  # Índice compuesto
-        Index('ix_product_created_at', 'created_at'),  # Para ordenamiento temporal
-        Index('ix_product_vendedor_status', 'vendedor_id', 'status'),  # Productos por vendedor
-        Index('ix_product_status_created', 'status', 'created_at'),    # Estado temporal
-        Index('ix_product_vendedor_status_created', 'vendedor_id', 'status', 'created_at'),  # Query compleja
+        Index("ix_product_name_sku", "name", "sku"),  # Índice compuesto
+        Index("ix_product_created_at", "created_at"),  # Para ordenamiento temporal
+        Index(
+            "ix_product_vendedor_status", "vendedor_id", "status"
+        ),  # Productos por vendedor
+        Index("ix_product_status_created", "status", "created_at"),  # Estado temporal
+        Index(
+            "ix_product_vendedor_status_created", "vendedor_id", "status", "created_at"
+        ),  # Query compleja
         # Índices GIN para búsqueda de texto optimizada
         # Index('ix_product_name_gin', text('name gin_trgm_ops'), postgresql_using='gin'),  # Búsqueda similitud nombre (deshabilitado para compatibilidad SQLite)
-        # Index('ix_product_description_gin', text('description gin_trgm_ops'), postgresql_using='gin'),  # Búsqueda similitud descripción (deshabilitado para compatibilidad SQLite)  
+        # Index('ix_product_description_gin', text('description gin_trgm_ops'), postgresql_using='gin'),  # Búsqueda similitud descripción (deshabilitado para compatibilidad SQLite)
         # Index('ix_product_name_fulltext', func.to_tsvector('spanish', 'name'), postgresql_using='gin'),  # Búsqueda full-text nombre (deshabilitado para compatibilidad SQLite)
         # Index('ix_product_description_fulltext', func.to_tsvector('spanish', 'description'), postgresql_using='gin'),  # Búsqueda full-text descripción (deshabilitado para compatibilidad SQLite)
     )
@@ -302,13 +423,13 @@ class Product(BaseModel):
             **kwargs: Argumentos para crear el producto
         """
         # Si no se especifica status, aplicar default
-        if 'status' not in kwargs:
-            kwargs['status'] = ProductStatus.TRANSITO
+        if "status" not in kwargs:
+            kwargs["status"] = ProductStatus.TRANSITO
 
         # Llamar al __init__ de BaseModel
         super().__init__(**kwargs)
 
-    @validates('sku')
+    @validates("sku")
     def validate_sku(self, key, sku):
         """Validar formato de SKU."""
         if not sku or len(sku.strip()) == 0:
@@ -317,7 +438,7 @@ class Product(BaseModel):
             raise ValueError("SKU no puede exceder 50 caracteres")
         return sku.strip().upper()  # Normalizar a mayúsculas
 
-    @validates('name')
+    @validates("name")
     def validate_name(self, key, name):
         """Validar nombre del producto."""
         if not name or len(name.strip()) == 0:
@@ -381,7 +502,9 @@ class Product(BaseModel):
             "status": self.status.value if self.status else None,
             "precio_venta": float(self.precio_venta) if self.precio_venta else None,
             "precio_costo": float(self.precio_costo) if self.precio_costo else None,
-            "comision_mestocker": float(self.comision_mestocker) if self.comision_mestocker else None,
+            "comision_mestocker": (
+                float(self.comision_mestocker) if self.comision_mestocker else None
+            ),
             "peso": float(self.peso) if self.peso else None,
             "dimensiones": self.dimensiones,
             "categoria": self.categoria,
@@ -394,14 +517,16 @@ class Product(BaseModel):
             "stock_disponible": self.get_stock_disponible(),
             "stock_reservado": self.get_stock_reservado(),
             "tiene_stock": self.tiene_stock_disponible(),
-            "ubicaciones_count": len(self.ubicaciones_inventario) if self.ubicaciones_inventario else 0,
+            "ubicaciones_count": (
+                len(self.ubicaciones_inventario) if self.ubicaciones_inventario else 0
+            ),
         }
         return {**base_dict, **product_dict}
 
     def calcular_margen(self) -> float:
         """
         Calcular margen de ganancia.
-        
+
         Returns:
             float: Margen en COP (precio_venta - precio_costo)
         """
@@ -412,32 +537,40 @@ class Product(BaseModel):
     def calcular_porcentaje_margen(self) -> float:
         """
         Calcular porcentaje de margen.
-        
+
         Returns:
             float: Porcentaje de margen sobre precio_costo
         """
         if self.precio_venta and self.precio_costo and self.precio_costo > 0:
-            return float((self.precio_venta - self.precio_costo) / self.precio_costo * 100)
+            return float(
+                (self.precio_venta - self.precio_costo) / self.precio_costo * 100
+            )
         return 0.0
 
     def calcular_volumen(self) -> float:
         """
         Calcular volumen en cm³ desde dimensiones.
-        
+
         Returns:
             float: Volumen en cm³ o 0.0 si no hay dimensiones válidas
         """
-        if self.dimensiones and all(k in self.dimensiones for k in ['largo', 'ancho', 'alto']):
-            return float(self.dimensiones['largo'] * self.dimensiones['ancho'] * self.dimensiones['alto'])
+        if self.dimensiones and all(
+            k in self.dimensiones for k in ["largo", "ancho", "alto"]
+        ):
+            return float(
+                self.dimensiones["largo"]
+                * self.dimensiones["ancho"]
+                * self.dimensiones["alto"]
+            )
         return 0.0
 
     def tiene_tag(self, tag: str) -> bool:
         """
         Verificar si producto tiene un tag específico.
-        
+
         Args:
             tag: Tag a buscar (case insensitive)
-            
+
         Returns:
             bool: True si el producto tiene el tag especificado
         """
@@ -464,4 +597,6 @@ class Product(BaseModel):
         return f"{self.sku} - {self.name}"
 
     # Relación con imágenes
-    images = relationship("ProductImage", back_populates="product", cascade="all, delete-orphan")
+    images = relationship(
+        "ProductImage", back_populates="product", cascade="all, delete-orphan"
+    )

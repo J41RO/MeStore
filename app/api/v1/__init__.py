@@ -9,19 +9,20 @@ from fastapi import APIRouter
 
 # Importar todos los routers desde endpoints/
 from app.api.v1.endpoints.agents import router as agents_router
+from app.api.v1.endpoints.alerts import router as alerts_router
 from app.api.v1.endpoints.auth import router as auth_router
+from app.api.v1.endpoints.comisiones import router as comisiones_router
 from app.api.v1.endpoints.embeddings import router as embeddings_router
 from app.api.v1.endpoints.fulfillment import router as fulfillment_router
-from app.api.v1.endpoints.inventory import router as inventory_router
 from app.api.v1.endpoints.health import router as health_simple_router
 from app.api.v1.endpoints.health_complete import router as health_complete_router
+from app.api.v1.endpoints.inventory import router as inventory_router
 from app.api.v1.endpoints.logs import router as logs_router
 from app.api.v1.endpoints.marketplace import router as marketplace_router
-from app.api.v1.endpoints.productos import router as productos_router
-from app.api.v1.endpoints.vendedores import router as vendedores_router
-from app.api.v1.endpoints.comisiones import router as comisiones_router
 from app.api.v1.endpoints.pagos import router as pagos_router
 from app.api.v1.endpoints.perfil import router as perfil_router
+from app.api.v1.endpoints.productos import router as productos_router
+from app.api.v1.endpoints.vendedores import router as vendedores_router
 
 # Router principal que unifica todos los endpoints v1
 api_router = APIRouter()
@@ -55,3 +56,4 @@ api_router.include_router(productos_router, prefix="/productos", tags=["producto
 api_router.include_router(inventory_router, prefix="/inventario", tags=["inventory"])
 api_router.include_router(pagos_router, prefix="/pagos", tags=["pagos"])
 api_router.include_router(perfil_router, prefix="/perfil", tags=["perfil"])
+api_router.include_router(alerts_router, prefix="/alerts", tags=["alerts"])

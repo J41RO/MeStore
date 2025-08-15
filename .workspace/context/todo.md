@@ -338,8 +338,8 @@
 🔁 1.5.2 Dashboard principal con métricas
     ✅ 1.5.2.1 Crear componente DashboardLayout con sidebar y header
     ✅ 1.5.2.2 Implementar cards de KPIs (ventas, productos, comisiones, stock)
-    ⬜ 1.5.2.3 Añadir gráficos de ventas con Chart.js o Recharts
-    ⬜ 1.5.2.4 Crear widget de productos más vendidos con thumbnails
+    ✅ 1.5.2.3 Añadir gráficos de ventas con Chart.js o Recharts
+    ✅ 1.5.2.4 Crear widget de productos más vendidos con thumbnails
     ⬜ 1.5.2.5 Implementar alertas de stock bajo y productos sin movimiento
     ⬜ 1.5.2.6 Añadir quick actions (añadir producto, ver comisiones, contactar soporte)
 ⬜ 1.5.3 Gestión de productos (añadir, editar, eliminar)
