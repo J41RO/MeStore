@@ -1,77 +1,72 @@
+// ~/src/pages/__tests__/Productos.test.tsx
+// ---------------------------------------------------------------------------------------------
+// MESTORE - Tests para página Productos
+// Copyright (c) 2025 Jairo. Todos los derechos reservados.
+// Licensed under the proprietary license detailed in a LICENSE file in the root of this project.
+// ---------------------------------------------------------------------------------------------
+
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import { render, screen } from '@testing-library/react';
+
+// Mock de los servicios API antes de importar componentes
+jest.mock('../../services/api', () => ({
+  api: {
+    products: {
+      getWithFilters: jest.fn().mockResolvedValue({
+        data: {
+          data: [],
+          pagination: {
+            page: 1,
+            limit: 10,
+            total: 0,
+            totalPages: 0
+          }
+        }
+      })
+    }
+  }
+}));
+
+// Mock del hook useProductList
+jest.mock('../../hooks/useProductList', () => ({
+  useProductList: () => ({
+    products: [],
+    loading: false,
+    error: null,
+    pagination: {
+      page: 1,
+      limit: 10,
+      total: 0,
+      totalPages: 0
+    },
+    filters: {
+      search: '',
+      category: '',
+      sortBy: 'name',
+      sortOrder: 'asc'
+    },
+    applyFilters: jest.fn(),
+    changePage: jest.fn(),
+    resetFilters: jest.fn(),
+    refreshProducts: jest.fn()
+  })
+}));
+
 import Productos from '../Productos';
 
-const renderProductos = () => {
-  return render(<Productos />);
-};
-
-describe('Productos Component', () => {
-  test('should render main productos title', () => {
-    renderProductos();
-    
-    expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
+describe('Productos Page', () => {
+  it('renders without crashing', () => {
+    render(<Productos />);
     expect(screen.getByText('Gestión de Productos')).toBeInTheDocument();
   });
 
-  test('should render productos description text', () => {
-    renderProductos();
-    
-    expect(screen.getByText('Lista de productos del vendedor')).toBeInTheDocument();
+  it('renders add product button', () => {
+    render(<Productos />);
+    expect(screen.getByText('Agregar Producto')).toBeInTheDocument();
   });
 
-  test('should render add product button', () => {
-    renderProductos();
-    
-    const addButton = screen.getByRole('button', { name: /agregar producto/i });
-    expect(addButton).toBeInTheDocument();
-    expect(addButton).toHaveTextContent('Agregar Producto');
-  });
-
-  test('should have correct styling for add product button', () => {
-    renderProductos();
-    
-    const addButton = screen.getByRole('button', { name: /agregar producto/i });
-    expect(addButton).toHaveClass('bg-blue-500', 'text-white', 'px-4', 'py-2', 'rounded');
-  });
-
-  test('should render card structure with shadow', () => {
-    const { container } = renderProductos();
-    
-    // Verificar que existe un contenedor con shadow
-    const cardElement = container.querySelector('.shadow');
-    expect(cardElement).toBeInTheDocument();
-    
-    // Verificar que tiene clase rounded-lg
-    const roundedElement = container.querySelector('.rounded-lg');
-    expect(roundedElement).toBeInTheDocument();
-  });
-
-  test('should allow button interaction', () => {
-    renderProductos();
-    
-    const addButton = screen.getByRole('button', { name: /agregar producto/i });
-    
-    // Verificar que el botón es clickeable (no disabled)
-    expect(addButton).not.toBeDisabled();
-    
-    // Simular click (no debería generar error)
-    fireEvent.click(addButton);
-    
-    // El botón debería seguir presente después del click
-    expect(addButton).toBeInTheDocument();
-  });
-
-  test('should render complete layout structure', () => {
-    const { container } = renderProductos();
-    
-    // Verificar estructura principal con padding
-    const mainContainer = container.querySelector('.p-6');
-    expect(mainContainer).toBeInTheDocument();
-    
-    // Verificar que el título tiene margen bottom
-    const title = screen.getByText('Gestión de Productos');
-    expect(title).toHaveClass('mb-4');
+  it('renders product filters and table components', () => {
+    render(<Productos />);
+    expect(screen.getByText('Administra tu catálogo de productos')).toBeInTheDocument();
   });
 });

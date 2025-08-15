@@ -98,6 +98,20 @@ const Productos: React.FC = () => {
       />
     </div>
   );
+
+  return (
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">Gestión de Productos</h1>
+      <div className="bg-white rounded-lg shadow p-4">
+        <p className="text-gray-600">Lista de productos del vendedor</p>
+        <div className="mt-4">
+          <button className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+            Agregar Producto
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default Productos;

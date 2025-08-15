@@ -70,3 +70,25 @@ export interface CreateProductData {
 }
 
 export interface UpdateProductData extends Partial<CreateProductData> {}
+
+
+// Tipos para paginación
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+// Tipos para filtros de productos
+export interface ProductFilters {
+  search?: string;
+  category?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  sortBy?: 'name' | 'price' | 'salesCount' | 'rating';
+  sortOrder?: 'asc' | 'desc';
+}

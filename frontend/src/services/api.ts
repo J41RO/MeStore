@@ -9,6 +9,8 @@ import {
   Product,
   CreateProductData,
   UpdateProductData,
+  PaginatedResponse,
+  ProductFilters,
 } from '../types/api.types';
 
 // Servicio API tipado que usa el cliente con interceptores
@@ -56,5 +58,7 @@ export const api = {
     
     delete: (id: string): Promise<AxiosResponse<void>> =>
       apiClient.delete(`/api/products/${id}`),
+    getWithFilters: (filters: ProductFilters, page: number = 1, limit: number = 10): Promise<AxiosResponse<PaginatedResponse<Product>>> =>
+      apiClient.get('/api/products/search', { params: { ...filters, page, limit } }),
   },
 };
