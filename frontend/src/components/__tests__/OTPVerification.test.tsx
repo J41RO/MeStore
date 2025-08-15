@@ -113,6 +113,7 @@ describe('OTPVerification Component', () => {
     const inputs = screen.getAllByRole('textbox');
     for (let i = 0; i < 6; i++) {
       await act(async () => {
+        await userEvent.clear(inputs[i]);
         await userEvent.type(inputs[i], (i + 1).toString());
       });
     }

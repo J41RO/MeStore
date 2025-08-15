@@ -2632,7 +2632,7 @@ def show_enhanced_help_v53():
 🔧 SURGICAL MODIFIER ULTIMATE v5.3 - HERRAMIENTA UNIVERSAL DEFINITIVA
 
 📋 USO:
-  python3 surgical_modifier_ultimate.py [--verbose] [--confirm] [--explore] [--keep-backups] [--check-integrity] <operación> <archivo> <patrón> [contenido]
+  python3 ../.workspace/scripts/surgical_modifier_ultimate.py [--verbose] [--confirm] [--explore] [--keep-backups] [--check-integrity] <operación> <archivo> <patrón> [contenido]
 
 🛡️ OPCIONES:
   --verbose        : Diff visual y análisis detallado
@@ -2653,13 +2653,13 @@ def show_enhanced_help_v53():
 🎯 EJEMPLOS CON VERIFICACIÓN DE INTEGRIDAD:
 
 # Modificación segura con verificación completa
-python3 surgical_modifier_ultimate.py --check-integrity replace models/product.py "class Product" "class Product"
+python3 ../.workspace/scripts/surgical_modifier_ultimate.py --check-integrity replace models/product.py "class Product" "class Product"
 
 # Verificación + confirmación + backups + verbose
-python3 surgical_modifier_ultimate.py --check-integrity --confirm --keep-backups --verbose after models/product.py "name = models.CharField" "description = models.TextField()"
+python3 ../.workspace/scripts/surgical_modifier_ultimate.py --check-integrity --confirm --keep-backups --verbose after models/product.py "name = models.CharField" "description = models.TextField()"
 
 # Solo exploración (sin modificar)
-python3 surgical_modifier_ultimate.py --explore models/product.py
+python3 ../.workspace/scripts/surgical_modifier_ultimate.py --explore models/product.py
 
 🧹 SISTEMA DE BACKUP INTELIGENTE:
 
