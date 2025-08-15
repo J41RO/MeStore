@@ -335,14 +335,14 @@
     ✅ 1.5.1.4 Crear componente OTPVerification para verificación SMS
     ✅ 1.5.1.5 Implementar ForgotPassword flow con email recovery
     ✅ 1.5.1.6 Diseñar landing page atractiva con beneficios para vendedores
-🔁 1.5.2 Dashboard principal con métricas
+✅ 1.5.2 Dashboard principal con métricas
     ✅ 1.5.2.1 Crear componente DashboardLayout con sidebar y header
     ✅ 1.5.2.2 Implementar cards de KPIs (ventas, productos, comisiones, stock)
     ✅ 1.5.2.3 Añadir gráficos de ventas con Chart.js o Recharts
     ✅ 1.5.2.4 Crear widget de productos más vendidos con thumbnails
     ✅ 1.5.2.5 Implementar alertas de stock bajo y productos sin movimiento
-    ⬜ 1.5.2.6 Añadir quick actions (añadir producto, ver comisiones, contactar soporte)
-⬜ 1.5.3 Gestión de productos (añadir, editar, eliminar)
+    ✅ 1.5.2.6 Añadir quick actions (añadir producto, ver comisiones, contactar soporte)
+🔁 1.5.3 Gestión de productos (añadir, editar, eliminar)
     ⬜ 1.5.3.1 Crear ProductList con tabla paginada y filtros de búsqueda
     ⬜ 1.5.3.2 Implementar ProductForm para crear/editar con validaciones
     ⬜ 1.5.3.3 Añadir campos específicos (SKU, categoría, dimensiones, peso)

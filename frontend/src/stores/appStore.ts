@@ -20,6 +20,7 @@ import { create } from 'zustand';
 import { persist, devtools } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { enableMapSet } from 'immer';
+import { ENV } from "../utils/env";
 import { 
   AppStoreType, 
   AppTheme, 
@@ -45,7 +46,7 @@ const defaultConfig: AppConfig = {
   },
   
   api: {
-    baseUrl: import.meta.env.VITE_API_BASE_URL || 'http://192.168.1.137:8000',
+    baseUrl: ENV.API_BASE_URL,
     timeout: 30000,
     retryAttempts: 3
   },
@@ -121,8 +122,8 @@ export const useAppStore = create<AppStoreType>()(
         
         // Meta información
         version: '1.0.0',
-        buildNumber: import.meta.env.VITE_BUILD_NUMBER || '1',
-        environment: import.meta.env.MODE as any || 'development',
+        buildNumber: ENV.BUILD_NUMBER,
+        environment: ENV.MODE,
         
         // ACCIONES DE THEME
         setTheme: (theme: AppTheme) => {
