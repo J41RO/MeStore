@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useProductList } from '../hooks/useProductList';
 import ProductFilters from '../components/products/ProductFilters';
 import ProductTable from '../components/products/ProductTable';
+import AddProductModal from '../components/AddProductModal';
+import EditProductModal from '../components/EditProductModal';
+import { Product } from '../types/api.types';
 
 const Productos: React.FC = () => {
   const {
@@ -16,9 +19,15 @@ const Productos: React.FC = () => {
     refreshProducts,
   } = useProductList();
 
-  const handleEdit = (product: any) => {
+  // Estados para modales
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+
+  const handleEdit = (product: Product) => {
     console.log('Editar producto:', product);
-    // TODO: Implementar modal de edición
+    setSelectedProduct(product);
+    setShowEditModal(true);
   };
 
   const handleDelete = (productId: string) => {
@@ -28,7 +37,24 @@ const Productos: React.FC = () => {
 
   const handleAddProduct = () => {
     console.log('Agregar nuevo producto');
-    // TODO: Implementar modal de agregar producto
+    setShowAddModal(true);
+  };
+
+  const handleProductCreated = () => {
+    // Refrescar la lista cuando se crea un producto
+    refreshProducts();
+  };
+
+  const handleProductUpdated = () => {
+    // Refrescar la lista cuando se actualiza un producto
+    refreshProducts();
+    setShowEditModal(false);
+    setSelectedProduct(null);
+  };
+
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
+    setSelectedProduct(null);
   };
 
   if (error) {
@@ -96,6 +122,23 @@ const Productos: React.FC = () => {
         onEdit={handleEdit}
         onDelete={handleDelete}
       />
+
+      {/* Modal de agregar producto */}
+      <AddProductModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onProductCreated={handleProductCreated}
+      />
+
+      {/* Modal de editar producto */}
+      {showEditModal && selectedProduct && (
+        <EditProductModal
+          isOpen={showEditModal}
+          onClose={handleCloseEditModal}
+          product={selectedProduct}
+          onProductUpdated={handleProductUpdated}
+        />
+      )}
     </div>
   );
 };

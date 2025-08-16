@@ -69,7 +69,9 @@ export interface CreateProductData {
   imageUrl?: string;
 }
 
-export interface UpdateProductData extends Partial<CreateProductData> {}
+export interface UpdateProductData extends Partial<CreateProductData> {
+  id: number;
+}
 
 
 // Tipos para paginación

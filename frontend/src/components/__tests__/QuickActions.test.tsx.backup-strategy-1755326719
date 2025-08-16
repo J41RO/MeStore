@@ -167,7 +167,7 @@ describe('QuickActions Component', () => {
     
     // Verificar que no hay errores en el envío (ProductForm maneja API directamente)
     await new Promise(resolve => setTimeout(resolve, 100)); // Wait for async operations
-    // Si llegamos aquí sin throw, el test pasó correctamente
+    expect(mockConsoleError).not.toHaveBeenCalled();
   });
 
   // Test 9: Validación de campos requeridos en AddProduct
@@ -187,9 +187,9 @@ describe('QuickActions Component', () => {
     const submitButton = screen.getByText('Crear Producto');
     await user.click(submitButton);
     
-    // ProductForm usa React Hook Form - verificar que campos existen
-    expect(screen.getByLabelText(/Nombre del Producto/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Precio/)).toBeInTheDocument();
+    // Los campos requeridos deben tener atributo required
+    expect(screen.getByLabelText(/Nombre del Producto/)).toBeRequired();
+    expect(screen.getByLabelText(/Precio/)).toBeRequired();
   });
 
   // Test 10: Navegación con teclado (accesibilidad)
