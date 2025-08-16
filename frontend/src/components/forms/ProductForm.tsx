@@ -246,6 +246,56 @@ const ProductForm: React.FC<ProductFormProps> = ({
           )}
         </div>
 
+        {/* SKU Field */}
+        <div>
+          <label htmlFor="sku" className="block text-sm font-medium mb-2">
+            SKU (Opcional)
+          </label>
+          <input
+            id="sku"
+            type="text"
+            {...register('sku')}
+            className="w-full px-3 py-2 border rounded-lg"
+            placeholder="Ej: PROD-001"
+          />
+          {errors.sku && (
+            <p className="mt-1 text-sm text-red-600">{errors.sku?.message as string}</p>
+          )}
+        </div>
+
+        {/* Dimensions Fields */}
+        <div>
+          <label className="block text-sm font-medium mb-2">
+            Dimensiones (Opcional)
+          </label>
+          <div className="grid grid-cols-4 gap-2">
+            <input placeholder="Largo" type="number" {...register('dimensions.length')} className="px-3 py-2 border rounded-lg" />
+            <input placeholder="Ancho" type="number" {...register('dimensions.width')} className="px-3 py-2 border rounded-lg" />
+            <input placeholder="Alto" type="number" {...register('dimensions.height')} className="px-3 py-2 border rounded-lg" />
+            <select {...register('dimensions.unit')} className="px-3 py-2 border rounded-lg">
+              <option value="">Unidad</option>
+              <option value="cm">cm</option>
+              <option value="m">m</option>
+              <option value="mm">mm</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Weight Fields */}
+        <div>
+          <label className="block text-sm font-medium mb-2">
+            Peso (Opcional)
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <input placeholder="Peso" type="number" {...register('weight.value')} className="px-3 py-2 border rounded-lg" />
+            <select {...register('weight.unit')} className="px-3 py-2 border rounded-lg">
+              <option value="">Unidad</option>
+              <option value="g">g</option>
+              <option value="kg">kg</option>
+              <option value="lb">lb</option>
+            </select>
+          </div>
+        </div>
         <div className="flex gap-3 pt-6">
           <button
             type="submit"

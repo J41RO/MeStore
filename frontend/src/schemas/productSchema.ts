@@ -116,6 +116,10 @@ export const defaultProductValues: Partial<ProductFormData> = {
   stock: 0,
   category: '',
   imageUrl: ''
+,
+  sku: '',
+  dimensions: undefined,
+  weight: undefined
 };
 
 // Función helper para validar una categoría

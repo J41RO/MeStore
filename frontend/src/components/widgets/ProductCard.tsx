@@ -107,6 +107,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
               <p className={`text-gray-500 ${compact ? 'text-xs' : 'text-sm'}`}>
                 {product.category}
               </p>
+              {product.sku && (
+                <p className={`text-gray-400 ${compact ? "text-xs" : "text-sm"}`}>
+                  SKU: {product.sku}
+                </p>
+              )}
               
               <div className="flex items-center space-x-2 mt-1">
                 <span className={`
@@ -164,6 +169,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
       {!compact && (
         <div className="mt-3 pt-3 border-t border-gray-100">
           <div className="flex justify-between items-center text-xs text-gray-500">
+            {product.weight && (
+              <span>⚖️ {product.weight.value}{product.weight.unit}</span>
+            )}
             <span>Posición #{product.rank} en ranking</span>
             {product.rating && (
               <span>★ {product.rating}/5.0</span>

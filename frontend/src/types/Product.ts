@@ -7,6 +7,9 @@ export interface Product {
   salesCount: number;
   category: string;
   rating?: number;
+  sku?: string;
+  dimensions?: { length: number; width: number; height: number; unit: string };
+  weight?: { value: number; unit: string };
 }
 
 export interface TopProduct extends Product {

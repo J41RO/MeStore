@@ -67,9 +67,6 @@ export interface CreateProductData {
   stock: number;
   category: string;
   imageUrl?: string;
-  sku?: string;
-  dimensions?: { length: number; width: number; height: number; unit: string };
-  weight?: { value: number; unit: string };
 }
 
 export interface UpdateProductData extends Partial<CreateProductData> {
