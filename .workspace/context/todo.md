@@ -343,10 +343,10 @@
     ✅ 1.5.2.5 Implementar alertas de stock bajo y productos sin movimiento
     ✅ 1.5.2.6 Añadir quick actions (añadir producto, ver comisiones, contactar soporte)
 🔁 1.5.3 Gestión de productos (añadir, editar, eliminar)
-    ⬜ 1.5.3.1 Crear ProductList con tabla paginada y filtros de búsqueda
-    ⬜ 1.5.3.2 Implementar ProductForm para crear/editar con validaciones
-    ⬜ 1.5.3.3 Añadir campos específicos (SKU, categoría, dimensiones, peso)
-    ⬜ 1.5.3.4 Crear componente ProductCard para vista grid/lista
+    ✅ 1.5.3.1 Crear ProductList con tabla paginada y filtros de búsqueda
+    ✅ 1.5.3.2 Implementar ProductForm para crear/editar con validaciones
+    ✅ 1.5.3.3 Añadir campos específicos (SKU, categoría, dimensiones, peso)
+    ✅ 1.5.3.4 Crear componente ProductCard para vista grid/lista
     ⬜ 1.5.3.5 Implementar ProductDetail modal con toda la información
     ⬜ 1.5.3.6 Añadir bulk actions (eliminar múltiples, cambiar estado)
 ⬜ 1.5.4 Upload de imágenes con preview

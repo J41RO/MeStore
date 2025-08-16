@@ -1,7 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useProductList } from '../hooks/useProductList';
 import ProductFilters from '../components/products/ProductFilters';
 import ProductTable from '../components/products/ProductTable';
+import AddProductModal from '../components/AddProductModal';
+import EditProductModal from '../components/EditProductModal';
+import { Product } from '../types/api.types';
+import ProductCard from '../components/products/ProductCard';
 
 const Productos: React.FC = () => {
   const {
@@ -16,9 +20,17 @@ const Productos: React.FC = () => {
     refreshProducts,
   } = useProductList();
 
-  const handleEdit = (product: any) => {
+  // Estados para modales
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+
+  const handleEdit = (product: Product) => {
     console.log('Editar producto:', product);
-    // TODO: Implementar modal de edición
+    setSelectedProduct(product);
+    setShowEditModal(true);
   };
 
   const handleDelete = (productId: string) => {
@@ -28,7 +40,24 @@ const Productos: React.FC = () => {
 
   const handleAddProduct = () => {
     console.log('Agregar nuevo producto');
-    // TODO: Implementar modal de agregar producto
+    setShowAddModal(true);
+  };
+
+  const handleProductCreated = () => {
+    // Refrescar la lista cuando se crea un producto
+    refreshProducts();
+  };
+
+  const handleProductUpdated = () => {
+    // Refrescar la lista cuando se actualiza un producto
+    refreshProducts();
+    setShowEditModal(false);
+    setSelectedProduct(null);
+  };
+
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
+    setSelectedProduct(null);
   };
 
   if (error) {
@@ -47,6 +76,28 @@ const Productos: React.FC = () => {
                 <p>{error}</p>
               </div>
               <div className="mt-3">
+        {/* Toggle de Vista */}
+        <div className="flex items-center gap-2 mr-4">
+          <button
+            onClick={() => setViewMode('list')}
+            className={`p-2 rounded-md transition-colors ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+            title="Vista Lista"
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 16a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" />
+            </svg>
+          </button>
+          <button
+            onClick={() => setViewMode('grid')}
+            className={`p-2 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+            title="Vista Grid"
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            </svg>
+          </button>
+        </div>
+
                 <button
                   onClick={refreshProducts}
                   className="bg-red-100 px-3 py-2 rounded-md text-sm font-medium text-red-800 hover:bg-red-200 transition-colors"
@@ -96,20 +147,23 @@ const Productos: React.FC = () => {
         onEdit={handleEdit}
         onDelete={handleDelete}
       />
-    </div>
-  );
 
-  return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Gestión de Productos</h1>
-      <div className="bg-white rounded-lg shadow p-4">
-        <p className="text-gray-600">Lista de productos del vendedor</p>
-        <div className="mt-4">
-          <button className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-            Agregar Producto
-          </button>
-        </div>
-      </div>
+      {/* Modal de agregar producto */}
+      <AddProductModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onProductCreated={handleProductCreated}
+      />
+
+      {/* Modal de editar producto */}
+      {showEditModal && selectedProduct && (
+        <EditProductModal
+          isOpen={showEditModal}
+          onClose={handleCloseEditModal}
+          product={selectedProduct}
+          onProductUpdated={handleProductUpdated}
+        />
+      )}
     </div>
   );
 };

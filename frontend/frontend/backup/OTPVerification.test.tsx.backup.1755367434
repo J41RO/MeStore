@@ -46,9 +46,9 @@ describe('OTPVerification Component', () => {
     await userEvent.type(inputs[1], '2');
     await userEvent.type(inputs[2], '3');
     
-    expect(inputs[0]).toHaveAttribute('value', '1');
-    expect(inputs[1]).toHaveAttribute('value', '2');
-    expect(inputs[2]).toHaveAttribute('value', '3');
+    expect(inputs[0]).toHaveValue('1');
+    expect(inputs[1]).toHaveValue('2');
+    expect(inputs[2]).toHaveValue('3');
   });
 
   // TEST 2: Envío de SMS ✅
