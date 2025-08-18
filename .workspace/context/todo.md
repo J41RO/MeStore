@@ -347,7 +347,7 @@
     ✅ 1.5.3.2 Implementar ProductForm para crear/editar con validaciones
     ✅ 1.5.3.3 Añadir campos específicos (SKU, categoría, dimensiones, peso)
     ✅ 1.5.3.4 Crear componente ProductCard para vista grid/lista
-    ⬜ 1.5.3.5 Implementar ProductDetail modal con toda la información
+    ✅ 1.5.3.5 Implementar ProductDetail modal con toda la información
     ⬜ 1.5.3.6 Añadir bulk actions (eliminar múltiples, cambiar estado)
 ⬜ 1.5.4 Upload de imágenes con preview
     ⬜ 1.5.4.1 Crear componente ImageUpload con drag & drop

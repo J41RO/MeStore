@@ -1,4 +1,5 @@
 // ~/src/pages/__tests__/Productos.test.tsx
+import { NotificationProvider } from '../../contexts/NotificationContext';
 // ---------------------------------------------------------------------------------------------
 // MESTORE - Tests para página Productos
 // Copyright (c) 2025 Jairo. Todos los derechos reservados.
@@ -56,17 +57,17 @@ import Productos from '../Productos';
 
 describe('Productos Page', () => {
   it('renders without crashing', () => {
-    render(<Productos />);
+    render(<NotificationProvider><Productos /></NotificationProvider>);
     expect(screen.getByText('Gestión de Productos')).toBeInTheDocument();
   });
 
   it('renders add product button', () => {
-    render(<Productos />);
+    render(<NotificationProvider><Productos /></NotificationProvider>);
     expect(screen.getByText('Agregar Producto')).toBeInTheDocument();
   });
 
   it('renders product filters and table components', () => {
-    render(<Productos />);
+    render(<NotificationProvider><Productos /></NotificationProvider>);
     expect(screen.getByText('Administra tu catálogo de productos')).toBeInTheDocument();
   });
 });

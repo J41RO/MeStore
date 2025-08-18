@@ -2,18 +2,6 @@
 """
 🔧 SURGICAL MODIFIER ULTIMATE v5.3 - HERRAMIENTA UNIVERSAL MEJORADA
 =======================================================================
-✅ CORREGIDO: Procesamiento correcto de \n en contenido multi-línea
-✅ CORREGIDO: CREATE funciona con rutas relativas automáticamente
-✅ NUEVO v5.3: Búsqueda flexible con similitud para cualquier proyecto
-✅ NUEVO v5.3: Modo exploración universal para cualquier tipo de archivo
-✅ NUEVO v5.3: Fragmentación inteligente de patrones largos
-✅ NUEVO v5.3: Detección automática de contexto de frameworks
-✅ NUEVO v5.3: Sugerencias mejoradas para cualquier lenguaje/proyecto
-✅ MEJORADO: Validación previa robusta
-✅ MEJORADO: Auto-sugerencias universales
-✅ MEJORADO: Manejo de errores para proyectos reales
-✅ NUEVO v5.3: Verificación de integridad de código
-=======================================================================
 """
 
 import ast  # Para verificación de sintaxis Python

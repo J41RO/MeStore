@@ -22,6 +22,7 @@ from app.api.v1.endpoints.marketplace import router as marketplace_router
 from app.api.v1.endpoints.pagos import router as pagos_router
 from app.api.v1.endpoints.perfil import router as perfil_router
 from app.api.v1.endpoints.productos import router as productos_router
+from app.api.v1.endpoints.products_bulk import router as products_bulk_router
 from app.api.v1.endpoints.vendedores import router as vendedores_router
 
 # Router principal que unifica todos los endpoints v1
@@ -53,6 +54,7 @@ api_router.include_router(auth_router, prefix="/auth", tags=["auth"])
 api_router.include_router(vendedores_router, tags=["vendedores"])
 api_router.include_router(comisiones_router, prefix="/comisiones", tags=["comisiones"])
 api_router.include_router(productos_router, prefix="/productos", tags=["productos"])
+api_router.include_router(products_bulk_router, prefix="/products", tags=["products-bulk"])
 api_router.include_router(inventory_router, prefix="/inventario", tags=["inventory"])
 api_router.include_router(pagos_router, prefix="/pagos", tags=["pagos"])
 api_router.include_router(perfil_router, prefix="/perfil", tags=["perfil"])

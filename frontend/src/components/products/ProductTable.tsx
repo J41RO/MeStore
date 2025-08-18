@@ -1,6 +1,6 @@
 // ~/src/components/products/ProductTable.tsx
 // ---------------------------------------------------------------------------------------------
-// MESTORE - Componente de tabla de productos con paginación
+// MESTORE - Componente de tabla de productos con paginación y selección múltiple
 // Copyright (c) 2025 Jairo. Todos los derechos reservados.
 // Licensed under the proprietary license detailed in a LICENSE file in the root of this project.
 // ---------------------------------------------------------------------------------------------
@@ -9,13 +9,14 @@
 // Ruta: ~/src/components/products/ProductTable.tsx
 // Autor: Jairo
 // Fecha de Creación: 2025-08-15
-// Última Actualización: 2025-08-15
-// Versión: 1.0.0
+// Última Actualización: 2025-08-17
+// Versión: 1.1.0
 // Propósito: Componente de tabla responsive para mostrar productos con paginación
-//            y manejo de estados de carga
+//            y selección múltiple para bulk actions
 //
 // Modificaciones:
 // 2025-08-15 - Implementación inicial de tabla con paginación
+// 2025-08-17 - Agregada funcionalidad de selección múltiple y bulk actions
 //
 // ---------------------------------------------------------------------------------------------
 
@@ -23,9 +24,10 @@
  * Componente ProductTable
  *
  * Tabla responsive que muestra:
- * - Lista de productos con columnas: Imagen, Nombre, Categoría, Precio, Ventas, Rating, Acciones
+ * - Lista de productos con columnas: Selección, Imagen, Nombre, Categoría, Precio, Stock, Acciones
  * - Paginación en la parte inferior
  * - Estados de carga y datos vacíos
+ * - Selección múltiple con checkboxes
  * - Responsive design con Tailwind CSS
  */
 
@@ -44,6 +46,8 @@ interface ProductTableProps {
   onPageChange: (page: number) => void;
   onEdit?: (product: Product) => void;
   onDelete?: (productId: string) => void;
+  selectedProducts?: string[];
+  onSelectionChange?: (selectedIds: string[]) => void;
 }
 
 interface PaginationProps {
@@ -149,7 +153,28 @@ const ProductTable: React.FC<ProductTableProps> = ({
   onPageChange,
   onEdit,
   onDelete,
+  selectedProducts = [],
+  onSelectionChange,
 }) => {
+  // Estado y lógica para manejo de selección múltiple
+  const handleSelectAll = () => {
+    if (selectedProducts.length === products.length) {
+      onSelectionChange?.([]);
+    } else {
+      onSelectionChange?.(products.map(p => p.id));
+    }
+  };
+
+  const handleSelectProduct = (productId: string) => {
+    const newSelection = selectedProducts.includes(productId)
+      ? selectedProducts.filter(id => id !== productId)
+      : [...selectedProducts, productId];
+    onSelectionChange?.(newSelection);
+  };
+
+  const isAllSelected = products.length > 0 && selectedProducts.length === products.length;
+  const isIndeterminate = selectedProducts.length > 0 && selectedProducts.length < products.length;
+
   if (loading) {
     return (
       <div className="bg-white shadow rounded-lg">
@@ -179,6 +204,17 @@ const ProductTable: React.FC<ProductTableProps> = ({
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
+              <th className="relative px-6 py-3">
+                <input
+                  type="checkbox"
+                  checked={isAllSelected}
+                  ref={(el) => {
+                    if (el) el.indeterminate = isIndeterminate;
+                  }}
+                  onChange={handleSelectAll}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+              </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Producto
               </th>
@@ -199,6 +235,14 @@ const ProductTable: React.FC<ProductTableProps> = ({
           <tbody className="bg-white divide-y divide-gray-200">
             {products.map((product) => (
               <tr key={product.id} className="hover:bg-gray-50">
+                <td className="relative px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <input
+                    type="checkbox"
+                    checked={selectedProducts.includes(product.id)}
+                    onChange={() => handleSelectProduct(product.id)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <div className="flex-shrink-0 h-12 w-12">
