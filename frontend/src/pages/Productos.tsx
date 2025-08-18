@@ -22,7 +22,7 @@ const Productos: React.FC = () => {
     resetFilters,
     refreshProducts,
   } = useProductList();
-  const { addNotification } = useNotifications();
+  const { showNotification } = useNotifications();
 
   // Estados para modales
   const [showAddModal, setShowAddModal] = useState(false);
@@ -34,12 +34,11 @@ const Productos: React.FC = () => {
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
 
   // Función para mostrar notificaciones
-  const showNotification = (message: string, type: 'success' | 'error') => {
-    addNotification({
-      id: Date.now().toString(),
+  const handleShowNotification = (message: string, type: 'success' | 'error') => {
+    showNotification({
       message,
-      type: type === 'success' ? 'success' : 'error',
-      duration: 5000
+      title: type === "success" ? "Éxito" : "Error",
+      type,
     });
   };
 
@@ -245,7 +244,7 @@ const Productos: React.FC = () => {
         selectedCount={selectedProducts.length}
         onBulkComplete={handleBulkComplete}
         onClearSelection={handleClearSelection}
-        onShowNotification={showNotification}
+        onShowNotification={handleShowNotification}
       />
 
       {/* Modal de agregar producto */}
