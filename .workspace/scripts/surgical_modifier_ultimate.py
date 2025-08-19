@@ -151,7 +151,7 @@ class ColorLogger:
         print(f"✅ {message}")
 
     @classmethod
-    def error(cls, message: str, suggestion: str = None):
+    def error(cls, message: str, suggestion: str = ""):
         print(f"{cls.COLORS['red']}❌ ERROR: {message}{cls.COLORS['reset']}")
         if suggestion:
             print(f"🔧 Sugerencia: {suggestion}")

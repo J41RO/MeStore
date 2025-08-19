@@ -132,7 +132,7 @@ describe('OTPVerification Component', () => {
     
     // PASO 5: Verificar la llamada única (verificación)
     await waitFor(() => {
-      expect(fetch).toHaveBeenCalledTimes(2);
+      expect(fetch).toHaveBeenCalledTimes(2); // Envío SMS + Verificación
     });
     
     await waitFor(() => {
