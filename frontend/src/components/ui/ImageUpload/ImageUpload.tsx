@@ -41,12 +41,22 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
 }) => {
   const [uploadedImages, setUploadedImages] = useState<ImageFile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [imageLoadingStates, setImageLoadingStates] = useState<Record<string, boolean>>({});
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   /**
    * Callback mejorado con loading state
    */
   const handleDrop = useCallback(async (acceptedFiles: File[]) => {
     setIsLoading(true);
+
+    // Inicializar loading states individuales
+    const newLoadingStates: Record<string, boolean> = {};
+    acceptedFiles.forEach(file => {
+      const fileId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      newLoadingStates[fileId] = true;
+    });
+    setImageLoadingStates(prev => ({ ...prev, ...newLoadingStates }));
 
     const imageFiles: ImageFile[] = acceptedFiles.map((file) => ({
       file,
@@ -67,6 +77,32 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
   }, []);
 
   /**
+   * Funciones para reordenar imágenes por drag & drop
+   */
+  const handleImageDragStart = useCallback((e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  }, []);
+
+  const handleImageDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  const handleImageDrop = useCallback((e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === dropIndex) return;
+
+    const newImages = [...uploadedImages];
+    const [draggedImage] = newImages.splice(draggedIndex, 1);
+    newImages.splice(dropIndex, 0, draggedImage);
+    
+    setUploadedImages(newImages);
+    onImageUpload(newImages);
+    setDraggedIndex(null);
+  }, [draggedIndex, uploadedImages, onImageUpload]);
+
+  /**
    * Limpiar URLs de objeto para evitar memory leaks
    */
   React.useEffect(() => {
@@ -75,7 +111,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
     };
   }, [uploadedImages]);
   
-  // (Eliminado: código duplicado/incompleto, ya está implementado en handleDrop)
+
 
   /**
    * Configuración de tipos aceptados para react-dropzone
@@ -125,7 +161,6 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
         <div className="space-y-2">
           <div className="text-4xl">📁</div>
           {isLoading && <div className="text-blue-600">⏳ Subiendo...</div>}
-          {isLoading && <div className="text-blue-600">⏳ Subiendo...</div>}
           {isDragActive ? (
             <p className="text-blue-600 font-medium">
               {isDragAccept ? 'Suelta las imágenes aquí...' : 'Tipo de archivo no soportado'}
@@ -152,14 +187,28 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
         <div className="mt-6">
           <h4 className="text-sm font-medium text-gray-700 mb-3">Imágenes seleccionadas:</h4>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {uploadedImages.map((image) => (
-              <div key={image.id} className="relative group">
+            {uploadedImages.map((image, index) => (
+              <div 
+                key={image.id} 
+                className="relative group cursor-move"
+                draggable={true}
+                onDragStart={(e) => handleImageDragStart(e, index)}
+                onDragOver={handleImageDragOver}
+                onDrop={(e) => handleImageDrop(e, index)}
+              >
                 <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                  <img
-                    src={image.preview}
-                    alt={image.file.name}
-                    className="w-full h-full object-cover"
-                  />
+                  {imageLoadingStates[image.id] ? (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-200 animate-pulse">
+                      <div className="text-gray-400 text-2xl">⏳</div>
+                    </div>
+                  ) : (
+                    <img
+                      src={image.preview}
+                      alt={image.file.name}
+                      className="w-full h-full object-cover"
+                      onLoad={() => setImageLoadingStates(prev => ({ ...prev, [image.id]: false }))}
+                    />
+                  )}
                 </div>
                 <button
                   onClick={() => removeImage(image.id)}

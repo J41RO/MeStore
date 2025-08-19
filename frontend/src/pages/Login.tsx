@@ -16,6 +16,20 @@ const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // 🔧 CREDENCIALES FICTICIAS PARA DESARROLLO
+    if (email === 'test@mestore.com' && password === '123456') {
+      const fakeUser = {
+        id: 'dev-user-001',
+        email: 'test@mestore.com',
+        name: 'Usuario de Prueba',
+        roles: ['vendedor', 'comprador', 'admin', 'superusuario']
+      };
+      const fakeToken = 'dev-token-' + Date.now();
+      
+      login(fakeToken, fakeUser);
+      return;
+    }
     // Conectar con API real de vendedores
     try {
       const response = await fetch('/api/v1/vendedores/login', {
