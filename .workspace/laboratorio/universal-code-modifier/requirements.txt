@@ -1,0 +1,36 @@
+# Universal Code Modifier - Requirements
+# Dependencias mínimas para desarrollo y testing
+
+# ========================================
+# CORE DEPENDENCIES (Funcionalidad básica)
+# ========================================
+
+# Análisis y manipulación de código
+colorama==0.4.6          # Colores en terminal para mejor UX
+click==8.1.7             # CLI interface para comandos
+pathspec==0.11.2         # Manejo avanzado de patrones de archivos (.gitignore style)
+
+# ========================================
+# DEVELOPMENT DEPENDENCIES (Desarrollo)
+# ========================================
+
+# Testing framework
+pytest==7.4.3           # Framework de testing principal
+pytest-cov==4.1.0       # Coverage reports para tests
+
+# Code quality
+black==23.9.1           # Formateador de código Python
+flake8==6.1.0           # Linter para verificar estilo de código
+mypy==1.6.1             # Type checking estático
+
+# ========================================
+# OPTIONAL DEPENDENCIES (Futuras features)
+# ========================================
+
+# Para procesamiento avanzado de archivos (opcional)
+# pyyaml==6.0.1          # Soporte para archivos YAML
+# toml==0.10.2           # Soporte para archivos TOML
+# gitpython==3.1.40     # Integración con Git (futuro)
+
+# Para análisis de código avanzado (opcional)
+# ast-tools==0.1.2      # Herramientas AST adicionales
