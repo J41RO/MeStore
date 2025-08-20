@@ -20,10 +20,74 @@ try:
 except ImportError:
     RICH_AVAILABLE = False
 
+# Import CREATE operations
+try:
+    from core.operations.basic.create import (
+        create_file, create_file_v53, create_operation, 
+        create_file_with_template, CreateOperation
+    )
+    CREATE_OPERATIONS_AVAILABLE = True
+except ImportError as e:
+    CREATE_OPERATIONS_AVAILABLE = False
+    print(f"Warning: CREATE operations not available: {e}")
+
 console = Console() if RICH_AVAILABLE else None
 
 # Global state
 _operations_registered = False
+
+@click.command()
+@click.argument('filepath', type=str)
+@click.argument('content', type=str, default="")
+@click.option('--template', '-t', help='Use template with variables')
+@click.option('--variables', '-v', help='Template variables as JSON string')
+@click.option('--backup/--no-backup', default=True, help='Create backup if file exists')
+@click.option('--verbose', '-V', is_flag=True, help='Show detailed output')
+def create(filepath, content, template, variables, backup, verbose):
+    """Create new file with content
+    
+    Examples:
+        python3 cli.py create file.txt "Hello World"
+        python3 cli.py create config.json '{"debug": true}'
+        python3 cli.py create --template class.py --variables '{"name": "User"}'
+    """
+    if not CREATE_OPERATIONS_AVAILABLE:
+        console.print("❌ CREATE operations not available", style="red")
+        return
+    
+    try:
+        if template:
+            # Handle template creation
+            if variables:
+                import json
+                vars_dict = json.loads(variables)
+                result = create_file_with_template(filepath, template, vars_dict)
+                success = result
+            else:
+                console.print("❌ Template requires --variables parameter", style="red")
+                return
+        else:
+            # Handle regular file creation
+            if backup:
+                result = create_file_v53(filepath, content, backup=True)
+                success = result['success']
+                if verbose and success:
+                    console.print(f"📁 File: {result['filepath']}")
+                    console.print(f"📊 Size: {result['content_length']} characters")
+                    console.print(f"💾 Backup: {result.get('backup_created', False)}")
+            else:
+                success = create_file(filepath, content)
+        
+        if success:
+            console.print(f"✅ File created successfully: {filepath}", style="green")
+        else:
+            console.print(f"❌ Failed to create file: {filepath}", style="red")
+            
+    except Exception as e:
+        console.print(f"❌ Error: {str(e)}", style="red")
+        if verbose:
+            import traceback
+            console.print(traceback.format_exc())
 
 @click.group(invoke_without_command=True)
 @click.option('--version', is_flag=True, help='Show version information')
@@ -129,15 +193,15 @@ def show_operations_list():
         
         if ops_count == 0:
             console.print(Panel(
-                "🚧 No operations implemented yet.\n\n"
+                "🚧 No operations implemented yet.\\n\\n"
                 "Next step: Migrate operations from surgical_modifier_ultimate.py v5.3",
                 title="Development Status",
                 border_style="yellow"
             ))
     else:
-        print(f"\n📋 AVAILABLE OPERATIONS ({ops_count} total):")
+        print(f"\\n📋 AVAILABLE OPERATIONS ({ops_count} total):")
         for category, operations in all_ops.items():
-            print(f"\n{category.title()}:")
+            print(f"\\n{category.title()}:")
             if operations:
                 for op in operations:
                     print(f"  - {op}")
@@ -272,6 +336,9 @@ def register_operations():
             raise
         # In production, log error but continue
         print(f"Warning: Operations registration failed: {e}")
+
+# Register create command
+main.add_command(create)
 
 if __name__ == "__main__":
     main()

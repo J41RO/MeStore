@@ -15,6 +15,14 @@ from .append import (
     AppendOperation, append_operation,
     append_content, append_with_separator, append_content_v53
 )
+from .after import (
+    AfterOperation, after_operation,
+    insert_after, insert_after_regex, insert_after_v53
+)
+from .before import (
+    BeforeOperation, before_operation,
+    insert_before, insert_before_regex, insert_before_v53
+)
 
 __all__ = [
     # CREATE operations
@@ -27,6 +35,13 @@ __all__ = [
 
     # APPEND operations
     'AppendOperation', 'append_operation',
-    'append_content', 'append_with_separator', 'append_content_v53'
+    'append_content', 'append_with_separator', 'append_content_v53',
+    
+    # AFTER operations
+    'AfterOperation', 'after_operation',
+    'insert_after', 'insert_after_regex', 'insert_after_v53',
+    
+    # BEFORE operations
+    'BeforeOperation', 'before_operation',
+    'insert_before', 'insert_before_regex', 'insert_before_v53'
 ]
-
