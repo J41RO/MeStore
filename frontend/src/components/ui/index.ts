@@ -11,3 +11,7 @@ export { default as ThemeToggle } from './ThemeToggle';
 export type { ThemeToggleProps } from './ThemeToggle';
 
 export { Breadcrumb } from './Breadcrumb';
+export { default as ImageUpload } from './ImageUpload';
+export { default as ImageGallery } from './ImageGallery';
+export type { ImageUploadProps, ImageFile } from './ImageUpload';
+export type { ImageGalleryProps, GalleryImage, ViewMode } from './ImageGallery';
