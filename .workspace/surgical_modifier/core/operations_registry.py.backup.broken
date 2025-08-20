@@ -136,4 +136,4 @@ def enhance_operations_registry(registry_instance):
 
 # Create enhanced global instance
 operations_registry = OperationsRegistry()
-# enhanced_operations_registry = enhance_operations_registry(operations_registry)# [CÓDIGO DE INTEGRACIÓN QUE PROPORCIONÉ]
+enhanced_operations_registry = enhance_operations_registry(operations_registry)# [CÓDIGO DE INTEGRACIÓN QUE PROPORCIONÉ]

@@ -25,3 +25,21 @@ __all__.append("diff_visualizer")
 from .file_finder import find_files, get_file_finder, search_content, smart_search
 
 __all__.extend(["get_file_finder", "find_files", "search_content", "smart_search"])
+
+# Content handler extremo
+from .content_handler import content_handler, ContentType, ContentValidationResult
+
+# Template engine inteligente  
+from .template_engine import template_engine
+
+__all__.extend(['content_handler', 'ContentType', 'ContentValidationResult', 'template_engine'])
+
+# Project context
+from .project_context import project_context, ProjectMetadata, FrameworkInfo
+
+__all__.extend(['project_context', 'ProjectMetadata', 'FrameworkInfo'])
+
+# Integration preparation
+from .integration_preparation import integration_preparation, GitInfo, CiCdInfo
+
+__all__.extend(['integration_preparation', 'GitInfo', 'CiCdInfo'])
