@@ -235,6 +235,53 @@ class BaseOperation(ABC):
                 operation_name=self.operation_name
             )
     
+
+    def execute_v53_compatible(self, arguments: Dict[str, Any]) -> OperationResult:
+        """
+        Execute operation with v5.3 compatibility layer.
+
+        Converts v5.3 style arguments to current OperationContext format.
+
+        Args:
+            arguments: Dictionary with v5.3 style arguments
+
+        Returns:
+            OperationResult compatible with both v5.3 and current version
+        """
+        try:
+            # Extract v5.3 arguments
+            target_file = Path(arguments.get('target_file', ''))
+            content = arguments.get('content', '')
+            position_marker = arguments.get('position_marker', '')
+
+            # Remove v5.3 specific keys from arguments for context
+            context_args = {k: v for k, v in arguments.items() 
+                           if k not in ['target_file', 'content', 'position_marker']}
+
+            # Create OperationContext from v5.3 arguments with required fields
+            context = OperationContext(
+                project_root=Path('.'),  # Default to current directory
+                target_file=target_file,
+                operation_type=self.operation_type,
+                content=content,
+                position_marker=position_marker,
+                arguments=context_args
+            )
+
+            # Execute with current interface
+            return self.execute_with_logging(context)
+
+        except Exception as e:
+            return OperationResult(
+                success=False,
+                operation_type=self.operation_type,
+                target_path=str(arguments.get('target_file', '')),
+                message=f"v5.3 compatibility error: {e}",
+                details={'v53_compatibility_error': str(e)},
+                execution_time=0.0,
+                operation_name=self.operation_name
+            )
+
     def _simulate_execution(self, context: OperationContext) -> OperationResult:
         """Simulate operation execution for dry run mode"""
         return OperationResult(

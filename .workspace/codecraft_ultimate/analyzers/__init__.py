@@ -1,1 +1,0 @@
-# CodeCraft Ultimate v6.0 - Analyzers Module
