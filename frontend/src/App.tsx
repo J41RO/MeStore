@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import TestImageUpload from './pages/TestImageUpload';
+import TestInventory from './pages/TestInventory';
 import { lazy, Suspense } from 'react';
 import Layout from './components/Layout';
 import AuthGuard from './components/AuthGuard';
@@ -27,6 +28,7 @@ function App() {
         {/* Ruta principal pública - Landing Page */}
         <Route path="/" element={<VendorLanding />} />
         <Route path="/test-imageupload" element={<TestImageUpload />} />
+        <Route path="/test-inventory" element={<TestInventory />} />
         
         {/* Rutas protegidas con Layout */}
         <Route path="/app" element={
