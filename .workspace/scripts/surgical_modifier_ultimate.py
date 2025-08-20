@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-🔧 SURGICAL MODIFIER ULTIMATE v5.3 - HERRAMIENTA UNIVERSAL MEJORADA
+🔧 SURGICAL MODIFIER ULTIMATE v5.3 - HERRAMIENTA UNIVERSAL CORREGIDA
 =======================================================================
 """
 
@@ -15,7 +15,7 @@ import sys
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 
 class BackupManager:
@@ -705,35 +705,6 @@ class UniversalExplorer:
             print(f"❌ Error explorando archivo: {e}")
 
     @staticmethod
-    def _detect_file_type(file_path: str) -> str:
-        """Detectar tipo de archivo para exploración"""
-        ext = os.path.splitext(file_path)[1].lower()
-
-        type_mapping = {
-            ".py": "python",
-            ".js": "javascript",
-            ".ts": "typescript",
-            ".java": "java",
-            ".cpp": "cpp",
-            ".c": "c",
-            ".cs": "csharp",
-            ".php": "php",
-            ".rb": "ruby",
-            ".go": "go",
-            ".rs": "rust",
-            ".html": "markup",
-            ".xml": "markup",
-            ".css": "stylesheet",
-            ".json": "config",
-            ".yaml": "config",
-            ".yml": "config",
-            ".sql": "database",
-            ".md": "markdown",
-        }
-
-        return type_mapping.get(ext, "generic")
-
-    @staticmethod
     def _filter_important_lines(
         lines: List[str], file_type: str, filter_type: str
     ) -> List[Tuple[int, str, str]]:
@@ -1372,7 +1343,6 @@ class ProjectContext:
         }
 
         detected_types = []
-
         for project_type, files in indicators.items():
             for file_pattern in files:
                 if "*" in file_pattern:
@@ -1492,631 +1462,22 @@ class ProjectContext:
 
         return list(frameworks)
 
-    def get_backup_directory(self, file_path: str) -> str:
-        """Obtener directorio de backup contextual universal"""
-        if self.context == "backend":
-            return os.path.join(self.project_root, "backend", "backup")
-        elif self.context == "frontend":
-            return os.path.join(self.project_root, "frontend", "backup")
-        elif self.context == "mobile":
-            return os.path.join(self.project_root, "mobile", "backup")
-        elif self.context == "testing":
-            return os.path.join(self.project_root, "tests", "backup")
-        else:
-            # Usar .backup como directorio universal
-            return os.path.join(self.project_root, ".backup")
-
     def resolve_file_path(self, file_path: str) -> str:
-        """Resolver path de archivo automáticamente"""
-        if os.path.isabs(file_path):
+        """Resolver ruta de archivo con contexto del proyecto"""
+        try:
+            if not os.path.isabs(file_path):
+                return os.path.abspath(file_path)
+            return file_path
+        except Exception:
             return file_path
 
-        # Si es relativo, construir ruta absoluta
-        if file_path.startswith("./"):
-            return os.path.join(self.current_dir, file_path[2:])
-        elif "/" in file_path:
-            return os.path.join(self.current_dir, file_path)
-        else:
-            # Archivo en directorio actual
-            return os.path.join(self.current_dir, file_path)
-
-
-class SurgicalModifierUltimate:
-    """Herramienta quirúrgica universal v5.3 mejorada"""
-
-    def __init__(
-        self,
-        verbose: bool = False,
-        confirm: bool = False,
-        explore: bool = False,
-        keep_backups: bool = False,
-    ):
-        self.temp_files = []
-        self.verbose = verbose
-        self.confirm = confirm
-        self.explore = explore
-        self.backup_manager = BackupManager(keep_successful_backups=keep_backups)
-
-    def execute(
-        self, operation: str, file_path: str, pattern: str, content: str = ""
-    ) -> Dict[str, Any]:
-        """Ejecutar operación quirúrgica universal v5.3"""
-
-        ColorLogger.section("SURGICAL MODIFIER ULTIMATE v5.3")
-        ColorLogger.info(f"Operación: {operation}")
-        ColorLogger.info(f"Archivo: {file_path}")
-
-        try:
-            # 1. ANÁLISIS DE CONTEXTO UNIVERSAL
-            ColorLogger.section("ANÁLISIS DE CONTEXTO UNIVERSAL")
-            project_context = ProjectContext()
-
-            # Resolver path automáticamente
-            resolved_path = project_context.resolve_file_path(file_path)
-            ColorLogger.info(f"Path resuelto: {resolved_path}")
-            ColorLogger.info(f"Contexto detectado: {project_context.context}")
-            ColorLogger.info(
-                f"Tipo de proyecto: {project_context.structure['project_type']}"
-            )
-
-            if project_context.structure["languages"]:
-                ColorLogger.info(
-                    f"Lenguajes detectados: {', '.join(project_context.structure['languages'])}"
-                )
-            if project_context.structure["frameworks"]:
-                ColorLogger.info(
-                    f"Frameworks detectados: {', '.join(project_context.structure['frameworks'])}"
-                )
-
-            # 2. VERIFICACIÓN MEJORADA DE ARCHIVO
-            ColorLogger.section("VERIFICACIÓN DE ARCHIVO")
-            if not os.path.exists(resolved_path) and operation != "create":
-                return self._handle_file_not_found_v53(resolved_path, operation)
-
-            # 3. VALIDACIÓN DE PATRÓN MEJORADA v5.3
-            if operation in ["replace", "after", "before"] and pattern:
-                ColorLogger.section("VALIDACIÓN DE PATRÓN v5.3")
-                if not self._validate_pattern(resolved_path, pattern):
-                    return self._handle_pattern_not_found_v53(resolved_path, pattern)
-
-            # 4. CONFIRMACIÓN OPCIONAL
-            if self.confirm:
-                if not self._request_confirmation(
-                    operation, resolved_path, pattern, content
-                ):
-                    return {
-                        "success": False,
-                        "message": "Operación cancelada por el usuario",
-                    }
-
-            # 5. CREAR BACKUP CON SISTEMA MEJORADO
-            ColorLogger.section("BACKUP AUTOMÁTICO")
-            backup_path = None
-            original_content = ""
-
-            if os.path.exists(resolved_path):
-                with open(resolved_path, "r", encoding="utf-8") as f:
-                    original_content = f.read()
-
-                backup_dir = project_context.get_backup_directory(resolved_path)
-
-                # Limpiar backups antiguos antes de crear uno nuevo
-                self.backup_manager.cleanup_old_backups(backup_dir)
-
-                # Crear nuevo backup con sistema mejorado
-                backup_path = self.backup_manager.create_backup(
-                    resolved_path, backup_dir
-                )
-
-            # 6. MANEJO DE CONTENIDO UNIVERSAL v5.3
-            ColorLogger.section("PROCESAMIENTO DE CONTENIDO UNIVERSAL v5.3")
-            content_handler = ContentHandler(content, resolved_path, operation)
-            safe_content, temp_file = content_handler.get_safe_content()
-
-            if temp_file:
-                self.temp_files.append(temp_file)
-                ColorLogger.info("Contenido complejo manejado con archivo temporal")
-            elif content_handler.handling_strategy == "raw_mode_v3":
-                ColorLogger.success(
-                    "Modo RAW v5.3 activado - procesamiento universal mejorado"
-                )
-
-            # 7. APLICAR OPERACIÓN
-            ColorLogger.section("APLICACIÓN DE OPERACIÓN")
-            result = self._apply_operation(
-                operation, resolved_path, pattern, safe_content, temp_file
-            )
-
-            if not result["success"]:
-                # EN CASO DE ERROR: Restaurar y conservar backup
-                if backup_path and original_content:
-                    self.backup_manager.restore_from_backup(backup_path, resolved_path)
-                return result
-
-            # EN CASO DE ÉXITO: Limpiar backups según configuración
-            ColorLogger.section("LIMPIEZA DE BACKUPS")
-            self.backup_manager.cleanup_successful_backups()
-
-            # 8. VERIFICACIÓN POST-OPERACIÓN v5.3
-            if self.verbose and os.path.exists(resolved_path):
-                ColorLogger.section("VERIFICACIÓN POST-OPERACIÓN v5.3")
-                with open(resolved_path, "r", encoding="utf-8") as f:
-                    new_content = f.read()
-
-                if original_content:
-                    ColorLogger.diff(
-                        "Cambios realizados", original_content, new_content
-                    )
-                else:
-                    ColorLogger.preview("Archivo creado", new_content)
-
-            # 9. ÉXITO COMPLETO
-            ColorLogger.section("OPERACIÓN COMPLETADA")
-            ColorLogger.success(
-                "Modificación quirúrgica universal aplicada exitosamente"
-            )
-
-            return {
-                "success": True,
-                "message": "Operación quirúrgica universal v5.3 completada exitosamente",
-                "file_path": resolved_path,
-                "backup_path": (
-                    backup_path if self.backup_manager.keep_successful_backups else None
-                ),
-                "operation": operation,
-                "context": project_context.context,
-                "project_type": project_context.structure["project_type"],
-                "backups_cleaned": not self.backup_manager.keep_successful_backups,
-            }
-
-        except Exception as e:
-            ColorLogger.error(f"Error inesperado: {str(e)}")
-            return self._create_error_result(
-                str(e), "Revisar logs y contenido del archivo"
-            )
-
-        finally:
-            self._cleanup_temp_files()
-
-    def execute_explore_mode(self, file_path: str, search_term: str = None) -> None:
-        """NUEVO v5.3: Modo exploración universal"""
-        ColorLogger.section("MODO EXPLORACIÓN UNIVERSAL v5.3")
-
-        project_context = ProjectContext()
-        resolved_path = project_context.resolve_file_path(file_path)
-
-        if not os.path.exists(resolved_path):
-            ColorLogger.error(f"Archivo no encontrado: {resolved_path}")
-            return
-
-        if search_term:
-            UniversalExplorer.search_in_file(resolved_path, search_term)
-        else:
-            UniversalExplorer.show_file_structure(resolved_path)
-
-        # Análisis adicional universal
-        try:
-            with open(resolved_path, "r", encoding="utf-8") as f:
-                content = f.read()
-
-            helper = UniversalPatternHelper(content, resolved_path)
-
-            print(f"\n🔍 ANÁLISIS UNIVERSAL:")
-            print(f"📁 Contexto detectado: {project_context.context}")
-            print(f"🏗️ Tipo de proyecto: {project_context.structure['project_type']}")
-            if project_context.structure["languages"]:
-                print(
-                    f"🐍 Lenguajes detectados: {', '.join(project_context.structure['languages'][:5])}"
-                )
-            if project_context.structure["frameworks"]:
-                print(
-                    f"🚀 Frameworks de proyecto: {', '.join(project_context.structure['frameworks'])}"
-                )
-            print(f"📁 Tipo de archivo: {helper.file_type}")
-
-            if helper.framework_context:
-                print(
-                    f"🚀 Frameworks detectados: {', '.join(helper.framework_context)}"
-                )
-
-            # Mostrar patrones específicos del framework
-            framework_patterns = helper.get_framework_specific_patterns()
-            if framework_patterns:
-                print(f"\n🎯 PATRONES IMPORTANTES ({len(framework_patterns)}):")
-                for i, pattern in enumerate(framework_patterns[:10], 1):
-                    print(f"   {i:2d}. {pattern}")
-
-        except Exception as e:
-            print(f"❌ Error en análisis universal: {e}")
-
-    def _validate_pattern(self, file_path: str, pattern: str) -> bool:
-        """Validar que el patrón existe en el archivo"""
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                content = f.read()
-            return pattern in content
-        except Exception:
-            return False
-
-    def _handle_pattern_not_found_v53(
-        self, file_path: str, pattern: str
-    ) -> Dict[str, Any]:
-        """NUEVO v5.3: Manejo universal avanzado de patrón no encontrado"""
-        ColorLogger.warning(f"Patrón '{pattern}' no encontrado")
-
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                content = f.read()
-
-            helper = UniversalPatternHelper(content, file_path)
-
-            # 1. Búsqueda flexible universal (NUEVO v5.3)
-            flexible_matches = helper.find_flexible_pattern(pattern)
-            if flexible_matches:
-                ColorLogger.info(
-                    "🔍 Patrones similares encontrados (búsqueda flexible universal):"
-                )
-                for match in flexible_matches:
-                    similarity_percent = int(match["similarity"] * 100)
-                    strategies = match["strategies"]
-                    strategy_info = f"(seq:{strategies['sequence']:.2f}, words:{strategies['words']:.2f}, struct:{strategies['structure']:.2f})"
-                    print(
-                        f"   {similarity_percent}% - Línea {match['line_number']}: {match['content']} {strategy_info}"
-                    )
-
-            # 2. Búsqueda por framework específico (NUEVO v5.3)
-            framework_patterns = helper.get_framework_specific_patterns()
-            if framework_patterns:
-                ColorLogger.info(
-                    f"🚀 Patrones específicos encontrados ({helper.file_type}):"
-                )
-                for i, pattern_fw in enumerate(framework_patterns[:8], 1):
-                    print(f"   {i}. {pattern_fw}")
-
-            # 3. Sugerir fragmentos para patrones largos (MEJORADO v5.3)
-            if len(pattern) > 40:
-                fragments = helper.suggest_pattern_fragments(pattern)
-                if fragments:
-                    ColorLogger.info("🧩 Fragmentos de patrón sugeridos (universal):")
-                    for i, fragment in enumerate(fragments[:5], 1):
-                        print(f"   {i}. {fragment}")
-                    print("💡 Consejo: Intenta buscar por fragmentos más pequeños")
-
-            # 4. Sugerir comando de exploración universal
-            print(f"\n💡 Para explorar el archivo completo:")
-            print(f"   python3 surgical_modifier_ultimate.py --explore {file_path}")
-            print(
-                f'   python3 surgical_modifier_ultimate.py --explore {file_path} "término_búsqueda"'
-            )
-
-        except Exception as e:
-            print(f"❌ Error en análisis universal avanzado: {e}")
-
-        return self._create_error_result(
-            f"Patrón '{pattern}' no encontrado",
-            "Revisar sugerencias arriba, usar fragmentos más pequeños, o explorar archivo con --explore",
-        )
-
-    def _handle_file_not_found_v53(
-        self, file_path: str, operation: str
-    ) -> Dict[str, Any]:
-        """NUEVO v5.3: Manejo universal de archivo no encontrado"""
-        ColorLogger.warning(f"Archivo no encontrado: {file_path}")
-
-        # Sugerir archivos similares universalmente
-        directory = os.path.dirname(file_path) or os.getcwd()
-        filename = os.path.basename(file_path)
-
-        if os.path.exists(directory):
-            try:
-                all_files = os.listdir(directory)
-
-                # Buscar archivos similares por extensión y nombre
-                file_base, file_ext = os.path.splitext(filename)
-
-                similar_files = []
-                exact_ext_files = []
-
-                for f in all_files:
-                    if os.path.isfile(os.path.join(directory, f)):
-                        f_base, f_ext = os.path.splitext(f)
-
-                        # Archivos con misma extensión
-                        if f_ext.lower() == file_ext.lower():
-                            exact_ext_files.append(f)
-
-                        # Archivos con nombres similares
-                        similarity = difflib.SequenceMatcher(
-                            None, file_base.lower(), f_base.lower()
-                        ).ratio()
-                        if similarity > 0.6:
-                            similar_files.append((f, similarity))
-
-                # Mostrar sugerencias
-                if exact_ext_files:
-                    ColorLogger.info(f"Archivos con extensión {file_ext} encontrados:")
-                    for f in exact_ext_files[:5]:
-                        print(f"   - {f}")
-
-                if similar_files:
-                    similar_files.sort(key=lambda x: x[1], reverse=True)
-                    ColorLogger.info("Archivos con nombres similares:")
-                    for f, sim in similar_files[:5]:
-                        print(f"   - {f} (similitud: {int(sim*100)}%)")
-
-            except (PermissionError, OSError):
-                pass
-
-        suggestion = "Verificar ruta del archivo"
-        if operation == "create":
-            suggestion = "Para CREATE, el archivo se creará automáticamente"
-
-        return self._create_error_result(f"Archivo no existe: {file_path}", suggestion)
-
-    def _request_confirmation(
-        self, operation: str, file_path: str, pattern: str, content: str
-    ) -> bool:
-        """Solicitar confirmación antes de ejecutar"""
-        print(f"\n🔍 CONFIRMACIÓN DE OPERACIÓN:")
-        print(f"   Operación: {operation.upper()}")
-        print(f"   Archivo: {file_path}")
-        if pattern:
-            print(f"   Patrón: {pattern}")
-        if content:
-            preview = content[:100] + "..." if len(content) > 100 else content
-            print(f"   Contenido: {preview}")
-
-        response = input("\n¿Continuar con la operación? (y/N): ").strip().lower()
-        return response in ["y", "yes", "sí", "s"]
-
-    def _apply_operation(
-        self,
-        operation: str,
-        file_path: str,
-        pattern: str,
-        safe_content: str,
-        temp_file: str,
-    ) -> Dict[str, Any]:
-        """Aplicar la operación específica universal"""
-
-        try:
-            if operation == "create":
-                return self._create_file(file_path, safe_content, temp_file)
-
-            # Para otras operaciones, leer contenido actual
-            with open(file_path, "r", encoding="utf-8") as f:
-                content = f.read()
-
-            lines = content.splitlines()
-
-            # Buscar patrón
-            line_index = -1
-            for i, line in enumerate(lines):
-                if pattern in line:
-                    line_index = i
-                    break
-
-            if line_index == -1 and operation in ["replace", "after", "before"]:
-                return self._create_error_result(
-                    f"Patrón '{pattern}' no encontrado en aplicación"
-                )
-
-            if operation == "replace":
-                return self._replace_content_direct(
-                    file_path, lines, line_index, pattern, safe_content, temp_file
-                )
-            elif operation == "after":
-                return self._insert_after_direct(
-                    file_path, lines, line_index, safe_content, temp_file
-                )
-            elif operation == "before":
-                return self._insert_before_direct(
-                    file_path, lines, line_index, safe_content, temp_file
-                )
-            elif operation == "append":
-                return self._append_content(file_path, safe_content, temp_file)
-            elif operation == "split":
-                return self._split_lines(file_path, lines, line_index, pattern)
-            else:
-                return self._create_error_result(f"Operación no soportada: {operation}")
-
-        except Exception as e:
-            return self._create_error_result(f"Error aplicando operación: {str(e)}")
-
-    def _create_file(
-        self, file_path: str, safe_content: str, temp_file: str
-    ) -> Dict[str, Any]:
-        """Crear archivo nuevo universal"""
-        ColorLogger.creating(f"Archivo nuevo: {os.path.basename(file_path)}")
-
-        # Crear directorio automáticamente si no existe
-        directory = os.path.dirname(file_path)
-        if directory and not os.path.exists(directory):
-            os.makedirs(directory, exist_ok=True)
-            ColorLogger.info(f"Directorio creado: {directory}")
-
-        # Obtener contenido real
-        if temp_file:
-            with open(temp_file, "r", encoding="utf-8") as f:
-                content = f.read()
-        else:
-            content = safe_content
-
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write(content)
-
-        ColorLogger.success(f"Archivo creado: {file_path}")
-        return {"success": True}
-
-    def _replace_content_direct(
-        self,
-        file_path: str,
-        lines: List[str],
-        line_index: int,
-        pattern: str,
-        safe_content: str,
-        temp_file: str,
-    ) -> Dict[str, Any]:
-        """Reemplazar contenido universal"""
-        ColorLogger.info(f"Reemplazando contenido en línea {line_index + 1}")
-
-        # Obtener contenido real
-        if temp_file:
-            with open(temp_file, "r", encoding="utf-8") as f:
-                new_content = f.read()
-        else:
-            new_content = safe_content
-
-        # Reemplazar usando Python directamente
-        lines[line_index] = lines[line_index].replace(pattern, new_content)
-
-        # Escribir archivo modificado
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write("\n".join(lines))
-
-        ColorLogger.success("Contenido reemplazado exitosamente")
-        return {"success": True}
-
-    def _insert_after_direct(
-        self,
-        file_path: str,
-        lines: List[str],
-        line_index: int,
-        safe_content: str,
-        temp_file: str,
-    ) -> Dict[str, Any]:
-        """Insertar contenido después universal"""
-        ColorLogger.info(f"Insertando contenido después de línea {line_index + 1}")
-
-        # Obtener contenido real
-        if temp_file:
-            with open(temp_file, "r", encoding="utf-8") as f:
-                new_content = f.read()
-        else:
-            new_content = safe_content
-
-        # Manejo mejorado de contenido multi-línea
-        if "\n" in new_content:
-            new_lines = new_content.split("\n")
-            # Insertar líneas en orden correcto
-            for i, new_line in enumerate(new_lines):
-                lines.insert(line_index + 1 + i, new_line)
-        else:
-            lines.insert(line_index + 1, new_content)
-
-        # Escribir archivo modificado
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write("\n".join(lines))
-
-        ColorLogger.success("Contenido insertado exitosamente")
-        return {"success": True}
-
-    def _insert_before_direct(
-        self,
-        file_path: str,
-        lines: List[str],
-        line_index: int,
-        safe_content: str,
-        temp_file: str,
-    ) -> Dict[str, Any]:
-        """Insertar contenido antes universal"""
-        ColorLogger.info(f"Insertando contenido antes de línea {line_index + 1}")
-
-        # Obtener contenido real
-        if temp_file:
-            with open(temp_file, "r", encoding="utf-8") as f:
-                new_content = f.read()
-        else:
-            new_content = safe_content
-
-        # Manejo mejorado de contenido multi-línea
-        if "\n" in new_content:
-            new_lines = new_content.split("\n")
-            # Insertar líneas en orden correcto
-            for i, new_line in enumerate(new_lines):
-                lines.insert(line_index + i, new_line)
-        else:
-            lines.insert(line_index, new_content)
-
-        # Escribir archivo modificado
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write("\n".join(lines))
-
-        ColorLogger.success("Contenido insertado exitosamente")
-        return {"success": True}
-
-    def _append_content(
-        self, file_path: str, safe_content: str, temp_file: str
-    ) -> Dict[str, Any]:
-        """Agregar contenido al final del archivo"""
-        ColorLogger.info("Agregando contenido al final del archivo")
-
-        # Obtener contenido real
-        if temp_file:
-            with open(temp_file, "r", encoding="utf-8") as f:
-                new_content = f.read()
-        else:
-            new_content = safe_content
-
-        with open(file_path, "a", encoding="utf-8") as f:
-            f.write("\n" + new_content)
-
-        ColorLogger.success("Contenido agregado al final")
-        return {"success": True}
-
-    def _split_lines(
-        self, file_path: str, lines: List[str], line_index: int, pattern: str
-    ) -> Dict[str, Any]:
-        """Dividir líneas pegadas universal"""
-        ColorLogger.info(f"Dividiendo línea pegada en línea {line_index + 1}")
-
-        original_line = lines[line_index]
-
-        # Aplicar división según patrón
-        if "\\n" in pattern:
-            split_content = original_line.replace("\\n", "\n")
-        elif "}" in pattern:
-            split_content = re.sub(r"\}(\s*)([a-zA-Z])", r"}\n\2", original_line)
-        else:
-            split_content = original_line.replace(pattern, f"{pattern}\n")
-
-        # Reemplazar línea con líneas divididas
-        new_lines = split_content.splitlines()
-        lines[line_index : line_index + 1] = new_lines
-
-        # Escribir archivo modificado
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write("\n".join(lines))
-
-        ColorLogger.success(f"Línea dividida en {len(new_lines)} líneas")
-        return {"success": True}
-
-    def _create_error_result(
-        self, error_msg: str, suggestion: str = None
-    ) -> Dict[str, Any]:
-        """Crear resultado de error sin romper entorno"""
-        ColorLogger.error(error_msg, suggestion)
-
-        return {
-            "success": False,
-            "error": error_msg,
-            "suggestion": suggestion or "Revisar parámetros y intentar nuevamente",
-            "exit_code": 0,
-        }
-
-    def _cleanup_temp_files(self):
-        """Limpiar archivos temporales"""
-        for temp_file in self.temp_files:
-            try:
-                if os.path.exists(temp_file):
-                    os.remove(temp_file)
-            except Exception:
-                pass
-
-
-# ============================================================================
-# VERIFICACIÓN DE INTEGRIDAD - AGREGADO DESPUÉS DE SurgicalModifierUltimate
-# ============================================================================
+    def get_project_root(self) -> str:
+        """Obtener directorio raíz del proyecto"""
+        return self.project_root
+
+    def analyze_project_structure(self) -> Dict[str, Any]:
+        """Analizar estructura del proyecto"""
+        return self.structure
 
 
 class IntegrityChecker:
@@ -2491,6 +1852,49 @@ class IntegrityChecker:
 
         return None
 
+    def check_file_integrity(self, file_path: str) -> Dict[str, Any]:
+        """Verificar integridad completa del archivo"""
+        try:
+            if not os.path.exists(file_path):
+                return {
+                    "valid": False,
+                    "errors": [f"Archivo no encontrado: {file_path}"],
+                    "warnings": [],
+                    "file_type": "unknown",
+                }
+
+            # Detectar tipo de archivo
+            file_type = self._detect_file_type()
+
+            errors = []
+            warnings = []
+
+            # Verificaciones específicas por tipo
+            if file_type == "python":
+                syntax_check = self._check_python_syntax()
+                if not syntax_check.get("syntax_valid", False):
+                    errors.extend(syntax_check.get("errors", []))
+            elif file_type == "javascript":
+                js_check = self._check_js_syntax()
+                if not js_check.get("syntax_valid", False):
+                    errors.extend(js_check.get("errors", []))
+
+            return {
+                "valid": len(errors) == 0,
+                "errors": errors,
+                "warnings": warnings,
+                "file_type": file_type,
+                "checks_performed": ["syntax", "encoding"],
+            }
+
+        except Exception as e:
+            return {
+                "valid": False,
+                "errors": [f"Error verificando integridad: {str(e)}"],
+                "warnings": [],
+                "file_type": "unknown",
+            }
+
     def _find_test_file(self) -> Optional[str]:
         """Encontrar archivo de test relacionado"""
         base_name = os.path.splitext(os.path.basename(self.file_path))[0]
@@ -2511,116 +1915,602 @@ class IntegrityChecker:
         return None
 
 
-class EnhancedSurgicalModifier(SurgicalModifierUltimate):
-    """Versión mejorada con verificación de integridad"""
+class EnhancedSurgicalModifier:
+    """Modificador quirúrgico con verificación de integridad completa"""
+
+    def __init__(self, verbose=False, confirm=True, keep_backups=False):
+        self.verbose = verbose
+        self.confirm = confirm
+        self.keep_backups = keep_backups
+        self.backup_manager = BackupManager(keep_successful_backups=keep_backups)
+        self.project_context = ProjectContext()
 
     def execute_with_integrity_check(
-        self, operation: str, file_path: str, pattern: str, content: str = ""
+        self, operation: str, file_path: str, pattern: str, content: str
     ) -> Dict[str, Any]:
-        """Ejecutar con verificación completa de integridad"""
+        """Ejecutar operación con verificación completa de integridad"""
 
-        ColorLogger.section("VERIFICACIÓN DE INTEGRIDAD PRE-MODIFICACIÓN")
+        resolved_path = self.project_context.resolve_file_path(file_path)
 
-        # 1. Verificación previa
-        project_context = ProjectContext()
-        resolved_path = project_context.resolve_file_path(file_path)
+        # Crear checker de integridad
+        integrity_checker = IntegrityChecker(resolved_path, self.project_context)
 
-        checker = IntegrityChecker(resolved_path, project_context)
-        pre_check = checker.pre_modification_check(operation, pattern, content)
+        result = {
+            "success": False,
+            "operation": operation,
+            "file_path": resolved_path,
+            "message": "",
+            "integrity_warnings": [],
+            "details": [],
+        }
 
-        # Mostrar resultados de verificación previa
-        self._report_integrity_check("PRE-MODIFICACIÓN", pre_check)
+        try:
+            # 1. VERIFICACIÓN PRE-MODIFICACIÓN
+            if self.verbose:
+                ColorLogger.section("VERIFICACIÓN PRE-MODIFICACIÓN")
 
-        # Si hay errores críticos, detener
-        if not pre_check.get("syntax_valid", True):
-            return {
-                "success": False,
-                "error": "Archivo tiene errores de sintaxis antes de modificar",
-                "details": pre_check.get("errors", []),
-            }
+            pre_checks = integrity_checker.pre_modification_check(
+                operation, pattern, content
+            )
 
-        # 2. Ejecutar modificación original
-        result = super().execute(operation, file_path, pattern, content)
+            if pre_checks.get("errors"):
+                result["success"] = False
+                result["message"] = "Errores en verificación previa"
+                result["details"] = pre_checks["errors"]
+                return result
 
-        if not result["success"]:
+            if pre_checks.get("warnings"):
+                result["integrity_warnings"].extend(pre_checks["warnings"])
+
+            # 2. CREAR BACKUP
+            backup_path = None
+            if os.path.exists(resolved_path):
+                backup_path = self.backup_manager.create_backup(
+                    resolved_path, ".backup"
+                )
+                result["backup_path"] = backup_path
+
+            # 3. EJECUTAR MODIFICACIÓN
+            base_modifier = SurgicalModifierUltimate(
+                verbose=self.verbose,
+                confirm=self.confirm,
+                keep_backups=self.keep_backups,
+            )
+
+            modification_result = base_modifier.execute(
+                operation, resolved_path, pattern, content
+            )
+
+            if not modification_result["success"]:
+                # Restaurar backup si falló la modificación
+                if backup_path:
+                    self.backup_manager.restore_from_backup(backup_path, resolved_path)
+
+                result["success"] = False
+                result["message"] = modification_result["message"]
+                return result
+
+            # 4. VERIFICACIÓN POST-MODIFICACIÓN
+            if self.verbose:
+                ColorLogger.section("VERIFICACIÓN POST-MODIFICACIÓN")
+
+            post_checks = integrity_checker.post_modification_check()
+
+            if post_checks.get("errors"):
+                # Restaurar backup por errores de integridad
+                if backup_path:
+                    self.backup_manager.restore_from_backup(backup_path, resolved_path)
+
+                result["success"] = False
+                result["message"] = (
+                    "Errores en verificación posterior - archivo restaurado"
+                )
+                result["details"] = post_checks["errors"]
+                return result
+
+            if post_checks.get("warnings"):
+                result["integrity_warnings"].extend(post_checks["warnings"])
+
+            # 5. VERIFICAR TESTS SI ESTÁN DISPONIBLES
+            if post_checks.get("tests_pass") is not None:
+                if post_checks["tests_pass"]:
+                    result["details"].append("Tests relacionados: PASAN")
+                else:
+                    result["integrity_warnings"].append("Tests relacionados: FALLAN")
+
+            # 6. OPERACIÓN EXITOSA
+            result["success"] = True
+            result["message"] = "Operación completada con verificación de integridad"
+
+            # Limpiar backups si todo salió bien
+            if not self.keep_backups:
+                self.backup_manager.cleanup_successful_backups()
+                result["backups_cleaned"] = True
+
             return result
 
-        # 3. Verificación posterior
-        ColorLogger.section("VERIFICACIÓN DE INTEGRIDAD POST-MODIFICACIÓN")
-        post_check = checker.post_modification_check()
-        self._report_integrity_check("POST-MODIFICACIÓN", post_check)
+        except Exception as e:
+            # Error inesperado - restaurar backup
+            if backup_path and os.path.exists(backup_path):
+                self.backup_manager.restore_from_backup(backup_path, resolved_path)
 
-        # Si hay errores después de modificar, reportar pero no revertir automáticamente
-        if not post_check.get("syntax_valid", True):
-            ColorLogger.warning("Se detectaron errores después de la modificación")
-            result["integrity_warnings"] = post_check.get("errors", [])
-            result["backup_recommended"] = True
-
-        # Agregar información de integridad al resultado
-        result["pre_check"] = pre_check
-        result["post_check"] = post_check
-
-        return result
-
-    def _report_integrity_check(self, phase: str, check_result: Dict[str, Any]):
-        """Reportar resultados de verificación"""
-        print(f"\n📊 REPORTE {phase}:")
-
-        # Estados principales
-        syntax_ok = check_result.get("syntax_valid", True)
-        deps_ok = check_result.get("dependencies_intact", True)
-
-        print(f"   ✅ Sintaxis: {'OK' if syntax_ok else '❌ ERROR'}")
-        print(f"   ✅ Dependencias: {'OK' if deps_ok else '⚠️ PROBLEMAS'}")
-
-        # Tests si están disponibles
-        tests_result = check_result.get("tests_pass")
-        if tests_result is not None:
-            print(f"   ✅ Tests: {'✅ PASAN' if tests_result else '❌ FALLAN'}")
-
-        # Mostrar errores
-        errors = check_result.get("errors", [])
-        if errors:
-            print(f"   ❌ Errores encontrados:")
-            for error in errors:
-                print(f"      - {error}")
-
-        # Mostrar advertencias
-        warnings = check_result.get("warnings", [])
-        if warnings:
-            print(f"   ⚠️ Advertencias:")
-            for warning in warnings:
-                print(f"      - {warning}")
-
-        # Análisis de impacto si está disponible
-        impact = check_result.get("impact_analysis")
-        if impact:
-            risk_icons = {"low": "🟢", "medium": "🟡", "high": "🔴"}
-            risk_icon = risk_icons.get(impact["risk_level"], "⚪")
-            print(f"   {risk_icon} Nivel de riesgo: {impact['risk_level'].upper()}")
-
-            if impact["affected_areas"]:
-                print(f"   🎯 Áreas afectadas: {', '.join(impact['affected_areas'])}")
-
-            if impact["recommendations"]:
-                print(f"   💡 Recomendaciones:")
-                for rec in impact["recommendations"]:
-                    print(f"      - {rec}")
+            result["success"] = False
+            result["message"] = f"Error inesperado: {str(e)}"
+            return result
 
 
-# ============================================================================
-# FIN DE VERIFICACIÓN DE INTEGRIDAD
-# ============================================================================
+class SurgicalModifierUltimate:
+    """Clase principal para operaciones de modificación quirúrgica de archivos"""
+
+    def __init__(
+        self,
+        verbose=False,
+        confirm=True,
+        explore=False,
+        keep_backups=False,
+        check_integrity=False,
+    ):
+        """Inicializar componentes básicos"""
+        self.verbose = verbose
+        self.confirm = confirm
+        self.explore = explore
+        self.keep_backups = keep_backups
+        self.check_integrity = check_integrity
+        self.backup_manager = BackupManager(
+            keep_successful_backups=keep_backups, max_backups=5
+        )
+        self.project_context = ProjectContext()
+
+    def execute(
+        self,
+        operation: str,
+        file_path: str,
+        pattern: str = "",
+        content: str = "",
+        auto_backup: bool = True,
+    ) -> Dict[str, Any]:
+        """Método principal que ejecuta operaciones"""
+        try:
+            resolved_path = self.project_context.resolve_file_path(file_path)
+
+            if operation == "create":
+                success = self.create(resolved_path, content, auto_backup)
+            elif operation == "replace":
+                success = self.replace(resolved_path, pattern, content, auto_backup)
+            elif operation == "after":
+                success = self.after(resolved_path, pattern, content, auto_backup)
+            elif operation == "before":
+                success = self.before(resolved_path, pattern, content, auto_backup)
+            elif operation == "append":
+                success = self.append(resolved_path, content, auto_backup)
+            elif operation == "split":
+                success = self.split(resolved_path, pattern, auto_backup)
+            elif operation == "extract":
+                success = self.extract(resolved_path, pattern, content, auto_backup)
+            else:
+                if self.verbose:
+                    ColorLogger.error(f"Operación no soportada: {operation}")
+                success = False
+
+            return {
+                "success": success,
+                "operation": operation,
+                "file_path": resolved_path,
+                "message": (
+                    "Operation completed successfully"
+                    if success
+                    else "Operation failed"
+                ),
+                "context": self.project_context.context,
+                "project_type": self.project_context.structure.get(
+                    "project_type", "unknown"
+                ),
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "operation": operation,
+                "file_path": file_path,
+                "message": f"Error: {str(e)}",
+                "error": str(e),
+            }
+
+    def create(
+        self, file_path: str, content: str = "", auto_backup: bool = True
+    ) -> bool:
+        """Crear archivo nuevo con directorios automáticos"""
+        try:
+            # Crear directorios padre si no existen
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+            # Backup si el archivo existe y auto_backup está habilitado
+            if os.path.exists(file_path) and auto_backup:
+                backup_path = self.backup_manager.create_backup(file_path, ".backup")
+                if self.verbose:
+                    ColorLogger.info(f"Backup creado: {backup_path}")
+
+            # Procesar contenido usando ContentHandler
+            content_handler = ContentHandler(content, file_path, "create")
+            safe_content, temp_file = content_handler.get_safe_content()
+
+            # Escribir contenido al archivo
+            if temp_file:
+                # Usar archivo temporal
+                shutil.copy2(temp_file, file_path)
+                os.unlink(temp_file)  # Limpiar archivo temporal
+            else:
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write(safe_content)
+
+            if self.verbose:
+                ColorLogger.success(f"Archivo creado: {file_path}")
+
+            return True
+
+        except Exception as e:
+            if self.verbose:
+                ColorLogger.error(f"Error creando archivo {file_path}: {str(e)}")
+            return False
+
+    def replace(
+        self, file_path: str, pattern: str, content: str, auto_backup: bool = True
+    ) -> bool:
+        """Reemplazar contenido existente"""
+        try:
+            if not os.path.exists(file_path):
+                if self.verbose:
+                    ColorLogger.error(f"Archivo no encontrado: {file_path}")
+                return False
+
+            # Leer contenido actual
+            with open(file_path, "r", encoding="utf-8") as f:
+                original_content = f.read()
+
+            # Crear backup si está habilitado
+            if auto_backup:
+                backup_path = self.backup_manager.create_backup(file_path, ".backup")
+                if self.verbose:
+                    ColorLogger.info(f"Backup creado: {backup_path}")
+
+            # Buscar patrón
+            if pattern not in original_content:
+                # Usar búsqueda flexible
+                helper = UniversalPatternHelper(original_content, file_path)
+                similar_patterns = helper.find_flexible_pattern(pattern, 0.6)
+
+                if similar_patterns:
+                    if self.verbose:
+                        ColorLogger.warning(
+                            f"Patrón exacto no encontrado. Sugerencias:"
+                        )
+                        for match in similar_patterns[:3]:
+                            ColorLogger.info(
+                                f"  Línea {match['line_number']}: {match['content']}"
+                            )
+                return False
+
+            # Procesar nuevo contenido
+            content_handler = ContentHandler(content, file_path, "replace")
+            safe_content, temp_file = content_handler.get_safe_content()
+
+            # Realizar reemplazo
+            if temp_file:
+                # Leer contenido del archivo temporal
+                with open(temp_file, "r", encoding="utf-8") as f:
+                    new_content = f.read()
+                os.unlink(temp_file)
+            else:
+                new_content = safe_content
+
+            updated_content = original_content.replace(pattern, new_content)
+
+            # Escribir archivo actualizado
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(updated_content)
+
+            if self.verbose:
+                ColorLogger.success(f"Contenido reemplazado en: {file_path}")
+                ColorLogger.diff("CAMBIO REALIZADO", pattern, new_content)
+
+            return True
+
+        except Exception as e:
+            if self.verbose:
+                ColorLogger.error(f"Error reemplazando en {file_path}: {str(e)}")
+            return False
+
+    def after(
+        self, file_path: str, pattern: str, content: str, auto_backup: bool = True
+    ) -> bool:
+        """Insertar después de patrón"""
+        try:
+            if not os.path.exists(file_path):
+                if self.verbose:
+                    ColorLogger.error(f"Archivo no encontrado: {file_path}")
+                return False
+
+            # Leer contenido actual
+            with open(file_path, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+
+            # Crear backup si está habilitado
+            if auto_backup:
+                backup_path = self.backup_manager.create_backup(file_path, ".backup")
+                if self.verbose:
+                    ColorLogger.info(f"Backup creado: {backup_path}")
+
+            # Buscar línea con patrón
+            pattern_line_index = None
+            for i, line in enumerate(lines):
+                if pattern in line:
+                    pattern_line_index = i
+                    break
+
+            if pattern_line_index is None:
+                if self.verbose:
+                    ColorLogger.error(f"Patrón no encontrado: {pattern}")
+                return False
+
+            # Procesar nuevo contenido
+            content_handler = ContentHandler(content, file_path, "after")
+            safe_content, temp_file = content_handler.get_safe_content()
+
+            if temp_file:
+                with open(temp_file, "r", encoding="utf-8") as f:
+                    new_content = f.read()
+                os.unlink(temp_file)
+            else:
+                new_content = safe_content
+
+            # Insertar después del patrón
+            lines.insert(pattern_line_index + 1, new_content + "\n")
+
+            # Escribir archivo actualizado
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.writelines(lines)
+
+            if self.verbose:
+                ColorLogger.success(
+                    f"Contenido insertado después de la línea {pattern_line_index + 1}"
+                )
+
+            return True
+
+        except Exception as e:
+            if self.verbose:
+                ColorLogger.error(f"Error insertando después en {file_path}: {str(e)}")
+            return False
+
+    def before(
+        self, file_path: str, pattern: str, content: str, auto_backup: bool = True
+    ) -> bool:
+        """Insertar antes de patrón"""
+        try:
+            if not os.path.exists(file_path):
+                if self.verbose:
+                    ColorLogger.error(f"Archivo no encontrado: {file_path}")
+                return False
+
+            # Leer contenido actual
+            with open(file_path, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+
+            # Crear backup si está habilitado
+            if auto_backup:
+                backup_path = self.backup_manager.create_backup(file_path, ".backup")
+                if self.verbose:
+                    ColorLogger.info(f"Backup creado: {backup_path}")
+
+            # Buscar línea con patrón
+            pattern_line_index = None
+            for i, line in enumerate(lines):
+                if pattern in line:
+                    pattern_line_index = i
+                    break
+
+            if pattern_line_index is None:
+                if self.verbose:
+                    ColorLogger.error(f"Patrón no encontrado: {pattern}")
+                return False
+
+            # Procesar nuevo contenido
+            content_handler = ContentHandler(content, file_path, "before")
+            safe_content, temp_file = content_handler.get_safe_content()
+
+            if temp_file:
+                with open(temp_file, "r", encoding="utf-8") as f:
+                    new_content = f.read()
+                os.unlink(temp_file)
+            else:
+                new_content = safe_content
+
+            # Insertar antes del patrón
+            lines.insert(pattern_line_index, new_content + "\n")
+
+            # Escribir archivo actualizado
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.writelines(lines)
+
+            if self.verbose:
+                ColorLogger.success(
+                    f"Contenido insertado antes de la línea {pattern_line_index + 1}"
+                )
+
+            return True
+
+        except Exception as e:
+            if self.verbose:
+                ColorLogger.error(f"Error insertando antes en {file_path}: {str(e)}")
+            return False
+
+    def append(self, file_path: str, content: str, auto_backup: bool = True) -> bool:
+        """Agregar al final del archivo"""
+        try:
+            # Crear archivo si no existe
+            if not os.path.exists(file_path):
+                os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write("")
+
+            # Crear backup si está habilitado
+            if auto_backup:
+                backup_path = self.backup_manager.create_backup(file_path, ".backup")
+                if self.verbose:
+                    ColorLogger.info(f"Backup creado: {backup_path}")
+
+            # Procesar contenido
+            content_handler = ContentHandler(content, file_path, "append")
+            safe_content, temp_file = content_handler.get_safe_content()
+
+            if temp_file:
+                with open(temp_file, "r", encoding="utf-8") as f:
+                    new_content = f.read()
+                os.unlink(temp_file)
+            else:
+                new_content = safe_content
+
+            # Agregar al final
+            with open(file_path, "a", encoding="utf-8") as f:
+                f.write("\n" + new_content)
+
+            if self.verbose:
+                ColorLogger.success(f"Contenido agregado al final de: {file_path}")
+
+            return True
+
+        except Exception as e:
+            if self.verbose:
+                ColorLogger.error(f"Error agregando al final de {file_path}: {str(e)}")
+            return False
+
+    def split(self, file_path: str, pattern: str, auto_backup: bool = True) -> bool:
+        """Dividir líneas pegadas"""
+        try:
+            if not os.path.exists(file_path):
+                if self.verbose:
+                    ColorLogger.error(f"Archivo no encontrado: {file_path}")
+                return False
+
+            # Leer contenido actual
+            with open(file_path, "r", encoding="utf-8") as f:
+                content = f.read()
+
+            # Crear backup si está habilitado
+            if auto_backup:
+                backup_path = self.backup_manager.create_backup(file_path, ".backup")
+                if self.verbose:
+                    ColorLogger.info(f"Backup creado: {backup_path}")
+
+            # Dividir líneas según el patrón
+            if pattern in content:
+                # Reemplazar patrón con patrón + nueva línea
+                updated_content = content.replace(pattern, pattern + "\n")
+
+                # Escribir archivo actualizado
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write(updated_content)
+
+                if self.verbose:
+                    ColorLogger.success(f"Líneas divididas en: {file_path}")
+
+                return True
+            else:
+                if self.verbose:
+                    ColorLogger.error(f"Patrón no encontrado: {pattern}")
+                return False
+
+        except Exception as e:
+            if self.verbose:
+                ColorLogger.error(f"Error dividiendo líneas en {file_path}: {str(e)}")
+            return False
+
+    def extract(
+        self, file_path: str, pattern: str, target_file: str, auto_backup: bool = True
+    ) -> bool:
+        """Extraer contenido a otro archivo"""
+        try:
+            if not os.path.exists(file_path):
+                if self.verbose:
+                    ColorLogger.error(f"Archivo fuente no encontrado: {file_path}")
+                return False
+
+            # Leer contenido actual
+            with open(file_path, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+
+            # Buscar contenido que coincida con el patrón
+            extracted_lines = []
+            for line in lines:
+                if pattern in line:
+                    extracted_lines.append(line)
+
+            if not extracted_lines:
+                if self.verbose:
+                    ColorLogger.error(
+                        f"No se encontró contenido que coincida con: {pattern}"
+                    )
+                return False
+
+            # Crear directorio del archivo destino si no existe
+            os.makedirs(os.path.dirname(target_file), exist_ok=True)
+
+            # Crear backup del archivo destino si existe
+            if os.path.exists(target_file) and auto_backup:
+                backup_path = self.backup_manager.create_backup(target_file, ".backup")
+                if self.verbose:
+                    ColorLogger.info(
+                        f"Backup del archivo destino creado: {backup_path}"
+                    )
+
+            # Escribir contenido extraído al archivo destino
+            with open(target_file, "w", encoding="utf-8") as f:
+                f.writelines(extracted_lines)
+
+            if self.verbose:
+                ColorLogger.success(
+                    f"Contenido extraído de {file_path} a {target_file}"
+                )
+                ColorLogger.info(f"Se extrajeron {len(extracted_lines)} líneas")
+
+            return True
+
+        except Exception as e:
+            if self.verbose:
+                ColorLogger.error(f"Error extrayendo contenido: {str(e)}")
+            return False
+
+    def execute_explore_mode(self, file_path: str, search_term: Optional[str] = None):
+        """Ejecutar modo exploración"""
+        try:
+            resolved_path = self.project_context.resolve_file_path(file_path)
+
+            if not os.path.exists(resolved_path):
+                ColorLogger.error(f"Archivo no encontrado: {resolved_path}")
+                return
+
+            if search_term:
+                # Búsqueda específica
+                UniversalExplorer.search_in_file(
+                    resolved_path, search_term, context_lines=3
+                )
+            else:
+                # Exploración completa del archivo
+                UniversalExplorer.show_file_structure(
+                    resolved_path, show_lines=True, filter_type="smart"
+                )
+
+        except Exception as e:
+            ColorLogger.error(f"Error en modo exploración: {str(e)}")
 
 
 def show_enhanced_help_v53():
-    """NUEVO v5.3: Sistema de ayuda universal mejorado"""
+    """Mostrar ayuda mejorada para v5.3"""
     print(
         """
-🔧 SURGICAL MODIFIER ULTIMATE v5.3 - HERRAMIENTA UNIVERSAL DEFINITIVA
+🔧 SURGICAL MODIFIER ULTIMATE v5.3 - HERRAMIENTA UNIVERSAL CORREGIDA
 
 📋 USO:
-  python3 ../.workspace/scripts/surgical_modifier_ultimate.py [--verbose] [--confirm] [--explore] [--keep-backups] [--check-integrity] <operación> <archivo> <patrón> [contenido]
+  python3 surgical_modifier_ultimate.py [opciones] <operación> <archivo> <patrón> [contenido]
 
 🛡️ OPCIONES:
   --verbose        : Diff visual y análisis detallado
@@ -2629,6 +2519,15 @@ def show_enhanced_help_v53():
   --keep-backups   : Conservar backups incluso en operaciones exitosas
   --check-integrity: Verificación completa de sintaxis, deps y tests
 
+⚙️ OPERACIONES DISPONIBLES:
+  CREATE   - Crear archivo nuevo
+  REPLACE  - Reemplazar contenido existente  
+  AFTER    - Insertar después de patrón
+  BEFORE   - Insertar antes de patrón
+  APPEND   - Agregar al final del archivo
+  SPLIT    - Dividir líneas pegadas
+  EXTRACT  - Extraer contenido a otro archivo
+
 🔍 VERIFICACIÓN DE INTEGRIDAD:
   --check-integrity verifica:
   ✅ Sintaxis válida antes y después de modificar
@@ -2636,60 +2535,29 @@ def show_enhanced_help_v53():
   ✅ Imports resueltos correctamente
   ✅ Tests relacionados (si existen)
   ✅ Análisis de impacto del cambio (bajo/medio/alto riesgo)
-  ✅ Recomendaciones específicas por framework
-
-🎯 EJEMPLOS CON VERIFICACIÓN DE INTEGRIDAD:
-
-# Modificación segura con verificación completa
-python3 ../.workspace/scripts/surgical_modifier_ultimate.py --check-integrity replace models/product.py "class Product" "class Product"
-
-# Verificación + confirmación + backups + verbose
-python3 ../.workspace/scripts/surgical_modifier_ultimate.py --check-integrity --confirm --keep-backups --verbose after models/product.py "name = models.CharField" "description = models.TextField()"
-
-# Solo exploración (sin modificar)
-python3 ../.workspace/scripts/surgical_modifier_ultimate.py --explore models/product.py
-
-🧹 SISTEMA DE BACKUP INTELIGENTE:
-
-POR DEFECTO (Recomendado):
-  ✅ Crea backup antes de cada operación
-  ✅ Restaura backup automáticamente si hay error
-  ✅ Limpia backup automáticamente si operación es exitosa
-  ✅ Conserva solo backups de errores para investigación
-  ✅ Limpia backups antiguos (mantiene últimos 5)
-
-CON --keep-backups:
-  ✅ Crea backup antes de cada operación  
-  ✅ Restaura backup automáticamente si hay error
-  ✅ Conserva TODOS los backups (exitosos y fallidos)
-  ✅ Limpia solo backups muy antiguos (mantiene últimos 5)
 
 🌍 SOPORTE UNIVERSAL COMPLETO:
+  ✅ Python, JavaScript, TypeScript, Java, C++, C#, PHP, Ruby, Go, Rust
+  ✅ Frameworks: Django, Flask, React, Vue, Angular, Spring, Express
+  ✅ Detección automática de contexto de proyecto
+  ✅ Backups inteligentes con limpieza automática
+  ✅ Búsqueda flexible con sugerencias
 
-LENGUAJES SOPORTADOS:
-  ✅ Python (.py)           ✅ JavaScript (.js)       ✅ TypeScript (.ts/.tsx)
-  ✅ Java (.java)           ✅ C++ (.cpp/.cc)         ✅ C (.c)
-  ✅ C# (.cs)               ✅ PHP (.php)             ✅ Ruby (.rb)
-  ✅ Go (.go)               ✅ Rust (.rs)             ✅ Swift (.swift)
-  ✅ Kotlin (.kt)           ✅ Scala (.scala)         ✅ HTML/XML
-  ✅ CSS/SCSS               ✅ JSON/YAML              ✅ SQL
-  ✅ Bash/Shell             ✅ Markdown               ✅ + más
+🎯 EJEMPLOS:
 
-FRAMEWORKS AUTO-DETECTADOS:
-  🐍 Python: Django, Flask, FastAPI, pytest, SQLAlchemy
-  🟨 JS/TS: React, Vue, Angular, Express, Jest, Mocha
-  ☕ Java: Spring, JUnit, Hibernate
-  🔷 .NET: ASP.NET, NUnit
-  🐳 DevOps: Docker, Kubernetes
+# Crear archivo nuevo
+python3 surgical_modifier_ultimate.py create utils/helpers.py "def helper_function(): pass"
 
-💡 CASOS DE USO PARA VERIFICACIÓN DE INTEGRIDAD:
-  ✅ Modificar modelos Django sin romper migraciones
-  ✅ Actualizar APIs sin afectar dependencias
-  ✅ Refactoring seguro con validación automática
-  ✅ Cambios en archivos críticos con tests automáticos
-  ✅ Desarrollo en equipos (evitar commits rotos)
+# Reemplazar con verificación de integridad
+python3 surgical_modifier_ultimate.py --check-integrity replace models.py "old_function" "new_function"
 
-¡HERRAMIENTA UNIVERSAL CON VERIFICACIÓN DE INTEGRIDAD COMPLETA! 🛡️
+# Explorar archivo antes de modificar
+python3 surgical_modifier_ultimate.py --explore models.py "calculate"
+
+# Extraer función a otro archivo
+python3 surgical_modifier_ultimate.py extract models.py "def calculate_price" utils/pricing.py
+
+¡HERRAMIENTA UNIVERSAL CORREGIDA Y LISTA PARA USO! 🛡️
 """
     )
 
@@ -2704,7 +2572,7 @@ def main():
     explore = "--explore" in args
     show_pattern = "--show-pattern" in args
     keep_backups = "--keep-backups" in args
-    check_integrity = "--check-integrity" in args  # ← NUEVA LÍNEA
+    check_integrity = "--check-integrity" in args
 
     # Remover flags de argumentos
     args = [arg for arg in args if not arg.startswith("--")]
@@ -2724,7 +2592,7 @@ def main():
         modifier.execute_explore_mode(file_path, search_term)
         return
     elif show_pattern and len(args) >= 3:
-        # Tu código existente de show-pattern...
+        # Código de show-pattern existente
         file_path = args[0]
         start_line = int(args[1])
         end_line = int(args[2])
@@ -2747,9 +2615,7 @@ def main():
 
             for i in range(max(0, start_line - 1), min(len(lines), end_line)):
                 line_content = lines[i].rstrip()
-                print(
-                    f"{i+1:4d}: {repr(line_content)}"
-                )  # repr() muestra caracteres exactos
+                print(f"{i+1:4d}: {repr(line_content)}")
 
             print("=" * 70)
             print(
@@ -2769,11 +2635,8 @@ def main():
     pattern = args[2] if len(args) > 2 else ""
     content = args[3] if len(args) > 3 else ""
 
-    # ========================================================================
-    # MODIFICACIÓN PRINCIPAL: USAR VERIFICADOR MEJORADO SI SE SOLICITA
-    # ========================================================================
+    # Usar verificador con integridad si se solicita
     if check_integrity:
-        # NUEVO: Usar verificador con integridad
         modifier = EnhancedSurgicalModifier(
             verbose=verbose, confirm=confirm, keep_backups=keep_backups
         )
@@ -2781,18 +2644,17 @@ def main():
             operation, file_path, pattern, content
         )
     else:
-        # ORIGINAL: Usar modificador normal
+        # Usar modificador normal
         modifier = SurgicalModifierUltimate(
             verbose=verbose, confirm=confirm, keep_backups=keep_backups
         )
         result = modifier.execute(operation, file_path, pattern, content)
 
-    # Mostrar resultado final con información de backups e integridad
+    # Mostrar resultado final
     if result["success"]:
         print(f"\n🎉 ✅ ÉXITO TOTAL UNIVERSAL v5.3 - {result['message']}")
 
-        # NUEVO: Mostrar estado de integridad si está disponible
-        if "integrity_warnings" in result:
+        if "integrity_warnings" in result and result["integrity_warnings"]:
             print("⚠️ ADVERTENCIAS DE INTEGRIDAD:")
             for warning in result["integrity_warnings"]:
                 print(f"   - {warning}")
@@ -2807,11 +2669,8 @@ def main():
                 f"🎯 Contexto: {result['context']} | Proyecto: {result['project_type']}"
             )
     else:
-        print(f"\n❌ OPERACIÓN FALLÓ: {result['error']}")
+        print(f"\n❌ OPERACIÓN FALLÓ: {result.get('message', 'Error desconocido')}")
         print("📦 Backup conservado para investigación de error")
-        if "suggestion" in result:
-            print(f"🔧 Sugerencia: {result['suggestion']}")
-        # NUEVO: Mostrar detalles de integridad si están disponibles
         if "details" in result:
             print("📋 Detalles:")
             for detail in result["details"]:

@@ -1,6 +1,6 @@
 
 
-import React from 'react';
+// import React from 'react'; // No usado directamente
 import ImageUpload from '../components/ui/ImageUpload/ImageUpload';
 
 const TestImageUpload = () => {

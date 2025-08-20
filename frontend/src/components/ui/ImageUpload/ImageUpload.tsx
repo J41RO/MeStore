@@ -38,21 +38,70 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
   className = '',
   showPreview = true,
   disabled = false,
+  onUploadProgress,
 }) => {
   const [uploadedImages, setUploadedImages] = useState<ImageFile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [imageLoadingStates, setImageLoadingStates] = useState<Record<string, boolean>>({});
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
+  const [_uploadStartTime, setUploadStartTime] = useState<Record<string, number>>({});
+  const [estimatedTime, setEstimatedTime] = useState<Record<string, number>>({});
+  const [_uploadIntervals, _setUploadIntervals] = useState<Record<string, NodeJS.Timeout>>({});
+  
+  // Calcular progreso total
+  const totalProgress = useMemo(() => {
+    const progressValues = Object.values(uploadProgress);
+    if (progressValues.length === 0) return 0;
+    return Math.round(progressValues.reduce((sum, prog) => sum + prog, 0) / progressValues.length);
+  }, [uploadProgress]);
+  
+  // Calcular tiempo estimado total
+  const totalEstimatedTime = useMemo(() => {
+    const timeValues = Object.values(estimatedTime).filter(time => time > 0);
+    if (timeValues.length === 0) return 0;
+    return Math.max(...timeValues); // Tiempo máximo restante
+  }, [estimatedTime]);
 
   /**
    * Callback mejorado con loading state
    */
+  /**
+   * Simula progreso de upload
+   */
+  const simulateUploadProgress = useCallback((fileId: string) => {
+    const startTime = Date.now();
+    setUploadStartTime(prev => ({ ...prev, [fileId]: startTime }));
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += Math.random() * 15 + 5; // Incremento aleatorio 5-20%
+      const currentTime = Date.now();
+      const elapsed = (currentTime - startTime) / 1000; // segundos
+      if (progress >= 100) {
+        progress = 100;
+        clearInterval(interval);
+        setUploadProgress(prev => ({ ...prev, [fileId]: 100 }));
+        onUploadProgress?.(fileId, 100);
+      } else {
+        // Calcular tiempo estimado
+        const speed = progress / elapsed; // progreso por segundo
+        const remainingProgress = 100 - progress;
+        const estimatedSeconds = Math.round(remainingProgress / speed);
+        
+        setEstimatedTime(prev => ({ ...prev, [fileId]: estimatedSeconds }));
+        setUploadProgress(prev => ({ ...prev, [fileId]: progress }));
+        onUploadProgress?.(fileId, progress);
+      }
+    }, 200); // Más frecuente para animación suave
+  }, [onUploadProgress]);
+
+
   const handleDrop = useCallback(async (acceptedFiles: File[]) => {
     setIsLoading(true);
 
     // Inicializar loading states individuales
     const newLoadingStates: Record<string, boolean> = {};
-    acceptedFiles.forEach(file => {
+    acceptedFiles.forEach((_file, _index) => {
       const fileId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       newLoadingStates[fileId] = true;
     });
@@ -65,6 +114,11 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
     }));
 
     setUploadedImages(prev => [...prev, ...imageFiles]);
+    
+    // Iniciar simulación de progreso para cada archivo
+    imageFiles.forEach(imageFile => {
+      simulateUploadProgress(imageFile.id);
+    });
     onImageUpload(imageFiles);
     setIsLoading(false);
   }, [onImageUpload]);
@@ -72,6 +126,38 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
   /**
    * Eliminar imagen del preview
    */
+  /**
+   * Convierte errores técnicos a mensajes user-friendly
+   */
+  const getDetailedErrorMessage = useCallback((errorCode: string, fileName: string, fileSize?: number) => {
+    switch (errorCode) {
+      case 'file-too-large':
+        const sizeMB = fileSize ? (fileSize / 1024 / 1024).toFixed(1) : 'desconocido';
+        const maxMB = Math.round(maxSize / 1024 / 1024);
+        return {
+          icon: '⚠️',
+          message: `El archivo "${fileName}" es muy grande (${sizeMB}MB). El tamaño máximo permitido es ${maxMB}MB.`
+        };
+      case 'file-invalid-type':
+        const allowedFormats = acceptedTypes.map(t => t.split('/')[1]?.toUpperCase()).join(', ');
+        return {
+          icon: '🚫',
+          message: `El formato de "${fileName}" no está permitido. Formatos válidos: ${allowedFormats}`
+        };
+      case 'too-many-files':
+        return {
+          icon: '📊',
+          message: `Demasiados archivos seleccionados. Máximo permitido: ${maxFiles} archivos.`
+        };
+      default:
+        return {
+          icon: '❌',
+          message: `Error con el archivo "${fileName}": ${errorCode}`
+        };
+    }
+  }, [maxSize, acceptedTypes, maxFiles]);
+
+
   const removeImage = useCallback((id: string) => {
     setUploadedImages(prev => prev.filter(img => img.id !== id));
   }, []);
@@ -94,7 +180,9 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
     if (draggedIndex === null || draggedIndex === dropIndex) return;
 
     const newImages = [...uploadedImages];
-    const [draggedImage] = newImages.splice(draggedIndex, 1);
+    const draggedImageArray = newImages.splice(draggedIndex, 1);
+    const draggedImage = draggedImageArray[0];
+    if (!draggedImage) return;
     newImages.splice(dropIndex, 0, draggedImage);
     
     setUploadedImages(newImages);
@@ -156,6 +244,22 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
 
   return (
     <div className="w-full">
+      {/* Progress Bar Global */}
+      {isLoading && totalProgress > 0 && (
+        <div className="mb-4 bg-gray-200 rounded-full h-2 overflow-hidden">
+          <div 
+            className="h-full rounded-full transition-all duration-300 ease-out bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 animate-pulse"
+            style={{ width: `${totalProgress}%` }}
+          />
+          <div className="flex justify-between text-xs text-gray-500 mt-1">
+            <span>Subiendo archivos...</span>
+            <span>
+              {`${totalProgress}%`}
+              {totalEstimatedTime > 0 && ` - ${totalEstimatedTime}s restantes`}
+            </span>
+          </div>
+        </div>
+      )}
       <div {...getRootProps()} className={dropzoneClasses}>
         <input {...getInputProps()} />
         <div className="space-y-2">
@@ -210,6 +314,21 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
                     />
                   )}
                 </div>
+                {/* Mini Progress Bar por imagen */}
+                {uploadProgress[image.id] && (uploadProgress[image.id] || 0) < 100 && (
+                  <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 p-1">
+                    <div className="bg-gray-300 rounded-full h-1 overflow-hidden">
+                      <div 
+                        className="h-full rounded-full transition-all duration-300 bg-gradient-to-r from-green-400 via-green-500 to-green-600"
+                        style={{ width: `${uploadProgress[image.id] || 0}%` }}
+                      />
+                    </div>
+                    <div className="text-white text-xs text-center mt-1">
+                      {`${Math.round(uploadProgress[image.id] || 0)}%`}
+                    </div>
+                  </div>
+                )}
+
                 <button
                   onClick={() => removeImage(image.id)}
                   className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
@@ -228,17 +347,26 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
           </div>
         </div>
       )}
-      {/* Errores de validación */}
+      {/* Errores de validación mejorados */}
       {fileRejections.length > 0 && (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-          <h4 className="text-sm font-medium text-red-800 mb-2">Archivos rechazados:</h4>
-          <ul className="text-sm text-red-700 space-y-1">
+          <h4 className="text-sm font-medium text-red-800 mb-3 flex items-center">
+            <span className="mr-2">⚠️</span>
+            Archivos que no pudieron ser procesados:
+          </h4>
+          <div className="space-y-2">
             {fileRejections.map(({ file, errors }) => (
-              <li key={file.name}>
-                <strong>{file.name}</strong>: {errors.map(e => e.message).join(', ')}
-              </li>
+              <div key={file.name} className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-start space-x-2">
+                  <span className="text-lg mt-0.5">{getDetailedErrorMessage(errors[0]?.code || 'unknown', file.name, file.size).icon}</span>
+                  <div className="flex-1">
+                    <p className="text-sm text-red-800 font-medium">{getDetailedErrorMessage(errors[0]?.code || 'unknown', file.name, file.size).message}</p>
+                    <p className="text-xs text-red-600 mt-1">Archivo: {file.name}</p>
+                  </div>
+                </div>
+              </div>
             ))}
-          </ul>
+          </div>
         </div>
       )}
     </div>

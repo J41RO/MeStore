@@ -28,7 +28,20 @@ export interface ImageFile {
   /** URL de preview para mostrar la imagen */
   preview: string;
   /** Identificador único del archivo */
+  /** Progreso de upload (0-100) opcional */
+  uploadProgress?: number;
   id: string;
+}
+/**
+ * Interfaz para tracking de progreso de upload
+ */
+export interface UploadProgress {
+  /** ID del archivo en upload */
+  fileId: string;
+  /** Progreso de 0 a 100 */
+  progress: number;
+  /** Estado del upload */
+  status: 'uploading' | 'completed' | 'error';
 }
 
 /**
@@ -36,6 +49,8 @@ export interface ImageFile {
  */
 export interface ImageUploadProps {
   /** Callback ejecutado cuando se suben imágenes */
+  /** Callback opcional para tracking de progreso de upload */
+  onUploadProgress?: (fileId: string, progress: number) => void;
   onImageUpload: (files: ImageFile[]) => void;
   /** Número máximo de archivos permitidos (default: 5) */
   maxFiles?: number;

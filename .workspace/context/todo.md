@@ -351,7 +351,7 @@
     ✅ 1.5.3.6 Añadir bulk actions (eliminar múltiples, cambiar estado)
 🔁 1.5.4 Upload de imágenes con preview
     ✅ 1.5.4.1 Crear componente ImageUpload con drag & drop
-    ⬜ 1.5.4.2 Implementar preview de imágenes antes de upload
+    ✅ 1.5.4.2 Implementar preview de imágenes antes de upload
     ⬜ 1.5.4.3 Añadir progress bar y validación de formato/tamaño
     ⬜ 1.5.4.4 Crear ImageGallery para gestionar múltiples imágenes
     ⬜ 1.5.4.5 Implementar crop/resize tool básico con react-image-crop
