@@ -51,6 +51,8 @@ export interface ImageUploadProps {
   /** Callback ejecutado cuando se suben imágenes */
   /** Callback opcional para tracking de progreso de upload */
   onUploadProgress?: (fileId: string, progress: number) => void;
+  /** Habilitar funcionalidad de recorte de imágenes (default: false) */
+  enableCrop?: boolean;
   onImageUpload: (files: ImageFile[]) => void;
   /** Número máximo de archivos permitidos (default: 5) */
   maxFiles?: number;

@@ -9,13 +9,14 @@
 // Ruta: ~/src/components/ui/ImageUpload/ImageUpload.tsx
 // Autor: Jairo
 // Fecha de Creación: 2025-08-18
-// Última Actualización: 2025-08-18
-// Versión: 1.0.0
-// Propósito: Componente React para subida de imágenes con funcionalidad drag & drop
+// Última Actualización: 2025-08-19
+// Versión: 1.1.0
+// Propósito: Componente React para subida de imágenes con funcionalidad drag & drop y crop
 //            Incluye validaciones de tamaño, tipo y cantidad de archivos
 //
 // Modificaciones:
 // 2025-08-18 - Creación inicial con useDropzone y validaciones básicas
+// 2025-08-19 - Agregada funcionalidad de crop con react-image-crop
 //
 // ---------------------------------------------------------------------------------------------
 
@@ -23,9 +24,11 @@ import React, { useCallback, useMemo } from 'react';
 import { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { ImageUploadProps, ImageFile } from './ImageUpload.types';
+import { ImageCrop } from '../ImageCrop';
+import { CropData } from '../ImageCrop/ImageCrop.types';
 
 /**
- * Componente ImageUpload con funcionalidad drag & drop
+ * Componente ImageUpload con funcionalidad drag & drop y crop
  * 
  * @param props - Propiedades del componente
  * @returns JSX.Element
@@ -36,6 +39,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
   maxSize = 5 * 1024 * 1024, // 5MB
   acceptedTypes = ['image/jpeg', 'image/png', 'image/webp'],
   className = '',
+  enableCrop = false,
   showPreview = true,
   disabled = false,
   onUploadProgress,
@@ -48,6 +52,8 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
   const [_uploadStartTime, setUploadStartTime] = useState<Record<string, number>>({});
   const [estimatedTime, setEstimatedTime] = useState<Record<string, number>>({});
   const [_uploadIntervals, _setUploadIntervals] = useState<Record<string, NodeJS.Timeout>>({});
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<ImageFile | null>(null);
   
   // Calcular progreso total
   const totalProgress = useMemo(() => {
@@ -63,9 +69,6 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
     return Math.max(...timeValues); // Tiempo máximo restante
   }, [estimatedTime]);
 
-  /**
-   * Callback mejorado con loading state
-   */
   /**
    * Simula progreso de upload
    */
@@ -95,7 +98,9 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
     }, 200); // Más frecuente para animación suave
   }, [onUploadProgress]);
 
-
+  /**
+   * Manejar drop de archivos
+   */
   const handleDrop = useCallback(async (acceptedFiles: File[]) => {
     setIsLoading(true);
 
@@ -121,11 +126,8 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
     });
     onImageUpload(imageFiles);
     setIsLoading(false);
-  }, [onImageUpload]);
+  }, [onImageUpload, simulateUploadProgress]);
 
-  /**
-   * Eliminar imagen del preview
-   */
   /**
    * Convierte errores técnicos a mensajes user-friendly
    */
@@ -157,9 +159,19 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
     }
   }, [maxSize, acceptedTypes, maxFiles]);
 
-
+  /**
+   * Eliminar imagen del preview
+   */
   const removeImage = useCallback((id: string) => {
     setUploadedImages(prev => prev.filter(img => img.id !== id));
+  }, []);
+
+  /**
+   * Manejar crop de imagen
+   */
+  const handleCropImage = useCallback((image: ImageFile) => {
+    setImageToCrop(image);
+    setShowCropModal(true);
   }, []);
 
   /**
@@ -198,8 +210,6 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
       uploadedImages.forEach(img => URL.revokeObjectURL(img.preview));
     };
   }, [uploadedImages]);
-  
-
 
   /**
    * Configuración de tipos aceptados para react-dropzone
@@ -260,6 +270,8 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
           </div>
         </div>
       )}
+
+      {/* Zona de Drop */}
       <div {...getRootProps()} className={dropzoneClasses}>
         <input {...getInputProps()} />
         <div className="space-y-2">
@@ -284,7 +296,6 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
           )}
         </div>
       </div>
-      
       
       {/* Preview de imágenes */}
       {showPreview && uploadedImages.length > 0 && (
@@ -314,6 +325,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
                     />
                   )}
                 </div>
+
                 {/* Mini Progress Bar por imagen */}
                 {uploadProgress[image.id] && (uploadProgress[image.id] || 0) < 100 && (
                   <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 p-1">
@@ -329,6 +341,18 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
                   </div>
                 )}
 
+                {/* Botón de Crop */}
+                {enableCrop && (
+                  <button
+                    onClick={() => handleCropImage(image)}
+                    className="absolute top-2 left-2 bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Recortar imagen"
+                  >
+                    ✂️
+                  </button>
+                )}
+
+                {/* Botón de Eliminar */}
                 <button
                   onClick={() => removeImage(image.id)}
                   className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
@@ -336,6 +360,8 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
                 >
                   ×
                 </button>
+
+                {/* Información del archivo */}
                 <p className="text-xs text-gray-500 mt-1 truncate" title={image.file.name}>
                   {image.file.name}
                 </p>
@@ -347,7 +373,8 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
           </div>
         </div>
       )}
-      {/* Errores de validación mejorados */}
+
+      {/* Errores de validación */}
       {fileRejections.length > 0 && (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
           <h4 className="text-sm font-medium text-red-800 mb-3 flex items-center">
@@ -367,6 +394,31 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Modal de Crop */}
+      {showCropModal && imageToCrop && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <ImageCrop
+            imageFile={imageToCrop.file}
+            onCropComplete={(cropData: CropData) => {
+              const updatedImages = uploadedImages.map(img => 
+                img.id === imageToCrop.id 
+                  ? { ...img, file: cropData.croppedFile, preview: cropData.croppedImageUrl }
+                  : img
+              );
+              setUploadedImages(updatedImages);
+              onImageUpload(updatedImages);
+              setShowCropModal(false);
+              setImageToCrop(null);
+            }}
+            onCancel={() => {
+              setShowCropModal(false);
+              setImageToCrop(null);
+            }}
+            aspectRatio={1}
+          />
         </div>
       )}
     </div>
