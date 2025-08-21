@@ -28,6 +28,8 @@ __all__.extend(["get_file_finder", "find_files", "search_content", "smart_search
 
 # Content handler extremo
 from .content_handler import content_handler, ContentType, ContentValidationResult
+from .escape_processor import EscapeProcessor
+from .escape_processor import EscapeProcessor
 
 # Template engine inteligente  
 from .template_engine import template_engine
