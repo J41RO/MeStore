@@ -38,6 +38,22 @@ class UniversalPatternHelper:
             'ForeignKey': r'db\.ForeignKey\([\'"](.*?)[\'"].*?\)',
             'Table': r'(\w+)\s*=\s*Table\([\'"](.*?)[\'"].*?\)'
         }
+
+    def _get_pytest_patterns(self) -> Dict[str, str]:
+        """
+        Retorna patrones regex específicos para pytest.
+
+        Returns:
+            Dict[str, str]: Diccionario con patrones pytest organizados por tipo
+        """
+        return {
+            'test_functions': r'def\s+(test_\w+)\s*\(',
+            'fixtures': r'@pytest\.fixture\s*(?:\([^)]*\))?\s*def\s+(\w+)',
+            'decorators': r'@pytest\.(mark\.\w+|parametrize|fixture)',
+            'assertions': r'assert\s+([^#]+)',
+            'markers': r'@pytest\.mark\.(\w+)',
+            'parametrize': r'@pytest\.parametrize\s*\(\s*["\'](.*?)["\']\s*,\s*(.*?)\)'
+        }
    
     def detect_code_patterns(self, content: str) -> Dict[str, List[str]]:
        """
@@ -99,6 +115,31 @@ class UniversalPatternHelper:
         except Exception as e:
             self.logger.error(f"Error detectando patrones SQLAlchemy: {e}")
             return {}
+
+    def detect_pytest_patterns(self, content: str) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Detecta patrones pytest en código Python.
+
+        Args:
+            content (str): Código Python a analizar
+
+        Returns:
+            Dict[str, List[Dict[str, Any]]]: Patrones pytest encontrados por tipo
+        """
+        try:
+            patterns = self._get_pytest_patterns()
+            results = {}
+
+            for pattern_type, regex_pattern in patterns.items():
+                matches = self.find_regex_patterns(content, regex_pattern)
+                if matches:
+                    results[pattern_type] = matches
+                    self.logger.info(f"Detectados {len(matches)} patrones pytest {pattern_type}")
+
+            return results
+        except Exception as e:
+            self.logger.error(f"Error detectando patrones pytest: {e}")
+            return {}
         
     def migrate_sqlalchemy_patterns(self, old_content: str, new_patterns: dict) -> Optional[str]:
         """
@@ -158,7 +199,66 @@ class UniversalPatternHelper:
         except Exception as e:
             self.logger.error(f"Error migrando patrones SQLAlchemy: {e}")
             return None
+    
+    def migrate_pytest_patterns(self, old_content: str, new_patterns: dict) -> Optional[str]:
+        """
+        Migra patrones pytest específicos manteniendo estructura y funcionalidad.
         
+        Args:
+            old_content (str): Código original con patrones pytest
+            new_patterns (dict): Diccionario con migraciones específicas por tipo
+                                Formato: {'assertions': {'old': 'self.assertEqual', 'new': 'assert'}}
+        
+        Returns:
+            Optional[str]: Código migrado o None si hay error
+        """
+        try:
+            migrated_content = old_content
+            migration_applied = False
+            
+            # Obtener patrones pytest disponibles
+            pytest_patterns = self._get_pytest_patterns()
+            
+            # Procesar cada tipo de patrón solicitado
+            for pattern_type, migration_rules in new_patterns.items():
+                if pattern_type not in pytest_patterns:
+                    self.logger.warning(f"Tipo de patrón pytest no soportado: {pattern_type}")
+                    continue
+                
+                # Aplicar migración usando migrate_exact_pattern para cada regla
+                if isinstance(migration_rules, dict) and 'old' in migration_rules and 'new' in migration_rules:
+                    old_pattern = migration_rules['old']
+                    new_pattern = migration_rules['new']
+                    
+                    # Usar migrate_exact_pattern interno
+                    result = self.migrate_exact_pattern(old_pattern, new_pattern, migrated_content)
+                    if result and result != migrated_content:
+                        migrated_content = result
+                        migration_applied = True
+                        self.logger.info(f"Migración pytest {pattern_type}: {old_pattern} → {new_pattern}")
+            
+            # Validar migración si se aplicaron cambios
+            if migration_applied:
+                if self.validate_migration(old_content, migrated_content):
+                    # Registrar en historial
+                    self.migration_history.append({
+                        'type': 'pytest_patterns',
+                        'patterns': new_patterns,
+                        'success': True,
+                        'original_length': len(old_content),
+                        'migrated_length': len(migrated_content)
+                    })
+                    return migrated_content
+                else:
+                    self.logger.error("Validación de migración pytest falló")
+                    return None
+            
+            return migrated_content
+            
+        except Exception as e:
+            self.logger.error(f"Error migrando patrones pytest: {e}")
+            return None
+    
     def find_exact_matches(self, content: str, pattern: str) -> List[Tuple[int, str]]:
        """
        Encuentra coincidencias exactas del patrón en el contenido.
@@ -359,7 +459,7 @@ class UniversalPatternHelper:
        """
        try:
            return {
-               'supported_operations': ['detect', 'migrate', 'validate', 'rollback', 'detect_sqlalchemy', 'migrate_sqlalchemy'],
+               'supported_operations': ['detect', 'migrate', 'validate', 'rollback', 'detect_sqlalchemy', 'migrate_sqlalchemy', 'detect_pytest', 'migrate_pytest'],
                'pattern_types': ['exact', 'regex', 'code_patterns'],
                'migration_modes': ['exact', 'preserve_format', 'with_validation'],
                'cache_enabled': bool(self.pattern_cache),

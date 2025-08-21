@@ -104,3 +104,59 @@ class TestUniversalPatternHelper:
         compat = self.helper.get_operation_compatible_patterns()
         assert 'detect_sqlalchemy' in compat['supported_operations']
         assert 'migrate_sqlalchemy' in compat['supported_operations']
+    
+    def test_get_pytest_patterns(self):
+        """Test obtención de patrones pytest."""
+        patterns = self.helper._get_pytest_patterns()
+        assert isinstance(patterns, dict)
+        assert 'test_functions' in patterns
+        assert 'fixtures' in patterns
+        assert 'decorators' in patterns
+        assert 'assertions' in patterns
+        assert 'markers' in patterns
+        assert 'parametrize' in patterns
+
+    def test_detect_pytest_patterns_success(self):
+        """Test detección exitosa de patrones pytest."""
+        test_code = '''
+import pytest
+
+@pytest.fixture
+def sample_data():
+    return {'key': 'value'}
+
+def test_example_function(sample_data):
+    assert sample_data['key'] == 'value'
+
+@pytest.mark.slow
+def test_slow_operation():
+    assert True
+'''
+        result = self.helper.detect_pytest_patterns(test_code)
+        assert isinstance(result, dict)
+        assert len(result) > 0
+        assert 'test_functions' in result
+        assert 'fixtures' in result
+        assert 'decorators' in result
+
+    def test_migrate_pytest_patterns_success(self):
+        """Test migración exitosa de patrones pytest."""
+        old_code = 'def test_example(self): self.assertEqual(a, b)'
+        new_patterns = {'assertions': {'old': 'self.assertEqual', 'new': 'assert'}}
+        result = self.helper.migrate_pytest_patterns(old_code, new_patterns)
+        assert result is not None
+        assert 'assert' in result
+        assert len(self.helper.migration_history) > 0
+
+    def test_migrate_pytest_patterns_invalid_type(self):
+        """Test migración con tipo de patrón pytest inválido."""
+        old_code = 'def test_example(): pass'
+        new_patterns = {'InvalidType': {'old': 'old', 'new': 'new'}}
+        result = self.helper.migrate_pytest_patterns(old_code, new_patterns)
+        assert result == old_code  # Sin cambios
+
+    def test_pytest_integration_compatibility(self):
+        """Test integración pytest en operaciones compatibles."""
+        compat = self.helper.get_operation_compatible_patterns()
+        assert 'detect_pytest' in compat['supported_operations']
+        assert 'migrate_pytest' in compat['supported_operations']
