@@ -17,4 +17,5 @@ export type { ImageUploadProps, ImageFile } from './ImageUpload';
 export type { ImageGalleryProps, GalleryImage, ViewMode } from './ImageGallery';
 export { default as InventoryTable } from './InventoryTable/InventoryTable';
 export { default as InventoryTableWithFilters } from './InventoryTable/InventoryTableWithFilters';
-export type { InventoryItem, InventoryStatus, LocationZone, InventoryFilters } from '../../types/inventory.types';
+export type { InventoryItem, InventoryStatus, LocationZone, InventoryFilters } from '../../types/inventory.types';export { default as StockMovements } from './StockMovements';
+export type { StockMovement, StockMovementFilters, MovementType, MovementReason } from '../../types/inventory.types';

@@ -44,3 +44,51 @@ export interface InventoryFilters {
     end: Date;
   };
 }
+
+// Tipos para movimientos de stock
+export enum MovementType {
+  ENTRADA = 'entrada',
+  SALIDA = 'salida',
+  AJUSTE = 'ajuste',
+  TRANSFERENCIA = 'transferencia'
+}
+
+export enum MovementReason {
+  COMPRA = 'compra',
+  VENTA = 'venta',
+  DEVOLUCION = 'devolucion',
+  MERMA = 'merma',
+  AJUSTE_INVENTARIO = 'ajuste_inventario',
+  TRANSFERENCIA_ALMACEN = 'transferencia_almacen'
+}
+
+export interface StockMovement {
+  id: string;
+  productId: string;
+  productName: string;
+  sku: string;
+  type: MovementType;
+  reason: MovementReason;
+  quantity: number;
+  previousStock: number;
+  newStock: number;
+  location: LocationInfo;
+  userId: string;
+  userName: string;
+  notes?: string;
+  timestamp: Date;
+  cost?: number;
+  reference?: string; // Número de orden, factura, etc.
+}
+
+export interface StockMovementFilters {
+  type?: MovementType[];
+  reason?: MovementReason[];
+  productId?: string;
+  location?: LocationZone[];
+  dateRange?: {
+    start: Date;
+    end: Date;
+  };
+  searchTerm?: string;
+}
