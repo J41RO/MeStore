@@ -43,3 +43,6 @@ __all__.extend(['project_context', 'ProjectMetadata', 'FrameworkInfo'])
 from .integration_preparation import integration_preparation, GitInfo, CiCdInfo
 
 __all__.extend(['integration_preparation', 'GitInfo', 'CiCdInfo'])
+__all__.extend(['universal_pattern_helper', 'UniversalPatternHelper'])
+
+from .universal_pattern_helper import UniversalPatternHelper
