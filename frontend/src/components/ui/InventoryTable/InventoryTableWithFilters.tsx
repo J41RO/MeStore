@@ -83,10 +83,16 @@ export const InventoryTableWithFilters: React.FC<InventoryTableWithFiltersProps>
     return (data || []).filter(item => {
       // Filtro por estado
       if (filters.status && filters.status.length > 0) {
+        if (!filters.status.includes(item.status)) {
+          return false;
+        }
       }
       
       // Filtro por ubicación
       if (filters.location && filters.location.length > 0) {
+        if (!filters.location.includes(item.location.zone)) {
+          return false;
+        }
       }
       
       // Filtro por búsqueda de texto

@@ -15,3 +15,6 @@ export { default as ImageUpload } from './ImageUpload';
 export { default as ImageGallery } from './ImageGallery';
 export type { ImageUploadProps, ImageFile } from './ImageUpload';
 export type { ImageGalleryProps, GalleryImage, ViewMode } from './ImageGallery';
+export { default as InventoryTable } from './InventoryTable/InventoryTable';
+export { default as InventoryTableWithFilters } from './InventoryTable/InventoryTableWithFilters';
+export type { InventoryItem, InventoryStatus, LocationZone, InventoryFilters } from '../../types/inventory.types';
