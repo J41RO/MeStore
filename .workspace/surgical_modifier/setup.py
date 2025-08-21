@@ -11,6 +11,7 @@ import sys
 if sys.version_info < (3, 8):
     sys.exit("Python 3.8 or higher is required.")
 
+
 # Read long description safely
 def read_readme():
     try:
@@ -19,18 +20,21 @@ def read_readme():
     except FileNotFoundError:
         return "The most complete code modification tool in the world"
 
-# Read requirements safely  
+
+# Read requirements safely
 def read_requirements(filename):
     try:
         with open(filename, "r", encoding="utf-8") as f:
-            return [line.strip() for line in f 
-                   if line.strip() and not line.startswith("#")]
+            return [
+                line.strip() for line in f if line.strip() and not line.startswith("#")
+            ]
     except FileNotFoundError:
         return []
 
+
 # Import setuptools after functions
 try:
-    from setuptools import setup, find_packages
+    from setuptools import find_packages, setup
 except ImportError:
     sys.exit("setuptools is required. Install with: pip install setuptools")
 
@@ -50,14 +54,14 @@ setup(
         "future": read_requirements("requirements-future.txt"),
         "dev": [
             "pytest>=7.0.0",
-            "pytest-cov>=4.0.0", 
+            "pytest-cov>=4.0.0",
             "black>=22.0.0",
             "flake8>=5.0.0",
         ],
     },
     entry_points={
         "console_scripts": [
-            "made=surgical_modifier.__main__:main",
+            "made=surgical_modifier.cli:main",
         ],
     },
     python_requires=">=3.8",
@@ -69,7 +73,7 @@ setup(
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9", 
+        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
