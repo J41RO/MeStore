@@ -256,7 +256,7 @@ def after(
     # Process escape characters in content argument
     from utils.escape_processor import process_content_escapes
 
-    content = process_content_escapes(content)
+    # content = process_content_escapes(content)  # BUGFIX: Removed to prevent literal escapes
     """Insert content after a specific line or pattern
     
     Examples:
@@ -336,9 +336,9 @@ def before(
     verbose,
 ):
     # Process escape characters in content argument
-    content = process_content_escapes(content)
+    # content = process_content_escapes(content)  # BUGFIX: Removed to prevent literal escapes
     """Insert content before a specific line or pattern
-    
+
     Examples:
         python3 cli.py before models.py "class User:" "# User model definition"
         python3 cli.py before views.py "return render" "    # Process data before rendering"
@@ -402,7 +402,7 @@ def before(
 @click.option("--verbose", "-V", is_flag=True, help="Show detailed output")
 def append(filepath, content, add_newline, separator, verbose):
     # Process escape characters in content argument
-    content = process_content_escapes(content)
+    # content = process_content_escapes(content)  # BUGFIX: Removed to prevent literal escapes
     """Append content to the end of a file
 
     Examples:

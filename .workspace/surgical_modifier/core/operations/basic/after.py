@@ -323,7 +323,8 @@ class AfterOperation(BaseOperation):
                     line, pattern, regex_mode, case_sensitive
                 ):
                     # Prepare content to insert
-                    content_to_insert = process_content_escapes(insertion)
+                    # content_to_insert = process_content_escapes(insertion)  # BUGFIX
+                    content_to_insert = insertion
 
                     # Preserve indentation if requested
                     if preserve_indentation:
