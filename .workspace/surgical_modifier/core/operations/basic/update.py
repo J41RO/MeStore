@@ -146,3 +146,25 @@ class UpdateOperation(BaseOperation):
     def validate_context(self, context: OperationContext) -> bool:
         """Validate context for update operation"""
         return bool(context.target_file and context.position_marker and context.content is not None)
+
+def update_operation(file_path, pattern, content, **kwargs):
+    """
+    Simple wrapper function for update operations.
+    Follows standard signature: (file_path, pattern, content, **kwargs)
+    
+    Args:
+        file_path: Path to the file to operate on
+        pattern: Pattern to search for update
+        content: New content to update with
+        **kwargs: Additional options
+    
+    Returns:
+        Update operation result
+    """
+    # Implementation using existing UpdateOperation class
+    from pathlib import Path
+    operation = UpdateOperation()
+    return operation.execute(Path(file_path), pattern, content, **kwargs)
+
+# Alias for consistency
+execute = update_operation

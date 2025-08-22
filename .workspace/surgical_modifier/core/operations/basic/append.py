@@ -20,8 +20,8 @@ except ImportError:
     LOGGING_AVAILABLE = False
     logger = None
 
-def append_operation(target_path: str, content: str, **kwargs):
-    """Simple append operation function - no classes"""
+def append_operation(file_path: str, pattern: str, content: str, **kwargs):
+    """Simple append operation function - follows standard signature (file_path, pattern, content, **kwargs)"""
     try:
         # Agregar contenido al final del archivo
         with open(target_path, 'a', encoding='utf-8') as f:
@@ -423,3 +423,5 @@ def append_content_v53(file_path: str, content: str,
     """
     operation = AppendOperation()
     return operation.append_content_v53(file_path, content, add_newline, **kwargs)
+# Alias for consistency
+execute = append_operation

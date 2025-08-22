@@ -89,7 +89,7 @@ class CreateOperation(BaseOperation):
                 execution_time=0.0,
             )
 
-def create_operation(target_path: str, content: str = "", **kwargs) -> Dict[str, Any]:
+def create_operation(file_path: str, pattern: str, content: str = "", **kwargs) -> Dict[str, Any]:
     """Simple create operation function - no classes"""
     try:
         # Crear directorio padre si no existe
@@ -187,3 +187,5 @@ def create_file_v53(
             "error": str(e),
             "filepath": filepath,
         }
+# Alias for consistency
+execute = create_operation

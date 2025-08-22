@@ -20,7 +20,7 @@ except ImportError:
     LOGGING_AVAILABLE = False
     logger = None
 
-def replace_operation(target_path: str, pattern: str, replacement: str, **kwargs):
+def replace_operation(file_path: str, pattern: str, content: str, **kwargs):
     """Simple replace operation function - no classes"""
     try:
         # Leer archivo
@@ -515,3 +515,5 @@ def replace_content_v53(file_path: str, pattern: str, replacement: str,
     """
     operation = ReplaceOperation()
     return operation.replace_content_v53(file_path, pattern, replacement, regex_mode, **kwargs)
+# Alias for consistency
+execute = replace_operation

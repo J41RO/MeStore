@@ -28,38 +28,38 @@ except ImportError:
     LOGGING_AVAILABLE = False
     logger = None
 
-def after_operation(target_path: str, pattern: str, content: str, **kwargs):
+def after_operation(file_path: str, pattern: str, content: str, **kwargs):
     """Simple after operation function - no classes"""
     try:
         # Leer archivo
-        with open(target_path, 'r', encoding='utf-8') as f:
+        with open(file_path, 'r', encoding='utf-8') as f:
             file_content = f.read()
-        
+
         # Buscar patrón e insertar después
         if pattern in file_content:
             # Insertar contenido después del patrón
             new_content = file_content.replace(pattern, pattern + content)
-            
+
             # Escribir archivo modificado
-            with open(target_path, 'w', encoding='utf-8') as f:
+            with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(new_content)
-            
+
             return {
                 'success': True,
-                'message': f'Inserted content after pattern in {target_path}',
-                'target_path': target_path
+                'message': f'Inserted content after pattern in {file_path}',
+                'file_path': file_path
             }
         else:
             return {
                 'success': False,
-                'error': f'Pattern not found in {target_path}',
-                'target_path': target_path
+                'error': f'Pattern not found in {file_path}',
+                'file_path': file_path
             }
     except Exception as e:
         return {
             'success': False,
             'error': str(e),
-            'target_path': target_path
+            'file_path': file_path
         }
 
 class AfterOperation(BaseOperation):
@@ -643,3 +643,5 @@ def insert_after_v53(
     return operation.insert_after_v53(
         file_path, pattern, content, regex_mode, **kwargs
     )
+# Alias for consistency
+execute = after_operation

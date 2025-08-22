@@ -187,3 +187,25 @@ class ExtractOperation(BaseOperation):
     def validate_context(self, context: OperationContext) -> bool:
         """Validate context for extract operation"""
         return bool(context.target_file and context.position_marker)
+
+def extract_operation(file_path, pattern, content, **kwargs):
+    """
+    Simple wrapper function for extraction operations.
+    Follows standard signature: (file_path, pattern, content, **kwargs)
+    
+    Args:
+        file_path: Path to the file to operate on
+        pattern: Pattern to search for extraction
+        content: Content parameter (for consistency with standard signature)
+        **kwargs: Additional options
+    
+    Returns:
+        Extracted content or operation result
+    """
+    # Implementation using existing ExtractOperation class
+    from pathlib import Path
+    operation = ExtractOperation()
+    return operation.execute(Path(file_path), pattern, **kwargs)
+
+# Alias for consistency
+execute = extract_operation

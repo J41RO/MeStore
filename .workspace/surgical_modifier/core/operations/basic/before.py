@@ -28,39 +28,42 @@ except ImportError:
     LOGGING_AVAILABLE = False
     logger = None
 
-def before_operation(target_path: str, pattern: str, content: str, **kwargs):
+def before_operation(file_path: str, pattern: str, content: str, **kwargs):
     """Simple before operation function - no classes"""
     try:
         # Leer archivo
-        with open(target_path, 'r', encoding='utf-8') as f:
+        with open(file_path, 'r', encoding='utf-8') as f:
             file_content = f.read()
-        
+
         # Buscar patrón e insertar antes
         if pattern in file_content:
             # Insertar contenido antes del patrón
             new_content = file_content.replace(pattern, content + pattern)
-            
+
             # Escribir archivo modificado
-            with open(target_path, 'w', encoding='utf-8') as f:
+            with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(new_content)
-            
+
             return {
                 'success': True,
-                'message': f'Inserted content before pattern in {target_path}',
-                'target_path': target_path
+                'message': f'Inserted content before pattern in {file_path}',
+                'file_path': file_path
             }
         else:
             return {
                 'success': False,
-                'error': f'Pattern not found in {target_path}',
-                'target_path': target_path
+                'error': f'Pattern not found in {file_path}',
+                'file_path': file_path
             }
     except Exception as e:
         return {
             'success': False,
             'error': str(e),
-            'target_path': target_path
+            'file_path': file_path
         }
+
+# Alias for consistency
+execute = before_operation
 
 class BeforeOperation(BaseOperation):
     """
