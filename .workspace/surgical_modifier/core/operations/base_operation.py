@@ -8,6 +8,22 @@ from typing import Dict, List, Optional, Any, Union, Callable
 from pathlib import Path
 from dataclasses import dataclass
 from enum import Enum
+try:
+    from utils.logger import logger
+    from utils.path_resolver import path_resolver
+    from utils.content_handler import content_handler
+    from utils.project_context import project_context
+    from utils.retry_manager import retry_with_backoff
+    from utils.debug_analyzer import PatternDebugger
+    INTEGRATION_AVAILABLE = True
+except ImportError:
+    INTEGRATION_AVAILABLE = False
+    logger = None
+    path_resolver = None
+    content_handler = None
+    project_context = None
+    retry_with_backoff = None
+    PatternDebugger = None
 import time
 
 try:
@@ -206,48 +222,72 @@ class BaseOperation(ABC):
             framework_context=framework_context,
             arguments=kwargs
         )
-    
+        
     def execute_with_logging(self, context: OperationContext) -> OperationResult:
-        """Execute operation with comprehensive logging"""
+        """Execute operation with comprehensive logging, retry, and debug capabilities"""
         start_time = time.time()
         operation_name = f"{self.operation_type.value.upper()}"
         
+        # Inicializar debug analyzer si está disponible
+        debug_analyzer = None
+        if INTEGRATION_AVAILABLE and PatternDebugger and context.arguments.get('debug_mode', False):
+            debug_analyzer = PatternDebugger(verbose=True)
+            if INTEGRATION_AVAILABLE and logger:
+                logger.info("🔍 Debug mode activated for pattern analysis")
+
         if INTEGRATION_AVAILABLE and logger:
             logger.operation_start(
                 f"Operation {operation_name}",
                 f"Target: {context.target_file}"
             )
-        
-        try:
-            self.execution_stats['total_executions'] += 1
-            
+
+        # Definir función de ejecución para retry
+        def _execute_operation():
             validation_errors = self.validate_context(context)
             if validation_errors:
                 error_msg = f"Context validation failed: {'; '.join(validation_errors)}"
-                if INTEGRATION_AVAILABLE and logger:
-                    logger.error(error_msg)
-                
-                return OperationResult(
-                    success=False,
-                    operation_type=self.operation_type,
-                    target_path=str(context.target_file),
-                    message=error_msg,
-                    details={'validation_errors': validation_errors},
-                    execution_time=time.time() - start_time,
-                    operation_name=self.operation_name
-                )
+                raise ValueError(error_msg)
             
+            # Debug pattern analysis si está habilitado
+            if debug_analyzer and hasattr(context, 'pattern') and context.pattern:
+                debug_info = debug_analyzer.debug_pattern_matching(
+                    file_path=str(context.target_file),
+                    pattern=context.pattern,
+                    content_preview=True
+                )
+                if INTEGRATION_AVAILABLE and logger:
+                    logger.info(f"🔍 Pattern analysis: {len(debug_info['matches_found'])} matches found")
+
             if context.dry_run:
                 if INTEGRATION_AVAILABLE and logger:
                     logger.info("DRY RUN: Operation simulation")
-                result = self._simulate_execution(context)
+                return self._simulate_execution(context)
             else:
-                result = self.execute(context)
+                return self.execute(context)
+
+        try:
+            self.execution_stats['total_executions'] += 1
             
+            # Aplicar retry si está disponible y habilitado
+            if (INTEGRATION_AVAILABLE and retry_with_backoff and 
+                context.arguments.get('enable_retry', True)):
+                
+                # Configurar retry basado en argumentos
+                max_attempts = context.arguments.get('retry_attempts', 3)
+                base_delay = context.arguments.get('retry_delay', 1.0)
+                
+                @retry_with_backoff(max_attempts=max_attempts, base_delay=base_delay)
+                def retry_execution():
+                    return _execute_operation()
+                
+                result = retry_execution()
+            else:
+                result = _execute_operation()
+
             result.execution_time = time.time() - start_time
             result.operation_name = self.operation_name
             result.arguments_used = context.arguments
-            
+
             if result.success:
                 self.execution_stats['successful_executions'] += 1
                 if INTEGRATION_AVAILABLE and logger:
@@ -258,21 +298,40 @@ class BaseOperation(ABC):
                 if INTEGRATION_AVAILABLE and logger:
                     logger.operation_end(f"Operation {operation_name}", success=False)
                     logger.error(result.message)
-            
-            self.execution_stats['total_execution_time'] += result.execution_time
-            
+
             return result
-            
+
         except Exception as e:
             execution_time = time.time() - start_time
             self.execution_stats['failed_executions'] += 1
             self.execution_stats['total_execution_time'] += execution_time
-            
-            error_msg = f"Operation failed with exception: {str(e)}"
+
+            # Análisis detallado de fallos con nuevo sistema
+            if INTEGRATION_AVAILABLE and logger and hasattr(logger, 'detailed_failure_analysis'):
+                failure_context = {
+                    'operation': operation_name,
+                    'file': str(context.target_file),
+                    'pattern': getattr(context, 'pattern', None),
+                    'content_length': len(getattr(context, 'content', '') or ''),
+                    'arguments': context.arguments
+                }
+                
+                analysis = logger.detailed_failure_analysis(e, context=failure_context)
+                error_category = logger.log_operation_failure(
+                    operation_name=operation_name,
+                    error=e,
+                    file_path=str(context.target_file),
+                    pattern=getattr(context, 'pattern', None)
+                )
+                
+                error_msg = f"Operation failed [{error_category}]: {str(e)}"
+            else:
+                error_msg = f"Operation failed with exception: {str(e)}"
+                
             if INTEGRATION_AVAILABLE and logger:
                 logger.operation_end(f"Operation {operation_name}", success=False)
                 logger.error(error_msg)
-            
+
             return OperationResult(
                 success=False,
                 operation_type=self.operation_type,
@@ -283,7 +342,6 @@ class BaseOperation(ABC):
                 operation_name=self.operation_name
             )
     
-
     def execute_v53_compatible(self, arguments: Dict[str, Any]) -> OperationResult:
         """
         Execute operation with v5.3 compatibility layer.

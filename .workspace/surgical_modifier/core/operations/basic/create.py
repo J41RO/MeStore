@@ -47,12 +47,12 @@ class CreateOperation(BaseOperation):
     def __init__(self):
         super().__init__(OperationType.CREATE)
 
-    def validate_context(self, context: OperationContext) -> bool:
+    def validate_context(self, context: OperationContext) -> List[str]:
         """Validate that the context is appropriate for create operation"""
         try:
             # Check if target_path is provided
             if not context.target_file:
-                return False
+                return ["Target file path not provided"]
 
             # Check if target_path is valid
             from pathlib import Path
@@ -62,12 +62,12 @@ class CreateOperation(BaseOperation):
             # Check if parent directory can be created/accessed
             try:
                 target_path.parent.mkdir(parents=True, exist_ok=True)
-                return True
+                return []
             except (OSError, PermissionError):
-                return False
+                return ["Target file path not provided"]
 
         except Exception:
-            return False
+            return ["Target file path not provided"]
 
     def can_rollback(self, context: OperationContext) -> bool:
         """Check if the create operation can be rolled back"""
@@ -80,17 +80,17 @@ class CreateOperation(BaseOperation):
 
             # If file doesn't exist, rollback is not needed
             if not target_path.exists():
-                return True
+                return []
 
             # If file exists, check if we have permission to delete it
             try:
                 # Test write permission on parent directory
                 return os.access(target_path.parent, os.W_OK)
             except (OSError, PermissionError):
-                return False
+                return ["Target file path not provided"]
 
         except Exception:
-            return False
+            return ["Target file path not provided"]
 
     def execute(self, context: OperationContext) -> OperationResult:
         """Execute create operation"""
@@ -157,9 +157,9 @@ def create_file(filepath: str, content: str = "") -> bool:
         # Process escape characters before writing
         content = process_content_escapes(content)
         path.write_text(content, encoding="utf-8")
-        return True
+        return []
     except Exception:
-        return False
+        return ["Target file path not provided"]
 
 
 def create_file_with_template(
@@ -174,7 +174,7 @@ def create_file_with_template(
 
         return create_file(filepath, content)
     except Exception:
-        return False
+        return ["Target file path not provided"]
 
 
 def create_file_v53(
