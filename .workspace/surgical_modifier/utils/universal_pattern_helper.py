@@ -468,3 +468,67 @@ class UniversalPatternHelper:
        except Exception as e:
            self.logger.error(f"Error obteniendo patrones compatibles: {e}")
            return {}
+       
+    def process_multiline_patterns(self, pattern: str, convert_newlines: bool = True) -> str:
+       """
+       Procesa patrones que contienen caracteres de nueva línea \n.
+       
+       Args:
+           pattern: Patrón que puede contener \n literales
+           convert_newlines: Si True, convierte \n a saltos de línea reales
+           
+       Returns:
+           Patrón procesado con saltos de línea reales si convert_newlines=True
+       """
+       try:
+           # Cache check
+           cache_key = f"multiline_{pattern}_{convert_newlines}"
+           if cache_key in self.pattern_cache:
+               self.logger.debug(f"Cache hit for multiline pattern: {cache_key[:50]}...")
+               return self.pattern_cache[cache_key]
+           
+           processed_pattern = pattern
+           
+           if convert_newlines:
+               # Convertir \n literales a saltos de línea reales
+               processed_pattern = pattern.replace('\\n', '\n')
+               self.logger.debug(f"Converted \\n to real newlines in pattern")
+           
+           # Validar que el patrón multi-línea sea válido
+           if self._validate_multiline_pattern(processed_pattern):
+               # Almacenar en cache
+               self.pattern_cache[cache_key] = processed_pattern
+               self.logger.info(f"Successfully processed multiline pattern")
+               return processed_pattern
+           else:
+               self.logger.warning(f"Invalid multiline pattern detected")
+               return pattern  # Retornar original si no es válido
+               
+       except Exception as e:
+           self.logger.error(f"Error processing multiline pattern: {e}")
+           return pattern  # Retornar original en caso de error
+   
+    def _validate_multiline_pattern(self, pattern: str) -> bool:
+       """
+       Valida que un patrón multi-línea sea sintácticamente correcto.
+       
+       Args:
+           pattern: Patrón a validar
+           
+       Returns:
+           True si el patrón es válido, False en caso contrario
+       """
+       try:
+           # Verificar que no tenga caracteres de control problemáticos
+           if '\x00' in pattern or '\r\n' in pattern:
+               return False
+           
+           # Verificar que los saltos de línea sean consistentes
+           lines = pattern.split('\n')
+           if len(lines) > 1:
+               self.logger.debug(f"Multiline pattern has {len(lines)} lines")
+           
+           return True
+           
+       except Exception:
+           return False

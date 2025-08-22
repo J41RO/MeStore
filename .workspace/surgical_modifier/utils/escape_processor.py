@@ -437,3 +437,107 @@ class EscapeProcessor:
         except Exception as e:
             self.logger.error(f"Error en integración: {e}")
             return integration_info
+    
+    def process_raw_content(self, content: str, mode: str = 'preserve') -> str:
+        """
+        Procesa contenido con múltiples niveles de escape en modo raw avanzado.
+        
+        Args:
+            content: Contenido con escapes complejos
+            mode: 'preserve' mantiene escapes, 'convert' los procesa, 'auto' decide
+            
+        Returns:
+            Contenido procesado según el modo especificado
+        """
+        try:
+            self.logger.debug(f"Processing raw content in mode: {mode}")
+            
+            if mode == 'preserve':
+                # Mantener todos los escapes intactos
+                return self._preserve_raw_escapes(content)
+            elif mode == 'convert':
+                # Procesar todos los escapes
+                return self._convert_raw_escapes(content)
+            elif mode == 'auto':
+                # Decidir automáticamente basado en el contenido
+                return self._auto_process_raw_content(content)
+            else:
+                self.logger.warning(f"Unknown mode: {mode}, using preserve")
+                return self._preserve_raw_escapes(content)
+                
+        except Exception as e:
+            self.logger.error(f"Error processing raw content: {e}")
+            return content
+    
+    def _preserve_raw_escapes(self, content: str) -> str:
+        """
+        Preserva todos los escapes en el contenido original.
+        
+        Args:
+            content: Contenido original
+            
+        Returns:
+            Contenido con escapes preservados
+        """
+        # Convertir escapes dobles a preservados
+        preserved = content.replace('\\\\', '\x00DOUBLE_BACKSLASH\x00')
+        preserved = preserved.replace('\\"', '\x00ESCAPED_QUOTE\x00')
+        preserved = preserved.replace('\\n', '\x00ESCAPED_NEWLINE\x00')
+        preserved = preserved.replace('\\t', '\x00ESCAPED_TAB\x00')
+        
+        # Restaurar con escapes preservados
+        preserved = preserved.replace('\x00DOUBLE_BACKSLASH\x00', '\\\\')
+        preserved = preserved.replace('\x00ESCAPED_QUOTE\x00', '\\"')
+        preserved = preserved.replace('\x00ESCAPED_NEWLINE\x00', '\\n')
+        preserved = preserved.replace('\x00ESCAPED_TAB\x00', '\\t')
+        
+        return preserved
+    
+    def _convert_raw_escapes(self, content: str) -> str:
+        """
+        Convierte escapes anidados a su forma final.
+        
+        Args:
+            content: Contenido con escapes anidados
+            
+        Returns:
+            Contenido con escapes convertidos
+        """
+        # Procesar escapes anidados paso a paso
+        converted = content
+        
+        # Convertir \\\\ → \\
+        converted = re.sub(r'\\\\\\\\', '\\\\', converted)
+        
+        # Convertir \\n → \n
+        converted = re.sub(r'\\\\n', '\\n', converted)
+        
+        # Convertir \\t → \t  
+        converted = re.sub(r'\\\\t', '\\t', converted)
+        
+        # Convertir \\" → \"
+        converted = re.sub(r'\\\\"', '\\"', converted)
+        
+        return converted
+    
+    def _auto_process_raw_content(self, content: str) -> str:
+        """
+        Decide automáticamente cómo procesar el contenido basado en patrones.
+        
+        Args:
+            content: Contenido a analizar
+            
+        Returns:
+            Contenido procesado automáticamente
+        """
+        # Contar niveles de escape
+        double_backslashes = content.count('\\\\')
+        single_backslashes = content.count('\\') - (double_backslashes * 2)
+        
+        # Si hay muchos escapes dobles, probablemente necesita conversión
+        if double_backslashes > single_backslashes:
+            self.logger.debug("Auto-mode: Converting escapes")
+            return self._convert_raw_escapes(content)
+        else:
+            self.logger.debug("Auto-mode: Preserving escapes")
+            return self._preserve_raw_escapes(content)

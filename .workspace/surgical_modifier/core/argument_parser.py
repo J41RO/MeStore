@@ -235,6 +235,68 @@ def register_common_specs():
         ],
         category="basic"
     )
+    # CÓDIGO PARA AGREGAR AL FINAL DE register_common_specs() antes de argument_parser.register_operation_spec(before_spec)
+
+    # Actualizar REPLACE operation con nuevos flags
+    replace_spec_enhanced = OperationSpec(
+        name="replace",
+        description="Replace a pattern in a file with new content",
+        arguments=[
+            ArgumentSpec("file", str, True, help="Path to the file to modify", example="app.py"),
+            ArgumentSpec("pattern", str, True, help="Pattern to find and replace", example="old_function"),
+            ArgumentSpec("replacement", str, True, help="New content to replace with", example="new_function"),
+            ArgumentSpec("multiline-native", bool, False, False, help="Enable native multiline pattern processing"),
+            ArgumentSpec("raw-mode", str, False, "auto", help="Raw content processing mode", choices=["preserve", "convert", "auto"]),
+            ArgumentSpec("validate-before-insert", bool, False, False, help="Validate content before insertion")
+        ],
+        examples=[
+            "made replace app.py 'old_function' 'new_function'",
+            "made replace config.js 'localhost:3000' 'production.com'",
+            "made replace --multiline-native app.py 'class Test:\\n    pass' 'class NewTest:\\n    def __init__(self): pass'"
+        ],
+        category="enhanced"
+    )
+    argument_parser.register_operation_spec(replace_spec_enhanced)
+
+    # Actualizar AFTER operation con nuevos flags  
+    after_spec_enhanced = OperationSpec(
+        name="after",
+        description="Insert content after a specified pattern in a file",
+        arguments=[
+            ArgumentSpec("file", str, True, help="Path to the file to modify", example="models.py"),
+            ArgumentSpec("pattern", str, True, help="Pattern to find", example="class User:"),
+            ArgumentSpec("content", str, True, help="Content to insert after pattern", example="    email = models.EmailField()"),
+            ArgumentSpec("multiline-native", bool, False, False, help="Enable native multiline pattern processing"),
+            ArgumentSpec("raw-mode", str, False, "auto", help="Raw content processing mode", choices=["preserve", "convert", "auto"]),
+            ArgumentSpec("validate-before-insert", bool, False, False, help="Validate content before insertion")
+        ],
+        examples=[
+            "made after models.py 'class User:' '    email = models.EmailField()'",
+            "made after --validate-before-insert models.py 'class User:' '    def new_method(self): return True'"
+        ],
+        category="enhanced"
+    )
+    argument_parser.register_operation_spec(after_spec_enhanced)
+
+    # Actualizar BEFORE operation con nuevos flags
+    before_spec_enhanced = OperationSpec(
+        name="before", 
+        description="Insert content before a specified pattern in a file",
+        arguments=[
+            ArgumentSpec("file", str, True, help="Path to the file to modify", example="app.py"),
+            ArgumentSpec("pattern", str, True, help="Pattern to find", example="if __name__ == '__main__':"),
+            ArgumentSpec("content", str, True, help="Content to insert before pattern", example="# Setup logging"),
+            ArgumentSpec("multiline-native", bool, False, False, help="Enable native multiline pattern processing"),
+            ArgumentSpec("raw-mode", str, False, "auto", help="Raw content processing mode", choices=["preserve", "convert", "auto"]),
+            ArgumentSpec("validate-before-insert", bool, False, False, help="Validate content before insertion")
+        ],
+        examples=[
+            "made before app.py 'if __name__ == \"__main__\":' '# Setup logging'",
+            "made before --raw-mode preserve script.py 'print(\"test\")' 'import logging'"
+        ],
+        category="enhanced"
+    )
+    argument_parser.register_operation_spec(before_spec_enhanced)
     argument_parser.register_operation_spec(before_spec)
 
 # Initialize common specs

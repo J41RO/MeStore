@@ -134,6 +134,54 @@ class BaseOperation(ABC):
         else:
             processed_content = content
         
+        # CÓDIGO PARA AGREGAR DESPUÉS DE LA LÍNEA: processed_content = content
+        
+        # Integrar nuevos validadores si están disponibles
+        validation_results = {}
+        if kwargs.get('validate_before_insert', False):
+            try:
+                from utils.content_validator import PreInsertionValidator
+                validator = PreInsertionValidator()
+                target_context = kwargs.get('target_context', 'general')
+                is_valid, issues = validator.validate_syntax_compatibility(processed_content, target_context)
+                validation_results['syntax_validation'] = {
+                    'is_valid': is_valid,
+                    'issues': issues
+                }
+                if not is_valid and logger:
+                    logger.warning(f"Content validation failed: {len(issues)} issues found")
+            except ImportError:
+                if logger:
+                    logger.debug("Content validator not available")
+        
+        # Procesar patrones multi-línea si está habilitado
+        if kwargs.get('multiline_native', False):
+            try:
+                from utils.universal_pattern_helper import UniversalPatternHelper
+                helper = UniversalPatternHelper()
+                pattern = kwargs.get('pattern', '')
+                if pattern:
+                    processed_pattern = helper.process_multiline_patterns(pattern)
+                    kwargs['processed_pattern'] = processed_pattern
+                    if logger:
+                        logger.debug("Applied multiline pattern processing")
+            except ImportError:
+                if logger:
+                    logger.debug("Universal pattern helper not available")
+        
+        # Procesar contenido raw si está especificado
+        raw_mode = kwargs.get('raw_mode', 'auto')
+        if raw_mode != 'auto':
+            try:
+                from utils.escape_processor import EscapeProcessor
+                processor = EscapeProcessor()
+                processed_content = processor.process_raw_content(processed_content, mode=raw_mode)
+                if logger:
+                    logger.debug(f"Applied raw content processing in mode: {raw_mode}")
+            except ImportError:
+                if logger:
+                    logger.debug("Escape processor not available")
+        
         framework_context = None
         if INTEGRATION_AVAILABLE and project_context:
             try:

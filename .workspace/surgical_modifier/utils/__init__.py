@@ -48,3 +48,13 @@ __all__.extend(['integration_preparation', 'GitInfo', 'CiCdInfo'])
 __all__.extend(['universal_pattern_helper', 'UniversalPatternHelper'])
 
 from .universal_pattern_helper import UniversalPatternHelper
+
+# Nuevos módulos para manejo robusto de patrones
+from .block_parser import IntelligentBlockParser
+from .content_validator import PreInsertionValidator
+
+# Exportar las nuevas clases
+__all__.extend([
+    'IntelligentBlockParser',
+    'PreInsertionValidator'
+])
