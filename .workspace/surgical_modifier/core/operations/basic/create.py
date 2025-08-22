@@ -90,21 +90,22 @@ class CreateOperation(BaseOperation):
             )
 
 def create_operation(file_path: str, pattern: str, content: str = "", **kwargs) -> Dict[str, Any]:
+
     """Simple create operation function - no classes"""
     try:
         # Crear directorio padre si no existe
-        parent_dir = os.path.dirname(target_path)
+        parent_dir = os.path.dirname(file_path)
         if parent_dir:
             os.makedirs(parent_dir, exist_ok=True)
         
         # Escribir contenido al archivo
-        with open(target_path, 'w', encoding='utf-8') as f:
+        with open(file_path, 'w', encoding='utf-8') as f:
             f.write(content)
         
         return {
             'success': True, 
-            'message': f'File {target_path} created successfully',
-            'target_path': target_path,
+            'message': f'File {file_path} created successfully',
+            'target_path': file_path,
             'content_length': len(content)
         }
     except Exception as e:

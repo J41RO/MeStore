@@ -18,7 +18,7 @@ def main():
     
     try:
         if args.operation == 'create':
-            result = create_operation(args.file, args.content or args.pattern)
+            result = create_operation(args.file, "", args.content or args.pattern)
         elif args.operation == 'replace':
             result = replace_operation(args.file, args.pattern, args.content)
         elif args.operation == 'after':
