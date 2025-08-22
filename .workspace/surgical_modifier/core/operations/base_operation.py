@@ -52,6 +52,8 @@ class OperationType(Enum):
     BEFORE = "before"
     APPEND = "append"
     DELETE = "delete"
+    EXTRACT = "extract"
+    UPDATE = "update"
     MOVE = "move"
     COPY = "copy"
 

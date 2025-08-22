@@ -23,12 +23,44 @@ from ..base_operation import (
 
 try:
     from utils.logger import logger
-
     LOGGING_AVAILABLE = True
 except ImportError:
     LOGGING_AVAILABLE = False
     logger = None
 
+def before_operation(target_path: str, pattern: str, content: str, **kwargs):
+    """Simple before operation function - no classes"""
+    try:
+        # Leer archivo
+        with open(target_path, 'r', encoding='utf-8') as f:
+            file_content = f.read()
+        
+        # Buscar patrón e insertar antes
+        if pattern in file_content:
+            # Insertar contenido antes del patrón
+            new_content = file_content.replace(pattern, content + pattern)
+            
+            # Escribir archivo modificado
+            with open(target_path, 'w', encoding='utf-8') as f:
+                f.write(new_content)
+            
+            return {
+                'success': True,
+                'message': f'Inserted content before pattern in {target_path}',
+                'target_path': target_path
+            }
+        else:
+            return {
+                'success': False,
+                'error': f'Pattern not found in {target_path}',
+                'target_path': target_path
+            }
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e),
+            'target_path': target_path
+        }
 
 class BeforeOperation(BaseOperation):
     """
@@ -60,7 +92,6 @@ class BeforeOperation(BaseOperation):
         if not hasattr(self, "_ArgumentSpec_available"):
             try:
                 from ..base_operation import ArgumentSpec
-
                 self._ArgumentSpec_available = True
             except ImportError:
                 self._ArgumentSpec_available = False
@@ -321,7 +352,10 @@ class BeforeOperation(BaseOperation):
                     line, pattern, regex_mode, case_sensitive
                 ):
                     # Prepare content to insert
-                    content_to_insert = process_content_escapes(insertion)
+                    try:
+                        content_to_insert = process_content_escapes(insertion)
+                    except:
+                        content_to_insert = insertion
 
                     # Preserve indentation if requested
                     if preserve_indentation:
@@ -553,12 +587,7 @@ class BeforeOperation(BaseOperation):
                 logger.error(f"BEFORE rollback failed: {e}")
             return False
 
-
-# Global BEFORE operation instance
-before_operation = BeforeOperation()
-
 # ========== CONVENIENCE FUNCTIONS ==========
-
 
 def insert_before(
     target_file: str, pattern: str, content: str, **kwargs
@@ -575,11 +604,11 @@ def insert_before(
     Returns:
         OperationResult with insertion details
     """
-    context = before_operation.prepare_context(
+    operation = BeforeOperation()
+    context = operation.prepare_context(
         target_file, content, position_marker=pattern, **kwargs
     )
-    return before_operation.execute_with_logging(context)
-
+    return operation.execute_with_logging(context)
 
 def insert_before_regex(
     target_file: str, pattern: str, content: str, **kwargs
@@ -599,7 +628,6 @@ def insert_before_regex(
     kwargs["regex_mode"] = True
     return insert_before(target_file, pattern, content, **kwargs)
 
-
 # v5.3 Compatibility functions
 def insert_before_v53(
     file_path: str, pattern: str, content: str, regex_mode: bool = False, **kwargs
@@ -617,6 +645,7 @@ def insert_before_v53(
     Returns:
         OperationResult with v5.3 compatibility
     """
-    return before_operation.insert_before_v53(
+    operation = BeforeOperation()
+    return operation.insert_before_v53(
         file_path, pattern, content, regex_mode, **kwargs
     )

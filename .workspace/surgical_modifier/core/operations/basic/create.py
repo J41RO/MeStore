@@ -90,23 +90,29 @@ class CreateOperation(BaseOperation):
             )
 
 def create_operation(target_path: str, content: str = "", **kwargs) -> Dict[str, Any]:
-    """Main create operation function"""
-    operation = CreateOperation()
-    context = OperationContext(
-        project_root=Path.cwd(),
-        target_file=Path(target_path),
-        operation_type=OperationType.CREATE,
-        content=content,
-    )
-    result = operation.execute(context)
-    
-    return {
-        "success": result.success,
-        "message": result.message,
-        "error": result.error,
-        "operation_type": result.operation_type.value,
-        "target_path": result.target_path,
-    }
+    """Simple create operation function - no classes"""
+    try:
+        # Crear directorio padre si no existe
+        parent_dir = os.path.dirname(target_path)
+        if parent_dir:
+            os.makedirs(parent_dir, exist_ok=True)
+        
+        # Escribir contenido al archivo
+        with open(target_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        
+        return {
+            'success': True, 
+            'message': f'File {target_path} created successfully',
+            'target_path': target_path,
+            'content_length': len(content)
+        }
+    except Exception as e:
+        return {
+            'success': False, 
+            'error': str(e),
+            'target_path': target_path
+        }
 
 def create_file(filepath: str, content: str = "") -> bool:
     """Simple file creation function"""
@@ -115,11 +121,15 @@ def create_file(filepath: str, content: str = "") -> bool:
         path.parent.mkdir(parents=True, exist_ok=True)
         
         # Use ContentHandler v5.3 for proper escape processing
-        from utils.content_handler import create_content_handler
-        handler = create_content_handler(content, filepath, "create")
-        processed_content, temp_file = handler.get_safe_content()
+        try:
+            from utils.content_handler import create_content_handler
+            handler = create_content_handler(content, filepath, "create")
+            processed_content, temp_file = handler.get_safe_content()
+            path.write_text(processed_content, encoding="utf-8")
+        except ImportError:
+            # Fallback si content_handler no está disponible
+            path.write_text(content, encoding="utf-8")
         
-        path.write_text(processed_content, encoding="utf-8")
         return True
     except Exception:
         return False
@@ -155,11 +165,15 @@ def create_file_v53(
         path.parent.mkdir(parents=True, exist_ok=True)
         
         # Use ContentHandler v5.3 for proper escape processing
-        from utils.content_handler import create_content_handler
-        handler = create_content_handler(content, str(path), "create")
-        processed_content, temp_file = handler.get_safe_content()
-        
-        path.write_text(processed_content, encoding="utf-8")
+        try:
+            from utils.content_handler import create_content_handler
+            handler = create_content_handler(content, str(path), "create")
+            processed_content, temp_file = handler.get_safe_content()
+            path.write_text(processed_content, encoding="utf-8")
+        except ImportError:
+            # Fallback si content_handler no está disponible
+            path.write_text(content, encoding="utf-8")
+            processed_content = content
         
         return {
             "success": True,

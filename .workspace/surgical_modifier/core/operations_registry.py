@@ -35,7 +35,7 @@ class OperationsRegistry:
             'collaboration': []
         }
         self.click_commands: Dict[str, click.Command] = {}
-        
+
     def discover_operations(self) -> int:
         """
         Discover all operations in the operations directory structure
@@ -43,10 +43,72 @@ class OperationsRegistry:
         """
         operations_dir = Path(__file__).parent / 'operations'
         discovered = 0
-        
+
         # Check if operations directory exists
         if not operations_dir.exists():
             return 0
+
+        # Discover operations in basic category
+        basic_dir = operations_dir / 'basic'
+        if basic_dir.exists():
+            discovered += self._discover_category_operations(basic_dir, 'basic')
+
+        # Discover operations in advanced category
+        advanced_dir = operations_dir / 'advanced'
+        if advanced_dir.exists():
+            discovered += self._discover_category_operations(advanced_dir, 'advanced')
+
+        return discovered
+
+    def _discover_category_operations(self, category_dir: Path, category: str) -> int:
+        """Discover operations in a specific category directory"""
+        discovered = 0
+        
+        for py_file in category_dir.glob('*.py'):
+            if py_file.name.startswith('__'):
+                continue
+                
+            module_name = py_file.stem
+            try:
+                # Import the module
+                module_path = f'core.operations.{category}.{module_name}'
+                module = importlib.import_module(module_path)
+                
+                # Look for operation classes
+                for name, obj in inspect.getmembers(module, inspect.isclass):
+                    if name.endswith('Operation') and hasattr(obj, 'execute'):
+                        operation_name = name.lower().replace('operation', '')
+                        
+                        # Create operation metadata
+                        operation_meta = OperationMeta(
+                            name=operation_name,
+                            module_path=module_path,
+                            class_obj=obj,
+                            category=category
+                        )
+                        
+                        # Register the operation
+                        self.operations[operation_name] = operation_meta
+                        self.categories[category].append(operation_name)
+                        discovered += 1
+                        
+            except Exception as e:
+                # Skip modules that can't be imported
+                continue
+                
+        return discovered
+
+    def get_operation(self, name: str) -> Optional[OperationMeta]:
+        """Get operation metadata by name"""
+        return self.operations.get(name)
+
+    def list_operations(self) -> List[str]:
+        """List all registered operation names"""
+        return list(self.operations.keys())
+
+    def get_categories(self) -> Dict[str, List[str]]:
+        """Get operations organized by category"""
+        return self.categories.copy()
         
 
 
@@ -134,6 +196,9 @@ def enhance_operations_registry(registry_instance):
 
     return registry_instance
 
+
 # Create enhanced global instance
 operations_registry = OperationsRegistry()
+# Auto-discover operations when registry is created
+operations_registry.discover_operations()
 # enhanced_operations_registry = enhance_operations_registry(operations_registry)# [CÓDIGO DE INTEGRACIÓN QUE PROPORCIONÉ]

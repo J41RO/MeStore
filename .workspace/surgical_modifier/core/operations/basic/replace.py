@@ -20,6 +20,39 @@ except ImportError:
     LOGGING_AVAILABLE = False
     logger = None
 
+def replace_operation(target_path: str, pattern: str, replacement: str, **kwargs):
+    """Simple replace operation function - no classes"""
+    try:
+        # Leer archivo
+        with open(target_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        # Realizar reemplazo
+        if pattern in content:
+            new_content = content.replace(pattern, replacement)
+
+            # Escribir archivo modificado
+            with open(target_path, 'w', encoding='utf-8') as f:
+                f.write(new_content)
+
+            return {
+                'success': True,
+                'message': f'Replaced pattern in {target_path}',
+                'target_path': target_path
+            }
+        else:
+            return {
+                'success': False,
+                'error': f'Pattern not found in {target_path}',
+                'target_path': target_path
+            }
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e),
+            'target_path': target_path
+        }
+
 class ReplaceOperation(BaseOperation):
     """
     REPLACE operation implementation with full integration.
@@ -425,9 +458,6 @@ class ReplaceOperation(BaseOperation):
                 logger.error(f"REPLACE rollback failed: {e}")
             return False
 
-# Global REPLACE operation instance
-replace_operation = ReplaceOperation()
-
 # ========== CONVENIENCE FUNCTIONS ==========
 
 def replace_content(target_file: str, pattern: str, replacement: str, **kwargs) -> OperationResult:
@@ -443,12 +473,13 @@ def replace_content(target_file: str, pattern: str, replacement: str, **kwargs) 
     Returns:
         OperationResult with replacement details
     """
-    context = replace_operation.prepare_context(
+    operation = ReplaceOperation()
+    context = operation.prepare_context(
         target_file, replacement, 
         position_marker=pattern, 
         **kwargs
     )
-    return replace_operation.execute_with_logging(context)
+    return operation.execute_with_logging(context)
 
 def replace_content_regex(target_file: str, pattern: str, replacement: str, **kwargs) -> OperationResult:
     """
@@ -482,4 +513,5 @@ def replace_content_v53(file_path: str, pattern: str, replacement: str,
     Returns:
         OperationResult with v5.3 compatibility
     """
-    return replace_operation.replace_content_v53(file_path, pattern, replacement, regex_mode, **kwargs)
+    operation = ReplaceOperation()
+    return operation.replace_content_v53(file_path, pattern, replacement, regex_mode, **kwargs)

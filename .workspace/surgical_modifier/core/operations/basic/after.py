@@ -23,12 +23,44 @@ from ..base_operation import (
 
 try:
     from utils.logger import logger
-
     LOGGING_AVAILABLE = True
 except ImportError:
     LOGGING_AVAILABLE = False
     logger = None
 
+def after_operation(target_path: str, pattern: str, content: str, **kwargs):
+    """Simple after operation function - no classes"""
+    try:
+        # Leer archivo
+        with open(target_path, 'r', encoding='utf-8') as f:
+            file_content = f.read()
+        
+        # Buscar patrón e insertar después
+        if pattern in file_content:
+            # Insertar contenido después del patrón
+            new_content = file_content.replace(pattern, pattern + content)
+            
+            # Escribir archivo modificado
+            with open(target_path, 'w', encoding='utf-8') as f:
+                f.write(new_content)
+            
+            return {
+                'success': True,
+                'message': f'Inserted content after pattern in {target_path}',
+                'target_path': target_path
+            }
+        else:
+            return {
+                'success': False,
+                'error': f'Pattern not found in {target_path}',
+                'target_path': target_path
+            }
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e),
+            'target_path': target_path
+        }
 
 class AfterOperation(BaseOperation):
     """
@@ -60,7 +92,6 @@ class AfterOperation(BaseOperation):
         if not hasattr(self, "_ArgumentSpec_available"):
             try:
                 from ..base_operation import ArgumentSpec
-
                 self._ArgumentSpec_available = True
             except ImportError:
                 self._ArgumentSpec_available = False
@@ -323,7 +354,6 @@ class AfterOperation(BaseOperation):
                     line, pattern, regex_mode, case_sensitive
                 ):
                     # Prepare content to insert
-                    # content_to_insert = process_content_escapes(insertion)  # BUGFIX
                     content_to_insert = insertion
 
                     # Preserve indentation if requested
@@ -551,12 +581,7 @@ class AfterOperation(BaseOperation):
                 logger.error(f"AFTER rollback failed: {e}")
             return False
 
-
-# Global AFTER operation instance
-after_operation = AfterOperation()
-
 # ========== CONVENIENCE FUNCTIONS ==========
-
 
 def insert_after(
     target_file: str, pattern: str, content: str, **kwargs
@@ -573,11 +598,11 @@ def insert_after(
     Returns:
         OperationResult with insertion details
     """
-    context = after_operation.prepare_context(
+    operation = AfterOperation()
+    context = operation.prepare_context(
         target_file, content, position_marker=pattern, **kwargs
     )
-    return after_operation.execute_with_logging(context)
-
+    return operation.execute_with_logging(context)
 
 def insert_after_regex(
     target_file: str, pattern: str, content: str, **kwargs
@@ -597,7 +622,6 @@ def insert_after_regex(
     kwargs["regex_mode"] = True
     return insert_after(target_file, pattern, content, **kwargs)
 
-
 # v5.3 Compatibility functions
 def insert_after_v53(
     file_path: str, pattern: str, content: str, regex_mode: bool = False, **kwargs
@@ -615,6 +639,7 @@ def insert_after_v53(
     Returns:
         OperationResult with v5.3 compatibility
     """
-    return after_operation.insert_after_v53(
+    operation = AfterOperation()
+    return operation.insert_after_v53(
         file_path, pattern, content, regex_mode, **kwargs
     )

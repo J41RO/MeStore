@@ -20,6 +20,25 @@ except ImportError:
     LOGGING_AVAILABLE = False
     logger = None
 
+def append_operation(target_path: str, content: str, **kwargs):
+    """Simple append operation function - no classes"""
+    try:
+        # Agregar contenido al final del archivo
+        with open(target_path, 'a', encoding='utf-8') as f:
+            f.write(content)
+        
+        return {
+            'success': True,
+            'message': f'Appended content to {target_path}',
+            'target_path': target_path
+        }
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e),
+            'target_path': target_path
+        }
+
 class AppendOperation(BaseOperation):
     """
     APPEND operation implementation with full integration.
@@ -238,7 +257,10 @@ class AppendOperation(BaseOperation):
             result += separator
         
         # Add the actual content (with escape processing)
-        processed_content = process_content_escapes(content)
+        try:
+            processed_content = process_content_escapes(content)
+        except:
+            processed_content = content
         result += processed_content
         
         return result
@@ -271,7 +293,7 @@ class AppendOperation(BaseOperation):
             errors.append("Content to append is required")
         
         # Validate content encoding
-        if context.validate_content and context.content:
+        if hasattr(context, 'validate_content') and context.validate_content and context.content:
             try:
                 context.content.encode('utf-8')
             except UnicodeEncodeError:
@@ -350,9 +372,6 @@ class AppendOperation(BaseOperation):
                 logger.error(f"APPEND rollback failed: {e}")
             return False
 
-# Global APPEND operation instance
-append_operation = AppendOperation()
-
 # ========== CONVENIENCE FUNCTIONS ==========
 
 def append_content(target_file: str, content: str, **kwargs) -> OperationResult:
@@ -367,8 +386,9 @@ def append_content(target_file: str, content: str, **kwargs) -> OperationResult:
     Returns:
         OperationResult with append details
     """
-    context = append_operation.prepare_context(target_file, content, **kwargs)
-    return append_operation.execute_with_logging(context)
+    operation = AppendOperation()
+    context = operation.prepare_context(target_file, content, **kwargs)
+    return operation.execute_with_logging(context)
 
 def append_with_separator(target_file: str, content: str, separator: str = "\n\n", **kwargs) -> OperationResult:
     """
@@ -401,4 +421,5 @@ def append_content_v53(file_path: str, content: str,
     Returns:
         OperationResult with v5.3 compatibility
     """
-    return append_operation.append_content_v53(file_path, content, add_newline, **kwargs)
+    operation = AppendOperation()
+    return operation.append_content_v53(file_path, content, add_newline, **kwargs)
