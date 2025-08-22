@@ -57,6 +57,9 @@ class EscapeProcessor:
             "malformed_unicode": re.compile(r"\\u([0-9a-fA-F]{1,3})(?![0-9a-fA-F])"),
             "broken_json_escape": re.compile(r'\\"'),
             "incorrect_newlines": re.compile(r"\\n"),
+            "tab_literals": re.compile(r"(?<!\\)\\t"),
+            "quote_literals": re.compile(r'(?<!\\)\\"'),
+            "single_quote_literals": re.compile(r"(?<!\\)\\'"),
         }
 
         self.correction_config = {
@@ -100,10 +103,25 @@ class EscapeProcessor:
                     "\\n", content
                 )
                 corrections_made += 1
+
             elif issue_type == "newline_escapes":
-                    content = self.fix_newline_escapes(content)
-                    corrections_made += 1
-                
+                content = self.fix_newline_escapes(content)
+                corrections_made += 1
+
+            elif issue_type == "tab_escapes":
+                content = self.fix_tab_escapes(content)
+                corrections_made += 1
+
+            elif issue_type == "quote_escapes":
+                content = self.fix_quote_escapes(content)
+                corrections_made += 1
+
+            elif issue_type == "literal_escapes":
+                # Procesar todos los literales: tabs, comillas dobles y simples
+                content = self.fix_tab_escapes(content)
+                content = self.fix_quote_escapes(content)
+                corrections_made += 2
+
             if self.correction_config["log_corrections"] and corrections_made > 0:
                 self.logger.info(
                     f"fix_escape_issues: {corrections_made} correcciones aplicadas para {issue_type}"
@@ -118,6 +136,121 @@ class EscapeProcessor:
                 if self.correction_config["preserve_original"]
                 else content
             )
+
+    def fix_newline_escapes(self, content: str) -> str:
+        """
+        Corrige escapes de newlines específicos usando regex lookbehind.
+
+        Aplica el regex específico: re.sub(r"(?<!\\)\\n", "\n", content)
+        Convierte \\n a newline real, pero preserva \\\\n escapado.
+
+        Args:
+            content (str): Contenido a procesar
+
+        Returns:
+            str: Contenido con newlines corregidos
+
+        Example:
+            >>> processor = EscapeProcessor()
+            >>> processor.fix_newline_escapes("Normal\\nNewline")
+            'Normal\nNewline'
+            >>> processor.fix_newline_escapes("Escaped\\\\nNewline")
+            'Escaped\\\\nNewline'
+        """
+        if not content:
+            return content
+
+        try:
+            self.logger.debug(
+                f"Procesando newline escapes en contenido de {len(content)} caracteres"
+            )
+
+            # Aplicar regex específico del TODO crítico
+            processed_content = re.sub(r"(?<!\\)\\n", "\n", content)
+
+            # Contar correcciones realizadas
+            original_count = content.count("\\n")
+            processed_count = processed_content.count("\\n")
+            corrections = original_count - processed_count
+
+            if corrections > 0:
+                self.logger.info(
+                    f"fix_newline_escapes: {corrections} newlines corregidos"
+                )
+
+            return processed_content
+
+        except Exception as e:
+            self.logger.error(f"Error en fix_newline_escapes: {e}")
+            return content
+
+    def fix_tab_escapes(self, content: str) -> str:
+        """
+        Procesa escapes de tabs literales: convierte \\t a \t real.
+
+        Args:
+            content (str): Contenido con potenciales escapes de tabs
+
+        Returns:
+            str: Contenido con tabs procesados correctamente
+
+        Examples:
+            >>> processor = EscapeProcessor()
+            >>> processor.fix_tab_escapes('Content\\twith\\ttabs')
+            'Content\twith\ttabs'
+        """
+        if not content:
+            return content
+
+        self.logger.debug(f"Processing tab escapes in content: {repr(content[:50])}")
+
+        try:
+            # Usar regex exacto de la función auxiliar: convierte \\t a \t real
+            result = re.sub(r"(?<!\\)\\t", "\t", content)
+
+            self.logger.debug(f"Tab escape processing completed: {repr(result[:50])}")
+            return result
+
+        except Exception as e:
+            self.logger.error(f"Error processing tab escapes: {e}")
+            return content
+
+    def fix_quote_escapes(self, content: str) -> str:
+        """
+        Procesa escapes de comillas literales: convierte \\" a " real y \\' a ' real.
+
+        Args:
+            content (str): Contenido con potenciales escapes de comillas
+
+        Returns:
+            str: Contenido con comillas procesadas correctamente
+
+        Examples:
+            >>> processor = EscapeProcessor()
+            >>> processor.fix_quote_escapes('Content\\"with\\"quotes')
+            'Content"with"quotes'
+            >>> processor.fix_quote_escapes("Content\\'with\\'quotes")
+            "Content'with'quotes"
+        """
+        if not content:
+            return content
+
+        self.logger.debug(f"Processing quote escapes in content: {repr(content[:50])}")
+
+        try:
+            # Usar regex exactos de la función auxiliar
+            # Procesar comillas dobles: \\" a " real
+            result = re.sub(r'(?<!\\)\\"', '"', content)
+
+            # Procesar comillas simples: \\' a ' real
+            result = re.sub(r"(?<!\\)\\'", "'", result)
+
+            self.logger.debug(f"Quote escape processing completed: {repr(result[:50])}")
+            return result
+
+        except Exception as e:
+            self.logger.error(f"Error processing quote escapes: {e}")
+            return content
 
     def analyze_escape_patterns(self, content: str) -> dict:
         """Analiza patrones de escape en contenido."""
@@ -145,46 +278,6 @@ class EscapeProcessor:
         except Exception as e:
             self.logger.error(f"Error en analyze_escape_patterns: {e}")
             return analysis
-
-    def fix_newline_escapes(self, content: str) -> str:
-        """
-        Corrige escapes de newlines específicos usando regex lookbehind.
-        
-        Aplica el regex específico: re.sub(r"(?<!\\)\\n", "\n", content)
-        Convierte \\n a newline real, pero preserva \\\\n escapado.
-        
-        Args:
-            content (str): Contenido a procesar
-            
-        Returns:
-            str: Contenido con newlines corregidos
-            
-        Example:
-            >>> processor = EscapeProcessor()
-            >>> processor.fix_newline_escapes("Normal\\nNewline")
-            'Normal\nNewline'
-            >>> processor.fix_newline_escapes("Escaped\\\\nNewline") 
-            'Escaped\\\\nNewline'
-        """
-        try:
-            self.logger.debug(f"Procesando newline escapes en contenido de {len(content)} caracteres")
-            
-            # Aplicar regex específico del TODO crítico
-            processed_content = re.sub(r"(?<!\\)\\n", "\n", content)
-            
-            # Contar correcciones realizadas
-            original_count = content.count('\\n')
-            processed_count = processed_content.count('\\n')
-            corrections = original_count - processed_count
-            
-            if corrections > 0:
-                self.logger.info(f"fix_newline_escapes: {corrections} newlines corregidos")
-            
-            return processed_content
-            
-        except Exception as e:
-            self.logger.error(f"Error en fix_newline_escapes: {e}")
-            return content
 
     def validate_escape_integrity(self, content: str) -> dict:
         """Valida integridad de secuencias de escape."""
@@ -242,6 +335,27 @@ class EscapeProcessor:
                         "issue": "malformed_unicode",
                         "description": "Secuencias Unicode malformadas",
                         "correction": 'fix_escape_issues(content, "malformed_unicode")',
+                    }
+                )
+
+            if "tab_literals" in analysis["escape_types"]:
+                suggestions.append(
+                    {
+                        "issue": "tab_escapes",
+                        "description": "Tabs literales detectados",
+                        "correction": 'fix_escape_issues(content, "tab_escapes")',
+                    }
+                )
+
+            if (
+                "quote_literals" in analysis["escape_types"]
+                or "single_quote_literals" in analysis["escape_types"]
+            ):
+                suggestions.append(
+                    {
+                        "issue": "quote_escapes",
+                        "description": "Comillas literales detectadas",
+                        "correction": 'fix_escape_issues(content, "quote_escapes")',
                     }
                 )
 

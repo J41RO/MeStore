@@ -1,0 +1,2 @@
+            result = re.sub(r"(?<!\\)\\t", "\t", content)
+            return result

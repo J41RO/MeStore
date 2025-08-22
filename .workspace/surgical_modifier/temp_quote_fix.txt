@@ -1,0 +1,7 @@
+            # Procesar comillas dobles: \\" a " real
+            result = re.sub(r'(?<!\\)\\"', '"', content)
+            
+            # Procesar comillas simples: \\' a ' real  
+            result = re.sub(r"(?<!\\)\\'", "'", result)
+            
+            self.logger.debug(f"Quote escape processing completed: {repr(result[:50])}")

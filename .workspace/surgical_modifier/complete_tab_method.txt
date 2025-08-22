@@ -1,0 +1,10 @@
+    def fix_tab_escapes(self, content: str) -> str:
+        """Procesa escapes de tabs: convierte \\t a \t real."""
+        if not content:
+            return content
+        try:
+            result = re.sub(r"(?<!\\)\\t", "\t", content)
+            return result
+        except Exception as e:
+            self.logger.error(f"Error processing tab escapes: {e}")
+            return content
