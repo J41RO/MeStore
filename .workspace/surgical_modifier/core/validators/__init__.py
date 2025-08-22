@@ -1,27 +1,19 @@
-"""
-Módulo de validadores de integridad estructural.
+# Validators module for Surgical Modifier v6.0
 
-Proporciona validación automática de código Python antes y después
-de operaciones de modificación, con capacidades de rollback automático.
-"""
-
-from .structural_validator import StructuralValidator
-from .rollback_manager import RollbackManager
 from .integration_validator import (
-    validate_structural_integrity,
     StructuralIntegrityError,
-    manual_structural_validation
+    manual_structural_validation,
+    validate_structural_integrity,
 )
+from .rollback_manager import RollbackManager
+from .structural_validator import StructuralValidator
+from .typescript_validator import TypeScriptValidator
 
 __all__ = [
-    'StructuralValidator',
-    'RollbackManager', 
-    'validate_structural_integrity',
-    'StructuralIntegrityError',
-    'manual_structural_validation'
+    "TypeScriptValidator",
+    "StructuralValidator",
+    "RollbackManager",
+    "validate_structural_integrity",
+    "manual_structural_validation",
+    "StructuralIntegrityError",
 ]
-
-# Información del módulo
-__version__ = '1.0.0'
-__author__ = 'Surgical Modifier Team'
-__description__ = 'Sistema de validación de integridad estructural para código Python'

@@ -1,5 +1,6 @@
 def función_modificada():
-    return 'valor original'
+    return "valor original"
+
 
 class MiClase:
     # Comentario añadido después de la clase
