@@ -100,7 +100,10 @@ class EscapeProcessor:
                     "\\n", content
                 )
                 corrections_made += 1
-
+            elif issue_type == "newline_escapes":
+                    content = self.fix_newline_escapes(content)
+                    corrections_made += 1
+                
             if self.correction_config["log_corrections"] and corrections_made > 0:
                 self.logger.info(
                     f"fix_escape_issues: {corrections_made} correcciones aplicadas para {issue_type}"
@@ -142,6 +145,46 @@ class EscapeProcessor:
         except Exception as e:
             self.logger.error(f"Error en analyze_escape_patterns: {e}")
             return analysis
+
+    def fix_newline_escapes(self, content: str) -> str:
+        """
+        Corrige escapes de newlines específicos usando regex lookbehind.
+        
+        Aplica el regex específico: re.sub(r"(?<!\\)\\n", "\n", content)
+        Convierte \\n a newline real, pero preserva \\\\n escapado.
+        
+        Args:
+            content (str): Contenido a procesar
+            
+        Returns:
+            str: Contenido con newlines corregidos
+            
+        Example:
+            >>> processor = EscapeProcessor()
+            >>> processor.fix_newline_escapes("Normal\\nNewline")
+            'Normal\nNewline'
+            >>> processor.fix_newline_escapes("Escaped\\\\nNewline") 
+            'Escaped\\\\nNewline'
+        """
+        try:
+            self.logger.debug(f"Procesando newline escapes en contenido de {len(content)} caracteres")
+            
+            # Aplicar regex específico del TODO crítico
+            processed_content = re.sub(r"(?<!\\)\\n", "\n", content)
+            
+            # Contar correcciones realizadas
+            original_count = content.count('\\n')
+            processed_count = processed_content.count('\\n')
+            corrections = original_count - processed_count
+            
+            if corrections > 0:
+                self.logger.info(f"fix_newline_escapes: {corrections} newlines corregidos")
+            
+            return processed_content
+            
+        except Exception as e:
+            self.logger.error(f"Error en fix_newline_escapes: {e}")
+            return content
 
     def validate_escape_integrity(self, content: str) -> dict:
         """Valida integridad de secuencias de escape."""

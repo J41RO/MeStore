@@ -99,6 +99,32 @@ class TestEscapeProcessor:
         assert 'handler_available' in integration
         assert 'integration_methods' in integration
 
+    def test_fix_newline_escapes_specific(self):
+        """Test específico para regex: re.sub(r"(?<!\\)\\n", "\n", content)"""
+        processor = EscapeProcessor()
+        
+        # Test caso normal: \\n debe convertirse a \n
+        test1 = "Normal\\nNewline"
+        result1 = processor.fix_newline_escapes(test1)
+        assert result1 == "Normal\nNewline"
+        
+        # Test caso escapado: \\\\n NO debe convertirse
+        test2 = "Escaped\\\\nNewline"  
+        result2 = processor.fix_newline_escapes(test2)
+        assert result2 == "Escaped\\\\nNewline"
+        
+        # Test caso mixto
+        test3 = "Normal\\nAndEscaped\\\\nMixed"
+        result3 = processor.fix_newline_escapes(test3)
+        assert result3 == "Normal\nAndEscaped\\\\nMixed"
 
+    def test_fix_escape_issues_newline_type(self):
+        """Test integración con fix_escape_issues"""
+        processor = EscapeProcessor()
+        test_content = "Test\\nContent"
+        result = processor.fix_escape_issues(test_content, 'newline_escapes')
+        assert "\n" in result  # Debe contener newline real
+        assert result == "Test\nContent"
+        
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])
