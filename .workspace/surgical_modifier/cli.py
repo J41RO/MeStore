@@ -401,6 +401,8 @@ def before(
 )
 @click.option("--verbose", "-V", is_flag=True, help="Show detailed output")
 def append(filepath, content, add_newline, separator, verbose):
+    # Process escape characters in content argument
+    content = process_content_escapes(content)
     """Append content to the end of a file
 
     Examples:

@@ -6,6 +6,7 @@ Append content to existing files with integration to existing architecture and v
 import os
 from typing import List, Optional
 from pathlib import Path
+from utils.escape_processor import process_content_escapes
 
 from ..base_operation import (
     BaseOperation, OperationType, OperationContext, OperationResult,
@@ -237,7 +238,7 @@ class AppendOperation(BaseOperation):
             result += separator
         
         # Add the actual content (with escape processing)
-        processed_content = self._process_escape_characters(content)
+        processed_content = process_content_escapes(content)
         result += processed_content
         
         return result

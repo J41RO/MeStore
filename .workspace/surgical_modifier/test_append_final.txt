@@ -1,0 +1,4 @@
+Contenido inicial
+
+Línea nueva con salto
+Segunda línea nueva
