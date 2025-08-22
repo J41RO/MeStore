@@ -1,0 +1,3 @@
+# Test file created by Surgical Modifier
+This is a MODIFIED.
+\\n# Appended content\\nThis line was appended.

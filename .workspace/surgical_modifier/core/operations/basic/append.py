@@ -191,6 +191,27 @@ class AppendOperation(BaseOperation):
                 {'unexpected_error': str(e)}
             )
     
+    def _process_escape_characters(self, content: str) -> str:
+        """
+        Process escape characters in content to convert them to actual characters.
+        
+        Args:
+            content: Content that may contain escape sequences
+            
+        Returns:
+            Content with escape sequences converted to actual characters
+        """
+        if not content:
+            return content
+            
+        # Replace common escape sequences - using raw strings to avoid issues
+        processed_content = content.replace('\\n', '\n')   # \n -> actual newline
+        processed_content = processed_content.replace('\\t', '\t')   # \t -> actual tab  
+        processed_content = processed_content.replace('\\r', '\r')   # \r -> carriage return
+        processed_content = processed_content.replace('\\\\', '\\')  # \\ -> single backslash
+        
+        return processed_content
+
     def _prepare_append_content(self, original_content: str, content: str, 
                               add_newline: bool, separator: str) -> str:
         """
@@ -215,8 +236,9 @@ class AppendOperation(BaseOperation):
         if separator:
             result += separator
         
-        # Add the actual content
-        result += content
+        # Add the actual content (with escape processing)
+        processed_content = self._process_escape_characters(content)
+        result += processed_content
         
         return result
     

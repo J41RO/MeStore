@@ -66,7 +66,7 @@ docs = [
 ]
 
 [project.scripts]
-made = "surgical_modifier.__main__:main"
+made = "surgical_modifier_cli:main"
 
 [project.entry-points."surgical_modifier.plugins"]
 # Future plugin system will register here
