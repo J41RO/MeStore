@@ -159,10 +159,10 @@ class BaseOperation(ABC):
 
         processed_content = None
         if content and INTEGRATION_AVAILABLE and content_handler:
-            content_result = content_handler.prepare_content(
-                content, validate=kwargs.get("validate_content", True)
+            content_result = content_handler.get_safe_content(
+                
             )
-            processed_content = content_result["processed_content"]
+            processed_content = content_result[0]  # get_safe_content() returns (content, None)
         else:
             processed_content = content
 
