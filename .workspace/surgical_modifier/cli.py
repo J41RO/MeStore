@@ -26,7 +26,7 @@ def main():
         elif args.operation == 'before':
             result = before_operation(args.file, args.pattern, args.content)
         elif args.operation == 'append':
-            result = append_operation(args.file, args.content or args.pattern)
+            result = append_operation(args.file, args.pattern, args.content)
         elif args.operation == 'extract':
             # Implementación simple de extract
             with open(args.file, 'r', encoding='utf-8') as f:

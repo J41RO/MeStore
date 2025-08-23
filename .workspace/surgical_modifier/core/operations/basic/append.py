@@ -24,19 +24,19 @@ def append_operation(file_path: str, pattern: str, content: str, **kwargs):
     """Simple append operation function - follows standard signature (file_path, pattern, content, **kwargs)"""
     try:
         # Agregar contenido al final del archivo
-        with open(target_path, 'a', encoding='utf-8') as f:
+        with open(file_path, 'a', encoding='utf-8') as f:
             f.write(content)
         
         return {
             'success': True,
-            'message': f'Appended content to {target_path}',
-            'target_path': target_path
+            'message': f'Appended content to {file_path}',
+            'file_path': file_path
         }
     except Exception as e:
         return {
             'success': False,
             'error': str(e),
-            'target_path': target_path
+            'file_path': file_path
         }
 
 class AppendOperation(BaseOperation):
@@ -137,7 +137,7 @@ class AppendOperation(BaseOperation):
                 return OperationResult(
                     success=False,
                     operation_type=self.operation_type,
-                    target_path=str(target_file),
+                    file_path=str(target_file),
                     message=f"Target file does not exist: {target_file}",
                     details={'file_not_found': True},
                     execution_time=0.0,
@@ -174,7 +174,7 @@ class AppendOperation(BaseOperation):
             return OperationResult(
                 success=True,
                 operation_type=self.operation_type,
-                target_path=str(target_file),
+                file_path=str(target_file),
                 message=f"Successfully appended {len(content_to_append)} characters to {target_file}",
                 details={
                     'content_appended': content,

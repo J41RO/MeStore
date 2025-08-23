@@ -24,33 +24,33 @@ def replace_operation(file_path: str, pattern: str, content: str, **kwargs):
     """Simple replace operation function - no classes"""
     try:
         # Leer archivo
-        with open(target_path, 'r', encoding='utf-8') as f:
-            content = f.read()
+        with open(file_path, 'r', encoding='utf-8') as f:
+            file_content = f.read()
 
         # Realizar reemplazo
-        if pattern in content:
-            new_content = content.replace(pattern, replacement)
+        if pattern in file_content:
+            new_content = file_content.replace(pattern, content)
 
             # Escribir archivo modificado
-            with open(target_path, 'w', encoding='utf-8') as f:
+            with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(new_content)
 
             return {
                 'success': True,
-                'message': f'Replaced pattern in {target_path}',
-                'target_path': target_path
+                'message': f'Replaced pattern in {file_path}',
+                'file_path': file_path
             }
         else:
             return {
                 'success': False,
-                'error': f'Pattern not found in {target_path}',
-                'target_path': target_path
+                'error': f'Pattern not found in {file_path}',
+                'file_path': file_path
             }
     except Exception as e:
         return {
             'success': False,
             'error': str(e),
-            'target_path': target_path
+            'file_path': file_path
         }
 
 class ReplaceOperation(BaseOperation):
@@ -167,7 +167,7 @@ class ReplaceOperation(BaseOperation):
                 return OperationResult(
                     success=False,
                     operation_type=self.operation_type,
-                    target_path=str(target_file),
+                    file_path=str(target_file),
                     message="Pattern is required for REPLACE operation",
                     details={'missing_pattern': True},
                     execution_time=0.0,
@@ -179,7 +179,7 @@ class ReplaceOperation(BaseOperation):
                 return OperationResult(
                     success=False,
                     operation_type=self.operation_type,
-                    target_path=str(target_file),
+                    file_path=str(target_file),
                     message=f"Target file does not exist: {target_file}",
                     details={'file_not_found': True},
                     execution_time=0.0,
@@ -205,7 +205,7 @@ class ReplaceOperation(BaseOperation):
                 return OperationResult(
                     success=False,
                     operation_type=self.operation_type,
-                    target_path=str(target_file),
+                    file_path=str(target_file),
                     message=replacement_result['message'],
                     details=replacement_result['details'],
                     execution_time=0.0,
@@ -230,7 +230,7 @@ class ReplaceOperation(BaseOperation):
             return OperationResult(
                 success=True,
                 operation_type=self.operation_type,
-                target_path=str(target_file),
+                file_path=str(target_file),
                 message=f"Successfully replaced {replacements_made} occurrence(s) in {target_file}",
                 details={
                     'pattern': pattern,
