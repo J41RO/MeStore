@@ -20,6 +20,21 @@ except ImportError:
     LOGGING_AVAILABLE = False
     logger = None
 
+# Integration availability checks
+try:
+    from utils.path_resolver import PathResolver
+    from utils.content_handler import ContentHandler
+    from utils.project_context import ProjectContext
+    path_resolver = PathResolver()
+    content_handler = ContentHandler()
+    project_context = ProjectContext()
+    INTEGRATION_AVAILABLE = True
+except ImportError:
+    path_resolver = None
+    content_handler = None
+    project_context = None
+    INTEGRATION_AVAILABLE = False
+
 def append_operation(file_path: str, pattern: str, content: str, **kwargs):
     """Simple append operation function - follows standard signature (file_path, pattern, content, **kwargs)"""
     try:
@@ -137,7 +152,7 @@ class AppendOperation(BaseOperation):
                 return OperationResult(
                     success=False,
                     operation_type=self.operation_type,
-                    file_path=str(target_file),
+                    target_path=str(target_file),
                     message=f"Target file does not exist: {target_file}",
                     details={'file_not_found': True},
                     execution_time=0.0,
@@ -174,7 +189,7 @@ class AppendOperation(BaseOperation):
             return OperationResult(
                 success=True,
                 operation_type=self.operation_type,
-                file_path=str(target_file),
+                target_path=str(target_file),
                 message=f"Successfully appended {len(content_to_append)} characters to {target_file}",
                 details={
                     'content_appended': content,
@@ -264,6 +279,30 @@ class AppendOperation(BaseOperation):
         result += processed_content
         
         return result
+    def prepare_context(self, target_file, content=None, **kwargs):
+        """Override prepare_context specifically for APPEND operation"""
+        from pathlib import Path
+        
+        # Resolver path
+        resolved_path = Path(target_file).resolve()
+        project_root = Path.cwd()
+        
+        # CRÍTICO: Preservar el contenido tal como se pasa
+        processed_content = content if content is not None else ''
+        
+        # Crear contexto manteniendo el contenido
+        return OperationContext(
+            project_root=project_root,
+            target_file=resolved_path,
+            operation_type=self.operation_type,
+            content=processed_content,
+            position_marker=kwargs.get('position_marker'),
+            backup_enabled=kwargs.get('backup_enabled', True),
+            dry_run=kwargs.get('dry_run', False),
+            validate_content=kwargs.get('validate_content', True),
+            framework_context=None,
+            arguments=kwargs,
+        )
     
     def validate_context(self, context: OperationContext) -> List[str]:
         """
