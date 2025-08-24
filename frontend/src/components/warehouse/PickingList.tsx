@@ -87,5 +87,4 @@ export const PickingList: React.FC<PickingListProps> = ({
     </div>
   );
 };
-
 export default PickingList;
