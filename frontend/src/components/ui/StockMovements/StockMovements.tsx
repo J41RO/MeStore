@@ -3,7 +3,7 @@
 
 
 import React, { useState, useMemo } from 'react';
-import { StockMovement, StockMovementFilters, MovementType, MovementReason, LocationZone } from '../../../types/inventory.types';
+import { StockMovement, StockMovementFilters, MovementType, MovementReason, LocationZone } from '../../../types/inventory.types';import MovementFilters from './MovementFilters';
 
 // Datos mock para testing
 const mockMovements: StockMovement[] = [
@@ -78,6 +78,16 @@ const StockMovements: React.FC<StockMovementsProps> = ({
           movement.sku.toLowerCase().indexOf(searchLower) === -1 &&
           (movement.reference || '').toLowerCase().indexOf(searchLower) === -1
         ) return false;
+      // Filtro por producto
+      if (filters.productId) {
+        if (movement.productId !== filters.productId) return false;
+      }
+      // Filtro por rango de fechas
+      if (filters.dateRange) {
+        const movementDate = new Date(movement.timestamp);
+        if (filters.dateRange.start && movementDate < filters.dateRange.start) return false;
+        if (filters.dateRange.end && movementDate > filters.dateRange.end) return false;
+      }
       }
 
       return true;
@@ -98,6 +108,12 @@ const StockMovements: React.FC<StockMovementsProps> = ({
           Registrar Movimiento
         </button>
       </div>
+      {/* Componente de Filtros */}
+      <MovementFilters
+        filters={filters}
+        onFiltersChange={setFilters}
+        onReset={() => setFilters({})}
+      />
 
       {/* Filtros */}
       <div className="p-4 bg-gray-50 rounded-lg">
