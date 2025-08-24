@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { jest, describe, it, expect, beforeEach } from '@jest/globals';
+import { jest, describe, it, expect, beforeEach, vi } from '@jest/globals';
 import AlertsPanel from '../AlertsPanel';
 import { AlertType, AlertSeverity, AlertCategory } from '../../../types/alerts.types';
 
@@ -146,7 +146,7 @@ describe('AlertsPanel', () => {
     it('debe mostrar el botón de filtros cuando showFilters es true', () => {
       render(<AlertsPanel showFilters={true} />);
       
-      const filterButton = screen.getByRole('button');
+      const filterButton = screen.getByLabelText('filtros');
       expect(filterButton).toBeInTheDocument();
     });
 
@@ -257,7 +257,7 @@ describe('AlertsPanel', () => {
     });
 
     it('debe manejar onAlertClick callback', () => {
-      const mockCallback = vi.fn();
+      const mockCallback = jest.fn();
       render(<AlertsPanel onAlertClick={mockCallback} />);
       
       const alert = screen.getByText('Producto Test').closest('div');

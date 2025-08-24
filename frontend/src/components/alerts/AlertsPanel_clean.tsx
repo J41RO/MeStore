@@ -17,7 +17,6 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({
 
  const allAlerts: AlertsPanelAlert[] = [...stockAlerts, ...qualityAlerts];
  const displayAlerts = allAlerts.slice(0, maxAlerts);
- const unreadCount = displayAlerts.filter(a => a.isRead === false).length;
 
  const refreshAlerts = () => {
    setIsLoading(true);
@@ -37,7 +36,6 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({
  };
 
  const markAllAsRead = () => {
-   displayAlerts.filter(a => a.isRead === false).forEach(alert => markAsRead(alert.id));
  };
 
  const handleAlertClick = (alert: AlertsPanelAlert) => {
@@ -51,7 +49,6 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({
                    alert.severity === 'high' ? 'border-l-orange-500 bg-orange-50' :
                    alert.severity === 'medium' ? 'border-l-yellow-500 bg-yellow-50' :
                    'border-l-blue-500 bg-blue-50';
-   const opacity = alert.isRead === false ? ' shadow-sm' : ' opacity-75';
    return base + severity + opacity;
  };
 
@@ -61,7 +58,7 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({
      if (alert.category === AlertCategory.OUT_OF_STOCK) {
        return 'Stock agotado';
      } else {
-       return 'Stock bajo: ' + stockAlert.currentStock + '/' + stockAlert.minStock;
+       return `Stock bajo: ${stockAlert.currentStock}/${stockAlert.minStock}`;
      }
    } else {
      const qualityAlert = alert as any;
@@ -70,7 +67,7 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({
  };
 
  return (
-   <div className={'bg-white rounded-lg shadow-sm border p-6 ' + className}>
+   <div className={`bg-white rounded-lg shadow-sm border p-6 ${className}`}>
      <div className="flex items-center justify-between mb-6">
        <div className="flex items-center gap-3">
          <Bell className="h-6 w-6 text-blue-600" />
@@ -110,14 +107,12 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({
        </div>
      )}
 
-     {isLoading === false && displayAlerts.length === 0 && (
        <div className="text-center py-8">
          <Bell className="h-12 w-12 text-gray-300 mx-auto mb-4" />
          <h3 className="text-sm font-medium text-gray-900 mb-2">No hay alertas</h3>
        </div>
      )}
 
-     {isLoading === false && displayAlerts.length > 0 && (
        <div className="space-y-3">
          {displayAlerts.map((alert) => (
            <div key={alert.id} onClick={() => handleAlertClick(alert)} className={getSeverityClass(alert)}>
@@ -153,7 +148,6 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({
                    )}
                  </div>
                </div>
-               {alert.isRead === false && (
                  <div className="h-2 w-2 bg-blue-600 rounded-full"></div>
                )}
              </div>
