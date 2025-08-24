@@ -37,35 +37,17 @@ const mockQualityAlerts = [
   }
 ];
 
-// Mock de useStockAlerts
-jest.mock('../../../hooks/useStockAlerts', () => ({
-  useStockAlerts: () => ({
-    stockAlerts: mockStockAlerts,
-    stockStats: {
-      total: 1,
-      unread: 1,
-      critical: 0,
-      high: 1
-    },
-    markStockAlertAsRead: jest.fn(),
-    refreshStockAlerts: jest.fn(),
-    hasStockAlerts: true
-  })
-}));
+// Mocks con patrón de hoisting correcto
+jest.mock('../../../hooks/useStockAlerts');
+jest.mock('../../../hooks/useQualityAlerts');
 
-// Mock de useQualityAlerts
-jest.mock('../../../hooks/useQualityAlerts', () => ({
-  useQualityAlerts: () => ({
-    qualityAlerts: mockQualityAlerts,
-    qualityStats: {
-      total: 1,
-      unread: 1,
-      critical: 1
-    },
-    markQualityAlertAsRead: jest.fn(),
-    hasQualityAlerts: true
-  })
-}));
+// Obtener mocks después del hoisting
+const { useStockAlerts } = require('../../../hooks/useStockAlerts');
+const { useQualityAlerts } = require('../../../hooks/useQualityAlerts');
+
+// Convertir a mocks jest
+const mockUseStockAlerts = useStockAlerts as jest.MockedFunction<typeof useStockAlerts>;
+const mockUseQualityAlerts = useQualityAlerts as jest.MockedFunction<typeof useQualityAlerts>;
 
 // Mock de useAppStore
 jest.mock('../../../stores/appStore', () => ({
@@ -96,6 +78,36 @@ jest.mock('react', () => {
 describe('AlertsPanel', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    
+    // Configuración por defecto de mocks
+    mockUseStockAlerts.mockReturnValue({
+      stockAlerts: mockStockAlerts,
+      stockStats: {
+        total: 1,
+        unread: 1,
+        critical: 0,
+        high: 1,
+        medium: 0,
+        low: 0
+      },
+      markStockAlertAsRead: jest.fn(),
+      refreshStockAlerts: jest.fn(),
+      hasStockAlerts: true
+    });
+
+    mockUseQualityAlerts.mockReturnValue({
+      qualityAlerts: mockQualityAlerts,
+      qualityStats: {
+        total: 1,
+        unread: 1,
+        critical: 1,
+        high: 0,
+        medium: 0,
+        low: 0
+      },
+      markQualityAlertAsRead: jest.fn(),
+      hasQualityAlerts: true
+    });
   });
 
   describe('Renderizado básico', () => {
@@ -210,18 +222,19 @@ describe('AlertsPanel', () => {
     });
 
     it('debe mostrar estado vacío cuando no hay alertas', () => {
-      // Mock vacío
-      const mockUseStockAlerts = require('../../../hooks/useStockAlerts');
-      mockUseStockAlerts.useStockAlerts.mockReturnValue({
+      // Configurar mocks para estado vacío
+      mockUseStockAlerts.mockReturnValue({
         stockAlerts: [],
         stockStats: { total: 0, unread: 0 },
+        markStockAlertAsRead: jest.fn(),
+        refreshStockAlerts: jest.fn(),
         hasStockAlerts: false
       });
-      
-      const mockUseQualityAlerts = require('../../../hooks/useQualityAlerts');
-      mockUseQualityAlerts.useQualityAlerts.mockReturnValue({
+
+      mockUseQualityAlerts.mockReturnValue({
         qualityAlerts: [],
         qualityStats: { total: 0, unread: 0 },
+        markQualityAlertAsRead: jest.fn(),
         hasQualityAlerts: false
       });
 
