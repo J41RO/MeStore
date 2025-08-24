@@ -4,13 +4,11 @@ import {
   ScanStatus, 
   ScannedItem, 
   PickingSession,
-  ScanValidationResult,
   ScannerConfig 
 } from '../../types/barcode.types';
 import { 
   InventoryStatus, 
-  LocationZone, 
-  LocationInfo 
+  LocationZone
 } from '../../types/inventory.types';
 
 // Configuración por defecto del scanner

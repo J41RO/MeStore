@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trash2, Package, MapPin, Clock } from 'lucide-react';
+import { Trash2, Package } from 'lucide-react';
 import { ScannedItem, PickingSession } from '../../types/barcode.types';
 
 interface PickingListProps {
@@ -19,6 +19,7 @@ export const PickingList: React.FC<PickingListProps> = ({
 }) => {
   const totalItems = items.length;
 
+  if (!session) {
     return (
       <div className={'p-4 text-center text-gray-500 ' + className}>
         <Package size={48} className="mx-auto mb-2 opacity-50" />
@@ -87,4 +88,5 @@ export const PickingList: React.FC<PickingListProps> = ({
     </div>
   );
 };
+
 export default PickingList;

@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Camera, Scan, X, Check, AlertCircle, Zap, Volume2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Camera, Scan, Check, AlertCircle } from 'lucide-react';
 import { 
   ScanMode, 
   ScanStatus, 
-  BarcodeScannerProps, 
-  ScannedItem 
+  BarcodeScannerProps
 } from '../../types/barcode.types';
 import { useBarcodeScanner } from '../../hooks/warehouse/useBarcodeScanner';
 
@@ -34,7 +33,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   const [inputValue, setInputValue] = useState('');
 
   // Simulación de cámara activa
-  const [cameraActive, setCameraActive] = useState(false);
+  const [cameraActive] = useState(false);
 
   // Efectos visuales de escaneo
   const getScannerStyle = () => {

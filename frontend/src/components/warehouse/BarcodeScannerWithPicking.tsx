@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Play, Square, Download, RotateCcw } from 'lucide-react';
+import { Play, Square, RotateCcw } from 'lucide-react';
 import { ScanMode, ScannedItem, PickingSession } from '../../types/barcode.types';
 import { BarcodeScanner } from './BarcodeScanner';
 import { PickingList } from './PickingList';
@@ -36,8 +36,8 @@ export const BarcodeScannerWithPicking: React.FC<BarcodeScannerWithPickingProps>
 
   const handleCompleteSession = () => {
     const session = completePickingSession();
-    if (session) {
-      setCompletedSessions(prev => [...prev, session]);
+    if (session && session.id) {
+      setCompletedSessions(prev => [...prev, session as PickingSession]);
       console.log('Sesión completada:', session);
     }
   };
