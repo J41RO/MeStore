@@ -83,6 +83,23 @@ class BeforeOperation(BaseOperation):
         super().__init__(OperationType.BEFORE, "before")
         self.inserted_content = {}  # Track inserted content for rollback
 
+    def prepare_context(self, target_file, content=None, **kwargs):
+        """Override prepare_context to ensure content is properly handled for BEFORE operation."""
+        from pathlib import Path
+        
+        # Ensure target_file is a Path object
+        if isinstance(target_file, str):
+            target_file = Path(target_file)
+        
+        # Create context using parent method
+        context = super().prepare_context(target_file, None, **kwargs)
+        
+        # CORRECCIÓN: Establecer content correctamente
+        context.content = content if content is not None else ""
+        
+        return context
+
+
     # ========== INTEGRATION WITH EXISTING ARCHITECTURE ==========
 
     def _get_operation_specific_arguments(self) -> List["ArgumentSpec"]:

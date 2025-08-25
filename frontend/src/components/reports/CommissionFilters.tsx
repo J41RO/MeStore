@@ -1,0 +1,71 @@
+import React from 'react';
+import { CommissionFilters as CommissionFiltersType } from '../../types/commission.types';
+
+interface CommissionFiltersProps {
+  filters: CommissionFiltersType;
+  onFiltersChange: (filters: Partial<CommissionFiltersType>) => void;
+  onClearFilters: () => void;
+}
+
+const CommissionFilters: React.FC<CommissionFiltersProps> = ({
+  filters,
+  onFiltersChange,
+  onClearFilters
+}) => {
+  return (
+    <div className="bg-white p-4 rounded-lg border border-gray-200 mb-4">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-medium text-gray-900">Filtros</h3>
+        <button
+          onClick={onClearFilters}
+          className="text-sm text-gray-500 hover:text-gray-700"
+        >
+          Limpiar filtros
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Buscar
+          </label>
+          <input
+            type="text"
+            value={filters.searchTerm || ''}
+            onChange={(e) => onFiltersChange({ searchTerm: e.target.value })}
+            placeholder="Buscar por producto, orden, cliente..."
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Monto mínimo
+          </label>
+          <input
+            type="number"
+            value={filters.minAmount || ''}
+            onChange={(e) => onFiltersChange({ minAmount: parseFloat(e.target.value) || undefined })}
+            placeholder="0.00"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Monto máximo
+          </label>
+          <input
+            type="number"
+            value={filters.maxAmount || ''}
+            onChange={(e) => onFiltersChange({ maxAmount: parseFloat(e.target.value) || undefined })}
+            placeholder="999999.00"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default CommissionFilters;

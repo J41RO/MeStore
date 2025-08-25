@@ -38,7 +38,7 @@
       "@/types/*": ["src/types/*"]
     }
   },
-  "include": ["src"],
+  "include": ["src", "../.workspace/surgical_modifier/tests/useCommissions.ts"],
   "exclude": [
     "node_modules",
     "dist",

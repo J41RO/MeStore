@@ -1,0 +1,668 @@
+#!/usr/bin/env python3
+"""
+Explore operation implementation for Surgical Modifier v6.0
+Advanced code analysis and exploration capabilities migrated from v5.3
+"""
+import os
+import re
+import ast
+import json
+import difflib
+from pathlib import Path
+from typing import Dict, List, Tuple, Optional, Any
+
+# Import from parent operations
+try:
+   from ..base_operation import (
+       BaseOperation,
+       OperationContext,
+       OperationResult,
+       OperationStatus,
+       OperationType,
+   )
+except ImportError:
+   try:
+       from core.operations.base_operation import (
+           BaseOperation,
+           OperationContext, 
+           OperationResult,
+           OperationStatus,
+           OperationType,
+       )
+   except ImportError:
+       # Definiciones mínimas para compatibilidad
+       class BaseOperation:
+           def __init__(self, operation_type, description):
+               self.operation_type = operation_type
+               self.description = description
+       
+       class OperationContext:
+           def __init__(self, target_file=None):
+               self.target_file = target_file
+       
+       class OperationResult:
+           def __init__(self, success=True, message="", metadata=None, status=None):
+               self.success = success
+               self.message = message
+               self.metadata = metadata or {}
+               self.status = status
+       
+       class OperationStatus:
+           SUCCESS = "success"
+           FAILED = "failed"
+       
+       class OperationType:
+           EXPLORE = "explore"
+
+# Integration imports
+try:
+   from utils.logger import logger
+   from utils.content_handler import content_handler
+   from utils.path_resolver import path_resolver
+   INTEGRATION_AVAILABLE = True
+except ImportError:
+   INTEGRATION_AVAILABLE = False
+   logger = None
+
+class UniversalPatternHelper:
+   """MIGRADO v5.3: Asistente universal para encontrar patrones"""
+   
+   def __init__(self, file_content: str, file_path: str):
+       self.content = file_content
+       self.lines = file_content.split('\n')
+       self.file_path = file_path
+       self.file_type = self._detect_file_type()
+       self.framework_context = self._detect_framework_context()
+   
+   def _detect_file_type(self) -> str:
+       """Detectar tipo de archivo universal"""
+       ext = os.path.splitext(self.file_path)[1].lower()
+       
+       type_mapping = {
+           '.py': 'python',
+           '.js': 'javascript', '.jsx': 'javascript',
+           '.ts': 'typescript', '.tsx': 'typescript', 
+           '.java': 'java',
+           '.cpp': 'cpp', '.cc': 'cpp', '.cxx': 'cpp',
+           '.c': 'c',
+           '.cs': 'csharp',
+           '.php': 'php',
+           '.rb': 'ruby',
+           '.go': 'go',
+           '.rs': 'rust',
+           '.swift': 'swift',
+           '.kt': 'kotlin',
+           '.scala': 'scala',
+           '.html': 'markup',
+           '.xml': 'markup',
+           '.css': 'stylesheet',
+           '.scss': 'stylesheet',
+           '.json': 'config',
+           '.yaml': 'config', '.yml': 'config',
+           '.toml': 'config',
+           '.sql': 'database',
+           '.md': 'markdown',
+           '.sh': 'bash',
+       }
+       
+       return type_mapping.get(ext, 'generic')
+   
+   def _detect_framework_context(self) -> List[str]:
+       """MIGRADO v5.3: Detectar contexto de frameworks universalmente"""
+       frameworks = []
+       content_lower = self.content.lower()
+       
+       # Frameworks Python
+       if 'django' in content_lower or 'from django' in content_lower:
+           frameworks.append('django')
+       if 'flask' in content_lower or 'from flask' in content_lower:
+           frameworks.append('flask')
+       if 'fastapi' in content_lower or 'from fastapi' in content_lower:
+           frameworks.append('fastapi')
+       if 'sqlalchemy' in content_lower:
+           frameworks.append('sqlalchemy')
+       if 'pytest' in content_lower or '@pytest' in content_lower:
+           frameworks.append('pytest')
+       
+       # Frameworks JavaScript/TypeScript
+       if 'react' in content_lower or 'jsx' in content_lower:
+           frameworks.append('react')
+       if 'vue' in content_lower or '@vue' in content_lower:
+           frameworks.append('vue')
+       if 'angular' in content_lower or '@angular' in content_lower:
+           frameworks.append('angular')
+       if 'express' in content_lower:
+           frameworks.append('express')
+       
+       return frameworks
+   
+   def find_flexible_pattern(self, target: str, similarity_threshold: float = 0.6) -> List[Dict]:
+       """MIGRADO v5.3: Búsqueda flexible universal"""
+       results = []
+       target_lower = target.lower()
+       target_words = target_lower.split()
+       
+       for i, line in enumerate(self.lines, 1):
+           line_clean = line.strip()
+           if not line_clean or len(line_clean) < 3:
+               continue
+           
+           # Similitud de secuencia
+           similarity = difflib.SequenceMatcher(None, target_lower, line_clean.lower()).ratio()
+           
+           # Coincidencia de palabras clave
+           word_matches = sum(1 for word in target_words if len(word) > 2 and word in line_clean.lower())
+           word_similarity = word_matches / len(target_words) if target_words else 0
+           
+           # Análisis de estructura para código
+           structure_similarity = 0
+           if self.file_type in ['python', 'javascript', 'typescript', 'java', 'cpp']:
+               target_structure = self._extract_code_structure(target)
+               line_structure = self._extract_code_structure(line_clean)
+               if target_structure and line_structure:
+                   structure_similarity = difflib.SequenceMatcher(None, target_structure, line_structure).ratio()
+           
+           # Combinar métricas
+           combined_score = (
+               similarity * 0.4 +
+               word_similarity * 0.4 + 
+               structure_similarity * 0.2
+           )
+           
+           if combined_score >= similarity_threshold:
+               results.append({
+                   'line_number': i,
+                   'content': line_clean,
+                   'similarity': combined_score,
+                   'type': 'flexible_match',
+                   'strategies': {
+                       'sequence': similarity,
+                       'words': word_similarity,
+                       'structure': structure_similarity
+                   }
+               })
+       
+       results.sort(key=lambda x: x['similarity'], reverse=True)
+       return results[:8]
+   
+   def _extract_code_structure(self, code: str) -> str:
+       """MIGRADO v5.3: Extraer estructura de código"""
+       structure = re.sub(r'["\'].*?["\']', '""', code)
+       structure = re.sub(r'//.*$|#.*$', '', structure)
+       structure = re.sub(r'/\*.*?\*/', '', structure) 
+       structure = re.sub(r'\s+', ' ', structure)
+       return structure.strip()
+
+class UniversalExplorer:
+   """MIGRADO v5.3: Explorador universal mejorado para v6.0"""
+   
+   @staticmethod
+   def show_file_structure(file_path: str, show_lines: bool = True, filter_type: str = 'smart') -> Dict[str, Any]:
+       """MEJORADO v6.0: Mostrar estructura con retorno de datos"""
+       try:
+           with open(file_path, 'r', encoding='utf-8') as f:
+               lines = f.readlines()
+           
+           helper = UniversalPatternHelper(''.join(lines), file_path)
+           file_type = helper.file_type
+           
+           result = {
+               'success': True,
+               'file_path': file_path,
+               'file_type': file_type,
+               'total_lines': len(lines),
+               'frameworks': helper.framework_context,
+               'structure': [],
+               'stats': {}
+           }
+           
+           # Procesar líneas importantes
+           important_lines = UniversalExplorer._filter_important_lines(lines, file_type, filter_type)
+           
+           for line_info in important_lines:
+               line_num, line_content, line_type = line_info
+               result['structure'].append({
+                   'line_number': line_num,
+                   'content': line_content,
+                   'type': line_type,
+                   'icon': UniversalExplorer._get_line_icon(line_type)
+               })
+           
+           # Estadísticas
+           result['stats'] = UniversalExplorer._get_file_stats(lines, file_type)
+           
+           return result
+               
+       except Exception as e:
+           return {
+               'success': False,
+               'error': str(e),
+               'file_path': file_path
+           }
+   
+   @staticmethod
+   def _filter_important_lines(lines: List[str], file_type: str, filter_type: str) -> List[Tuple[int, str, str]]:
+       """MIGRADO v5.3: Filtrar líneas importantes"""
+       important = []
+       
+       for i, line in enumerate(lines, 1):
+           line_clean = line.rstrip()
+           if not line_clean or line_clean.isspace():
+               continue
+           
+           line_importance = UniversalExplorer._classify_line_importance(line_clean, file_type)
+           
+           if filter_type == 'smart' and line_importance in ['high', 'medium']:
+               important.append((i, line_clean, line_importance))
+           elif filter_type == 'all':
+               important.append((i, line_clean, line_importance))
+           elif filter_type == 'high' and line_importance == 'high':
+               important.append((i, line_clean, line_importance))
+       
+       return important
+   
+   @staticmethod
+   def _classify_line_importance(line: str, file_type: str) -> str:
+       """MIGRADO v5.3: Clasificar importancia universal"""
+       line_lower = line.strip().lower()
+       
+       high_patterns = {
+           'python': ['class ', 'def ', 'import ', 'from ', '@', 'if __name__'],
+           'javascript': ['function ', 'class ', 'const ', 'export ', 'import ', '=>'],
+           'typescript': ['interface ', 'type ', 'function ', 'class ', 'export ', 'import '],
+           'java': ['public class', 'public interface', 'public enum', '@', 'import '],
+           'cpp': ['class ', 'struct ', 'namespace ', '#include', 'template'],
+           'generic': ['=', ':', '{', '}']
+       }
+       
+       medium_patterns = {
+           'python': ['return ', 'yield ', 'raise ', 'assert '],
+           'javascript': ['return ', 'throw ', 'async ', 'await '],
+           'typescript': ['return ', 'throw ', 'async ', 'await '],
+           'java': ['return ', 'throw ', 'new ', 'super '],
+           'cpp': ['return ', 'throw ', 'new ', 'delete '],
+           'generic': ['(', ')', '[', ']']
+       }
+       
+       file_high = high_patterns.get(file_type, high_patterns['generic'])
+       file_medium = medium_patterns.get(file_type, medium_patterns['generic'])
+       
+       if any(pattern in line_lower for pattern in file_high):
+           return 'high'
+       elif any(pattern in line_lower for pattern in file_medium):
+           return 'medium'
+       else:
+           return 'low'
+   
+   @staticmethod
+   def _get_line_icon(line_type: str) -> str:
+       """Obtener icono para tipo de línea"""
+       icons = {
+           'high': '🔥',
+           'medium': '⚡',
+           'low': '📝'
+       }
+       return icons.get(line_type, '📄')
+   
+   @staticmethod
+   def _get_file_stats(lines: List[str], file_type: str) -> Dict[str, int]:
+       """MIGRADO v5.3: Estadísticas del archivo"""
+       stats = {
+           'total_lines': len(lines),
+           'non_empty_lines': len([l for l in lines if l.strip()]),
+           'comment_lines': 0,
+           'code_lines': 0
+       }
+       
+       comment_patterns = {
+           'python': ['#'],
+           'javascript': ['//', '/*'],
+           'typescript': ['//', '/*'],
+           'java': ['//', '/*'],
+           'cpp': ['//', '/*'],
+           'generic': ['#', '//', '/*']
+       }
+       
+       patterns = comment_patterns.get(file_type, comment_patterns['generic'])
+       
+       for line in lines:
+           line_clean = line.strip()
+           if line_clean:
+               if any(line_clean.startswith(pattern) for pattern in patterns):
+                   stats['comment_lines'] += 1
+               else:
+                   stats['code_lines'] += 1
+       
+       return stats
+   
+   @staticmethod
+   def search_in_file(file_path: str, search_term: str, context_lines: int = 2, case_sensitive: bool = False) -> Dict[str, Any]:
+       """MEJORADO v6.0: Búsqueda con retorno de datos"""
+       try:
+           with open(file_path, 'r', encoding='utf-8') as f:
+               lines = f.readlines()
+           
+           result = {
+               'success': True,
+               'file_path': file_path,
+               'search_term': search_term,
+               'case_sensitive': case_sensitive,
+               'matches': []
+           }
+           
+           for i, line in enumerate(lines):
+               line_content = line.rstrip()
+               search_target = search_term if case_sensitive else search_term.lower()
+               line_target = line_content if case_sensitive else line_content.lower()
+               
+               if search_target in line_target:
+                   # Obtener contexto
+                   start = max(0, i - context_lines)
+                   end = min(len(lines), i + context_lines + 1)
+                   
+                   context = []
+                   for j in range(start, end):
+                       context.append({
+                           'line_number': j + 1,
+                           'content': lines[j].rstrip(),
+                           'is_match': j == i
+                       })
+                   
+                   result['matches'].append({
+                       'line_number': i + 1,
+                       'content': line_content,
+                       'context': context
+                   })
+           
+           # Búsqueda flexible si no hay matches exactos
+           if not result['matches']:
+               helper = UniversalPatternHelper(''.join(lines), file_path)
+               similar = helper.find_flexible_pattern(search_term, 0.3)
+               result['similar_matches'] = similar
+           
+           return result
+               
+       except Exception as e:
+           return {
+               'success': False,
+               'error': str(e),
+               'file_path': file_path
+           }
+
+class CodeQualityAnalyzer:
+   """NUEVO v6.0: Analizador de calidad de código avanzado"""
+   
+   def __init__(self, file_path: str, content: str):
+       self.file_path = file_path
+       self.content = content
+       self.lines = content.split('\n')
+       self.file_type = self._detect_file_type()
+   
+   def _detect_file_type(self) -> str:
+       ext = os.path.splitext(self.file_path)[1].lower()
+       type_mapping = {
+           '.py': 'python', '.js': 'javascript', '.ts': 'typescript',
+           '.java': 'java', '.cpp': 'cpp', '.c': 'c'
+       }
+       return type_mapping.get(ext, 'generic')
+   
+   def analyze_quality(self) -> Dict[str, Any]:
+       """Análisis completo de calidad"""
+       analysis = {
+           'google_style_compliance': self._check_google_style(),
+           'complexity_metrics': self._calculate_complexity(),
+           'maintainability_score': 0,
+           'issues_found': [],
+           'recommendations': []
+       }
+       
+       # Calcular score de mantenibilidad
+       analysis['maintainability_score'] = self._calculate_maintainability(analysis)
+       
+       return analysis
+   
+   def _check_google_style(self) -> Dict[str, Any]:
+       """Verificar cumplimiento Google Style Guide"""
+       style = {
+           'indentation_consistent': True,
+           'line_length_ok': True,
+           'naming_convention': True,
+           'issues': []
+       }
+       
+       if self.file_type == 'python':
+           style.update(self._check_python_style())
+       elif self.file_type in ['javascript', 'typescript']:
+           style.update(self._check_js_style())
+       
+       return style
+   
+   def _check_python_style(self) -> Dict[str, Any]:
+       """Verificar Python Google Style"""
+       issues = []
+       
+       for i, line in enumerate(self.lines, 1):
+           # Verificar longitud de línea
+           if len(line) > 80:
+               issues.append(f'Línea {i}: Excede 80 caracteres ({len(line)})')
+           
+           # Verificar indentación (4 espacios)
+           if line.startswith('\t'):
+               issues.append(f'Línea {i}: Usar espacios en lugar de tabs')
+           
+           stripped = line.lstrip()
+           if stripped and line != stripped:
+               indent = len(line) - len(stripped)
+               if indent % 4 != 0:
+                   issues.append(f'Línea {i}: Indentación no múltiplo de 4')
+       
+       return {'python_style_issues': issues}
+   
+   def _check_js_style(self) -> Dict[str, Any]:
+       """Verificar JavaScript/TypeScript Google Style"""
+       issues = []
+       
+       for i, line in enumerate(self.lines, 1):
+           # Verificar longitud de línea
+           if len(line) > 80:
+               issues.append(f'Línea {i}: Excede 80 caracteres')
+           
+           # Verificar indentación (2 espacios para JS)
+           stripped = line.lstrip()
+           if stripped and line != stripped:
+               indent = len(line) - len(stripped)
+               if indent % 2 != 0:
+                   issues.append(f'Línea {i}: Indentación no múltiplo de 2')
+       
+       return {'js_style_issues': issues}
+   
+   def _calculate_complexity(self) -> Dict[str, int]:
+       """Calcular métricas de complejidad"""
+       metrics = {
+           'cyclomatic_complexity': 1,
+           'nesting_depth': 0,
+           'function_count': 0,
+           'class_count': 0
+       }
+       
+       if self.file_type == 'python':
+           try:
+               tree = ast.parse(self.content)
+               
+               # Contar funciones y clases
+               for node in ast.walk(tree):
+                   if isinstance(node, ast.FunctionDef):
+                       metrics['function_count'] += 1
+                   elif isinstance(node, ast.ClassDef):
+                       metrics['class_count'] += 1
+                   elif isinstance(node, (ast.If, ast.For, ast.While, ast.With)):
+                       metrics['cyclomatic_complexity'] += 1
+               
+           except SyntaxError:
+               pass
+       
+       # Calcular profundidad de anidamiento
+       max_depth = 0
+       
+       for line in self.lines:
+           stripped = line.lstrip()
+           if stripped:
+               indent_level = (len(line) - len(stripped)) // 2  # Asumiendo 2 espacios
+               max_depth = max(max_depth, indent_level)
+       
+       metrics['nesting_depth'] = max_depth
+       
+       return metrics
+   
+   def _calculate_maintainability(self, analysis: Dict[str, Any]) -> int:
+       """Calcular score de mantenibilidad (0-100)"""
+       score = 100
+       
+       # Penalizar por problemas de estilo
+       style_issues = len(analysis['google_style_compliance'].get('issues', []))
+       score -= min(style_issues * 2, 30)
+       
+       # Penalizar por complejidad alta
+       complexity = analysis['complexity_metrics']['cyclomatic_complexity']
+       if complexity > 10:
+           score -= (complexity - 10) * 3
+       
+       # Penalizar por anidamiento profundo
+       nesting = analysis['complexity_metrics']['nesting_depth']
+       if nesting > 4:
+           score -= (nesting - 4) * 5
+       
+       return max(0, score)
+
+class ExploreOperation(BaseOperation):
+   """NUEVO v6.0: Operación EXPLORE con arquitectura integrada"""
+   
+   def __init__(self):
+       super().__init__("EXPLORE", "Explore and analyze code files")
+       self.explorer = UniversalExplorer()
+   
+   def execute(self, context: OperationContext) -> OperationResult:
+       """Ejecutar análisis de exploración"""
+       try:
+           file_path = context.target_file
+           
+           if not os.path.exists(file_path):
+               return self._error_result(f"File not found: {file_path}")
+           
+           # Leer contenido del archivo
+           with open(file_path, 'r', encoding='utf-8') as f:
+               content = f.read()
+           
+           # Análisis de estructura
+           structure_result = self.explorer.show_file_structure(file_path)
+           
+           # Análisis de calidad
+           quality_analyzer = CodeQualityAnalyzer(file_path, content)
+           quality_result = quality_analyzer.analyze_quality()
+           
+           # Análisis de patrones
+           helper = UniversalPatternHelper(content, file_path)
+           
+           # Compilar resultado completo
+           analysis = {
+               'file_info': {
+                   'path': file_path,
+                   'type': helper.file_type,
+                   'frameworks': helper.framework_context,
+                   'size': len(content),
+                   'lines': len(content.split('\n'))
+               },
+               'structure_analysis': structure_result,
+               'quality_analysis': quality_result,
+               'patterns': {
+                   'framework_patterns': [],
+                   'important_lines': structure_result.get('structure', [])
+               }
+           }
+           
+           return OperationResult(
+               success=True,
+               message=f"File analysis completed for {os.path.basename(file_path)}",
+               metadata={'analysis': analysis}
+           )
+           
+       except Exception as e:
+           return self._error_result(f"Error during exploration: {str(e)}")
+   
+   def can_rollback(self) -> bool:
+       """Determinar si la operación puede hacer rollback"""
+       return False  # Explore es solo lectura, no necesita rollback
+   
+   def validate_context(self, context: OperationContext) -> bool:
+       """Validar contexto de la operación"""
+       if not context or not hasattr(context, 'target_file'):
+           return False
+       
+       target_file = context.target_file
+       if not target_file or not isinstance(target_file, str):
+           return False
+           
+       # Validar que sea un archivo válido (puede no existir para CREATE)
+       return len(target_file.strip()) > 0
+   
+   def _error_result(self, error_msg: str) -> OperationResult:
+       """Crear resultado de error"""
+       return OperationResult(
+           success=False,
+           message=error_msg,
+           status=OperationStatus.FAILED
+       )
+
+# Función principal para compatibilidad CLI
+def explore_operation(file_path: str, analysis_type: str = "full", search_term: str = None) -> Dict[str, Any]:
+   """Función principal de exploración con compatibilidad CLI"""
+   
+   try:
+       explorer = UniversalExplorer()
+       
+       if not os.path.exists(file_path):
+           return {
+               'success': False,
+               'error': f'File not found: {file_path}'
+           }
+       
+       # Leer contenido
+       with open(file_path, 'r', encoding='utf-8') as f:
+           content = f.read()
+       
+       result = {
+           'success': True,
+           'file_path': file_path,
+           'analysis_type': analysis_type
+       }
+       
+       if search_term:
+           # Búsqueda específica
+           search_result = explorer.search_in_file(file_path, search_term)
+           result['search_result'] = search_result
+       else:
+           # Análisis completo
+           if analysis_type in ['structure', 'full']:
+               structure = explorer.show_file_structure(file_path)
+               result['structure'] = structure
+           
+           if analysis_type in ['quality', 'full']:
+               analyzer = CodeQualityAnalyzer(file_path, content)
+               quality = analyzer.analyze_quality()
+               result['quality'] = quality
+           
+           if analysis_type in ['patterns', 'full']:
+               helper = UniversalPatternHelper(content, file_path)
+               result['patterns'] = {
+                   'file_type': helper.file_type,
+                   'frameworks': helper.framework_context
+               }
+       
+       return result
+       
+   except Exception as e:
+       return {
+           'success': False,
+           'error': str(e),
+           'file_path': file_path
+       }
