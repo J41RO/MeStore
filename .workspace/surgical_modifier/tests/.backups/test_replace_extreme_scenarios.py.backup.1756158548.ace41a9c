@@ -127,8 +127,7 @@ class TestReplaceExtreme:
         
         # Verificar que solo quedan los últimos 5
         backup_dir = Path(temp_path).parent / '.backups'
-        filename = Path(temp_path).name
-        remaining_backups = list(backup_dir.glob(f'{filename}.backup.*'))
+        remaining_backups = list(backup_dir.glob('*.backup.*'))
         assert len(remaining_backups) <= 5  # Puede ser menos si hay colisiones de timestamp
     
     def test_contextual_replace_specific_class(self):

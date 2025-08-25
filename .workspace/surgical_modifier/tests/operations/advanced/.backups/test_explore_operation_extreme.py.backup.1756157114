@@ -107,9 +107,9 @@ class TestIntegration:
             from pathlib import Path
             operation = ExploreOperation()
             context = OperationContext(
-                project_root=Path('.'),
-                target_file=Path(temp_path),
-                operation_type=OperationType.EXTRACT
+            project_root=Path('.'),
+            target_file=Path(temp_path),
+            operation_type=OperationType.EXPLORE
             )
             result = operation.execute(context)
             assert result.success == True

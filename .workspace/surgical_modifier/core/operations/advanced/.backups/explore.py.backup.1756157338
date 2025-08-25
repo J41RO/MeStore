@@ -538,7 +538,7 @@ class ExploreOperation(BaseOperation):
    """NUEVO v6.0: Operación EXPLORE con arquitectura integrada"""
    
    def __init__(self):
-       super().__init__(OperationType.EXPLORE, "Explore and analyze code files")
+       super().__init__("EXPLORE", "Explore and analyze code files")
        self.explorer = UniversalExplorer()
    
    def execute(self, context: OperationContext) -> OperationResult:
@@ -580,22 +580,7 @@ class ExploreOperation(BaseOperation):
                }
            }
            
-           return OperationResult(    def can_rollback(self) -> bool:
-        """Determinar si la operación puede hacer rollback"""
-        return False  # Explore es solo lectura, no necesita rollback
-    
-    def validate_context(self, context: OperationContext) -> bool:
-        """Validar contexto de la operación"""
-        if not context or not hasattr(context, 'target_file'):
-            return False
-        
-        target_file = context.target_file
-        if not target_file or not isinstance(target_file, str):
-            return False
-            
-        # Validar que sea un archivo válido (puede no existir para CREATE)
-        return len(target_file.strip()) > 0
-    
+           return OperationResult(
                success=True,
                message=f"File analysis completed for {os.path.basename(file_path)}",
                metadata={'analysis': analysis}
@@ -604,24 +589,25 @@ class ExploreOperation(BaseOperation):
        except Exception as e:
            return self._error_result(f"Error during exploration: {str(e)}")
    
+   def can_rollback(self) -> bool:
+       """Determinar si la operación puede hacer rollback"""
+       return False  # Explore es solo lectura, no necesita rollback
+   
+   def validate_context(self, context: OperationContext) -> bool:
+       """Validar contexto de la operación"""
+       if not context or not hasattr(context, 'target_file'):
+           return False
+       
+       target_file = context.target_file
+       if not target_file or not isinstance(target_file, str):
+           return False
+           
+       # Validar que sea un archivo válido (puede no existir para CREATE)
+       return len(target_file.strip()) > 0
+   
    def _error_result(self, error_msg: str) -> OperationResult:
        """Crear resultado de error"""
-       return OperationResult(    def can_rollback(self) -> bool:
-        """Determinar si la operación puede hacer rollback"""
-        return False  # Explore es solo lectura, no necesita rollback
-    
-    def validate_context(self, context: OperationContext) -> bool:
-        """Validar contexto de la operación"""
-        if not context or not hasattr(context, 'target_file'):
-            return False
-        
-        target_file = context.target_file
-        if not target_file or not isinstance(target_file, str):
-            return False
-            
-        # Validar que sea un archivo válido (puede no existir para CREATE)
-        return len(target_file.strip()) > 0
-    
+       return OperationResult(
            success=False,
            message=error_msg,
            status=OperationStatus.FAILED

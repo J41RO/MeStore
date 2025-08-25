@@ -328,8 +328,7 @@ def create_automatic_backup(file_path: str) -> str:
     """Crear backup automático con timestamp único"""
     import time
     from pathlib import Path
-    import uuid
-    timestamp = f"{int(time.time())}.{uuid.uuid4().hex[:8]}"
+    timestamp = int(time.time())
     backup_dir = Path(file_path).parent / '.backups'
     backup_dir.mkdir(exist_ok=True)
     

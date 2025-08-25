@@ -106,11 +106,7 @@ class TestIntegration:
             from core.operations.base_operation import OperationContext, OperationType
             from pathlib import Path
             operation = ExploreOperation()
-            context = OperationContext(
-                project_root=Path('.'),
-                target_file=Path(temp_path),
-                operation_type=OperationType.EXTRACT
-            )
+            context = OperationContext(target_file=temp_path)
             result = operation.execute(context)
             assert result.success == True
         finally:

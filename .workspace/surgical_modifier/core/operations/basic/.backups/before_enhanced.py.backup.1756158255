@@ -1,6 +1,6 @@
 """
-Surgical Modifier v6.0 - AFTER Operation (Enhanced with Industrial Features)
-Insert content after a specific line/pattern with enhanced indentation preservation
+Surgical Modifier v6.0 - BEFORE Operation (Enhanced with Industrial Features)
+Insert content before a specific line/pattern with enhanced indentation preservation
 """
 
 import os
@@ -115,8 +115,8 @@ def validate_javascript_syntax(content: str) -> bool:
 
 # ========== OPERACIONES BEFORE MEJORADAS CON FUNCIONALIDAD INDUSTRIAL ==========
 
-def enhanced_after_operation(file_path: str, pattern: str, content: str, preserve_indentation: bool = True):
-    """AFTER mejorada con preservación de indentación"""
+def enhanced_before_operation(file_path: str, pattern: str, content: str, preserve_indentation: bool = True):
+    """BEFORE mejorada con preservación de indentación"""
     try:
         # Leer contenido original
         with open(file_path, chr(114), encoding=chr(117) + chr(116) + chr(102) + chr(45) + chr(56)) as f:
@@ -135,13 +135,13 @@ def enhanced_after_operation(file_path: str, pattern: str, content: str, preserv
                 else:
                     formatted_content = content
                 
-                # Insertar DESPUÉS de la línea encontrada
+                # Insertar ANTES de la línea encontrada
                 if chr(10) in formatted_content:
                     new_lines = formatted_content.split(chr(10))
                     for j, new_line in enumerate(new_lines):
-                        lines.insert(i + 1 + j, new_line)
+                        lines.insert(i + j, new_line)
                 else:
-                    lines.insert(i + 1, formatted_content)
+                    lines.insert(i, formatted_content)
                 break
         
         # Escribir archivo modificado
@@ -150,7 +150,7 @@ def enhanced_after_operation(file_path: str, pattern: str, content: str, preserv
         
         return {
             chr(115) + chr(117) + chr(99) + chr(99) + chr(101) + chr(115) + chr(115): True,
-            chr(109) + chr(101) + chr(115) + chr(115) + chr(97) + chr(103) + chr(101): f"Content inserted after pattern in {file_path}",
+            chr(109) + chr(101) + chr(115) + chr(115) + chr(97) + chr(103) + chr(101): f"Content inserted before pattern in {file_path}",
             chr(102) + chr(105) + chr(108) + chr(101) + chr(95) + chr(112) + chr(97) + chr(116) + chr(104): file_path,
             chr(105) + chr(110) + chr(100) + chr(101) + chr(110) + chr(116) + chr(97) + chr(116) + chr(105) + chr(111) + chr(110) + chr(95) + chr(112) + chr(114) + chr(101) + chr(115) + chr(101) + chr(114) + chr(118) + chr(101) + chr(100): preserve_indentation
         }
@@ -163,8 +163,8 @@ def enhanced_after_operation(file_path: str, pattern: str, content: str, preserv
         }
 
 
-def enhanced_after_operation_with_backup(file_path: str, pattern: str, content: str, auto_backup: bool = True):
-    """AFTER con backup automático integrado"""
+def enhanced_before_operation_with_backup(file_path: str, pattern: str, content: str, auto_backup: bool = True):
+    """BEFORE con backup automático integrado"""
     backup_path = None
     
     try:
@@ -173,7 +173,7 @@ def enhanced_after_operation_with_backup(file_path: str, pattern: str, content: 
             backup_path = create_automatic_backup(file_path)
         
         # 2. Ejecutar inserción mejorada
-        result = enhanced_after_operation(file_path, pattern, content)
+        result = enhanced_before_operation(file_path, pattern, content)
         
         if result.get('success'):
             # 3. Limpiar backups antiguos
@@ -200,8 +200,8 @@ def enhanced_after_operation_with_backup(file_path: str, pattern: str, content: 
         raise e
 
 
-def enhanced_after_operation_with_validation(file_path: str, pattern: str, content: str, validate: bool = True):
-    """AFTER con validación sintáctica"""
+def enhanced_before_operation_with_validation(file_path: str, pattern: str, content: str, validate: bool = True):
+    """BEFORE con validación sintáctica"""
     backup_path = None
     
     try:
@@ -209,7 +209,7 @@ def enhanced_after_operation_with_validation(file_path: str, pattern: str, conte
         backup_path = create_automatic_backup(file_path)
         
         # 2. Ejecutar inserción con backup
-        result = enhanced_after_operation_with_backup(file_path, pattern, content, auto_backup=False)
+        result = enhanced_before_operation_with_backup(file_path, pattern, content, auto_backup=False)
         
         if not result.get('success'):
             return result

@@ -577,11 +577,8 @@ class ExploreOperation(BaseOperation):
            
            return OperationResult(
                success=True,
-               operation_type=context.operation_type,
-               target_path=str(file_path),
                message=f"File analysis completed for {os.path.basename(file_path)}",
-               details={'analysis': analysis},
-               execution_time=0.0
+               metadata={'analysis': analysis}
            )
            
        except Exception as e:
@@ -607,11 +604,8 @@ class ExploreOperation(BaseOperation):
        """Crear resultado de error"""
        return OperationResult(
            success=False,
-           operation_type=OperationType.EXTRACT,
-           target_path="",
            message=error_msg,
-           details={},
-           execution_time=0.0
+           status=OperationStatus.FAILED
        )
 
 # Función principal para compatibilidad CLI

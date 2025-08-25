@@ -4,6 +4,8 @@ Surgical Modifier v6.0 - CLI Principal
 """
 import sys
 import argparse
+from utils.pattern_analyzer import analyze_pattern_safety, suggest_unique_alternatives
+from core.operations.basic.after_enhanced import enhanced_after_operation_with_occurrence
 import re
 from core.operations.basic import after_operation, before_operation, create_operation, replace_operation, append_operation
 from core.operations.basic.replace import enhanced_replace_operation

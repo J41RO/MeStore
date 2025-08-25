@@ -703,7 +703,8 @@ def apply_context_indentation(new_content: str, base_indentation: int) -> str:
 
 def create_automatic_backup(file_path: str) -> str:
     """Crear backup automático con timestamp único"""
-    timestamp = int(time.time())
+    import uuid
+    timestamp = f"{int(time.time())}.{uuid.uuid4().hex[:8]}"
     backup_dir = Path(file_path).parent / '.backups'
     backup_dir.mkdir(exist_ok=True)
     

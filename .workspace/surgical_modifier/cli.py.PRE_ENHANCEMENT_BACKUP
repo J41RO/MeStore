@@ -136,35 +136,8 @@ def main():
     parser.add_argument('--raw', action='store_true', help='Contenido raw sin procesamiento')
     parser.add_argument('--file-input', help='Leer contenido desde archivo')
     parser.add_argument('--stdin', action='store_true', help='Leer contenido desde stdin')
-    parser.add_argument('--occurrence', type=int, default=1, help='Qué ocurrencia usar (1=primera, 2=segunda, etc.)')
-    parser.add_argument('--context-before', help='Contexto requerido antes del patrón')
-    parser.add_argument('--context-after', help='Contexto requerido después del patrón')
-    parser.add_argument('--analyze-pattern', action='store_true', help='Analizar seguridad del patrón')
-    parser.add_argument('--suggest-unique', type=int, help='Sugerir patrones únicos para línea N')
     
     args = parser.parse_args()
-
-    # Manejar análisis de patrones
-    if args.analyze_pattern and args.file and args.pattern:
-        analysis = analyze_pattern_safety(args.file, args.pattern)
-        print(f'ANÁLISIS DE PATRÓN: "{args.pattern}"')
-        print(f'Archivo: {args.file}')
-        print(f'Ocurrencias encontradas: {analysis["total_occurrences"]}')
-        print(f'Nivel de riesgo: {analysis["risk_level"]}')
-        print(f'Recomendación: {analysis["recommendation"]}')
-        if analysis["total_occurrences"] > 1:
-            print('OCURRENCIAS:')
-            for i, occ in enumerate(analysis["occurrences"][:5], 1):
-                print(f'  {i}. Línea {occ["line_number"]}: {occ["content"]}')
-        sys.exit(0)
-    
-    # Modo sugerencias
-    if args.suggest_unique and args.file:
-        suggestions = suggest_unique_alternatives(args.file, args.suggest_unique)
-        print(f'PATRONES ÚNICOS SUGERIDOS para línea {args.suggest_unique}:')
-        for i, suggestion in enumerate(suggestions, 1):
-            print(f'  {i}. {suggestion}')
-        sys.exit(0)
     
     # Inicializar contenido
     content_to_use = args.content
