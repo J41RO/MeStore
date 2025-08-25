@@ -9,6 +9,92 @@ from core.operations.basic import after_operation, before_operation, create_oper
 from core.operations.basic.replace import enhanced_replace_operation
 
 
+
+def show_comprehensive_help():
+    """Mostrar ayuda comprehensiva con ejemplos de uso"""
+    help_text = """
+SURGICAL MODIFIER v6.0 - Herramienta de Modificación Quirúrgica de Código
+
+USAGE:
+  python3 cli.py <operation> <file> <pattern> [content] [options]
+
+OPERATIONS:
+  create      Crear nuevo archivo con contenido
+  replace     Reemplazar patrón existente con nuevo contenido  
+  before      Insertar contenido antes del patrón encontrado
+  after       Insertar contenido después del patrón encontrado
+  append      Agregar contenido al final del archivo
+
+OPTIONS:
+  --help, -h           Mostrar esta ayuda
+  --verbose            Output detallado con diferencias
+  --raw                Contenido sin procesamiento automático
+  --file-input FILE    Leer contenido desde archivo
+  --stdin              Leer contenido desde stdin
+
+EXAMPLES:
+
+CREATE - Crear archivos nuevos:
+  python3 cli.py create models/User.py "" "class User:
+    def __init__(self, name): 
+        self.name = name"
+  
+  # Con auto-creación de directorios
+  python3 cli.py create deep/nested/path/component.tsx "" "export const Component = () => <div>Hello</div>;"
+
+REPLACE - Reemplazar código existente:
+  python3 cli.py replace app.py "old_function" "new_function"
+  
+  # Con backup automático
+  python3 cli.py replace --verbose config.py "DEBUG = False" "DEBUG = True"
+
+BEFORE - Insertar antes de patrón:
+  python3 cli.py before models.py "class User:" "from datetime import datetime"
+  
+  # Preserva indentación automáticamente
+  python3 cli.py before component.js "return (" "const data = fetchData();"
+
+AFTER - Insertar después de patrón:
+  python3 cli.py after routes.py "app = Flask(__name__)" "@app.route('/health')
+def health():
+    return 'OK'"
+
+TEMPLATE LITERALS (JavaScript/TypeScript):
+  # Usar wrapper para contenido con ${} 
+  ./sm_wrapper.sh create component.tsx "" 'const msg = `Hello ${name}!`;'
+  
+  # O usar file input
+  echo 'const html = `<div>${content}</div>`;' | python3 cli.py create template.js "" --stdin
+
+CONTENT INPUT METHODS:
+  # Método 1: Argumento directo (contenido simple)
+  python3 cli.py create file.py "" "print('hello')"
+  
+  # Método 2: Desde archivo
+  python3 cli.py create output.js "" --file-input source.js
+  
+  # Método 3: Desde stdin (contenido multilínea)
+  python3 cli.py create component.py "" --stdin
+  # Luego pegar contenido y presionar Ctrl+D
+  
+  # Método 4: Wrapper para template literals
+  ./sm_wrapper.sh create modern.ts "" 'const api = `${baseUrl}/users/${id}`;'
+
+BACKUP & SAFETY:
+  - Backup automático antes de modificaciones
+  - Rollback automático si hay errores de sintaxis
+  - Validación de código Python automática
+  - Preservación de indentación inteligente
+
+TROUBLESHOOTING:
+  - "bad substitution": Usar ./sm_wrapper.sh para template literals
+  - Contenido multilínea: Usar --stdin o --file-input
+  - Problemas de indentación: La herramienta preserva formato automáticamente
+  
+Para más información: https://github.com/tu-repo/surgical-modifier
+"""
+    print(help_text)
+
 def process_template_literals(content: str) -> str:
     """Procesar template literals para evitar conflictos con bash"""
     if not content:
@@ -36,7 +122,12 @@ def safe_content_handler(content: str, file_path: str) -> str:
     return content
 
 def main():
-    parser = argparse.ArgumentParser(description='Surgical Modifier v6.0')
+    # Si se pide help explícitamente, mostrar versión comprehensiva
+    if len(sys.argv) == 1 or '--help' in sys.argv or '-h' in sys.argv:
+        show_comprehensive_help()
+        sys.exit(0)
+    
+    parser = argparse.ArgumentParser(description='Surgical Modifier v6.0', add_help=False)
     parser.add_argument('operation', choices=['create', 'replace', 'after', 'before', 'append', 'extract', 'update', 'delete'])
     parser.add_argument('file', help='Archivo objetivo')
     parser.add_argument('pattern', help='Patrón a buscar')
