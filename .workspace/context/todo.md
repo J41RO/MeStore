@@ -356,15 +356,15 @@
     ✅ 1.5.4.4 Crear ImageGallery para gestionar múltiples imágenes
     ✅ 1.5.4.5 Implementar crop/resize tool básico con react-image-crop
     ✅ 1.5.4.6 Añadir reordenamiento de imágenes con drag & drop
-🔁 1.5.5 Control de inventario y stock
+✅ 1.5.5 Control de inventario y stock
     ✅ 1.5.5.1 Crear InventoryTable con filtros por estado y ubicación
     ✅ 1.5.5.2 Implementar StockMovements para registrar entrada/salida
-    ⬜ 1.5.5.3 Añadir LocationMap visual del almacén con posiciones
-    ⬜ 1.5.5.4 Crear AlertsPanel para notificaciones de stock y calidad
-    ⬜ 1.5.5.5 Implementar BarcodeScanner simulation para picking
-    ⬜ 1.5.5.6 Añadir filtros por fecha, producto y tipo de movimiento
-⬜ 1.5.6 Reportes de ventas y comisiones
-    ⬜ 1.5.6.1 Crear SalesReport con gráficos por período y producto
+    ✅ 1.5.5.3 Añadir LocationMap visual del almacén con posiciones
+    ✅ 1.5.5.4 Crear AlertsPanel para notificaciones de stock y calidad
+    ✅ 1.5.5.5 Implementar BarcodeScanner simulation para picking
+    ✅ 1.5.5.6 Añadir filtros por fecha, producto y tipo de movimiento
+🔁 1.5.6 Reportes de ventas y comisiones
+    ✅ 1.5.6.1 Crear SalesReport con gráficos por período y producto
     ⬜ 1.5.6.2 Implementar CommissionReport con breakdown detallado
     ⬜ 1.5.6.3 Añadir filtros de fecha, estado y método de pago
     ⬜ 1.5.6.4 Crear exportación a PDF/Excel con react-pdf/xlsx

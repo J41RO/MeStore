@@ -1,0 +1,1 @@
+const Component = () => <div className={`flex ${active ? "active" : ""}`}>Content</div>;
