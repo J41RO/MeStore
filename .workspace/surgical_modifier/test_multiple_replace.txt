@@ -1,3 +1,0 @@
-line1: PASS
-line2: PASS again
-line3: PASS final

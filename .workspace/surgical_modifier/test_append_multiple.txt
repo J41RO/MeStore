@@ -1,4 +1,0 @@
-base content
-
-\nline 2
-\nline 3

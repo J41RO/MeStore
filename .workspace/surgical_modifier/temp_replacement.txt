@@ -1,2 +1,0 @@
-    # Use SmartContentProcessor for better escape handling
-    return SmartContentProcessor.smart_content_processing(content, 'general')

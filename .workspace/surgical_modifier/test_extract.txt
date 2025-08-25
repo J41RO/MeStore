@@ -1,3 +1,0 @@
-line1
-pattern here
-line3
