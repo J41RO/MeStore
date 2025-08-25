@@ -1,1 +1,0 @@
-const Component = () => `Hello ${world}!`;
