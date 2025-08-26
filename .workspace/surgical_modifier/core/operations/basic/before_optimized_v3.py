@@ -1,14 +1,18 @@
 """
-Surgical Modifier v6.0 - AFTER Operation (Integrated)
-Insert content after a specific line/pattern with integration to existing architecture and v5.3 compatibility
+Surgical Modifier v6.0 - BEFORE Operation (Integrated)
+Insert content before a specific line/pattern with integration to existing architecture and v5.3 compatibility
 """
 
 import os
 import re
-import shutil
-import time
 from pathlib import Path
-from typing import List
+# Imports de shared functions
+from ...shared_functions.content_processor import detect_pattern_indentation, apply_context_indentation
+from ...shared_functions.backup_system import create_automatic_backup, cleanup_old_backups
+from ...shared_functions.syntax_validators import validate_python_syntax, validate_javascript_syntax
+from typing import List, Optional
+import time
+import shutil
 
 from utils.escape_processor import process_content_escapes
 
@@ -25,54 +29,53 @@ from ..base_operation import (
 
 try:
     from utils.logger import logger
-
     LOGGING_AVAILABLE = True
 except ImportError:
     LOGGING_AVAILABLE = False
     logger = None
 
-
-def after_operation(file_path: str, pattern: str, content: str, **kwargs):
-    """Simple after operation function - no classes"""
+def before_operation(file_path: str, pattern: str, content: str, **kwargs):
+    """Simple before operation function - no classes"""
     try:
         # Leer archivo
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, 'r', encoding='utf-8') as f:
             file_content = f.read()
 
-        # Buscar patrón e insertar después
+        # Buscar patrón e insertar antes
         if pattern in file_content:
-            # Insertar contenido después del patrón
-            # FIX: Solo primera ocurrencia
-            parts = file_content.split(pattern, 1)
-            if len(parts) == 2:
-                new_content = parts[0] + pattern + content + parts[1]
-            else:
-                new_content = file_content
+            # Insertar contenido antes del patrón
+            new_content = file_content.replace(pattern, content + pattern)
 
             # Escribir archivo modificado
-            with open(file_path, "w", encoding="utf-8") as f:
+            with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(new_content)
 
             return {
-                "success": True,
-                "message": f"Inserted content after pattern in {file_path}",
-                "file_path": file_path,
+                'success': True,
+                'message': f'Inserted content before pattern in {file_path}',
+                'file_path': file_path
             }
         else:
             return {
-                "success": False,
-                "error": f"Pattern not found in {file_path}",
-                "file_path": file_path,
+                'success': False,
+                'error': f'Pattern not found in {file_path}',
+                'file_path': file_path
             }
     except Exception as e:
-        return {"success": False, "error": str(e), "file_path": file_path}
+        return {
+            'success': False,
+            'error': str(e),
+            'file_path': file_path
+        }
 
+# Alias for consistency
+execute = before_operation
 
-class AfterOperation(BaseOperation):
+class BeforeOperation(BaseOperation):
     """
-    AFTER operation implementation with full integration.
+    BEFORE operation implementation with full integration.
 
-    Inserts content after a specific line/pattern in files, with support for:
+    Inserts content before a specific line/pattern in files, with support for:
     - Integration with existing OperationSpec system
     - v5.3 compatibility layer
     - Pattern matching with regex support
@@ -83,22 +86,36 @@ class AfterOperation(BaseOperation):
     """
 
     def __init__(self):
-        super().__init__(OperationType.AFTER, "after")
+        super().__init__(OperationType.BEFORE, "before")
         self.inserted_content = {}  # Track inserted content for rollback
 
+    def prepare_context(self, target_file, content=None, **kwargs):
+        """Override prepare_context to ensure content is properly handled for BEFORE operation."""
+        from pathlib import Path
+        
+        # Ensure target_file is a Path object
+        if isinstance(target_file, str):
+            target_file = Path(target_file)
+        
+        # Create context using parent method
+        context = super().prepare_context(target_file, None, **kwargs)
+        
+        # CORRECCIÓN: Establecer content correctamente
+        context.content = content if content is not None else ""
+        
+        return context
     # ========== INTEGRATION WITH EXISTING ARCHITECTURE ==========
 
     def _get_operation_specific_arguments(self) -> List["ArgumentSpec"]:
         """
-        Define AFTER-specific arguments for integration with registry.
+        Define BEFORE-specific arguments for integration with registry.
 
         Returns:
-            List of AFTER-specific ArgumentSpec
+            List of BEFORE-specific ArgumentSpec
         """
         if not hasattr(self, "_ArgumentSpec_available"):
             try:
                 from ..base_operation import ArgumentSpec
-
                 self._ArgumentSpec_available = True
             except ImportError:
                 self._ArgumentSpec_available = False
@@ -114,15 +131,15 @@ class AfterOperation(BaseOperation):
                 name="pattern",
                 type=str,
                 required=True,
-                help="Pattern/line to search for to insert content after",
+                help="Pattern/line to search for to insert content before",
                 example="def function_name",
             ),
             ArgumentSpec(
                 name="content",
                 type=str,
                 required=True,
-                help="Content to insert after the pattern",
-                example="    print('new line')",
+                help="Content to insert before the pattern",
+                example="    # This is a comment",
             ),
             ArgumentSpec(
                 name="regex_mode",
@@ -145,7 +162,7 @@ class AfterOperation(BaseOperation):
                 type=bool,
                 required=False,
                 default=True,
-                help="Insert after first match only",
+                help="Insert before first match only",
                 example="true",
             ),
             ArgumentSpec(
@@ -159,22 +176,22 @@ class AfterOperation(BaseOperation):
         ]
 
     def get_description(self) -> str:
-        """Get AFTER operation description."""
-        return "Insert content after a specific line or pattern in files"
+        """Get BEFORE operation description."""
+        return "Insert content before a specific line or pattern in files"
 
     def get_examples(self) -> List[str]:
-        """Get AFTER operation examples."""
+        """Get BEFORE operation examples."""
         return [
-            "surgical-modifier after --target-file models.py --pattern 'class User:' --content '    # User model'",
-            "surgical-modifier after --target-file views.py --pattern 'def get_context' --content '    context[\"timestamp\"] = now()'",
-            "surgical-modifier after --target-file app.js --pattern 'import.*React' --content 'import { useState } from \"react\";' --regex-mode",
+            "surgical-modifier before --target-file models.py --pattern 'class User:' --content '# User model definition'",
+            "surgical-modifier before --target-file views.py --pattern 'return render' --content '    # Process data before rendering'",
+            "surgical-modifier before --target-file app.js --pattern 'export default' --content '// Export component' --regex-mode",
         ]
 
     # ========== OPERATION IMPLEMENTATION ==========
 
     def execute(self, context: OperationContext) -> OperationResult:
         """
-        Execute AFTER operation.
+        Execute BEFORE operation.
 
         Args:
             context: OperationContext with target file, pattern, and content
@@ -197,7 +214,7 @@ class AfterOperation(BaseOperation):
                     success=False,
                     operation_type=self.operation_type,
                     target_path=str(target_file),
-                    message="Pattern is required for AFTER operation",
+                    message="Pattern is required for BEFORE operation",
                     details={"missing_pattern": True},
                     execution_time=0.0,
                     operation_name=self.operation_name,
@@ -242,7 +259,7 @@ class AfterOperation(BaseOperation):
             )
 
             # Perform insertion
-            insertion_result = self._perform_after_insertion(
+            insertion_result = self._perform_before_insertion(
                 original_content,
                 pattern,
                 content,
@@ -283,7 +300,7 @@ class AfterOperation(BaseOperation):
                 success=True,
                 operation_type=self.operation_type,
                 target_path=str(target_file),
-                message=f"Successfully inserted content after {insertions_made} occurrence(s) in {target_file}",
+                message=f"Successfully inserted content before {insertions_made} occurrence(s) in {target_file}",
                 details={
                     "pattern": pattern,
                     "content": content,
@@ -322,7 +339,7 @@ class AfterOperation(BaseOperation):
                 {"unexpected_error": str(e)},
             )
 
-    def _perform_after_insertion(
+    def _perform_before_insertion(
         self,
         content: str,
         pattern: str,
@@ -333,7 +350,7 @@ class AfterOperation(BaseOperation):
         preserve_indentation: bool,
     ) -> dict:
         """
-        Perform the actual content insertion after pattern.
+        Perform the actual content insertion before pattern.
 
         Args:
             content: Original file content
@@ -341,7 +358,7 @@ class AfterOperation(BaseOperation):
             insertion: Content to insert
             regex_mode: Use regex matching
             case_sensitive: Case sensitive matching
-            first_match_only: Insert after first match only
+            first_match_only: Insert before first match only
             preserve_indentation: Preserve indentation of target line
 
         Returns:
@@ -354,14 +371,15 @@ class AfterOperation(BaseOperation):
             insertion_positions = []
 
             for i, line in enumerate(lines):
-                new_lines.append(line)
-
                 # Check if this line matches the pattern
                 if self._line_matches_pattern(
                     line, pattern, regex_mode, case_sensitive
                 ):
                     # Prepare content to insert
-                    content_to_insert = insertion
+                    try:
+                        content_to_insert = insertion
+                    except:
+                        content_to_insert = insertion
 
                     # Preserve indentation if requested
                     if preserve_indentation:
@@ -370,20 +388,25 @@ class AfterOperation(BaseOperation):
                             content_to_insert, indentation
                         )
 
-                    # Ensure content ends with newline if original line does
-                    if line.endswith("\n") and not content_to_insert.endswith("\n"):
+                    # Ensure content ends with newline for proper line separation
+                    if not content_to_insert.endswith("\n"):
                         content_to_insert += "\n"
 
-                    # Insert the content after this line
+                    # Insert the content before this line
                     new_lines.append(content_to_insert)
                     insertions_made += 1
                     insertion_positions.append(i + 1)  # Line number (1-based)
 
-                    # If first match only, break
+                    # Add the original line
+                    new_lines.append(line)
+
+                    # If first match only, add remaining lines and break
                     if first_match_only:
-                        # Add remaining lines
                         new_lines.extend(lines[i + 1 :])
                         break
+                else:
+                    # Add the original line
+                    new_lines.append(line)
 
             if insertions_made == 0:
                 return {
@@ -461,7 +484,7 @@ class AfterOperation(BaseOperation):
 
     def validate_context(self, context: OperationContext) -> List[str]:
         """
-        Validate AFTER operation context.
+        Validate BEFORE operation context.
 
         Args:
             context: OperationContext to validate
@@ -489,7 +512,7 @@ class AfterOperation(BaseOperation):
             else context.position_marker
         )
         if not pattern:
-            errors.append("Pattern is required for AFTER operation")
+            errors.append("Pattern is required for BEFORE operation")
 
         # Validate content
         if not context.content:
@@ -509,16 +532,16 @@ class AfterOperation(BaseOperation):
 
     def can_rollback(self) -> bool:
         """
-        AFTER operations support rollback by restoring original content.
+        BEFORE operations support rollback by restoring original content.
 
         Returns:
-            True (AFTER always supports rollback)
+            True (BEFORE always supports rollback)
         """
         return True
 
     # ========== v5.3 COMPATIBILITY METHODS ==========
 
-    def insert_after_v53(
+    def insert_before_v53(
         self,
         file_path: str,
         pattern: str,
@@ -527,12 +550,12 @@ class AfterOperation(BaseOperation):
         **kwargs,
     ) -> OperationResult:
         """
-        v5.3 compatible AFTER insertion method.
+        v5.3 compatible BEFORE insertion method.
 
         Args:
             file_path: Path to file to modify
             pattern: Pattern to search for
-            content: Content to insert after pattern
+            content: Content to insert before pattern
             regex_mode: Use regex matching
             **kwargs: Additional arguments
 
@@ -549,9 +572,9 @@ class AfterOperation(BaseOperation):
 
         return self.execute_v53_compatible(arguments)
 
-    def rollback_after(self, target_file: Path) -> bool:
+    def rollback_before(self, target_file: Path) -> bool:
         """
-        Rollback AFTER operation by restoring original content.
+        Rollback BEFORE operation by restoring original content.
 
         Args:
             target_file: File to restore
@@ -580,394 +603,13 @@ class AfterOperation(BaseOperation):
             del self.inserted_content[target_str]
 
             if LOGGING_AVAILABLE and logger:
-                logger.success(f"AFTER rollback successful: restored {target_file}")
+                logger.success(f"BEFORE rollback successful: restored {target_file}")
             return True
 
         except Exception as e:
             if LOGGING_AVAILABLE and logger:
-                logger.error(f"AFTER rollback failed: {e}")
+                logger.error(f"BEFORE rollback failed: {e}")
             return False
-
 
 # ========== CONVENIENCE FUNCTIONS ==========
 
-
-def insert_after(
-    target_file: str, pattern: str, content: str, **kwargs
-) -> OperationResult:
-    """
-    Convenience function to insert content after a pattern.
-
-    Args:
-        target_file: Path to file to modify
-        pattern: Pattern to search for
-        content: Content to insert after pattern
-        **kwargs: Additional context parameters
-
-    Returns:
-        OperationResult with insertion details
-    """
-    operation = AfterOperation()
-    context = operation.prepare_context(
-        target_file, content, position_marker=pattern, **kwargs
-    )
-    return operation.execute_with_logging(context)
-
-
-def insert_after_regex(
-    target_file: str, pattern: str, content: str, **kwargs
-) -> OperationResult:
-    """
-    Convenience function to insert content after a regex pattern.
-
-    Args:
-        target_file: Path to file to modify
-        pattern: Regex pattern to search for
-        content: Content to insert after pattern
-        **kwargs: Additional context parameters
-
-    Returns:
-        OperationResult with insertion details
-    """
-    kwargs["regex_mode"] = True
-    return insert_after(target_file, pattern, content, **kwargs)
-
-
-# v5.3 Compatibility functions
-def insert_after_v53(
-    file_path: str, pattern: str, content: str, regex_mode: bool = False, **kwargs
-) -> OperationResult:
-    """
-    v5.3 compatible AFTER insertion function.
-
-    Args:
-        file_path: Path to file to modify
-        pattern: Pattern to search for
-        content: Content to insert after pattern
-        regex_mode: Use regex matching
-        **kwargs: Additional arguments
-
-    Returns:
-        OperationResult with v5.3 compatibility
-    """
-    operation = AfterOperation()
-    return operation.insert_after_v53(file_path, pattern, content, regex_mode, **kwargs)
-
-
-# Alias for consistency
-execute = after_operation
-
-
-# ========== FUNCIONES ENHANCED INDUSTRIALES ==========
-
-
-def detect_pattern_indentation(
-    content: str, pattern: str, occurrence_index: int = 0
-) -> int:
-    """Detectar indentación exacta del patrón en su contexto"""
-    lines = content.split(chr(10))
-    occurrence_count = 0
-    for line in lines:
-        if pattern in line:
-            if occurrence_count == occurrence_index:
-                return len(line) - len(line.lstrip())
-            occurrence_count += 1
-    return 0
-
-
-def apply_context_indentation(new_content: str, base_indentation: int) -> str:
-    """Aplicar indentación del contexto al contenido nuevo"""
-    if chr(10) not in new_content:
-        return chr(32) * base_indentation + new_content
-
-    lines = new_content.split(chr(10))
-    indented_lines = []
-    for i, line in enumerate(lines):
-        if line.strip():  # Solo indentar líneas no vacías
-            indented_lines.append(chr(32) * base_indentation + line.lstrip())
-        else:
-            indented_lines.append(chr(34) + chr(34))
-    return chr(10).join(indented_lines)
-
-
-def create_automatic_backup(file_path: str) -> str:
-    """Crear backup automático con timestamp único"""
-    timestamp = int(time.time())
-    backup_dir = Path(file_path).parent / ".backups"
-    backup_dir.mkdir(exist_ok=True)
-
-    filename = Path(file_path).name
-    backup_path = backup_dir / f"{filename}.backup.{timestamp}"
-
-    shutil.copy2(file_path, backup_path)
-    return str(backup_path)
-
-
-def cleanup_old_backups(file_path: str, keep_last: int = 5):
-    """Limpiar backups antiguos, mantener solo los últimos N"""
-    backup_dir = Path(file_path).parent / ".backups"
-    if not backup_dir.exists():
-        return
-
-    filename = Path(file_path).name
-    backup_files = list(backup_dir.glob(f"{filename}.backup.*"))
-    backup_files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
-
-    for old_backup in backup_files[keep_last:]:
-        old_backup.unlink()
-
-
-def validate_python_syntax(content: str) -> bool:
-    """Validar sintaxis Python"""
-    try:
-        compile(
-            content,
-            chr(60)
-            + chr(115)
-            + chr(116)
-            + chr(114)
-            + chr(105)
-            + chr(110)
-            + chr(103)
-            + chr(62),
-            chr(101) + chr(120) + chr(101) + chr(99),
-        )
-        return True
-    except SyntaxError as e:
-        raise ContentError(f"Invalid Python syntax after insertion: {e}")
-
-
-def validate_javascript_syntax(content: str) -> bool:
-    """Validación básica JavaScript"""
-    stack = []
-    pairs = {chr(40): chr(41), chr(91): chr(93), chr(123): chr(125)}
-    for char in content:
-        if char in pairs:
-            stack.append(pairs[char])
-        elif char in pairs.values():
-            if not stack or stack.pop() != char:
-                raise ContentError(
-                    chr(85)
-                    + chr(110)
-                    + chr(98)
-                    + chr(97)
-                    + chr(108)
-                    + chr(97)
-                    + chr(110)
-                    + chr(99)
-                    + chr(101)
-                    + chr(100)
-                    + chr(32)
-                    + chr(98)
-                    + chr(114)
-                    + chr(97)
-                    + chr(99)
-                    + chr(107)
-                    + chr(101)
-                    + chr(116)
-                    + chr(115)
-                )
-    return True
-
-
-def enhanced_after_operation(
-    file_path: str, pattern: str, content: str, preserve_indentation: bool = True
-):
-    """AFTER mejorada con preservación de indentación"""
-    try:
-        # Leer contenido original
-        with open(
-            file_path,
-            chr(114),
-            encoding=chr(117) + chr(116) + chr(102) + chr(45) + chr(56),
-        ) as f:
-            original_content = f.read()
-
-        lines = original_content.split(chr(10))
-
-        # Buscar patrón y detectar indentación
-        for i, line in enumerate(lines):
-            if pattern in line:
-                if preserve_indentation:
-                    # Detectar indentación del contexto
-                    base_indent = detect_pattern_indentation(original_content, pattern)
-                    # Aplicar indentación al nuevo contenido
-                    formatted_content = apply_context_indentation(content, base_indent)
-                else:
-                    formatted_content = content
-
-                # Insertar DESPUÉS de la línea encontrada
-                if chr(10) in formatted_content:
-                    new_lines = formatted_content.split(chr(10))
-                    for j, new_line in enumerate(new_lines):
-                        lines.insert(i + 1 + j, new_line)
-                else:
-                    lines.insert(i + 1, formatted_content)
-                break
-
-        # Escribir archivo modificado
-        with open(
-            file_path,
-            chr(119),
-            encoding=chr(117) + chr(116) + chr(102) + chr(45) + chr(56),
-        ) as f:
-            f.write(chr(10).join(lines))
-
-        return {
-            chr(115)
-            + chr(117)
-            + chr(99)
-            + chr(99)
-            + chr(101)
-            + chr(115)
-            + chr(115): True,
-            chr(109)
-            + chr(101)
-            + chr(115)
-            + chr(115)
-            + chr(97)
-            + chr(103)
-            + chr(101): f"Content inserted after pattern in {file_path}",
-            chr(102)
-            + chr(105)
-            + chr(108)
-            + chr(101)
-            + chr(95)
-            + chr(112)
-            + chr(97)
-            + chr(116)
-            + chr(104): file_path,
-            chr(105)
-            + chr(110)
-            + chr(100)
-            + chr(101)
-            + chr(110)
-            + chr(116)
-            + chr(97)
-            + chr(116)
-            + chr(105)
-            + chr(111)
-            + chr(110)
-            + chr(95)
-            + chr(112)
-            + chr(114)
-            + chr(101)
-            + chr(115)
-            + chr(101)
-            + chr(114)
-            + chr(118)
-            + chr(101)
-            + chr(100): preserve_indentation,
-        }
-
-    except Exception as e:
-        return {
-            chr(115)
-            + chr(117)
-            + chr(99)
-            + chr(99)
-            + chr(101)
-            + chr(115)
-            + chr(115): False,
-            chr(101) + chr(114) + chr(114) + chr(111) + chr(114): str(e),
-            chr(102)
-            + chr(105)
-            + chr(108)
-            + chr(101)
-            + chr(95)
-            + chr(112)
-            + chr(97)
-            + chr(116)
-            + chr(104): file_path,
-        }
-
-
-def enhanced_after_operation_with_backup(
-    file_path: str, pattern: str, content: str, auto_backup: bool = True
-):
-    """AFTER con backup automático integrado"""
-    backup_path = None
-
-    try:
-        # 1. Crear backup automático
-        if auto_backup:
-            backup_path = create_automatic_backup(file_path)
-
-        # 2. Ejecutar inserción mejorada
-        result = enhanced_after_operation(file_path, pattern, content)
-
-        if result.get("success"):
-            # 3. Limpiar backups antiguos
-            if auto_backup:
-                cleanup_old_backups(file_path)
-
-            # 4. Añadir info de backup al resultado
-            result["backup_created"] = backup_path
-            result["auto_backup"] = auto_backup
-
-        return result
-
-    except Exception as e:
-        # 5. Rollback automático si algo falló
-        if backup_path and Path(backup_path).exists():
-            import shutil
-
-            shutil.copy2(backup_path, file_path)
-            return {
-                "success": False,
-                "error": str(e),
-                "rollback_applied": True,
-                "backup_restored_from": backup_path,
-            }
-        raise e
-
-
-def enhanced_after_operation_with_validation(
-    file_path: str, pattern: str, content: str, validate: bool = True
-):
-    """AFTER con validación sintáctica"""
-    backup_path = None
-
-    try:
-        # 1. Backup automático
-        backup_path = create_automatic_backup(file_path)
-
-        # 2. Ejecutar inserción con backup
-        result = enhanced_after_operation_with_backup(
-            file_path, pattern, content, auto_backup=False
-        )
-
-        if not result.get("success"):
-            return result
-
-        # 3. Validación sintáctica
-        if validate:
-            with open(file_path, "r", encoding="utf-8") as f:
-                new_content = f.read()
-
-            if file_path.endswith(".py"):
-                validate_python_syntax(new_content)
-            elif file_path.endswith((".js", ".ts")):
-                validate_javascript_syntax(new_content)
-
-        # 4. Éxito - limpiar backup
-        cleanup_old_backups(file_path)
-
-        result["validated"] = validate
-        result["backup_created"] = backup_path
-
-        return result
-
-    except Exception as e:
-        # 5. Rollback automático por error de validación
-        if backup_path and Path(backup_path).exists():
-            import shutil
-
-            shutil.copy2(backup_path, file_path)
-
-        return {
-            "success": False,
-            "error": str(e),
-            "rollback_applied": True,
-            "validation_failed": True,
-        }

@@ -1,6 +1,6 @@
 """
-Surgical Modifier v6.0 - BEFORE Operation (Integrated)
-Insert content before a specific line/pattern with integration to existing architecture and v5.3 compatibility
+Surgical Modifier v6.0 - BEFORE Operation (Refactorizada)
+Insert content before a specific line/pattern - LIMPIADA DE DUPLICACIONES
 """
 
 import os
@@ -9,6 +9,11 @@ from pathlib import Path
 from typing import List, Optional
 import time
 import shutil
+
+# IMPORTS CENTRALIZADOS - NO DUPLICAR IMPLEMENTACIONES
+from ...shared_functions.content_processor import detect_pattern_indentation, apply_context_indentation
+from ...shared_functions.backup_system import create_automatic_backup, cleanup_old_backups
+from ...shared_functions.syntax_validators import validate_python_syntax, validate_javascript_syntax
 
 from utils.escape_processor import process_content_escapes
 
@@ -70,15 +75,7 @@ execute = before_operation
 class BeforeOperation(BaseOperation):
     """
     BEFORE operation implementation with full integration.
-
-    Inserts content before a specific line/pattern in files, with support for:
-    - Integration with existing OperationSpec system
-    - v5.3 compatibility layer
-    - Pattern matching with regex support
-    - Multiple insertion modes
-    - Content validation and processing
-    - Framework-aware insertions
-    - Rollback support through backup system
+    REFACTORIZADA: Eliminadas ~300 líneas de duplicaciones
     """
 
     def __init__(self):
@@ -101,16 +98,8 @@ class BeforeOperation(BaseOperation):
         
         return context
 
-
-    # ========== INTEGRATION WITH EXISTING ARCHITECTURE ==========
-
     def _get_operation_specific_arguments(self) -> List["ArgumentSpec"]:
-        """
-        Define BEFORE-specific arguments for integration with registry.
-
-        Returns:
-            List of BEFORE-specific ArgumentSpec
-        """
+        """Define BEFORE-specific arguments for integration with registry."""
         if not hasattr(self, "_ArgumentSpec_available"):
             try:
                 from ..base_operation import ArgumentSpec
@@ -185,18 +174,9 @@ class BeforeOperation(BaseOperation):
             "surgical-modifier before --target-file app.js --pattern 'export default' --content '// Export component' --regex-mode",
         ]
 
-    # ========== OPERATION IMPLEMENTATION ==========
-
     def execute(self, context: OperationContext) -> OperationResult:
-        """
-        Execute BEFORE operation.
-
-        Args:
-            context: OperationContext with target file, pattern, and content
-
-        Returns:
-            OperationResult with insertion details
-        """
+        """Execute BEFORE operation."""
+        target_file = None  # Ensure target_file is always defined
         try:
             target_file = context.target_file
             pattern = (
@@ -314,28 +294,28 @@ class BeforeOperation(BaseOperation):
                 content_processed=new_content,
                 operation_name=self.operation_name,
             )
-
         except PermissionError as e:
             raise FileSystemError(
-                f"Permission denied accessing file: {target_file}",
+                f"Permission denied accessing file: {target_file if target_file is not None else '<unknown>'}",
                 self.operation_type,
-                str(target_file),
+                str(target_file) if target_file is not None else "<unknown>",
                 {"permission_error": str(e)},
             )
         except UnicodeDecodeError as e:
             raise ContentError(
-                f"Unable to decode file content: {target_file}",
+                f"Unable to decode file content: {target_file if target_file is not None else '<unknown>'}",
                 self.operation_type,
-                str(target_file),
+                str(target_file) if target_file is not None else "<unknown>",
                 {"encoding_error": str(e)},
             )
         except Exception as e:
             raise FileSystemError(
-                f"Unexpected error during insertion: {target_file}",
+                f"Unexpected error during insertion: {target_file if target_file is not None else '<unknown>'}",
                 self.operation_type,
-                str(target_file),
+                str(target_file) if target_file is not None else "<unknown>",
                 {"unexpected_error": str(e)},
             )
+            
 
     def _perform_before_insertion(
         self,
@@ -347,21 +327,7 @@ class BeforeOperation(BaseOperation):
         first_match_only: bool,
         preserve_indentation: bool,
     ) -> dict:
-        """
-        Perform the actual content insertion before pattern.
-
-        Args:
-            content: Original file content
-            pattern: Pattern to search for
-            insertion: Content to insert
-            regex_mode: Use regex matching
-            case_sensitive: Case sensitive matching
-            first_match_only: Insert before first match only
-            preserve_indentation: Preserve indentation of target line
-
-        Returns:
-            Dictionary with insertion results
-        """
+        """Perform the actual content insertion before pattern."""
         try:
             lines = content.splitlines(keepends=True)
             new_lines = []
@@ -374,17 +340,12 @@ class BeforeOperation(BaseOperation):
                     line, pattern, regex_mode, case_sensitive
                 ):
                     # Prepare content to insert
-                    try:
-                        content_to_insert = insertion
-                    except:
-                        content_to_insert = insertion
+                    content_to_insert = insertion
 
-                    # Preserve indentation if requested
+                    # Preserve indentation if requested - USA SHARED FUNCTION
                     if preserve_indentation:
                         indentation = self._get_line_indentation(line)
-                        content_to_insert = self._apply_indentation(
-                            content_to_insert, indentation
-                        )
+                        content_to_insert = apply_context_indentation(content_to_insert, len(indentation))
 
                     # Ensure content ends with newline for proper line separation
                     if not content_to_insert.endswith("\n"):
@@ -459,37 +420,8 @@ class BeforeOperation(BaseOperation):
         """Extract indentation from a line."""
         return line[: len(line) - len(line.lstrip())]
 
-    def _apply_indentation(self, content: str, indentation: str) -> str:
-        """Apply indentation to content, handling multi-line content."""
-        if not indentation:
-            return content
-
-        lines = content.splitlines()
-        indented_lines = []
-
-        for i, line in enumerate(lines):
-            if i == 0:
-                # First line gets the base indentation
-                indented_lines.append(indentation + line)
-            else:
-                # Subsequent lines get additional indentation if not empty
-                if line.strip():
-                    indented_lines.append(indentation + line)
-                else:
-                    indented_lines.append(line)
-
-        return "\n".join(indented_lines)
-
     def validate_context(self, context: OperationContext) -> List[str]:
-        """
-        Validate BEFORE operation context.
-
-        Args:
-            context: OperationContext to validate
-
-        Returns:
-            List of validation error messages
-        """
+        """Validate BEFORE operation context."""
         errors = []
 
         # Validate target file
@@ -529,12 +461,7 @@ class BeforeOperation(BaseOperation):
         return errors
 
     def can_rollback(self) -> bool:
-        """
-        BEFORE operations support rollback by restoring original content.
-
-        Returns:
-            True (BEFORE always supports rollback)
-        """
+        """BEFORE operations support rollback by restoring original content."""
         return True
 
     # ========== v5.3 COMPATIBILITY METHODS ==========
@@ -547,19 +474,7 @@ class BeforeOperation(BaseOperation):
         regex_mode: bool = False,
         **kwargs,
     ) -> OperationResult:
-        """
-        v5.3 compatible BEFORE insertion method.
-
-        Args:
-            file_path: Path to file to modify
-            pattern: Pattern to search for
-            content: Content to insert before pattern
-            regex_mode: Use regex matching
-            **kwargs: Additional arguments
-
-        Returns:
-            OperationResult with v5.3 compatibility
-        """
+        """v5.3 compatible BEFORE insertion method."""
         arguments = {
             "target_file": file_path,
             "content": content,
@@ -571,15 +486,7 @@ class BeforeOperation(BaseOperation):
         return self.execute_v53_compatible(arguments)
 
     def rollback_before(self, target_file: Path) -> bool:
-        """
-        Rollback BEFORE operation by restoring original content.
-
-        Args:
-            target_file: File to restore
-
-        Returns:
-            True if rollback successful, False otherwise
-        """
+        """Rollback BEFORE operation by restoring original content."""
         try:
             target_str = str(target_file)
 
@@ -614,18 +521,7 @@ class BeforeOperation(BaseOperation):
 def insert_before(
     target_file: str, pattern: str, content: str, **kwargs
 ) -> OperationResult:
-    """
-    Convenience function to insert content before a pattern.
-
-    Args:
-        target_file: Path to file to modify
-        pattern: Pattern to search for
-        content: Content to insert before pattern
-        **kwargs: Additional context parameters
-
-    Returns:
-        OperationResult with insertion details
-    """
+    """Convenience function to insert content before a pattern."""
     operation = BeforeOperation()
     context = operation.prepare_context(
         target_file, content, position_marker=pattern, **kwargs
@@ -635,18 +531,7 @@ def insert_before(
 def insert_before_regex(
     target_file: str, pattern: str, content: str, **kwargs
 ) -> OperationResult:
-    """
-    Convenience function to insert content before a regex pattern.
-
-    Args:
-        target_file: Path to file to modify
-        pattern: Regex pattern to search for
-        content: Content to insert before pattern
-        **kwargs: Additional context parameters
-
-    Returns:
-        OperationResult with insertion details
-    """
+    """Convenience function to insert content before a regex pattern."""
     kwargs["regex_mode"] = True
     return insert_before(target_file, pattern, content, **kwargs)
 
@@ -654,126 +539,36 @@ def insert_before_regex(
 def insert_before_v53(
     file_path: str, pattern: str, content: str, regex_mode: bool = False, **kwargs
 ) -> OperationResult:
-    """
-    v5.3 compatible BEFORE insertion function.
-
-    Args:
-        file_path: Path to file to modify
-        pattern: Pattern to search for
-        content: Content to insert before pattern
-        regex_mode: Use regex matching
-        **kwargs: Additional arguments
-
-    Returns:
-        OperationResult with v5.3 compatibility
-    """
+    """v5.3 compatible BEFORE insertion function."""
     operation = BeforeOperation()
     return operation.insert_before_v53(
         file_path, pattern, content, regex_mode, **kwargs
     )
 
-# ========== FUNCIONES ENHANCED INDUSTRIALES ==========
-
-def detect_pattern_indentation(content: str, pattern: str, occurrence_index: int = 0) -> int:
-    """Detectar indentación exacta del patrón en su contexto"""
-    lines = content.split(chr(10))
-    occurrence_count = 0
-    for line in lines:
-        if pattern in line:
-            if occurrence_count == occurrence_index:
-                return len(line) - len(line.lstrip())
-            occurrence_count += 1
-    return 0
-
-
-def apply_context_indentation(new_content: str, base_indentation: int) -> str:
-    """Aplicar indentación del contexto al contenido nuevo"""
-    if chr(10) not in new_content:
-        return chr(32) * base_indentation + new_content
-    
-    lines = new_content.split(chr(10))
-    indented_lines = []
-    for i, line in enumerate(lines):
-        if line.strip():  # Solo indentar líneas no vacías
-            indented_lines.append(chr(32) * base_indentation + line.lstrip())
-        else:
-            indented_lines.append(chr(34) + chr(34))
-    return chr(10).join(indented_lines)
-
-
-def create_automatic_backup(file_path: str) -> str:
-    """Crear backup automático con timestamp único"""
-    import uuid
-    timestamp = f"{int(time.time())}.{uuid.uuid4().hex[:8]}"
-    backup_dir = Path(file_path).parent / '.backups'
-    backup_dir.mkdir(exist_ok=True)
-    
-    filename = Path(file_path).name
-    backup_path = backup_dir / f'{filename}.backup.{timestamp}'
-    
-    shutil.copy2(file_path, backup_path)
-    return str(backup_path)
-
-
-def cleanup_old_backups(file_path: str, keep_last: int = 5):
-    """Limpiar backups antiguos, mantener solo los últimos N"""
-    backup_dir = Path(file_path).parent / '.backups'
-    if not backup_dir.exists():
-        return
-    
-    filename = Path(file_path).name
-    backup_files = list(backup_dir.glob(f'{filename}.backup.*'))
-    backup_files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
-    
-    for old_backup in backup_files[keep_last:]:
-        old_backup.unlink()
-
-
-def validate_python_syntax(content: str) -> bool:
-    """Validar sintaxis Python"""
-    try:
-        compile(content, chr(60) + chr(115) + chr(116) + chr(114) + chr(105) + chr(110) + chr(103) + chr(62), chr(101) + chr(120) + chr(101) + chr(99))
-        return True
-    except SyntaxError as e:
-        raise ContentError(f"Invalid Python syntax after insertion: {e}")
-
-
-def validate_javascript_syntax(content: str) -> bool:
-    """Validación básica JavaScript"""
-    stack = []
-    pairs = {chr(40): chr(41), chr(91): chr(93), chr(123): chr(125)}
-    for char in content:
-        if char in pairs:
-            stack.append(pairs[char])
-        elif char in pairs.values():
-            if not stack or stack.pop() != char:
-                raise ContentError(chr(85) + chr(110) + chr(98) + chr(97) + chr(108) + chr(97) + chr(110) + chr(99) + chr(101) + chr(100) + chr(32) + chr(98) + chr(114) + chr(97) + chr(99) + chr(107) + chr(101) + chr(116) + chr(115))
-    return True
-
-
+# FUNCIONES ENHANCED SIMPLIFICADAS - UTILIZAN SHARED_FUNCTIONS
 def enhanced_before_operation(file_path: str, pattern: str, content: str, preserve_indentation: bool = True):
-    """BEFORE mejorada con preservación de indentación"""
+    """BEFORE mejorada con preservación de indentación - USA SHARED_FUNCTIONS"""
     try:
         # Leer contenido original
-        with open(file_path, chr(114), encoding=chr(117) + chr(116) + chr(102) + chr(45) + chr(56)) as f:
+        with open(file_path, 'r', encoding='utf-8') as f:
             original_content = f.read()
         
-        lines = original_content.split(chr(10))
+        lines = original_content.split('\n')
         
-        # Buscar patrón y detectar indentación
+        # Buscar patrón y detectar indentación - USA SHARED_FUNCTION
         for i, line in enumerate(lines):
             if pattern in line:
                 if preserve_indentation:
-                    # Detectar indentación del contexto
+                    # Detectar indentación del contexto - USA SHARED_FUNCTION
                     base_indent = detect_pattern_indentation(original_content, pattern)
-                    # Aplicar indentación al nuevo contenido
+                    # Aplicar indentación al nuevo contenido - USA SHARED_FUNCTION
                     formatted_content = apply_context_indentation(content, base_indent)
                 else:
                     formatted_content = content
                 
                 # Insertar ANTES de la línea encontrada
-                if chr(10) in formatted_content:
-                    new_lines = formatted_content.split(chr(10))
+                if '\n' in formatted_content:
+                    new_lines = formatted_content.split('\n')
                     for j, new_line in enumerate(new_lines):
                         lines.insert(i + j, new_line)
                 else:
@@ -781,30 +576,30 @@ def enhanced_before_operation(file_path: str, pattern: str, content: str, preser
                 break
         
         # Escribir archivo modificado
-        with open(file_path, chr(119), encoding=chr(117) + chr(116) + chr(102) + chr(45) + chr(56)) as f:
-            f.write(chr(10).join(lines))
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(lines))
         
         return {
-            chr(115) + chr(117) + chr(99) + chr(99) + chr(101) + chr(115) + chr(115): True,
-            chr(109) + chr(101) + chr(115) + chr(115) + chr(97) + chr(103) + chr(101): f"Content inserted before pattern in {file_path}",
-            chr(102) + chr(105) + chr(108) + chr(101) + chr(95) + chr(112) + chr(97) + chr(116) + chr(104): file_path,
-            chr(105) + chr(110) + chr(100) + chr(101) + chr(110) + chr(116) + chr(97) + chr(116) + chr(105) + chr(111) + chr(110) + chr(95) + chr(112) + chr(114) + chr(101) + chr(115) + chr(101) + chr(114) + chr(118) + chr(101) + chr(100): preserve_indentation
+            'success': True,
+            'message': f"Content inserted before pattern in {file_path}",
+            'file_path': file_path,
+            'indentation_preserved': preserve_indentation
         }
         
     except Exception as e:
         return {
-            chr(115) + chr(117) + chr(99) + chr(99) + chr(101) + chr(115) + chr(115): False,
-            chr(101) + chr(114) + chr(114) + chr(111) + chr(114): str(e),
-            chr(102) + chr(105) + chr(108) + chr(101) + chr(95) + chr(112) + chr(97) + chr(116) + chr(104): file_path
+            'success': False,
+            'error': str(e),
+            'file_path': file_path
         }
 
 
 def enhanced_before_operation_with_backup(file_path: str, pattern: str, content: str, auto_backup: bool = True):
-    """BEFORE con backup automático integrado"""
+    """BEFORE con backup automático integrado - USA SHARED_FUNCTIONS"""
     backup_path = None
     
     try:
-        # 1. Crear backup automático
+        # 1. Crear backup automático - USA SHARED_FUNCTION
         if auto_backup:
             backup_path = create_automatic_backup(file_path)
         
@@ -812,7 +607,7 @@ def enhanced_before_operation_with_backup(file_path: str, pattern: str, content:
         result = enhanced_before_operation(file_path, pattern, content)
         
         if result.get('success'):
-            # 3. Limpiar backups antiguos
+            # 3. Limpiar backups antiguos - USA SHARED_FUNCTION
             if auto_backup:
                 cleanup_old_backups(file_path)
             
@@ -837,11 +632,11 @@ def enhanced_before_operation_with_backup(file_path: str, pattern: str, content:
 
 
 def enhanced_before_operation_with_validation(file_path: str, pattern: str, content: str, validate: bool = True):
-    """BEFORE con validación sintáctica"""
+    """BEFORE con validación sintáctica - USA SHARED_FUNCTIONS"""
     backup_path = None
     
     try:
-        # 1. Backup automático
+        # 1. Backup automático - USA SHARED_FUNCTION
         backup_path = create_automatic_backup(file_path)
         
         # 2. Ejecutar inserción con backup
@@ -850,7 +645,7 @@ def enhanced_before_operation_with_validation(file_path: str, pattern: str, cont
         if not result.get('success'):
             return result
         
-        # 3. Validación sintáctica
+        # 3. Validación sintáctica - USA SHARED_FUNCTIONS
         if validate:
             with open(file_path, 'r', encoding='utf-8') as f:
                 new_content = f.read()
@@ -860,7 +655,7 @@ def enhanced_before_operation_with_validation(file_path: str, pattern: str, cont
             elif file_path.endswith(('.js', '.ts')):
                 validate_javascript_syntax(new_content)
         
-        # 4. Éxito - limpiar backup
+        # 4. Éxito - limpiar backup - USA SHARED_FUNCTION
         cleanup_old_backups(file_path)
         
         result['validated'] = validate

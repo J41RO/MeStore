@@ -1,0 +1,1657 @@
+{
+  "project_audit_report": {
+    "timestamp": "2025-08-25T23:37:15.980249",
+    "project_root": ".",
+    "file_inventory": {
+      "total_files": 411,
+      "python_files": [
+        "config.py",
+        "final_test.py",
+        "final_verification.py",
+        "large_test.py",
+        "setup.py",
+        "cli.py",
+        "__init__.py",
+        "test_basic_final.py",
+        "final_integration_test.py",
+        "surgical_modifier_cli.py",
+        "replace_safe_standalone.py",
+        "cli_enhancement.py",
+        "test_temp.py",
+        "models.py",
+        "complex_test.py",
+        "audit_project.py",
+        "test_syntax_fix.py",
+        "cli_v6.0_template_fix_WORKING.py",
+        "test_syntax_fix_BACKUP.py",
+        "__main__.py",
+        "analytics/__init__.py",
+        "core/operations_registry_enhancement.py",
+        "core/operations_registry.py",
+        "core/__init__.py",
+        "core/argument_parser.py",
+        "core/collaboration/__init__.py",
+        "core/intelligence/__init__.py",
+        "core/functions/validation/cleanup_manager.py",
+        "core/functions/detection/project_auditor.py",
+        "core/validators/typescript_validator.py",
+        "core/validators/post_operation_validator.py",
+        "core/validators/structural_validator.py",
+        "core/validators/__init__.py",
+        "core/validators/integration_validator.py",
+        "core/validators/rollback_manager.py",
+        "core/backup/__init__.py",
+        "core/shared_functions/content_processor.py",
+        "core/shared_functions/__init__.py",
+        "core/shared_functions/pattern_matcher.py",
+        "core/shared_functions/operation_enhancers.py",
+        "core/shared_functions/backup_system.py",
+        "core/shared_functions/file_handlers.py",
+        "core/shared_functions/syntax_validators.py",
+        "core/testing/__init__.py",
+        "core/operations/__init__.py",
+        "core/operations/safe_replace.py",
+        "core/operations/base_operation.py",
+        "core/operations/basic/after.py",
+        "core/operations/basic/update.py",
+        "core/operations/basic/append.py",
+        "core/operations/basic/insertion_base.py",
+        "core/operations/basic/__init__.py",
+        "core/operations/basic/extract.py",
+        "core/operations/basic/before_enhanced.py",
+        "core/operations/basic/before_optimized_v3.py",
+        "core/operations/basic/before.py",
+        "core/operations/basic/create.py",
+        "core/operations/basic/before_optimized_temp.py",
+        "core/operations/basic/replace.py",
+        "core/operations/basic/before_optimized_v2.py",
+        "core/operations/revolutionary/__init__.py",
+        "core/operations/advanced/delete.py",
+        "core/operations/advanced/__init__.py",
+        "core/operations/advanced/explore.py",
+        "test_newdir/subdir/nested.py",
+        "temp_testing/replace/base1.py",
+        "temp_testing/replace/base2.py",
+        "temp_testing/create/test_basic.py",
+        "temp_testing/create/special.py",
+        "temp_testing/create/complex.py",
+        "temp_testing/append/test_append_check.py",
+        "temp_testing/append/test_append.py",
+        "temp_testing/after/direct_test.py",
+        "temp_testing/after/cli_test.py",
+        "temp_testing/after/test_complete.py",
+        "temp_testing/after/target.py",
+        "temp_testing/before/direct_test.py",
+        "temp_testing/before/cli_test.py",
+        "temp_testing/before/target.py",
+        "tests/test_create_final.py",
+        "tests/test_operation_consistency_100_runs.py",
+        "tests/test_replace_extreme_scenarios.py",
+        "tests/test_universal_pattern_helper.py",
+        "tests/test_delete_target.py",
+        "tests/test_enhanced_path_resolver.py",
+        "tests/test_zero.py",
+        "tests/test_content_handler_problematic_cases.py",
+        "tests/test_enhanced_logging.py",
+        "tests/test_corruption_check.py",
+        "tests/test_made.py",
+        "tests/__init__.py",
+        "tests/test_update_enhanced.py",
+        "tests/test_create_core_scenarios.py",
+        "tests/test_structural_validation.py",
+        "tests/test_create_extreme_scenarios.py",
+        "tests/test_cli.py",
+        "tests/test_utf8.py",
+        "tests/test_advanced_operations_micro_phase_3.py",
+        "tests/test_project_context_all_frameworks.py",
+        "tests/test_made_final.py",
+        "tests/test_robust_pattern_handling.py",
+        "tests/test_after_fixes.py",
+        "tests/test_escape_processor.py",
+        "tests/test_core_operations_micro_phase_2.py",
+        "tests/test_cli_fixed.py",
+        "tests/test_operations_micro_phase_1_integrated.py",
+        "tests/test_append_simple.py",
+        "tests/test_target.py",
+        "tests/workflow_test.py",
+        "tests/test_debug_content.py",
+        "tests/test_create_new.py",
+        "tests/test_different_quotes.py",
+        "tests/test_completely_fixed.py",
+        "tests/test_unified.py",
+        "tests/test_verification_escape.py",
+        "tests/test_cli_integration.py",
+        "tests/test_complex.py",
+        "tests/operations/advanced/test_explore_operation_extreme.py",
+        "test_final_cli/codigo_python.py",
+        "integrations/__init__.py",
+        "plugins/__init__.py",
+        "plugins/example_plugin.py",
+        "test_cli_temp_DISABLED/test_create.py",
+        "test_cli_temp_DISABLED/test_correct_escapes.py",
+        "test_cli_temp_DISABLED/test_escapes.py",
+        "test_cli_temp_DISABLED/test_simple.py",
+        "utils/retry_manager.py",
+        "utils/file_finder.py",
+        "utils/content_validator.py",
+        "utils/logger_old.py",
+        "utils/debug_analyzer.py",
+        "utils/content_handler.py",
+        "utils/integration_preparation.py",
+        "utils/project_context.py",
+        "utils/plugin_system.py",
+        "utils/__init__.py",
+        "utils/progress_manager.py",
+        "utils/content_handler_old_backup.py",
+        "utils/auto_rollback.py",
+        "utils/pattern_analyzer.py",
+        "utils/diff_visualizer.py",
+        "utils/universal_pattern_helper.py",
+        "utils/escape_processor.py",
+        "utils/path_resolver.py",
+        "utils/logger.py",
+        "utils/template_engine.py",
+        "utils/character_escaper.py",
+        "utils/smart_content_processor.py",
+        "utils/block_parser.py",
+        "utils/logger_broken.py",
+        "utils/content_handler_v53.py",
+        "test_dir/subdir/test_nested.py"
+      ],
+      "backup_files": [
+        "pyproject.toml.backup",
+        "__init__.py.backup",
+        "config.py.backup",
+        "cli.py.PRE_ENHANCEMENT_BACKUP",
+        "cli.py.PRE_CLEANUP_BACKUP",
+        "setup.py.backup",
+        "cli.py.backup",
+        "core/validators/__init__.py.backup",
+        "core/shared_functions/.backups/__init__.py.backup.1756163727.fda15281",
+        "core/shared_functions/__pycache__/backup_system.cpython-311.pyc",
+        "core/operations/basic/before.py.PRE_REFACTOR_BACKUP",
+        "core/operations/basic/before.py.PRE_INHERITANCE_BACKUP",
+        "core/operations/basic/before.py.BACKUP_PRE_ENHANCED",
+        "core/operations/basic/before.py.PRE_OPTIMIZATION",
+        "core/operations/basic/after.py.PRE_REFACTOR_BACKUP",
+        "core/operations/basic/.backups/after.py.backup.1756158255",
+        "core/operations/basic/.backups/after.py.backup.1756153805",
+        "core/operations/basic/.backups/before_enhanced.py.backup.1756158255",
+        "core/operations/basic/.backups/after.py.backup.1756154032",
+        "core/operations/basic/.backups/before.py.backup.1756158255",
+        "core/operations/basic/.backups/before.py.backup.1756172202.4dfe9ab7",
+        "core/operations/basic/.backups/before.py.backup.1756153858",
+        "core/operations/basic/.backups/before_enhanced.py.BACKUP_FINAL",
+        "core/operations/basic/.backups/after.py.backup.1756154052",
+        "core/operations/basic/.backups/replace.py.backup.1756158191",
+        "core/operations/basic/.backups/replace.py.backup.1756158255",
+        "core/operations/basic/.backups/replace.py.backup.1756158076",
+        "core/operations/advanced/.backups/explore.py.backup.1756157435",
+        "core/operations/advanced/.backups/explore.py.backup.1756109186",
+        "core/operations/advanced/.backups/explore.py.backup.1756157338",
+        "core/operations/advanced/.backups/explore.py.backup.1756157462",
+        "core/operations/advanced/.backups/explore.py.backup.1756157410",
+        "temp_testing/create/complex.py.backup",
+        "tests/.backups/test_replace_extreme_scenarios.py.backup.1756158548.ace41a9c",
+        "tests/operations/advanced/.backups/test_explore_operation_extreme.py.backup.1756108655",
+        "tests/operations/advanced/.backups/test_explore_operation_extreme.py.backup.1756157069",
+        "tests/operations/advanced/.backups/test_explore_operation_extreme.py.backup.1756157114",
+        "tests/operations/advanced/.backups/test_explore_operation_extreme.py.backup.1756157205",
+        "tests/operations/advanced/.backups/test_explore_operation_extreme.py.backup.1756157090",
+        ".backups/pyproject.toml.backup.1756156763",
+        ".backups/cli.py.backup.1756154900",
+        "utils/logger.py.backup",
+        "utils/escape_processor.py.backup",
+        "utils/content_handler.py.backup",
+        "utils/path_resolver.py.backup",
+        ".backup/cli.py.backup.1755885220",
+        ".backup/create.py.backup.1755929911",
+        ".backup/create.py.backup.1755883889",
+        ".backup/cli.py.backup.1755889619",
+        ".backup/escape_processor.py.backup.1755928824"
+      ],
+      "config_files": [
+        "pyproject.toml",
+        "temp_testing/create/config.json"
+      ],
+      "test_files": [
+        "test_output.js",
+        "test_input.js",
+        "test_complex.js",
+        "test_template.js",
+        "test_after_audit.txt",
+        "TestFinal.tsx",
+        "test_fix.tsx",
+        "test_current.tsx",
+        "test_wrapper.js",
+        "template_test_content.js",
+        "test_tool_validation.txt",
+        "test_occurrence.tsx",
+        "test_4_divs.html",
+        "test_template_final.js",
+        "test_correction_validation.tsx",
+        "test_input_final.js",
+        "original_test.tsx",
+        "test_pattern_analysis.tsx",
+        "test_functionality_check.txt",
+        "temp_testing/testing_log.md",
+        "temp_testing/create/__pycache__/test_basic.cpython-311-pytest-8.4.1.pyc",
+        "temp_testing/append/__pycache__/test_append_check.cpython-311-pytest-8.4.1.pyc",
+        "temp_testing/append/__pycache__/test_append.cpython-311-pytest-8.4.1.pyc",
+        "temp_testing/after/__pycache__/test_complete.cpython-311-pytest-8.4.1.pyc",
+        "tests/test_integration.ts",
+        "tests/test_rollback.ts",
+        "tests/test_outputs/test_surgical.txt",
+        "tests/test_outputs/test_escape_corrected.txt",
+        "tests/test_outputs/test_create_only.txt",
+        "tests/test_outputs/test_unicode.txt",
+        "tests/test_outputs/test_cli_before_after.txt",
+        "tests/test_outputs/test_fallback.txt",
+        "tests/test_outputs/test_before_after.txt",
+        "tests/test_outputs/test_final_check.txt",
+        "tests/test_outputs/test_made_global.txt",
+        "tests/test_outputs/debug_cli_test.txt",
+        "tests/test_outputs/test_verification.txt",
+        "tests/test_outputs/test_current_status.txt",
+        "tests/test_outputs/test_home.txt",
+        "tests/test_outputs/test_before_after_manual.txt",
+        "tests/test_outputs/test_surgical_basic.txt",
+        "tests/test_outputs/test_append_final.txt",
+        "tests/test_outputs/test_create_debug.txt",
+        "tests/test_outputs/test_large.txt",
+        "tests/test_outputs/test_escape_fix.txt",
+        "tests/test_outputs/test_escapes_final.txt",
+        "tests/test_outputs/test_escape_definitivo.txt",
+        "tests/test_outputs/test_manual_append.txt",
+        "tests/__pycache__/test_made.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_create_new.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_update_enhanced.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_zero.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_structural_validation.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_cli_fixed.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_made_final.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_operation_consistency_100_runs.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_completely_fixed.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_enhanced_path_resolver.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_corruption_check.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_cli.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_universal_pattern_helper.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_after_fixes.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_create_core_scenarios.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_enhanced_logging.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_different_quotes.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_advanced_operations_micro_phase_3.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_escape_processor.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_unified.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_create_extreme_scenarios.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_replace_extreme_scenarios.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_utf8.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_complex.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_project_context_all_frameworks.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_core_operations_micro_phase_2.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_create_final.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_delete_target.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_operations_micro_phase_1_integrated.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_cli_integration.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_append_simple.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_verification_escape.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_content_handler_problematic_cases.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_debug_content.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_target.cpython-311-pytest-8.4.1.pyc",
+        "tests/__pycache__/test_robust_pattern_handling.cpython-311-pytest-8.4.1.pyc",
+        "tests/operations/advanced/__pycache__/test_explore_operation_extreme.cpython-311-pytest-8.4.1.pyc",
+        "tests/operations/advanced/__pycache__/test_explore_operation_extreme.cpython-311.pyc",
+        "__pycache__/test_made.cpython-311-pytest-8.4.1.pyc",
+        "__pycache__/test_create_new.cpython-311-pytest-8.4.1.pyc",
+        "__pycache__/test_update_enhanced.cpython-311-pytest-8.4.1.pyc",
+        "__pycache__/test_zero.cpython-311-pytest-8.4.1.pyc",
+        "__pycache__/test_create_final.cpython-311.pyc",
+        "__pycache__/test_cli_fixed.cpython-311-pytest-8.4.1.pyc",
+        "__pycache__/test_made_final.cpython-311-pytest-8.4.1.pyc",
+        "__pycache__/test_completely_fixed.cpython-311-pytest-8.4.1.pyc",
+        "__pycache__/test_syntax_fix.cpython-311-pytest-8.4.1.pyc",
+        "__pycache__/test_create_new.cpython-311.pyc",
+        "__pycache__/test_after_fixes.cpython-311-pytest-8.4.1.pyc",
+        "__pycache__/test_different_quotes.cpython-311-pytest-8.4.1.pyc",
+        "__pycache__/test_final.cpython-311-pytest-8.4.1.pyc",
+        "__pycache__/test_unified.cpython-311-pytest-8.4.1.pyc",
+        "__pycache__/test_syntax_fix_BACKUP.cpython-311-pytest-8.4.1.pyc",
+        "__pycache__/test_verify.cpython-311-pytest-8.4.1.pyc",
+        "__pycache__/test_utf8.cpython-311-pytest-8.4.1.pyc",
+        "__pycache__/test_temp.cpython-311-pytest-8.4.1.pyc",
+        "__pycache__/test_complex.cpython-311-pytest-8.4.1.pyc",
+        "__pycache__/test_create_final.cpython-311-pytest-8.4.1.pyc",
+        "__pycache__/test_update_enhanced.cpython-311.pyc",
+        "__pycache__/test_debug_content.cpython-311-pytest-8.4.1.pyc",
+        "__pycache__/test_basic_final.cpython-311-pytest-8.4.1.pyc",
+        "test_cli_temp_DISABLED/__pycache__/test_correct_escapes.cpython-311-pytest-8.4.1.pyc",
+        "test_cli_temp_DISABLED/__pycache__/test_simple.cpython-311.pyc",
+        "test_cli_temp_DISABLED/__pycache__/test_create.cpython-311.pyc",
+        "test_cli_temp_DISABLED/__pycache__/test_simple.cpython-311-pytest-8.4.1.pyc",
+        "test_cli_temp_DISABLED/__pycache__/test_correct_escapes.cpython-311.pyc",
+        "test_cli_temp_DISABLED/__pycache__/test_create.cpython-311-pytest-8.4.1.pyc",
+        "test_cli_temp_DISABLED/__pycache__/test_escapes.cpython-311-pytest-8.4.1.pyc",
+        "test_cli_temp_DISABLED/__pycache__/test_escapes.cpython-311.pyc",
+        "test_dir/subdir/__pycache__/test_nested.cpython-311-pytest-8.4.1.pyc"
+      ],
+      "temporary_files": [
+        ".coverage"
+      ]
+    },
+    "dependency_mapping": {
+      "config.py": [
+        "import os",
+        "from pathlib import Path"
+      ],
+      "final_test.py": [],
+      "final_verification.py": [
+        "import logging",
+        "from typing import Any"
+      ],
+      "large_test.py": [],
+      "setup.py": [
+        "import os",
+        "import sys",
+        "from setuptools import find_packages, setup"
+      ],
+      "cli.py": [
+        "import sys",
+        "import argparse",
+        "import re",
+        "from core.operations.basic import after_operation, before_operation, create_operation, replace_operation, append_operation",
+        "from core.operations.basic.replace import enhanced_replace_operation"
+      ],
+      "__init__.py": [],
+      "test_basic_final.py": [],
+      "final_integration_test.py": [],
+      "surgical_modifier_cli.py": [
+        "import sys",
+        "import os",
+        "from cli import main as cli_main",
+        "import __main__"
+      ],
+      "replace_safe_standalone.py": [
+        "import shutil",
+        "import sys",
+        "from pathlib import Path",
+        "import ast"
+      ],
+      "cli_enhancement.py": [
+        "import argparse",
+        "import sys",
+        "from utils.pattern_analyzer import analyze_pattern_safety, suggest_unique_alternatives",
+        "from core.operations.basic.after_enhanced import enhanced_after_operation_with_occurrence"
+      ],
+      "test_temp.py": [],
+      "models.py": [],
+      "complex_test.py": [],
+      "audit_project.py": [
+        "import sys",
+        "import os",
+        "from pathlib import Path",
+        "from project_auditor import ProjectAuditor",
+        "import traceback"
+      ],
+      "test_syntax_fix.py": [],
+      "cli_v6.0_template_fix_WORKING.py": [
+        "import sys",
+        "import argparse",
+        "import re",
+        "from core.operations.basic import after_operation, before_operation, create_operation, replace_operation, append_operation",
+        "from core.operations.basic.replace import enhanced_replace_operation"
+      ],
+      "test_syntax_fix_BACKUP.py": [],
+      "__main__.py": [
+        "import sys",
+        "import os",
+        "import time",
+        "from pathlib import Path",
+        "from rich.console import Console",
+        "from rich.traceback import install as install_rich_tracebacks",
+        "from rich.panel import Panel",
+        "from utils.logger import logger",
+        "import logging",
+        "from utils.plugin_system import plugin_manager",
+        "from cli import main as cli_main, register_operations"
+      ],
+      "analytics/__init__.py": [],
+      "core/operations_registry_enhancement.py": [
+        "from typing import Type, Dict, Any, Optional, List",
+        "from .operations.base_operation import BaseOperation, OperationType",
+        "from utils.logger import logger",
+        "from .operations.basic.create import create_operation",
+        "from utils.logger import logger"
+      ],
+      "core/operations_registry.py": [
+        "import importlib",
+        "import inspect",
+        "import os",
+        "from pathlib import Path",
+        "from typing import Dict, List, Any, Optional",
+        "import click",
+        "from typing import Type, Dict, Any, Optional, List",
+        "from .operations.basic.create import create_operation",
+        "from .operations.basic.replace import replace_operation",
+        "from .operations.basic.append import append_operation",
+        "from .operations.basic.after import after_operation",
+        "from .operations.basic.before import before_operation"
+      ],
+      "core/__init__.py": [
+        "from .operations_registry import operations_registry",
+        "from .argument_parser import argument_parser"
+      ],
+      "core/argument_parser.py": [
+        "import click",
+        "from typing import Dict, List, Any, Optional, Callable",
+        "from dataclasses import dataclass, field",
+        "import re"
+      ],
+      "core/collaboration/__init__.py": [],
+      "core/intelligence/__init__.py": [],
+      "core/functions/validation/cleanup_manager.py": [
+        "import os",
+        "import shutil",
+        "import json",
+        "from pathlib import Path",
+        "from typing import Dict, List, Any, Set",
+        "from datetime import datetime",
+        "import hashlib",
+        "import subprocess"
+      ],
+      "core/functions/detection/project_auditor.py": [
+        "import os",
+        "import ast",
+        "import json",
+        "import re",
+        "from pathlib import Path",
+        "from typing import Dict, List, Any, Set, Tuple",
+        "from datetime import datetime",
+        "import subprocess"
+      ],
+      "core/validators/typescript_validator.py": [
+        "import re",
+        "from typing import Dict, List, Optional, Tuple"
+      ],
+      "core/validators/post_operation_validator.py": [
+        "import ast",
+        "import subprocess",
+        "from pathlib import Path"
+      ],
+      "core/validators/structural_validator.py": [
+        "import ast",
+        "import logging",
+        "import os",
+        "from typing import List, Dict, Any, Optional, Tuple"
+      ],
+      "core/validators/__init__.py": [
+        "from .integration_validator import (",
+        "from .rollback_manager import RollbackManager",
+        "from .structural_validator import StructuralValidator",
+        "from .typescript_validator import TypeScriptValidator"
+      ],
+      "core/validators/integration_validator.py": [
+        "import functools",
+        "import logging",
+        "from typing import Callable, Any, Dict, Optional",
+        "from .structural_validator import StructuralValidator",
+        "from .rollback_manager import RollbackManager"
+      ],
+      "core/validators/rollback_manager.py": [
+        "import os",
+        "import shutil",
+        "import tempfile",
+        "import logging",
+        "import hashlib",
+        "from typing import Optional, Dict, Any",
+        "from datetime import datetime"
+      ],
+      "core/backup/__init__.py": [],
+      "core/shared_functions/content_processor.py": [],
+      "core/shared_functions/__init__.py": [
+        "from . import pattern_matcher",
+        "from . import backup_system",
+        "from . import content_processor",
+        "from . import syntax_validators",
+        "from . import file_handlers",
+        "from . import operation_enhancers"
+      ],
+      "core/shared_functions/pattern_matcher.py": [
+        "import re"
+      ],
+      "core/shared_functions/operation_enhancers.py": [],
+      "core/shared_functions/backup_system.py": [
+        "import time",
+        "import uuid",
+        "import shutil",
+        "from pathlib import Path"
+      ],
+      "core/shared_functions/file_handlers.py": [],
+      "core/shared_functions/syntax_validators.py": [
+        "from ..operations.base_operation import ContentError",
+        "from ..operations.base_operation import ContentError"
+      ],
+      "core/testing/__init__.py": [],
+      "core/operations/__init__.py": [
+        "from .base_operation import (",
+        "from .basic import ("
+      ],
+      "core/operations/safe_replace.py": [
+        "import re",
+        "import shutil",
+        "from pathlib import Path",
+        "import ast"
+      ],
+      "core/operations/base_operation.py": [
+        "from abc import ABC, abstractmethod",
+        "from dataclasses import dataclass",
+        "from enum import Enum",
+        "from pathlib import Path",
+        "from typing import Any, Callable, Dict, List, Optional, Union",
+        "from utils.content_handler import content_handler",
+        "from utils.debug_analyzer import PatternDebugger",
+        "from utils.logger import logger",
+        "from utils.path_resolver import path_resolver",
+        "from utils.project_context import project_context",
+        "from utils.retry_manager import retry_with_backoff",
+        "import time",
+        "from utils.content_handler import content_handler",
+        "from utils.logger import logger",
+        "from utils.path_resolver import path_resolver",
+        "from utils.project_context import project_context",
+        "from utils.content_validator import PreInsertionValidator",
+        "from utils.universal_pattern_helper import UniversalPatternHelper",
+        "from utils.escape_processor import EscapeProcessor"
+      ],
+      "core/operations/basic/after.py": [
+        "import os",
+        "import re",
+        "import shutil",
+        "import time",
+        "from pathlib import Path",
+        "from typing import List",
+        "from ..base_operation import (",
+        "from utils.logger import logger",
+        "from ..base_operation import ArgumentSpec",
+        "import uuid",
+        "import shutil",
+        "import shutil"
+      ],
+      "core/operations/basic/update.py": [
+        "import os",
+        "from pathlib import Path",
+        "from typing import Any, Dict, List, Optional",
+        "from ..base_operation import (",
+        "from core.operations.base_operation import (",
+        "from pathlib import Path"
+      ],
+      "core/operations/basic/append.py": [
+        "import os",
+        "from typing import List, Optional",
+        "from pathlib import Path",
+        "from utils.escape_processor import process_content_escapes",
+        "from ..base_operation import (",
+        "from utils.logger import logger",
+        "from utils.path_resolver import PathResolver",
+        "from utils.content_handler import ContentHandler",
+        "from utils.project_context import ProjectContext",
+        "from ..base_operation import ArgumentSpec",
+        "from ..base_operation import ArgumentSpec",
+        "from pathlib import Path"
+      ],
+      "core/operations/basic/insertion_base.py": [
+        "from abc import ABC, abstractmethod",
+        "from typing import List, Optional",
+        "import os",
+        "import re",
+        "import time",
+        "import shutil",
+        "from pathlib import Path",
+        "from ...shared_functions.content_processor import detect_pattern_indentation, apply_context_indentation",
+        "from ...shared_functions.backup_system import create_automatic_backup, cleanup_old_backups",
+        "from ...shared_functions.syntax_validators import validate_python_syntax, validate_javascript_syntax"
+      ],
+      "core/operations/basic/__init__.py": [
+        "from .create import (",
+        "from .replace import (",
+        "from .append import (",
+        "from .after import (",
+        "from .before import ("
+      ],
+      "core/operations/basic/extract.py": [
+        "from pathlib import Path",
+        "from typing import List, Dict, Any, Optional",
+        "from ..base_operation import (",
+        "from core.operations.base_operation import (",
+        "from pathlib import Path"
+      ],
+      "core/operations/basic/before_enhanced.py": [
+        "import os",
+        "import re",
+        "import shutil",
+        "import time",
+        "from pathlib import Path",
+        "from typing import List, Optional",
+        "from utils.escape_processor import process_content_escapes",
+        "from ..base_operation import (",
+        "from utils.logger import logger",
+        "import uuid",
+        "import shutil",
+        "import shutil"
+      ],
+      "core/operations/basic/before_optimized_v3.py": [
+        "import os",
+        "import re",
+        "from pathlib import Path",
+        "from ...shared_functions.content_processor import detect_pattern_indentation, apply_context_indentation",
+        "from ...shared_functions.backup_system import create_automatic_backup, cleanup_old_backups",
+        "from ...shared_functions.syntax_validators import validate_python_syntax, validate_javascript_syntax",
+        "from typing import List, Optional",
+        "import time",
+        "import shutil",
+        "from utils.escape_processor import process_content_escapes",
+        "from ..base_operation import (",
+        "from utils.logger import logger",
+        "from pathlib import Path",
+        "from ..base_operation import ArgumentSpec",
+        "from ..base_operation import ArgumentSpec"
+      ],
+      "core/operations/basic/before.py": [
+        "import os",
+        "import re",
+        "from pathlib import Path",
+        "from typing import List, Optional",
+        "import time",
+        "import shutil",
+        "from ...shared_functions.content_processor import detect_pattern_indentation, apply_context_indentation",
+        "from ...shared_functions.backup_system import create_automatic_backup, cleanup_old_backups",
+        "from ...shared_functions.syntax_validators import validate_python_syntax, validate_javascript_syntax",
+        "from utils.escape_processor import process_content_escapes",
+        "from ..base_operation import (",
+        "from utils.logger import logger",
+        "from pathlib import Path",
+        "from ..base_operation import ArgumentSpec",
+        "from ..base_operation import ArgumentSpec",
+        "import shutil",
+        "import shutil"
+      ],
+      "core/operations/basic/create.py": [
+        "import os",
+        "from pathlib import Path",
+        "from typing import Any, Dict, List, Optional",
+        "from ..base_operation import (",
+        "from core.operations.base_operation import (",
+        "from utils.content_handler import content_handler",
+        "from utils.logger import logger",
+        "from utils.path_resolver import path_resolver",
+        "import os",
+        "from utils.content_handler import create_content_handler",
+        "from utils.content_handler import create_content_handler",
+        "from utils.content_handler import create_content_handler"
+      ],
+      "core/operations/basic/before_optimized_temp.py": [
+        "import os",
+        "import re",
+        "from pathlib import Path",
+        "from ...shared_functions.content_processor import detect_pattern_indentation, apply_context_indentation",
+        "from ...shared_functions.backup_system import create_automatic_backup, cleanup_old_backups",
+        "from ...shared_functions.syntax_validators import validate_python_syntax, validate_javascript_syntax",
+        "from typing import List, Optional",
+        "import time",
+        "import shutil",
+        "from utils.escape_processor import process_content_escapes",
+        "from ..base_operation import (",
+        "from utils.logger import logger",
+        "from pathlib import Path",
+        "from ..base_operation import ArgumentSpec",
+        "from ..base_operation import ArgumentSpec"
+      ],
+      "core/operations/basic/replace.py": [
+        "import os",
+        "import re",
+        "import shutil",
+        "import time",
+        "import tempfile",
+        "from typing import List, Optional",
+        "from pathlib import Path",
+        "from ..base_operation import (",
+        "from utils.logger import logger",
+        "import time",
+        "from pathlib import Path",
+        "import uuid",
+        "from pathlib import Path",
+        "from ..base_operation import ArgumentSpec",
+        "from ..base_operation import ArgumentSpec"
+      ],
+      "core/operations/basic/before_optimized_v2.py": [
+        "import os",
+        "import re",
+        "from pathlib import Path",
+        "from ...shared_functions.content_processor import detect_pattern_indentation, apply_context_indentation",
+        "from ...shared_functions.backup_system import create_automatic_backup, cleanup_old_backups",
+        "from ...shared_functions.syntax_validators import validate_python_syntax, validate_javascript_syntax",
+        "from typing import List, Optional",
+        "import time",
+        "import shutil",
+        "from utils.escape_processor import process_content_escapes",
+        "from ..base_operation import (",
+        "from utils.logger import logger",
+        "from pathlib import Path",
+        "from ..base_operation import ArgumentSpec",
+        "from ..base_operation import ArgumentSpec"
+      ],
+      "core/operations/revolutionary/__init__.py": [],
+      "core/operations/advanced/delete.py": [
+        "import ast",
+        "import os",
+        "import re",
+        "from pathlib import Path",
+        "from typing import Any, Dict, List, Optional, Tuple",
+        "from rich.console import Console",
+        "from rich.panel import Panel",
+        "from rich.syntax import Syntax",
+        "from utils.escape_processor import process_content_escapes",
+        "from ..base_operation import (",
+        "from core.operations.base_operation import ("
+      ],
+      "core/operations/advanced/__init__.py": [],
+      "core/operations/advanced/explore.py": [
+        "import os",
+        "import re",
+        "import ast",
+        "import json",
+        "import difflib",
+        "from pathlib import Path",
+        "from typing import Dict, List, Tuple, Optional, Any",
+        "from ..base_operation import (",
+        "from core.operations.base_operation import (",
+        "from utils.logger import logger",
+        "from utils.content_handler import content_handler",
+        "from utils.path_resolver import path_resolver"
+      ],
+      "test_newdir/subdir/nested.py": [],
+      "temp_testing/replace/base1.py": [],
+      "temp_testing/replace/base2.py": [],
+      "temp_testing/create/test_basic.py": [],
+      "temp_testing/create/special.py": [],
+      "temp_testing/create/complex.py": [],
+      "temp_testing/append/test_append_check.py": [],
+      "temp_testing/append/test_append.py": [],
+      "temp_testing/after/direct_test.py": [],
+      "temp_testing/after/cli_test.py": [],
+      "temp_testing/after/test_complete.py": [],
+      "temp_testing/after/target.py": [],
+      "temp_testing/before/direct_test.py": [
+        "import os",
+        "import sys",
+        "import n",
+        "import nimport"
+      ],
+      "temp_testing/before/cli_test.py": [
+        "import os",
+        "import sys"
+      ],
+      "temp_testing/before/target.py": [
+        "import os",
+        "import sys",
+        "import n",
+        "import nimport"
+      ],
+      "tests/test_create_final.py": [],
+      "tests/test_operation_consistency_100_runs.py": [
+        "import pytest",
+        "import tempfile",
+        "import os",
+        "import time",
+        "from pathlib import Path",
+        "from utils.retry_manager import retry_with_backoff",
+        "from utils.logger import logger",
+        "from utils.debug_analyzer import PatternDebugger",
+        "from core.operations.basic.create import CreateOperation",
+        "from core.operations.base_operation import OperationContext, OperationType"
+      ],
+      "tests/test_replace_extreme_scenarios.py": [
+        "import pytest",
+        "import tempfile",
+        "import os",
+        "import shutil",
+        "from pathlib import Path",
+        "import time",
+        "import sys",
+        "import tempfile",
+        "from core.operations.basic.replace import ("
+      ],
+      "tests/test_universal_pattern_helper.py": [
+        "import pytest",
+        "from utils.universal_pattern_helper import UniversalPatternHelper",
+        "import pytest"
+      ],
+      "tests/test_delete_target.py": [],
+      "tests/test_enhanced_path_resolver.py": [
+        "import os",
+        "import shutil",
+        "import sys",
+        "import tempfile",
+        "from pathlib import Path",
+        "from utils.path_resolver import path_resolver",
+        "from utils.path_resolver import path_resolver",
+        "from utils.path_resolver import path_resolver",
+        "from utils.path_resolver import path_resolver",
+        "from utils.path_resolver import path_resolver",
+        "from utils.path_resolver import path_resolver",
+        "from utils.file_finder import find_files, get_file_finder, smart_search",
+        "import time",
+        "from utils.path_resolver import path_resolver",
+        "from utils.path_resolver import path_resolver"
+      ],
+      "tests/test_zero.py": [],
+      "tests/test_content_handler_problematic_cases.py": [
+        "import sys",
+        "import os",
+        "from utils.content_handler import content_handler, ContentType, ContentValidationResult",
+        "from utils.template_engine import template_engine",
+        "from utils.content_handler import content_handler",
+        "from utils.content_handler import content_handler, ContentType",
+        "from utils.content_handler import content_handler",
+        "from utils.content_handler import content_handler",
+        "from utils.template_engine import template_engine",
+        "from utils.content_handler import content_handler",
+        "from utils.content_handler import content_handler",
+        "from utils.content_handler import content_handler",
+        "import time",
+        "from utils.content_handler import content_handler",
+        "from utils.logger import logger"
+      ],
+      "tests/test_enhanced_logging.py": [
+        "import os",
+        "import sys",
+        "import time",
+        "from utils.logger import logger",
+        "from utils.logger import logger",
+        "from utils.logger import logger",
+        "from utils.progress_manager import progress_manager",
+        "from utils.diff_visualizer import diff_visualizer",
+        "from utils.logger import logger",
+        "from rich.console import Console",
+        "from rich.panel import Panel",
+        "from rich.progress import Progress",
+        "from rich.syntax import Syntax",
+        "from utils.logger import SurgicalLogger"
+      ],
+      "tests/test_corruption_check.py": [],
+      "tests/test_made.py": [],
+      "tests/__init__.py": [],
+      "tests/test_update_enhanced.py": [
+        "import unittest",
+        "import tempfile",
+        "import os",
+        "import json",
+        "from pathlib import Path",
+        "from core.operations.basic.update import UpdateOperation",
+        "from core.operations.base_operation import OperationContext, OperationType",
+        "import sys",
+        "from core.operations.basic.update import UpdateOperation",
+        "from core.operations.base_operation import OperationContext, OperationType",
+        "import shutil",
+        "from core.operations.base_operation import OperationContext, OperationType",
+        "from core.operations.base_operation import OperationContext, OperationType"
+      ],
+      "tests/test_create_core_scenarios.py": [
+        "import os",
+        "import sys",
+        "import pytest",
+        "import tempfile",
+        "import shutil",
+        "import time",
+        "import threading",
+        "from pathlib import Path",
+        "from core.operations.basic.create import ("
+      ],
+      "tests/test_structural_validation.py": [
+        "import pytest",
+        "import tempfile",
+        "import os",
+        "import shutil",
+        "from unittest.mock import patch, MagicMock",
+        "from core.validators import (",
+        "from typing import List"
+      ],
+      "tests/test_create_extreme_scenarios.py": [
+        "import os",
+        "import sys",
+        "import pytest",
+        "import tempfile",
+        "import shutil",
+        "import time",
+        "import psutil",
+        "from pathlib import Path",
+        "from core.operations.basic.create import (",
+        "import threading",
+        "import psutil",
+        "import threading"
+      ],
+      "tests/test_cli.py": [],
+      "tests/test_utf8.py": [],
+      "tests/test_advanced_operations_micro_phase_3.py": [
+        "import sys",
+        "import os",
+        "import tempfile",
+        "import shutil",
+        "from pathlib import Path",
+        "from core.operations.basic.after import insert_after, insert_after_v53",
+        "from core.operations.basic.after import insert_after_regex",
+        "from core.operations.basic.before import insert_before, insert_before_v53",
+        "from core.operations.basic.before import insert_before_regex",
+        "from core.operations.basic.after import insert_after",
+        "from core.operations.basic.before import insert_before",
+        "from core.operations.basic.after import insert_after_v53",
+        "from core.operations.basic.before import insert_before_v53",
+        "from core.operations.basic.after import after_operation",
+        "from core.operations.basic.before import before_operation"
+      ],
+      "tests/test_project_context_all_frameworks.py": [
+        "import sys",
+        "import os",
+        "import tempfile",
+        "import shutil",
+        "import json",
+        "from pathlib import Path",
+        "from utils.project_context import project_context, ProjectMetadata, FrameworkInfo",
+        "from utils.integration_preparation import integration_preparation, GitInfo, CiCdInfo",
+        "from utils.project_context import project_context",
+        "from utils.project_context import project_context",
+        "from utils.project_context import project_context",
+        "from utils.project_context import project_context, ProjectMetadata, FrameworkInfo",
+        "from utils.project_context import project_context",
+        "from utils.project_context import project_context",
+        "from utils.integration_preparation import integration_preparation",
+        "from utils.integration_preparation import integration_preparation",
+        "from utils.integration_preparation import integration_preparation",
+        "from utils.project_context import project_context",
+        "import time",
+        "from utils.project_context import project_context",
+        "from utils.project_context import project_context",
+        "from utils.logger import logger"
+      ],
+      "tests/test_made_final.py": [],
+      "tests/test_robust_pattern_handling.py": [
+        "import pytest",
+        "import tempfile",
+        "import os",
+        "from pathlib import Path",
+        "from utils.universal_pattern_helper import UniversalPatternHelper",
+        "from utils.block_parser import IntelligentBlockParser",
+        "from utils.escape_processor import EscapeProcessor",
+        "from utils.content_validator import PreInsertionValidator"
+      ],
+      "tests/test_after_fixes.py": [],
+      "tests/test_escape_processor.py": [
+        "import os",
+        "import sys",
+        "import pytest",
+        "from utils.escape_processor import EscapeProcessor"
+      ],
+      "tests/test_core_operations_micro_phase_2.py": [
+        "import sys",
+        "import os",
+        "import tempfile",
+        "import shutil",
+        "from pathlib import Path",
+        "from core.operations.basic.replace import replace_content, replace_content_v53",
+        "from core.operations.basic.replace import replace_content_regex",
+        "from core.operations.basic.replace import replace_content_v53",
+        "from core.operations.basic.append import append_content, append_content_v53",
+        "from core.operations.basic.append import append_with_separator",
+        "from core.operations.basic.append import append_content_v53",
+        "from core.operations.basic.replace import replace_operation",
+        "from core.operations.basic.append import append_operation"
+      ],
+      "tests/test_cli_fixed.py": [],
+      "tests/test_operations_micro_phase_1_integrated.py": [
+        "import sys",
+        "import os",
+        "import tempfile",
+        "import shutil",
+        "from pathlib import Path",
+        "from core.operations.base_operation import BaseOperation, OperationType",
+        "from core.argument_parser import OperationSpec",
+        "from core.operations.basic.create import CreateOperation, create_file, create_file_v53",
+        "from core.operations.basic.create import create_file, create_file_v53",
+        "from core.operations_registry import enhanced_operations_registry",
+        "from core.operations.basic.create import create_file_with_template",
+        "from core.operations.basic.create import create_operation",
+        "from core.operations.basic.create import create_file"
+      ],
+      "tests/test_append_simple.py": [],
+      "tests/test_target.py": [],
+      "tests/workflow_test.py": [],
+      "tests/test_debug_content.py": [],
+      "tests/test_create_new.py": [],
+      "tests/test_different_quotes.py": [],
+      "tests/test_completely_fixed.py": [],
+      "tests/test_unified.py": [],
+      "tests/test_verification_escape.py": [
+        "import os",
+        "import sys",
+        "from pathlib import Path"
+      ],
+      "tests/test_cli_integration.py": [
+        "import sys",
+        "import os",
+        "import subprocess",
+        "from cli import main",
+        "from click.testing import CliRunner",
+        "from core.operations_registry import operations_registry",
+        "from core.argument_parser import argument_parser",
+        "from cli import main",
+        "from click.testing import CliRunner",
+        "from cli import main",
+        "from click.testing import CliRunner",
+        "from core import operations_registry, argument_parser",
+        "from cli import register_operations"
+      ],
+      "tests/test_complex.py": [],
+      "tests/operations/advanced/test_explore_operation_extreme.py": [
+        "import pytest",
+        "import tempfile",
+        "import os",
+        "import sys",
+        "from unittest.mock import patch, MagicMock",
+        "from core.operations.advanced.explore import (",
+        "from core.operations.base_operation import OperationContext, OperationType",
+        "from pathlib import Path"
+      ],
+      "test_final_cli/codigo_python.py": [],
+      "integrations/__init__.py": [],
+      "plugins/__init__.py": [],
+      "plugins/example_plugin.py": [],
+      "test_cli_temp_DISABLED/test_create.py": [],
+      "test_cli_temp_DISABLED/test_correct_escapes.py": [],
+      "test_cli_temp_DISABLED/test_escapes.py": [],
+      "test_cli_temp_DISABLED/test_simple.py": [],
+      "utils/retry_manager.py": [
+        "import time",
+        "import random",
+        "import functools",
+        "from typing import Callable, Any, Optional, Tuple, Dict",
+        "from utils import logger"
+      ],
+      "utils/file_finder.py": [
+        "import difflib",
+        "import fnmatch",
+        "import os",
+        "import re",
+        "from collections import defaultdict",
+        "from pathlib import Path",
+        "from typing import Dict, List, Optional, Set, Tuple",
+        "from utils.path_resolver import path_resolver"
+      ],
+      "utils/content_validator.py": [
+        "import ast",
+        "import re",
+        "import logging",
+        "from typing import Dict, List, Optional, Any, Tuple",
+        "from textwrap import dedent"
+      ],
+      "utils/logger_old.py": [
+        "import os",
+        "import sys",
+        "import time",
+        "from datetime import datetime",
+        "from pathlib import Path",
+        "from typing import Any, Dict, List, Optional",
+        "from rich.align import Align",
+        "from rich.console import Console",
+        "from rich.layout import Layout",
+        "from rich.live import Live",
+        "from rich.panel import Panel",
+        "from rich.progress import (",
+        "from rich.rule import Rule",
+        "from rich.syntax import Syntax",
+        "from rich.table import Table",
+        "from rich.text import Text",
+        "from rich.tree import Tree"
+      ],
+      "utils/debug_analyzer.py": [
+        "import re",
+        "import os",
+        "from typing import Dict, List, Optional, Any, Tuple",
+        "from pathlib import Path",
+        "from utils import logger"
+      ],
+      "utils/content_handler.py": [
+        "import re",
+        "import os",
+        "import tempfile",
+        "from typing import Tuple, Optional, Dict, List, Any",
+        "from enum import Enum",
+        "from dataclasses import dataclass"
+      ],
+      "utils/integration_preparation.py": [
+        "from typing import Dict, List, Optional, Any",
+        "from pathlib import Path",
+        "from dataclasses import dataclass",
+        "import subprocess",
+        "import json",
+        "from utils.project_context import project_context",
+        "from utils.logger import logger"
+      ],
+      "utils/project_context.py": [
+        "import os",
+        "import json",
+        "import re",
+        "import time",
+        "from pathlib import Path",
+        "from typing import Dict, List, Optional, Set, Any, Tuple",
+        "from dataclasses import dataclass, asdict",
+        "from datetime import datetime, timedelta",
+        "import hashlib",
+        "from utils.logger import logger",
+        "from utils.path_resolver import path_resolver",
+        "import tempfile",
+        "import toml"
+      ],
+      "utils/plugin_system.py": [
+        "import os",
+        "import sys",
+        "from pathlib import Path",
+        "from typing import Dict, List, Any, Optional"
+      ],
+      "utils/__init__.py": [
+        "from .logger import logger",
+        "from .path_resolver import path_resolver",
+        "from .plugin_system import plugin_manager",
+        "from .progress_manager import progress_manager",
+        "from .diff_visualizer import diff_visualizer",
+        "from .file_finder import find_files, get_file_finder, search_content, smart_search",
+        "from .content_handler import content_handler, ContentType, ContentValidationResult",
+        "from .escape_processor import EscapeProcessor",
+        "from .escape_processor import EscapeProcessor",
+        "from .template_engine import template_engine",
+        "from .project_context import project_context, ProjectMetadata, FrameworkInfo",
+        "from .integration_preparation import integration_preparation, GitInfo, CiCdInfo",
+        "from .universal_pattern_helper import UniversalPatternHelper",
+        "from .block_parser import IntelligentBlockParser",
+        "from .content_validator import PreInsertionValidator"
+      ],
+      "utils/progress_manager.py": [
+        "import time",
+        "from contextlib import contextmanager",
+        "from typing import Any, Dict, List, Optional",
+        "from rich.console import Console",
+        "from rich.live import Live",
+        "from rich.panel import Panel",
+        "from rich.progress import (",
+        "from rich.table import Table"
+      ],
+      "utils/content_handler_old_backup.py": [
+        "import re",
+        "import json",
+        "import ast",
+        "import shlex",
+        "from typing import Dict, List, Optional, Tuple, Any, Union",
+        "from pathlib import Path",
+        "from enum import Enum",
+        "import textwrap",
+        "from dataclasses import dataclass",
+        "from utils.logger import logger",
+        "from utils.path_resolver import path_resolver"
+      ],
+      "utils/auto_rollback.py": [
+        "import os",
+        "import shutil",
+        "import subprocess",
+        "from pathlib import Path",
+        "from typing import Dict, List, Optional"
+      ],
+      "utils/pattern_analyzer.py": [
+        "from typing import Dict, Any, List",
+        "import re"
+      ],
+      "utils/diff_visualizer.py": [
+        "import difflib",
+        "from pathlib import Path",
+        "from typing import Dict, List, Optional, Tuple",
+        "from rich.columns import Columns",
+        "from rich.console import Console",
+        "from rich.layout import Layout",
+        "from rich.panel import Panel",
+        "from rich.rule import Rule",
+        "from rich.syntax import Syntax",
+        "from rich.table import Table",
+        "from rich.text import Text"
+      ],
+      "utils/universal_pattern_helper.py": [
+        "import re",
+        "import logging",
+        "from typing import Dict, List, Optional, Any, Tuple, Union",
+        "from pathlib import Path"
+      ],
+      "utils/escape_processor.py": [
+        "import re",
+        "from utils.smart_content_processor import SmartContentProcessor",
+        "from utils.logger import get_logger",
+        "import logging",
+        "from utils.logger import get_logger",
+        "import logging"
+      ],
+      "utils/path_resolver.py": [
+        "import difflib",
+        "import fnmatch",
+        "import os",
+        "import sys",
+        "import time",
+        "from collections import defaultdict",
+        "from pathlib import Path",
+        "from typing import Dict, List, Optional, Set, Tuple"
+      ],
+      "utils/logger.py": [
+        "import os",
+        "import sys",
+        "import time",
+        "from datetime import datetime",
+        "from pathlib import Path",
+        "from typing import Any, Dict, List, Optional",
+        "from rich.align import Align",
+        "from rich.console import Console",
+        "from rich.layout import Layout",
+        "from rich.live import Live",
+        "from rich.panel import Panel",
+        "from rich.progress import (",
+        "from rich.rule import Rule",
+        "from rich.syntax import Syntax",
+        "from rich.table import Table",
+        "from rich.text import Text",
+        "from rich.tree import Tree",
+        "import traceback",
+        "import re"
+      ],
+      "utils/template_engine.py": [
+        "import re",
+        "from typing import Dict, List, Optional, Tuple, Any",
+        "from pathlib import Path",
+        "import textwrap",
+        "from utils.path_resolver import path_resolver",
+        "from utils.logger import logger",
+        "import React from 'react';"
+      ],
+      "utils/character_escaper.py": [
+        "import re",
+        "from typing import Dict, List"
+      ],
+      "utils/smart_content_processor.py": [
+        "import re"
+      ],
+      "utils/block_parser.py": [
+        "import ast",
+        "import logging",
+        "from typing import Dict, List, Optional, Any, Tuple",
+        "from pathlib import Path"
+      ],
+      "utils/logger_broken.py": [
+        "import os",
+        "import sys",
+        "from datetime import datetime",
+        "from rich.console import Console",
+        "from rich.panel import Panel",
+        "from rich.progress import Progress, SpinnerColumn, TextColumn",
+        "from rich.text import Text"
+      ],
+      "utils/content_handler_v53.py": [
+        "import re",
+        "import os",
+        "import tempfile",
+        "from typing import Tuple, Optional"
+      ],
+      "test_dir/subdir/test_nested.py": []
+    },
+    "code_quality": {
+      "total_lines": 22169,
+      "avg_file_size": 145.84868421052633,
+      "large_files": [
+        {
+          "file": "core/operations/basic/after.py",
+          "lines": 970
+        },
+        {
+          "file": "core/operations/basic/before_optimized_v3.py",
+          "lines": 615
+        },
+        {
+          "file": "core/operations/basic/before.py",
+          "lines": 677
+        },
+        {
+          "file": "core/operations/basic/before_optimized_temp.py",
+          "lines": 657
+        },
+        {
+          "file": "core/operations/basic/replace.py",
+          "lines": 555
+        },
+        {
+          "file": "core/operations/basic/before_optimized_v2.py",
+          "lines": 617
+        },
+        {
+          "file": "core/operations/advanced/explore.py",
+          "lines": 669
+        },
+        {
+          "file": "tests/test_create_extreme_scenarios.py",
+          "lines": 934
+        },
+        {
+          "file": "utils/project_context.py",
+          "lines": 912
+        },
+        {
+          "file": "utils/universal_pattern_helper.py",
+          "lines": 534
+        }
+      ],
+      "duplicated_code": [],
+      "todo_fixme_count": 48
+    },
+    "backup_analysis": {
+      "total_backup_files": 50,
+      "backup_patterns": {
+        ".backup": 41,
+        ".PRE_*": 6,
+        "other": 1,
+        ".BACKUP*": 2
+      },
+      "cleanup_candidates": [
+        {
+          "file": "pyproject.toml.backup",
+          "size": 2359,
+          "pattern": ".backup"
+        },
+        {
+          "file": "__init__.py.backup",
+          "size": 391,
+          "pattern": ".backup"
+        },
+        {
+          "file": "config.py.backup",
+          "size": 813,
+          "pattern": ".backup"
+        },
+        {
+          "file": "cli.py.PRE_ENHANCEMENT_BACKUP",
+          "size": 8581,
+          "pattern": ".PRE_*"
+        },
+        {
+          "file": "cli.py.PRE_CLEANUP_BACKUP",
+          "size": 10142,
+          "pattern": ".PRE_*"
+        },
+        {
+          "file": "setup.py.backup",
+          "size": 1433,
+          "pattern": ".backup"
+        },
+        {
+          "file": "cli.py.backup",
+          "size": 3269,
+          "pattern": ".backup"
+        },
+        {
+          "file": "core/validators/__init__.py.backup",
+          "size": 46,
+          "pattern": ".backup"
+        },
+        {
+          "file": "core/shared_functions/.backups/__init__.py.backup.1756163727.fda15281",
+          "size": 530,
+          "pattern": ".backup"
+        },
+        {
+          "file": "core/shared_functions/__pycache__/backup_system.cpython-311.pyc",
+          "size": 2487,
+          "pattern": "other"
+        },
+        {
+          "file": "core/operations/basic/before.py.PRE_REFACTOR_BACKUP",
+          "size": 31267,
+          "pattern": ".PRE_*"
+        },
+        {
+          "file": "core/operations/basic/before.py.PRE_INHERITANCE_BACKUP",
+          "size": 23384,
+          "pattern": ".PRE_*"
+        },
+        {
+          "file": "core/operations/basic/before.py.BACKUP_PRE_ENHANCED",
+          "size": 23384,
+          "pattern": ".BACKUP*"
+        },
+        {
+          "file": "core/operations/basic/before.py.PRE_OPTIMIZATION",
+          "size": 23384,
+          "pattern": ".PRE_*"
+        },
+        {
+          "file": "core/operations/basic/after.py.PRE_REFACTOR_BACKUP",
+          "size": 31505,
+          "pattern": ".PRE_*"
+        },
+        {
+          "file": "core/operations/basic/.backups/after.py.backup.1756158255",
+          "size": 31461,
+          "pattern": ".backup"
+        },
+        {
+          "file": "core/operations/basic/.backups/after.py.backup.1756153805",
+          "size": 30510,
+          "pattern": ".backup"
+        },
+        {
+          "file": "core/operations/basic/.backups/before_enhanced.py.backup.1756158255",
+          "size": 9118,
+          "pattern": ".backup"
+        },
+        {
+          "file": "core/operations/basic/.backups/after.py.backup.1756154032",
+          "size": 31582,
+          "pattern": ".backup"
+        },
+        {
+          "file": "core/operations/basic/.backups/before.py.backup.1756158255",
+          "size": 31223,
+          "pattern": ".backup"
+        },
+        {
+          "file": "core/operations/basic/.backups/before.py.backup.1756172202.4dfe9ab7",
+          "size": 23384,
+          "pattern": ".backup"
+        },
+        {
+          "file": "core/operations/basic/.backups/before.py.backup.1756153858",
+          "size": 31223,
+          "pattern": ".backup"
+        },
+        {
+          "file": "core/operations/basic/.backups/before_enhanced.py.BACKUP_FINAL",
+          "size": 9162,
+          "pattern": ".BACKUP*"
+        },
+        {
+          "file": "core/operations/basic/.backups/after.py.backup.1756154052",
+          "size": 31572,
+          "pattern": ".backup"
+        },
+        {
+          "file": "core/operations/basic/.backups/replace.py.backup.1756158191",
+          "size": 20253,
+          "pattern": ".backup"
+        },
+        {
+          "file": "core/operations/basic/.backups/replace.py.backup.1756158255",
+          "size": 20253,
+          "pattern": ".backup"
+        },
+        {
+          "file": "core/operations/basic/.backups/replace.py.backup.1756158076",
+          "size": 20253,
+          "pattern": ".backup"
+        },
+        {
+          "file": "core/operations/advanced/.backups/explore.py.backup.1756157435",
+          "size": 24203,
+          "pattern": ".backup"
+        },
+        {
+          "file": "core/operations/advanced/.backups/explore.py.backup.1756109186",
+          "size": 24410,
+          "pattern": ".backup"
+        },
+        {
+          "file": "core/operations/advanced/.backups/explore.py.backup.1756157338",
+          "size": 24398,
+          "pattern": ".backup"
+        },
+        {
+          "file": "core/operations/advanced/.backups/explore.py.backup.1756157462",
+          "size": 24291,
+          "pattern": ".backup"
+        },
+        {
+          "file": "core/operations/advanced/.backups/explore.py.backup.1756157410",
+          "size": 24203,
+          "pattern": ".backup"
+        },
+        {
+          "file": "temp_testing/create/complex.py.backup",
+          "size": 293,
+          "pattern": ".backup"
+        },
+        {
+          "file": "tests/.backups/test_replace_extreme_scenarios.py.backup.1756158548.ace41a9c",
+          "size": 10022,
+          "pattern": ".backup"
+        },
+        {
+          "file": "tests/operations/advanced/.backups/test_explore_operation_extreme.py.backup.1756108655",
+          "size": 5013,
+          "pattern": ".backup"
+        },
+        {
+          "file": "tests/operations/advanced/.backups/test_explore_operation_extreme.py.backup.1756157069",
+          "size": 5017,
+          "pattern": ".backup"
+        },
+        {
+          "file": "tests/operations/advanced/.backups/test_explore_operation_extreme.py.backup.1756157114",
+          "size": 5185,
+          "pattern": ".backup"
+        },
+        {
+          "file": "tests/operations/advanced/.backups/test_explore_operation_extreme.py.backup.1756157205",
+          "size": 5197,
+          "pattern": ".backup"
+        },
+        {
+          "file": "tests/operations/advanced/.backups/test_explore_operation_extreme.py.backup.1756157090",
+          "size": 5067,
+          "pattern": ".backup"
+        },
+        {
+          "file": ".backups/pyproject.toml.backup.1756156763",
+          "size": 2379,
+          "pattern": ".backup"
+        },
+        {
+          "file": ".backups/cli.py.backup.1756154900",
+          "size": 10319,
+          "pattern": ".backup"
+        },
+        {
+          "file": "utils/logger.py.backup",
+          "size": 2093,
+          "pattern": ".backup"
+        },
+        {
+          "file": "utils/escape_processor.py.backup",
+          "size": 19568,
+          "pattern": ".backup"
+        },
+        {
+          "file": "utils/content_handler.py.backup",
+          "size": 6241,
+          "pattern": ".backup"
+        },
+        {
+          "file": "utils/path_resolver.py.backup",
+          "size": 1335,
+          "pattern": ".backup"
+        },
+        {
+          "file": ".backup/cli.py.backup.1755885220",
+          "size": 4303,
+          "pattern": ".backup"
+        },
+        {
+          "file": ".backup/create.py.backup.1755929911",
+          "size": 6656,
+          "pattern": ".backup"
+        },
+        {
+          "file": ".backup/create.py.backup.1755883889",
+          "size": 6326,
+          "pattern": ".backup"
+        },
+        {
+          "file": ".backup/cli.py.backup.1755889619",
+          "size": 3175,
+          "pattern": ".backup"
+        },
+        {
+          "file": ".backup/escape_processor.py.backup.1755928824",
+          "size": 9850,
+          "pattern": ".backup"
+        }
+      ],
+      "size_savings": 682513
+    },
+    "test_analysis": {
+      "test_files_found": 0,
+      "test_directories": [
+        "test_newdir",
+        "temp_testing",
+        "tests",
+        "test_final_cli",
+        "test_cli_temp_DISABLED",
+        "test_dir"
+      ],
+      "pytest_available": true,
+      "coverage_available": true
+    },
+    "functionality_status": {
+      "cli_functional": true,
+      "operations_available": [
+        "create",
+        "replace",
+        "before",
+        "after",
+        "append"
+      ],
+      "critical_files_present": true,
+      "import_errors": []
+    },
+    "recommendations": [
+      "CLEANUP: 50 archivos backup encontrados - implementar CleanupManager",
+      "CRITICAL: cli.py no funcional - requiere reparación inmediata",
+      "FUNCTIONALITY: Operaciones básicas incompletas",
+      "READY: Implementar CleanupManager para limpieza segura",
+      "NEXT: Proceder con reestructuración modular v6.0"
+    ]
+  },
+  "summary": {
+    "total_python_files": 152,
+    "total_backup_files": 50,
+    "cli_status": "functional",
+    "cleanup_priority": "high",
+    "ready_for_v6": true
+  }
+}
