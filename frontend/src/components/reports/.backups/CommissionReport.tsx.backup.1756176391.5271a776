@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { Download, DollarSign, Calendar, BarChart3 } from 'lucide-react';
 import { useCommissions } from '../../hooks/useCommissions';
+import { CommissionTable } from './CommissionTable';import { CommissionCharts } from './CommissionCharts';
 import { CommissionReportProps } from '../../types/commission.types';
 
 const CommissionReport: React.FC<CommissionReportProps> = ({
  className = '',
- showExport = true, // TODO: Usar en Micro-Fase 4
- showFilters = true, // TODO: Usar en Micro-Fase 4
+
  defaultFilters = {}
 }) => {
- const { commissions, isLoading, totalCommissions, totalSales } = useCommissions(defaultFilters);
+ const { commissions, isLoading, totalCommissions, totalSales, breakdown } = useCommissions(defaultFilters);
  const [currentView, setCurrentView] = useState<'summary' | 'table' | 'charts'>('summary');
 
  const handleExport = () => {
@@ -126,7 +126,7 @@ const CommissionReport: React.FC<CommissionReportProps> = ({
        {currentView === 'table' && (
          <div>
            <h2 className="text-lg font-semibold mb-4">Detalle de Comisiones</h2>
-           <p className="text-gray-600">Componente de tabla - Próximamente en Micro-Fase 4</p>
+           <CommissionTable commissions={commissions} />
          </div>
        )}
        

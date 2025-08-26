@@ -12,8 +12,7 @@ import './App.css';
 // Lazy loading de páginas principales
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const DashboardLayout = lazy(() => import('./components/DashboardLayout'));
-const Productos = lazy(() => import('./pages/Productos'));
-const CommissionReport = lazy(() => import('./components/reports/CommissionReport'));
+const Productos = lazy(() => import('./pages/Productos'));const CommissionReport = lazy(() => import('./components/reports/CommissionReport'));
 const Login = lazy(() => import('./pages/Login'));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const RegisterVendor = lazy(() => import('./pages/RegisterVendor'));
