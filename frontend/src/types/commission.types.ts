@@ -10,6 +10,13 @@ export enum CommissionType {
   BONUS = 'bonus',
   TIER = 'tier'
 }
+export enum PaymentMethod {
+  CREDIT_CARD = 'credit_card',
+  DEBIT_CARD = 'debit_card', 
+  CASH = 'cash',
+  BANK_TRANSFER = 'bank_transfer',
+  PAYPAL = 'paypal'
+}
 
 export enum CommissionStatus {
   PENDING = 'pending',
@@ -113,7 +120,7 @@ export interface CommissionFilters {
   statuses?: CommissionStatus[];
   minAmount?: number;
   maxAmount?: number;
-  searchTerm?: string;
+  searchTerm?: string;  paymentMethods?: PaymentMethod[];
 }
 
 // Props para el componente principal

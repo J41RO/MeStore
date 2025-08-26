@@ -72,9 +72,8 @@ const CommissionFilters: React.FC<CommissionFiltersProps> = ({
             />
           </div>
           <div>
-            <label htmlFor="endDate" className="block text-xs text-gray-600 mb-1">Fecha fin</label>
+            <label className="block text-xs text-gray-600 mb-1">Fecha fin</label>
             <input
-              id="endDate"
               type="date"
               value={filters.dateRange?.end.toISOString().split('T')[0] || ''}
               onChange={(e) => handleDateRangeChange('end', e.target.value)}

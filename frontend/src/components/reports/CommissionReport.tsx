@@ -29,7 +29,7 @@ const CommissionReport: React.FC<CommissionReportProps> = ({
  }
 
  return (
-   <div className={className}>
+   <div className={['space-y-6', className].filter(Boolean).join(' ')}>
      <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
        <div className="flex items-center justify-between mb-4">
          <div>

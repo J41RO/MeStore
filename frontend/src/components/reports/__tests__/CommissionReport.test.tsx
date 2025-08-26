@@ -1,4 +1,17 @@
 import React from 'react';
+// Mock recharts components that cause issues in jsdom
+jest.mock('recharts', () => ({
+  BarChart: ({ children }: any) => <div data-testid="bar-chart">{children}</div>,
+  Bar: () => <div />,
+  XAxis: () => <div />,
+  YAxis: () => <div />,
+  CartesianGrid: () => <div />,
+  Tooltip: () => <div />,
+  ResponsiveContainer: ({ children }: any) => <div>{children}</div>,
+  PieChart: ({ children }: any) => <div data-testid="pie-chart">{children}</div>,
+  Pie: () => <div />,
+  Cell: () => <div />
+}));
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import CommissionReport from '../CommissionReport';
@@ -60,9 +73,9 @@ describe('CommissionReport', () => {
     render(<CommissionReport />);
     
     expect(screen.getByText('Total Comisiones')).toBeInTheDocument();
-    expect(screen.getAllByText('$80.00')).toHaveLength(2); // Aparece en stats y lista
+    expect(screen.getAllByText('$80.00')).toHaveLength(3); // Aparece en stats, métricas breakdown y lista
     expect(screen.getByText('$1000.00')).toBeInTheDocument(); // Total ventas
-    expect(screen.getByText('1')).toBeInTheDocument(); // Número de comisiones
+    expect(screen.getAllByText('1')).toHaveLength(2); // Aparece en métricas breakdown y como número de comisiones
   });
 
   test('renders navigation tabs', () => {
@@ -120,7 +133,36 @@ describe('CommissionReport', () => {
     expect(document.querySelector('.animate-pulse')).toBeTruthy();
   });
 
-  test('applies custom className', () => {
+  beforeEach(() => {
+    const { useCommissions } = require('../../../hooks/useCommissions');
+    useCommissions.mockReturnValue({
+      commissions: [
+        {
+          id: 'comm-001',
+          productName: 'Test Product',
+          productCategory: 'Test Category',
+          saleAmount: 1000,
+          commissionAmount: 80,
+          commissionRate: 0.08,
+          status: 'confirmed',
+          saleDate: new Date('2023-01-01'),
+          vendorId: 'vendor-001',
+          vendorName: 'Test Vendor',
+          orderId: 'order-001'
+        }
+      ],
+      breakdown: { byProduct: [], byPeriod: [], byType: [], byCategory: {}, totals: { totalCommissions: 80, totalSales: 1000, commissionCount: 1, averageCommissionRate: 0.08, topProduct: 'Test Product', topCategory: 'Test Category' } },
+      totalCommissions: 80,
+      totalSales: 1000,
+      isLoading: false,
+      error: null,
+      filters: {},
+      updateFilters: jest.fn(),
+      clearFilters: jest.fn(),
+      refreshCommissions: jest.fn()
+    });
+  });
+    test('applies custom className', () => {
     const { container } = render(<CommissionReport className="custom-class" />);
     
     expect(container.firstChild).toHaveClass('space-y-6', 'custom-class');
