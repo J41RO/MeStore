@@ -1,0 +1,433 @@
+#!/usr/bin/env python3
+"""
+Create operation implementation for Surgical Modifier v6.0
+Enhanced with Google Code Style automatic formatting
+"""
+import os
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+from ...functions.formatting.content_formatter import apply_google_format, get_file_extension
+
+# Import from parent operations  
+try:
+   from ..base_operation import (
+       BaseOperation,
+       OperationContext,
+       OperationResult,
+       OperationStatus,
+       OperationType,
+   )
+except ImportError:
+   # Fallback imports for standalone usage
+   from core.operations.base_operation import (
+       BaseOperation,
+       OperationContext,
+       OperationResult,
+       OperationStatus,
+       OperationType,
+   )
+
+# Integration imports
+try:
+   from utils.content_handler import content_handler
+   from utils.logger import logger
+   from utils.path_resolver import path_resolver
+   INTEGRATION_AVAILABLE = True
+except ImportError:
+   INTEGRATION_AVAILABLE = False
+   logger = None
+   content_handler = None
+   path_resolver = None
+
+
+def apply_google_format(content: str, file_extension: str) -> str:
+    """Apply Google Code Style formatting based on file type"""
+    if file_extension == '.py':
+        return format_python_google_style(content)
+    elif file_extension in ['.js', '.ts', '.jsx', '.tsx']:
+        return format_javascript_google_style(content)
+    elif file_extension in ['.html', '.htm']:
+        return format_html_google_style(content)
+    elif file_extension in ['.css', '.scss']:
+        return format_css_google_style(content)
+    return content
+
+def format_python_google_style(content: str) -> str:
+    """Apply Google Style Guide for Python"""
+    lines = content.split('\n')
+    formatted_lines = []
+    
+    for line in lines:
+        # Convert tabs to 4 spaces
+        formatted_line = line.expandtabs(4)
+        # Remove trailing whitespace
+        formatted_line = formatted_line.rstrip()
+        formatted_lines.append(formatted_line)
+    
+    return '\n'.join(formatted_lines)
+
+def format_javascript_google_style(content: str) -> str:
+    """Apply Google Style Guide for JavaScript/TypeScript"""
+    lines = content.split('\n')
+    formatted_lines = []
+    
+    for line in lines:
+        # Convert tabs to 2 spaces (Google JS style)
+        formatted_line = line.expandtabs(2)
+        # Remove trailing whitespace  
+        formatted_line = formatted_line.rstrip()
+        formatted_lines.append(formatted_line)
+    
+    return '\n'.join(formatted_lines)
+
+def format_html_google_style(content: str) -> str:
+    """Apply Google Style Guide for HTML"""
+    lines = content.split('\n')
+    formatted_lines = []
+    
+    for line in lines:
+        # Convert tabs to 2 spaces (Google HTML style)
+        formatted_line = line.expandtabs(2)
+        # Remove trailing whitespace
+        formatted_line = formatted_line.rstrip()
+        formatted_lines.append(formatted_line)
+    
+    return '\n'.join(formatted_lines)
+
+def format_css_google_style(content: str) -> str:
+    """Apply Google Style Guide for CSS"""
+    lines = content.split('\n')
+    formatted_lines = []
+    
+    for line in lines:
+        # Convert tabs to 2 spaces (Google CSS style)
+        formatted_line = line.expandtabs(2)
+        # Remove trailing whitespace
+        formatted_line = formatted_line.rstrip()
+        formatted_lines.append(formatted_line)
+    
+    return '\n'.join(formatted_lines)
+
+def get_file_extension(file_path: str) -> str:
+    """Extract file extension from path"""
+    import os
+    return os.path.splitext(file_path)[1].lower()
+
+def validate_file_content(content: str, file_type: str) -> bool:
+    """Validate that content is valid for file type"""
+    try:
+        if file_type == '.py':
+            # Basic Python syntax validation
+            compile(content, '<string>', 'exec')
+            return True
+        elif file_type in ['.js', '.ts']:
+            # Basic JavaScript validation (check for obvious syntax errors)
+            if content.count('(') != content.count(')'):
+                return False
+            if content.count('{') != content.count('}'):
+                return False
+            return True
+        # For other file types, assume valid
+        return True
+    except:
+        return False
+
+class CreateOperation(BaseOperation):
+    """Create operation for creating new files and directories"""
+    
+    def __init__(self):
+        super().__init__(OperationType.CREATE, "Create files and directories")
+        
+    def execute(self, context: OperationContext) -> OperationResult:
+        """Execute the create operation with Google Code Style formatting"""
+        try:
+            target_path = context.target_file
+            
+            # Validate target path
+            if not target_path:
+                return OperationResult(
+                    success=False,
+                    operation_type=self.operation_type,
+                    error="Target file path not provided",
+                    target_path=""
+                )
+            
+            # Create parent directories if they don't exist
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Create the file with content
+            if context.content:
+                # Apply Google Code Style formatting
+                file_extension = get_file_extension(str(target_path))
+                formatted_content = apply_google_format(context.content, file_extension)
+                
+                # Use ContentHandler v5.3 for proper escape processing
+                try:
+                    from utils.content_handler import create_content_handler
+                    handler = create_content_handler(formatted_content, str(target_path), "create")
+                    processed_content, temp_file = handler.get_safe_content()
+                    target_path.write_text(processed_content, encoding="utf-8")
+                except ImportError:
+                    # Fallback si content_handler no está disponible
+                    target_path.write_text(formatted_content, encoding="utf-8")
+                    processed_content = formatted_content
+            else:
+                target_path.touch()
+                processed_content = ""
+                formatted_content = ""
+                
+            return OperationResult(
+                success=True,
+                operation_type=self.operation_type,
+                target_path=str(target_path),
+                message=f"File created successfully with Google Code Style: {target_path}",
+                details={
+                    "content_length": len(processed_content),
+                    "original_length": len(context.content or ""),
+                    "format_applied": file_extension if context.content else None
+                },
+                execution_time=0.0,
+            )
+            
+        except Exception as e:
+            return OperationResult(
+                success=False,
+                operation_type=self.operation_type,
+                error=f"Create operation failed: {str(e)}",
+                target_path=str(context.target_file) if context.target_file else "",
+                details={"error": str(e)},
+                execution_time=0.0,
+            )
+
+    def validate_context(self, context: OperationContext) -> List[str]:
+        """
+        Validate CREATE operation context.
+        
+        Args:
+            context: OperationContext to validate
+            
+        Returns:
+            List of validation error messages (empty if valid)
+        """
+        errors = []
+        
+        if not context.target_file:
+            errors.append("Target file path is required for CREATE operation")
+            
+        # Content validation (optional for empty files)
+        if context.content:
+            file_extension = get_file_extension(str(context.target_file))
+            if not validate_file_content(context.content, file_extension):
+                errors.append(f"Content validation failed for {file_extension} file")
+            
+        # Check if target file already exists (optional warning)
+        if context.target_file and Path(context.target_file).exists():
+            if not context.arguments.get('overwrite', False):
+                errors.append(f"Target file {context.target_file} already exists. Use overwrite=True to replace.")
+                
+        return errors
+        
+    def can_rollback(self) -> bool:
+        """
+        CREATE operations support rollback by deleting created files.
+        
+        Returns:
+            True (CREATE always supports rollback)
+        """
+        return True
+
+def create_operation(file_path: str, pattern: str, content: str = "", **kwargs) -> Dict[str, Any]:
+    """Simple create operation function with Google Code Style formatting"""
+    try:
+        # Crear directorio padre si no existe
+        parent_dir = os.path.dirname(file_path)
+        if parent_dir:
+            os.makedirs(parent_dir, exist_ok=True)
+        
+        # Aplicar formato Google Code Style automáticamente
+        file_extension = get_file_extension(file_path)
+        formatted_content = apply_google_format(content, file_extension)
+        
+        # Escribir contenido formateado al archivo
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(formatted_content)
+        
+        return {
+            'success': True, 
+            'message': f'File {file_path} created successfully with Google Code Style',
+            'target_path': file_path,
+            'content_length': len(formatted_content),
+            'original_length': len(content),
+            'format_applied': file_extension
+        }
+    except Exception as e:
+        return {
+            'success': False, 
+            'error': str(e),
+            'target_path': file_path
+        }
+
+def create_file(filepath: str, content: str = "") -> bool:
+    """Simple file creation function with Google formatting"""
+    try:
+        path = Path(filepath)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Apply Google Code Style formatting
+        file_extension = get_file_extension(filepath)
+        formatted_content = apply_google_format(content, file_extension)
+        
+        # Use ContentHandler v5.3 for proper escape processing
+        try:
+            from utils.content_handler import create_content_handler
+            handler = create_content_handler(formatted_content, filepath, "create")
+            processed_content, temp_file = handler.get_safe_content()
+            path.write_text(processed_content, encoding="utf-8")
+        except ImportError:
+            # Fallback si content_handler no está disponible
+            path.write_text(formatted_content, encoding="utf-8")
+        
+        return True
+    except Exception:
+        return False
+
+def create_file_with_template(
+    filepath: str, template: str, variables: Dict[str, str] = None
+) -> bool:
+    """Create file with template substitution and Google formatting"""
+    try:
+        content = template
+        if variables:
+            for key, value in variables.items():
+                content = content.replace(f"{{{key}}}", value)
+        return create_file(filepath, content)
+    except Exception:
+        return False
+
+def create_with_template(file_path: str, template_type: str, variables: Dict[str, str] = None) -> Dict[str, Any]:
+    """Create file with predefined template"""
+    try:
+        templates = {
+            'python_class': '''class {name}:
+    """Class {name} - auto-generated"""
+    
+    def __init__(self):
+        pass
+        
+    def __str__(self):
+        return "{name} instance"''',
+            'python_function': '''def {name}():
+    """Function {name} - auto-generated"""
+    pass''',
+            'javascript_function': '''function {name}() {{
+  // Function {name} - auto-generated
+  return null;
+}}''',
+            'html_template': '''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{title}</title>
+</head>
+<body>
+  <h1>{title}</h1>
+</body>
+</html>'''
+        }
+        
+        if template_type not in templates:
+            return {
+                'success': False,
+                'error': f'Template type {template_type} not found'
+            }
+        
+        template = templates[template_type]
+        if variables:
+            for key, value in variables.items():
+                template = template.replace(f'{{{key}}}', value)
+        
+        return create_operation(file_path, '', template)
+        
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+def create_with_backup(file_path: str, content: str = "") -> Dict[str, Any]:
+    """Create file with automatic backup if file exists"""
+    try:
+        backup_created = False
+        
+        # Create backup if file exists
+        if os.path.exists(file_path):
+            backup_path = f"{file_path}.backup"
+            with open(file_path, 'r', encoding='utf-8') as original:
+                with open(backup_path, 'w', encoding='utf-8') as backup:
+                    backup.write(original.read())
+            backup_created = True
+        
+        # Create the file with Google formatting
+        result = create_operation(file_path, '', content)
+        if result['success']:
+            result['backup_created'] = backup_created
+            
+        return result
+        
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e),
+            'target_path': file_path
+        }
+
+def create_file_v53(
+    filepath: str, content: str = "", backup: bool = True
+) -> Dict[str, Any]:
+    """v5.3 compatible create function with Google formatting"""
+    try:
+        path = Path(filepath)
+        backup_created = False
+        
+        # Create backup if file exists and backup is requested
+        if backup and path.exists():
+            backup_path = Path(f"{filepath}.backup")
+            backup_path.write_text(path.read_text(encoding="utf-8"), encoding="utf-8")
+            backup_created = True
+        
+        # Create the file
+        path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Apply Google Code Style formatting
+        file_extension = get_file_extension(filepath)
+        formatted_content = apply_google_format(content, file_extension)
+        
+        # Use ContentHandler v5.3 for proper escape processing
+        try:
+            from utils.content_handler import create_content_handler
+            handler = create_content_handler(formatted_content, str(path), "create")
+            processed_content, temp_file = handler.get_safe_content()
+            path.write_text(processed_content, encoding="utf-8")
+        except ImportError:
+            # Fallback si content_handler no está disponible
+            path.write_text(formatted_content, encoding="utf-8")
+            processed_content = formatted_content
+        
+        return {
+            "success": True,
+            "filepath": str(path),
+            "content_length": len(processed_content),
+            "original_length": len(content),
+            "backup_created": backup_created,
+            "format_applied": file_extension
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "filepath": filepath,
+        }
+
+# Alias for consistency
+execute = create_operation
