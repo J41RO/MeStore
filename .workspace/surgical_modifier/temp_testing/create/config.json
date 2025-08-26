@@ -1,7 +1,0 @@
-{
-    "debug": true,
-    "port": 8000,
-    "database": {
-        "host": "localhost"
-    }
-}

@@ -1,10 +1,7 @@
-"""
-Surgical Modifier v6.0 - The most complete code modification tool in the world
-"""
+"""Surgical Modifier - Sistema de Modificación Precisa de Código."""
 
-__version__ = "6.0.0"
-__author__ = "Surgical Modifier Team"
-__description__ = "The most complete code modification tool in the world"
-
-# Solo exportar metadatos, sin importaciones que puedan fallar
-__all__ = ["__version__", "__author__", "__description__"]
+__version__ = "0.1.0"
+__author__ = "Admin Jairo"
+__description__ = (
+    "Sistema de Modificación Precisa de Código con coordinadores especializados"
+)

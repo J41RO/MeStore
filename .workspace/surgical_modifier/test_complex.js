@@ -1,1 +1,0 @@
-const html = `<div class="${className}">${content}</div>`;

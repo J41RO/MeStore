@@ -1,1 +1,0 @@
-Testing CLI v6.0 functionality
