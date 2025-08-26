@@ -1,6 +1,6 @@
-"""Entry point para python -m surgical_modifier."""
+"""Punto de entrada principal."""
 
-from cli import main
+from .cli import main
 
 if __name__ == "__main__":
     main()
