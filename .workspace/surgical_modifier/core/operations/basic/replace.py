@@ -10,7 +10,7 @@ import time
 import tempfile
 from typing import List, Optional
 from pathlib import Path
-from ...functions.detection.pattern_matcher import detect_pattern_indentation, apply_context_indentation
+from ...functions.insertion.insertion_engine import detect_pattern_indentation, apply_context_indentation
 from ...functions.versioning.backup_manager import create_temporary_backup, cleanup_backup, create_automatic_backup, cleanup_old_backups
 from ...functions.verification.syntax_validator import validate_python_syntax, validate_javascript_syntax
 from ..base_operation import (

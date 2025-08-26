@@ -418,26 +418,6 @@ class AfterOperation(BaseOperation):
                 "details": {"insertion_error": str(e)},
             }
 
-    def _line_matches_pattern(
-        self, line: str, pattern: str, regex_mode: bool, case_sensitive: bool
-    ) -> bool:
-        """Check if a line matches the given pattern."""
-        if regex_mode:
-            flags = 0 if case_sensitive else re.IGNORECASE
-            return bool(re.search(pattern, line, flags))
-        else:
-            search_line = line if case_sensitive else line.lower()
-            search_pattern = pattern if case_sensitive else pattern.lower()
-            return search_pattern in search_line
-
-    def _get_line_indentation(self, line: str) -> str:
-        """Extract indentation from a line."""
-        return line[: len(line) - len(line.lstrip())]
-
-    def _apply_indentation(self, content: str, indentation: str) -> str:
-        """Apply indentation to content, handling multi-line content."""
-        if not indentation:
-            return content
 
         lines = content.splitlines()
         indented_lines = []
@@ -656,34 +636,6 @@ execute = after_operation
 
 # ========== FUNCIONES ENHANCED INDUSTRIALES ==========
 
-
-def detect_pattern_indentation(
-    content: str, pattern: str, occurrence_index: int = 0
-) -> int:
-    """Detectar indentación exacta del patrón en su contexto"""
-    lines = content.split(chr(10))
-    occurrence_count = 0
-    for line in lines:
-        if pattern in line:
-            if occurrence_count == occurrence_index:
-                return len(line) - len(line.lstrip())
-            occurrence_count += 1
-    return 0
-
-
-def apply_context_indentation(new_content: str, base_indentation: int) -> str:
-    """Aplicar indentación del contexto al contenido nuevo"""
-    if chr(10) not in new_content:
-        return chr(32) * base_indentation + new_content
-
-    lines = new_content.split(chr(10))
-    indented_lines = []
-    for i, line in enumerate(lines):
-        if line.strip():  # Solo indentar líneas no vacías
-            indented_lines.append(chr(32) * base_indentation + line.lstrip())
-        else:
-            indented_lines.append(chr(34) + chr(34))
-    return chr(10).join(indented_lines)
 
 
 def create_automatic_backup(file_path: str) -> str:

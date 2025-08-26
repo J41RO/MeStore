@@ -8,13 +8,13 @@ def create_automatic_backup(file_path, backup_dir=None):
     import shutil
     import os
     from pathlib import Path
-    
+
     source = Path(file_path)
     if backup_dir:
         backup_path = Path(backup_dir) / f"{source.name}.backup"
     else:
         backup_path = source.with_suffix(source.suffix + '.backup')
-    
+
     if source.exists():
         shutil.copy2(source, backup_path)
         return str(backup_path)

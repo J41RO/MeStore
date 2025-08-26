@@ -7,9 +7,9 @@ import os
 import re
 from pathlib import Path
 # Imports de shared functions
-from ...shared_functions.content_processor import detect_pattern_indentation, apply_context_indentation
-from ...shared_functions.backup_system import create_automatic_backup, cleanup_old_backups
-from ...shared_functions.syntax_validators import validate_python_syntax, validate_javascript_syntax
+from ...functions.insertion.insertion_engine import detect_pattern_indentation, apply_context_indentation
+from ...functions.versioning.backup_system import create_automatic_backup, cleanup_old_backups
+from ...functions.verification.syntax_validators import validate_python_syntax, validate_javascript_syntax
 from typing import List, Optional
 import time
 import shutil
