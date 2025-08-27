@@ -36,7 +36,7 @@ show_help() {
 # Verificar dependencias
 check_dependencies() {
     echo -e "${BLUE}🔍 Verificando dependencias...${NC}"
-    
+
     if ! command -v pytest &> /dev/null; then
         echo -e "${RED}❌ pytest no encontrado${NC}"
         echo -e "${YELLOW}💡 Instalando: pip install -r requirements.txt${NC}"
@@ -44,7 +44,7 @@ check_dependencies() {
     else
         echo -e "${GREEN}✅ pytest disponible${NC}"
     fi
-    
+
     echo ""
 }
 
@@ -52,7 +52,7 @@ check_dependencies() {
 run_basic_tests() {
     echo -e "${BLUE}🚀 Ejecutando tests básicos...${NC}"
     pytest tests/test_color_logger.py tests/test_backup_manager_simple.py tests/test_surgical_modifier_simple.py -v
-    
+
     if [[ $? -eq 0 ]]; then
         echo ""
         echo -e "${GREEN}🎉 ¡TODOS LOS TESTS PASAN!${NC}"
@@ -71,7 +71,7 @@ run_coverage_tests() {
            --cov-report=term-missing \
            --cov-report=html:htmlcov \
            -v
-    
+
     if [[ $? -eq 0 ]]; then
         echo ""
         echo -e "${GREEN}🎉 ¡TESTS Y COBERTURA COMPLETADOS!${NC}"

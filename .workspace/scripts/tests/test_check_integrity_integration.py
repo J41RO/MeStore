@@ -32,10 +32,10 @@ import sys
 class TestClass:
     def __init__(self):
         self.value = 42
-        
+
     def test_method(self):
         return "test"
-        
+
 def standalone_function():
     return True
 """
@@ -57,7 +57,7 @@ import os
 class TestClass:
     def __init__(self:  # Sintaxis inválida - falta paréntesis
         self.value = 42
-        
+
     def test_method(self):
         return "test"
 """

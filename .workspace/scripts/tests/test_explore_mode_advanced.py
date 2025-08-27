@@ -32,13 +32,13 @@ from typing import List
 
 class TestClass:
     \"\"\"Test class for exploration\"\"\"
-    
+
     def __init__(self):
         self.value = 42
-        
+
     def test_method(self) -> str:
         return "test result"
-        
+
     def another_method(self, param: int) -> bool:
         return param > 0
 
@@ -68,11 +68,11 @@ import { useState, useEffect } from 'react';
 
 function TestComponent() {
     const [count, setCount] = useState(0);
-    
+
     useEffect(() => {
         console.log('Component mounted');
     }, []);
-    
+
     return <div>Hello World</div>;
 }
 

@@ -33,10 +33,10 @@ def sample_python_file(temp_dir):
 class SampleClass:
     def __init__(self):
         self.name = "test"
-    
+
     def sample_method(self):
         return "original_value"
-    
+
     def another_method(self):
         print("Hello World")
 

@@ -31,7 +31,7 @@ async def manual_fix():
         # Ver versión actual
         result = await conn.execute(text("SELECT version_num FROM alembic_version;"))
         print(f"Actual: {result.scalar()}")
-        
+
         # Corregir a última válida (ver con: alembic history)
         await conn.execute(text("UPDATE alembic_version SET version_num = '5e0e1b1f0cfc';"))
         print("✅ Corregido")

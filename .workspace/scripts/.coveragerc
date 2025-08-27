@@ -3,12 +3,12 @@
 source = surgical_modifier_ultimate.py
 
 # Incluir archivos de test en el análisis
-include = 
+include =
     surgical_modifier_ultimate.py
     tests/*.py
 
 # Excluir patrones específicos
-omit = 
+omit =
     */venv/*
     */env/*
     */.venv/*

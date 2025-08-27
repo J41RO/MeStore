@@ -21,7 +21,7 @@ if command -v git &> /dev/null; then
     else
         echo "✅ No hay cambios sin commitear"
     fi
-    
+
     # Últimos commits
     echo "📊 Últimos 3 commits:"
     git log --oneline -3 2>/dev/null || echo "Sin historial de commits"
@@ -39,7 +39,7 @@ JSON_FILES=$(find . -name "*.json" ! -path "./.workspace/*" ! -path "./.git/*" |
 
 echo "📊 Archivos del proyecto:"
 echo "   - Python: $PY_FILES archivos"
-echo "   - JavaScript: $JS_FILES archivos"  
+echo "   - JavaScript: $JS_FILES archivos"
 echo "   - JSON: $JSON_FILES archivos"
 
 echo ""

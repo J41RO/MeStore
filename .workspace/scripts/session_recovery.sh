@@ -45,7 +45,7 @@ cat > .workspace/context/session_summary.md << EOF
 # RESUMEN DE SESIÓN RECUPERADA - $(date)
 
 ## Usuario Configurado
-- **Nombre**: $USER_NAME  
+- **Nombre**: $USER_NAME
 - **Nivel**: $TECH_LEVEL
 - **Proyecto**: $PROJECT_NAME
 

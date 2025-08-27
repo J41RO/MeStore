@@ -1341,7 +1341,7 @@ class ProjectContext:
             "docker": ["Dockerfile", "docker-compose.yml"],
             "mobile": ["android", "ios", "App.js", "App.tsx"],
         }
-        
+
         detected_types = []
         for project_type, files in indicators.items():
             for file_pattern in files:
@@ -1357,7 +1357,7 @@ class ProjectContext:
                     if (root / file_pattern).exists():
                         detected_types.append(project_type)
                         break
-        
+
         if len(detected_types) > 1:
             return "polyglot"
         elif detected_types:
@@ -1882,12 +1882,12 @@ class EnhancedSurgicalModifier:
         self, operation: str, file_path: str, pattern: str, content: str
     ) -> Dict[str, Any]:
         """Ejecutar operación con verificación completa de integridad"""
-        
+
         resolved_path = self.project_context.resolve_file_path(file_path)
-        
+
         # Crear checker de integridad
         integrity_checker = IntegrityChecker(resolved_path, self.project_context)
-        
+
         result = {
             "success": False,
             "operation": operation,
@@ -1901,15 +1901,15 @@ class EnhancedSurgicalModifier:
             # 1. VERIFICACIÓN PRE-MODIFICACIÓN
             if self.verbose:
                 ColorLogger.section("VERIFICACIÓN PRE-MODIFICACIÓN")
-            
+
             pre_checks = integrity_checker.pre_modification_check(operation, pattern, content)
-            
+
             if pre_checks.get("errors"):
                 result["success"] = False
                 result["message"] = "Errores en verificación previa"
                 result["details"] = pre_checks["errors"]
                 return result
-            
+
             if pre_checks.get("warnings"):
                 result["integrity_warnings"].extend(pre_checks["warnings"])
 
@@ -1921,18 +1921,18 @@ class EnhancedSurgicalModifier:
 
             # 3. EJECUTAR MODIFICACIÓN
             base_modifier = SurgicalModifierUltimate(
-                verbose=self.verbose, 
-                confirm=self.confirm, 
+                verbose=self.verbose,
+                confirm=self.confirm,
                 keep_backups=self.keep_backups
             )
-            
+
             modification_result = base_modifier.execute(operation, resolved_path, pattern, content)
-            
+
             if not modification_result["success"]:
                 # Restaurar backup si falló la modificación
                 if backup_path:
                     self.backup_manager.restore_from_backup(backup_path, resolved_path)
-                
+
                 result["success"] = False
                 result["message"] = modification_result["message"]
                 return result
@@ -1940,19 +1940,19 @@ class EnhancedSurgicalModifier:
             # 4. VERIFICACIÓN POST-MODIFICACIÓN
             if self.verbose:
                 ColorLogger.section("VERIFICACIÓN POST-MODIFICACIÓN")
-            
+
             post_checks = integrity_checker.post_modification_check()
-            
+
             if post_checks.get("errors"):
                 # Restaurar backup por errores de integridad
                 if backup_path:
                     self.backup_manager.restore_from_backup(backup_path, resolved_path)
-                
+
                 result["success"] = False
                 result["message"] = "Errores en verificación posterior - archivo restaurado"
                 result["details"] = post_checks["errors"]
                 return result
-            
+
             if post_checks.get("warnings"):
                 result["integrity_warnings"].extend(post_checks["warnings"])
 
@@ -1966,7 +1966,7 @@ class EnhancedSurgicalModifier:
             # 6. OPERACIÓN EXITOSA
             result["success"] = True
             result["message"] = "Operación completada con verificación de integridad"
-            
+
             # Limpiar backups si todo salió bien
             if not self.keep_backups:
                 self.backup_manager.cleanup_successful_backups()
@@ -1978,7 +1978,7 @@ class EnhancedSurgicalModifier:
             # Error inesperado - restaurar backup
             if backup_path and os.path.exists(backup_path):
                 self.backup_manager.restore_from_backup(backup_path, resolved_path)
-            
+
             result["success"] = False
             result["message"] = f"Error inesperado: {str(e)}"
             return result
@@ -1986,7 +1986,7 @@ class EnhancedSurgicalModifier:
 
 class SurgicalModifierUltimate:
     """Clase principal para operaciones de modificación quirúrgica de archivos"""
-    
+
     def __init__(self, verbose=False, confirm=True, explore=False, keep_backups=False, check_integrity=False):
         """Inicializar componentes básicos"""
         self.verbose = verbose
@@ -1996,12 +1996,12 @@ class SurgicalModifierUltimate:
         self.check_integrity = check_integrity
         self.backup_manager = BackupManager(keep_successful_backups=keep_backups, max_backups=5)
         self.project_context = ProjectContext()
-    
+
     def execute(self, operation: str, file_path: str, pattern: str = "", content: str = "", auto_backup: bool = True) -> Dict[str, Any]:
         """Método principal que ejecuta operaciones"""
         try:
             resolved_path = self.project_context.resolve_file_path(file_path)
-            
+
             if operation == "create":
                 success = self.create(resolved_path, content, auto_backup)
             elif operation == "replace":
@@ -2020,7 +2020,7 @@ class SurgicalModifierUltimate:
                 if self.verbose:
                     ColorLogger.error(f"Operación no soportada: {operation}")
                 success = False
-            
+
             return {
                 "success": success,
                 "operation": operation,
@@ -2037,23 +2037,23 @@ class SurgicalModifierUltimate:
                 "message": f"Error: {str(e)}",
                 "error": str(e)
             }
-    
+
     def create(self, file_path: str, content: str = "", auto_backup: bool = True) -> bool:
         """Crear archivo nuevo con directorios automáticos"""
         try:
             # Crear directorios padre si no existen
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
-            
+
             # Backup si el archivo existe y auto_backup está habilitado
             if os.path.exists(file_path) and auto_backup:
                 backup_path = self.backup_manager.create_backup(file_path, ".backup")
                 if self.verbose:
                     ColorLogger.info(f"Backup creado: {backup_path}")
-            
+
             # Procesar contenido usando ContentHandler
             content_handler = ContentHandler(content, file_path, "create")
             safe_content, temp_file = content_handler.get_safe_content()
-            
+
             # Escribir contenido al archivo
             if temp_file:
                 # Usar archivo temporal
@@ -2062,12 +2062,12 @@ class SurgicalModifierUltimate:
             else:
                 with open(file_path, 'w', encoding='utf-8') as f:
                     f.write(safe_content)
-            
+
             if self.verbose:
                 ColorLogger.success(f"Archivo creado: {file_path}")
-            
+
             return True
-            
+
         except Exception as e:
             if self.verbose:
                 ColorLogger.error(f"Error creando archivo {file_path}: {str(e)}")
@@ -2080,34 +2080,34 @@ class SurgicalModifierUltimate:
                 if self.verbose:
                     ColorLogger.error(f"Archivo no encontrado: {file_path}")
                 return False
-            
+
             # Leer contenido actual
             with open(file_path, 'r', encoding='utf-8') as f:
                 original_content = f.read()
-            
+
             # Crear backup si está habilitado
             if auto_backup:
                 backup_path = self.backup_manager.create_backup(file_path, ".backup")
                 if self.verbose:
                     ColorLogger.info(f"Backup creado: {backup_path}")
-            
+
             # Buscar patrón
             if pattern not in original_content:
                 # Usar búsqueda flexible
                 helper = UniversalPatternHelper(original_content, file_path)
                 similar_patterns = helper.find_flexible_pattern(pattern, 0.6)
-                
+
                 if similar_patterns:
                     if self.verbose:
                         ColorLogger.warning(f"Patrón exacto no encontrado. Sugerencias:")
                         for match in similar_patterns[:3]:
                             ColorLogger.info(f"  Línea {match['line_number']}: {match['content']}")
                 return False
-            
+
             # Procesar nuevo contenido
             content_handler = ContentHandler(content, file_path, "replace")
             safe_content, temp_file = content_handler.get_safe_content()
-            
+
             # Realizar reemplazo
             if temp_file:
                 # Leer contenido del archivo temporal
@@ -2116,19 +2116,19 @@ class SurgicalModifierUltimate:
                 os.unlink(temp_file)
             else:
                 new_content = safe_content
-            
+
             updated_content = original_content.replace(pattern, new_content)
-            
+
             # Escribir archivo actualizado
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(updated_content)
-            
+
             if self.verbose:
                 ColorLogger.success(f"Contenido reemplazado en: {file_path}")
                 ColorLogger.diff("CAMBIO REALIZADO", pattern, new_content)
-            
+
             return True
-            
+
         except Exception as e:
             if self.verbose:
                 ColorLogger.error(f"Error reemplazando en {file_path}: {str(e)}")
@@ -2141,52 +2141,52 @@ class SurgicalModifierUltimate:
                 if self.verbose:
                     ColorLogger.error(f"Archivo no encontrado: {file_path}")
                 return False
-            
+
             # Leer contenido actual
             with open(file_path, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
-            
+
             # Crear backup si está habilitado
             if auto_backup:
                 backup_path = self.backup_manager.create_backup(file_path, ".backup")
                 if self.verbose:
                     ColorLogger.info(f"Backup creado: {backup_path}")
-            
+
             # Buscar línea con patrón
             pattern_line_index = None
             for i, line in enumerate(lines):
                 if pattern in line:
                     pattern_line_index = i
                     break
-            
+
             if pattern_line_index is None:
                 if self.verbose:
                     ColorLogger.error(f"Patrón no encontrado: {pattern}")
                 return False
-            
+
             # Procesar nuevo contenido
             content_handler = ContentHandler(content, file_path, "after")
             safe_content, temp_file = content_handler.get_safe_content()
-            
+
             if temp_file:
                 with open(temp_file, 'r', encoding='utf-8') as f:
                     new_content = f.read()
                 os.unlink(temp_file)
             else:
                 new_content = safe_content
-            
+
             # Insertar después del patrón
             lines.insert(pattern_line_index + 1, new_content + '\n')
-            
+
             # Escribir archivo actualizado
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.writelines(lines)
-            
+
             if self.verbose:
                 ColorLogger.success(f"Contenido insertado después de la línea {pattern_line_index + 1}")
-            
+
             return True
-            
+
         except Exception as e:
             if self.verbose:
                 ColorLogger.error(f"Error insertando después en {file_path}: {str(e)}")
@@ -2199,52 +2199,52 @@ class SurgicalModifierUltimate:
                 if self.verbose:
                     ColorLogger.error(f"Archivo no encontrado: {file_path}")
                 return False
-            
+
             # Leer contenido actual
             with open(file_path, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
-            
+
             # Crear backup si está habilitado
             if auto_backup:
                 backup_path = self.backup_manager.create_backup(file_path, ".backup")
                 if self.verbose:
                     ColorLogger.info(f"Backup creado: {backup_path}")
-            
+
             # Buscar línea con patrón
             pattern_line_index = None
             for i, line in enumerate(lines):
                 if pattern in line:
                     pattern_line_index = i
                     break
-            
+
             if pattern_line_index is None:
                 if self.verbose:
                     ColorLogger.error(f"Patrón no encontrado: {pattern}")
                 return False
-            
+
             # Procesar nuevo contenido
             content_handler = ContentHandler(content, file_path, "before")
             safe_content, temp_file = content_handler.get_safe_content()
-            
+
             if temp_file:
                 with open(temp_file, 'r', encoding='utf-8') as f:
                     new_content = f.read()
                 os.unlink(temp_file)
             else:
                 new_content = safe_content
-            
+
             # Insertar antes del patrón
             lines.insert(pattern_line_index, new_content + '\n')
-            
+
             # Escribir archivo actualizado
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.writelines(lines)
-            
+
             if self.verbose:
                 ColorLogger.success(f"Contenido insertado antes de la línea {pattern_line_index + 1}")
-            
+
             return True
-            
+
         except Exception as e:
             if self.verbose:
                 ColorLogger.error(f"Error insertando antes en {file_path}: {str(e)}")
@@ -2258,33 +2258,33 @@ class SurgicalModifierUltimate:
                 os.makedirs(os.path.dirname(file_path), exist_ok=True)
                 with open(file_path, 'w', encoding='utf-8') as f:
                     f.write("")
-            
+
             # Crear backup si está habilitado
             if auto_backup:
                 backup_path = self.backup_manager.create_backup(file_path, ".backup")
                 if self.verbose:
                     ColorLogger.info(f"Backup creado: {backup_path}")
-            
+
             # Procesar contenido
             content_handler = ContentHandler(content, file_path, "append")
             safe_content, temp_file = content_handler.get_safe_content()
-            
+
             if temp_file:
                 with open(temp_file, 'r', encoding='utf-8') as f:
                     new_content = f.read()
                 os.unlink(temp_file)
             else:
                 new_content = safe_content
-            
+
             # Agregar al final
             with open(file_path, 'a', encoding='utf-8') as f:
                 f.write('\n' + new_content)
-            
+
             if self.verbose:
                 ColorLogger.success(f"Contenido agregado al final de: {file_path}")
-            
+
             return True
-            
+
         except Exception as e:
             if self.verbose:
                 ColorLogger.error(f"Error agregando al final de {file_path}: {str(e)}")
@@ -2297,35 +2297,35 @@ class SurgicalModifierUltimate:
                 if self.verbose:
                     ColorLogger.error(f"Archivo no encontrado: {file_path}")
                 return False
-            
+
             # Leer contenido actual
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
-            
+
             # Crear backup si está habilitado
             if auto_backup:
                 backup_path = self.backup_manager.create_backup(file_path, ".backup")
                 if self.verbose:
                     ColorLogger.info(f"Backup creado: {backup_path}")
-            
+
             # Dividir líneas según el patrón
             if pattern in content:
                 # Reemplazar patrón con patrón + nueva línea
                 updated_content = content.replace(pattern, pattern + '\n')
-                
+
                 # Escribir archivo actualizado
                 with open(file_path, 'w', encoding='utf-8') as f:
                     f.write(updated_content)
-                
+
                 if self.verbose:
                     ColorLogger.success(f"Líneas divididas en: {file_path}")
-                
+
                 return True
             else:
                 if self.verbose:
                     ColorLogger.error(f"Patrón no encontrado: {pattern}")
                 return False
-            
+
         except Exception as e:
             if self.verbose:
                 ColorLogger.error(f"Error dividiendo líneas en {file_path}: {str(e)}")
@@ -2338,41 +2338,41 @@ class SurgicalModifierUltimate:
                 if self.verbose:
                     ColorLogger.error(f"Archivo fuente no encontrado: {file_path}")
                 return False
-            
+
             # Leer contenido actual
             with open(file_path, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
-            
+
             # Buscar contenido que coincida con el patrón
             extracted_lines = []
             for line in lines:
                 if pattern in line:
                     extracted_lines.append(line)
-            
+
             if not extracted_lines:
                 if self.verbose:
                     ColorLogger.error(f"No se encontró contenido que coincida con: {pattern}")
                 return False
-            
+
             # Crear directorio del archivo destino si no existe
             os.makedirs(os.path.dirname(target_file), exist_ok=True)
-            
+
             # Crear backup del archivo destino si existe
             if os.path.exists(target_file) and auto_backup:
                 backup_path = self.backup_manager.create_backup(target_file, ".backup")
                 if self.verbose:
                     ColorLogger.info(f"Backup del archivo destino creado: {backup_path}")
-            
+
             # Escribir contenido extraído al archivo destino
             with open(target_file, 'w', encoding='utf-8') as f:
                 f.writelines(extracted_lines)
-            
+
             if self.verbose:
                 ColorLogger.success(f"Contenido extraído de {file_path} a {target_file}")
                 ColorLogger.info(f"Se extrajeron {len(extracted_lines)} líneas")
-            
+
             return True
-            
+
         except Exception as e:
             if self.verbose:
                 ColorLogger.error(f"Error extrayendo contenido: {str(e)}")
@@ -2382,18 +2382,18 @@ class SurgicalModifierUltimate:
         """Ejecutar modo exploración"""
         try:
             resolved_path = self.project_context.resolve_file_path(file_path)
-            
+
             if not os.path.exists(resolved_path):
                 ColorLogger.error(f"Archivo no encontrado: {resolved_path}")
                 return
-            
+
             if search_term:
                 # Búsqueda específica
                 UniversalExplorer.search_in_file(resolved_path, search_term, context_lines=3)
             else:
                 # Exploración completa del archivo
                 UniversalExplorer.show_file_structure(resolved_path, show_lines=True, filter_type="smart")
-            
+
         except Exception as e:
             ColorLogger.error(f"Error en modo exploración: {str(e)}")
 
@@ -2415,7 +2415,7 @@ def show_enhanced_help_v53():
 
 ⚙️ OPERACIONES DISPONIBLES:
   CREATE   - Crear archivo nuevo
-  REPLACE  - Reemplazar contenido existente  
+  REPLACE  - Reemplazar contenido existente
   AFTER    - Insertar después de patrón
   BEFORE   - Insertar antes de patrón
   APPEND   - Agregar al final del archivo

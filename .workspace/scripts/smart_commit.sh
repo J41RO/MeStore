@@ -43,10 +43,10 @@ git commit -m "$COMMIT_MESSAGE" --no-verify
 
 if [ $? -eq 0 ]; then
     echo "✅ COMMIT EXITOSO"
-    
+
     # Actualizar historial
     echo "$(date -Iseconds) | SUCCESS | COMMIT | $COMMIT_MESSAGE | user=$USER_NAME,strategy=$COMMIT_FREQ" >> .workspace/history.log
-    
+
     # Actualizar log
     cat > .workspace/context/log.md << EOF
 # ÚLTIMA ACCIÓN EJECUTADA
