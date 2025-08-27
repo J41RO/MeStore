@@ -1,12 +1,11 @@
 import os
 from pathlib import Path
-from typing import Dict, Optional, Union
-from .reader import ContentReader
-from ..backup.manager import BackupManager
+from typing import Dict, Optional, Union, Any
+from reader import ContentReader
 
 class ContentWriter:
-    def __init__(self, backup_manager: Optional[BackupManager] = None):
-        self.backup_manager = backup_manager or BackupManager()
+    def __init__(self, backup_manager: Optional[Any] = None):
+        self.backup_manager = backup_manager
         self.reader = ContentReader()
         self.line_endings = {
             'unix': '\n',
@@ -21,8 +20,8 @@ class ContentWriter:
                 content = f.read()
             
             crlf_count = content.count(b'\r\n')
-            lf_count = content.count(b'\n') - crlf_count  # LF sin CRLF
-            cr_count = content.count(b'\r') - crlf_count  # CR sin CRLF
+            lf_count = content.count(b'\n') - crlf_count
+            cr_count = content.count(b'\r') - crlf_count
             
             if crlf_count > max(lf_count, cr_count):
                 return {'type': 'windows', 'ending': '\r\n', 'count': crlf_count}
@@ -31,43 +30,32 @@ class ContentWriter:
             elif cr_count > 0:
                 return {'type': 'mac', 'ending': '\r', 'count': cr_count}
             else:
-                return {'type': 'unix', 'ending': '\n', 'count': 0}  # Default para archivos sin line endings
+                return {'type': 'unix', 'ending': '\n', 'count': 0}
                 
         except Exception:
-            return {'type': 'unix', 'ending': '\n', 'count': 0}  # Fallback
+            return {'type': 'unix', 'ending': '\n', 'count': 0}
     
     def write_file(self, file_path: str, content: str, preserve_line_endings: bool = True,
-                   backup: bool = True, encoding: Optional[str] = None) -> Dict[str, Union[bool, str, Dict]]:
+                   backup: bool = False, encoding: Optional[str] = None) -> Dict[str, Union[bool, str, Dict]]:
         """Escribir archivo preservando line endings originales"""
         file_path = str(Path(file_path).resolve())
         
-        # Crear backup si el archivo existe y se solicita
-        backup_info = {}
-        if backup and Path(file_path).exists():
-            try:
-                backup_path = self.backup_manager.create_snapshot(file_path, 'pre_write')
-                backup_info = {'backup_created': True, 'backup_path': backup_path}
-            except Exception as e:
-                backup_info = {'backup_created': False, 'backup_error': str(e)}
+        backup_info = {'backup_created': False}
         
-        # Detectar line endings si se debe preservar
-        line_ending = '\n'  # Default Unix
+        line_ending = '\n'
         if preserve_line_endings and Path(file_path).exists():
             ending_info = self.detect_line_ending(file_path)
             line_ending = ending_info['ending']
         elif not preserve_line_endings:
-            # Cuando preserve_line_endings=False, detectar del contenido ya normalizado
             if '\r\n' in content:
                 line_ending = '\r\n'
             elif '\r' in content:
                 line_ending = '\r'
         
-        # Normalizar content a line ending detectado
-        normalized_content = content.replace('\r\n', '\n').replace('\r', '\n')  # Normalize to LF
+        normalized_content = content.replace('\r\n', '\n').replace('\r', '\n')
         if line_ending != '\n':
             normalized_content = normalized_content.replace('\n', line_ending)
         
-        # Detectar encoding si no especificado
         if not encoding:
             if Path(file_path).exists():
                 read_result = self.reader.read_file(file_path)
@@ -75,7 +63,6 @@ class ContentWriter:
             else:
                 encoding = 'utf-8'
         
-        # Escribir archivo
         try:
             with open(file_path, 'w', encoding=encoding, newline='') as f:
                 f.write(normalized_content)
@@ -96,30 +83,19 @@ class ContentWriter:
             }
             
     def write_with_line_ending(self, file_path: str, content: str, line_ending_type: str = 'unix',
-                              backup: bool = True, encoding: str = 'utf-8') -> Dict[str, Union[bool, str, Dict]]:
+                              backup: bool = False, encoding: str = 'utf-8') -> Dict[str, Union[bool, str, Dict]]:
         """Escribir archivo con line ending especifico"""
         if line_ending_type not in self.line_endings:
             return {'success': False, 'error': f'Invalid line_ending_type: {line_ending_type}'}
         
-        # Preparar contenido con line ending específico
         line_ending = self.line_endings[line_ending_type]
         normalized_content = content.replace('\r\n', '\n').replace('\r', '\n')
         if line_ending != '\n':
             normalized_content = normalized_content.replace('\n', line_ending)
         
-        # Llamar write_file directamente con el contenido ya formateado
         file_path = str(Path(file_path).resolve())
+        backup_info = {'backup_created': False}
         
-        # Crear backup si el archivo existe y se solicita
-        backup_info = {}
-        if backup and Path(file_path).exists():
-            try:
-                backup_path = self.backup_manager.create_snapshot(file_path, 'pre_write')
-                backup_info = {'backup_created': True, 'backup_path': backup_path}
-            except Exception as e:
-                backup_info = {'backup_created': False, 'backup_error': str(e)}
-        
-        # Escribir archivo directamente
         try:
             with open(file_path, 'w', encoding=encoding, newline='') as f:
                 f.write(normalized_content)
@@ -137,7 +113,4 @@ class ContentWriter:
                 'success': False,
                 'error': str(e),
                 'backup_info': backup_info
-            }      
-    
-    
-    
+            }

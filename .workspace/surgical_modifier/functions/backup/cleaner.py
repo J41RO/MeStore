@@ -3,7 +3,7 @@ import shutil
 from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
-from manager import BackupManager
+from .manager import BackupManager
 
 class BackupCleaner:
     def __init__(self, backup_manager: Optional[BackupManager] = None):
@@ -13,14 +13,12 @@ class BackupCleaner:
         """Limpiar snapshots por tipo específico de operación"""
         snapshots = self.backup_manager.list_snapshots()
         op_snapshots = [s for s in snapshots if operation_type in s['name']]
-        
         removed_count = 0
         for snapshot in op_snapshots[max_count:]:  # Mantener solo max_count más recientes
             Path(snapshot['path']).unlink()
             removed_count += 1
-        
         return {'operation': operation_type, 'removed': removed_count, 'kept': min(len(op_snapshots), max_count)}
-
+    
     def cleanup_by_size(self, max_total_mb: float = 100.0) -> Dict[str, any]:
         """Limpiar snapshots manteniendo tamaño total bajo límite"""
         snapshots = self.backup_manager.list_snapshots()
@@ -47,7 +45,7 @@ class BackupCleaner:
         
         if 'max_age_days' in policies:
             basic_result = self.backup_manager.cleanup_old_snapshots(
-                max_age_days=policies['max_age_days'], 
+                max_age_days=policies['max_age_days'],
                 max_count=policies.get('max_count', 50)
             )
             results['basic_cleanup'] = basic_result

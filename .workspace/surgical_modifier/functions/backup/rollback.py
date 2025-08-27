@@ -2,8 +2,7 @@ import os
 import shutil
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
-from manager import BackupManager
-
+from .manager import BackupManager
 
 class RollbackManager:
     def __init__(self, backup_manager: Optional[BackupManager] = None):
@@ -19,7 +18,7 @@ class RollbackManager:
         
         shutil.copy2(snapshot_file, target_file)
         return target_file.exists()
-
+    
     def find_latest_snapshot(self, file_path: str, operation_type: Optional[str] = None) -> Optional[str]:
         """Encontrar snapshot más reciente para archivo específico"""
         file_name = Path(file_path).name
@@ -29,9 +28,9 @@ class RollbackManager:
             snapshots = [s for s in snapshots if operation_type in s['name']]
         
         return snapshots[0]['path'] if snapshots else None
-
-    def restore_latest(self, file_path: str, operation_type: Optional[str] = None, 
-                    create_backup: bool = True) -> Tuple[bool, str]:
+    
+    def restore_latest(self, file_path: str, operation_type: Optional[str] = None,
+                      create_backup: bool = True) -> Tuple[bool, str]:
         """Restaurar desde snapshot más reciente con backup opcional del estado actual"""
         if create_backup and Path(file_path).exists():
             current_backup = self.backup_manager.create_snapshot(file_path, 'pre_restore')
