@@ -1,15 +1,54 @@
 import re
 from typing import List, Dict, Any, Optional, Tuple
+from .base_matcher import BaseMatcher
 
-class MultilineMatcher:
+class MultilineMatcher(BaseMatcher):
     """Matcher para patrones que span múltiples líneas con context awareness"""
     
     def __init__(self):
         self._context_cache = {}  # Cache contextos procesados
         self._block_cache = {}    # Cache bloques detectados
+        super().__init__()
+    
+    # Métodos estándar requeridos por BaseMatcher
+    def find(self, text: str, pattern: str, **kwargs) -> Optional[Dict[str, Any]]:
+        """Implementación estándar del método find()"""
+        flags = kwargs.get('flags', re.MULTILINE | re.DOTALL)
+        result = self.find_multiline_pattern(pattern, text, flags)
+        if result.get('success') and result.get('matches'):
+            first_match = result['matches'][0]
+            return self._normalize_result(
+                first_match['match'],  # Usar 'match' no 'text'
+                first_match['start_pos'],  # Usar 'start_pos' no 'start'
+                first_match['end_pos'],    # Usar 'end_pos' no 'end'
+                list(first_match.get('groups', []))
+            )
+        return None
+    
+    def match(self, text: str, pattern: str, **kwargs) -> bool:
+        """Implementación estándar del método match()"""
+        flags = kwargs.get('flags', re.MULTILINE | re.DOTALL)
+        result = self.find_multiline_pattern(pattern, text, flags)
+        return result.get('success', False) and len(result.get('matches', [])) > 0
+    
+    def find_all(self, text: str, pattern: str, **kwargs) -> List[Dict[str, Any]]:
+        """Implementación estándar del método find_all()"""
+        flags = kwargs.get('flags', re.MULTILINE | re.DOTALL)
+        result = self.find_multiline_pattern(pattern, text, flags)
+        if result.get('success') and result.get('matches'):
+            return [
+                self._normalize_result(
+                    match['match'],     # Usar 'match' no 'text'
+                    match['start_pos'], # Usar 'start_pos' no 'start'
+                    match['end_pos'],   # Usar 'end_pos' no 'end'
+                    list(match.get('groups', []))
+                )
+                for match in result['matches']
+            ]
+        return []
     
     def find_multiline_pattern(self, pattern: str, text: str, 
-                              flags: int = re.MULTILINE | re.DOTALL) -> Dict[str, Any]:
+                            flags: int = re.MULTILINE | re.DOTALL) -> Dict[str, Any]:
         """Encontrar patrón que puede span múltiples líneas"""
         if not pattern:
             return {'success': False, 'error': 'Empty pattern'}

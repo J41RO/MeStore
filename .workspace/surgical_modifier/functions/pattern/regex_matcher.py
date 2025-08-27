@@ -1,12 +1,49 @@
 import re
 from typing import List, Dict, Any, Optional, Union, Pattern
+from .base_matcher import BaseMatcher
 
-class RegexMatcher:
+class RegexMatcher(BaseMatcher):
     """Matcher robusto para patrones regex con manejo de errores"""
     
     def __init__(self):
         self._compiled_patterns = {}  # Cache de patrones compilados
         self._last_error = None
+        super().__init__()
+    
+    # Métodos estándar requeridos por BaseMatcher
+    def find(self, text: str, pattern: str, **kwargs) -> Optional[Dict[str, Any]]:
+        """Implementación estándar del método find()"""
+        flags = kwargs.get('flags', 0)
+        result = self.find_single_match(pattern, text, flags)
+        if result.get('success') and result.get('found'):
+            return self._normalize_result(
+                result['match'],  # Es un string directamente
+                result['start'],
+                result['end'],
+                list(result.get('groups', []))
+            )
+        return None
+    def match(self, text: str, pattern: str, **kwargs) -> bool:
+        """Implementación estándar del método match()"""
+        flags = kwargs.get('flags', 0)
+        result = self.find_single_match(pattern, text, flags)
+        return result.get('success', False) and result.get('found', False)
+        
+    def find_all(self, text: str, pattern: str, **kwargs) -> List[Dict[str, Any]]:
+        """Implementación estándar del método find_all()"""
+        flags = kwargs.get('flags', 0)
+        result = self.find_matches(pattern, text, flags)
+        if result.get('success') and result.get('matches'):
+            return [
+                self._normalize_result(
+                    match_obj.group(0) if hasattr(match_obj, 'group') else str(match_obj),
+                    match_obj.start() if hasattr(match_obj, 'start') else 0,
+                    match_obj.end() if hasattr(match_obj, 'end') else 0,
+                    list(match_obj.groups()) if hasattr(match_obj, 'groups') else []
+                )
+                for match_obj in result['matches']
+            ]
+        return []
     
     def compile_pattern(self, pattern: str, flags: int = 0) -> Optional[Pattern]:
         """Compilar patron regex con cache"""

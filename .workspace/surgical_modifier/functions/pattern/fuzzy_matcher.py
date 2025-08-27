@@ -1,13 +1,48 @@
 # Crear functions/pattern/fuzzy_matcher.py con:
 import difflib
 from typing import List, Dict, Any, Optional, Tuple
-
-class FuzzyMatcher:
+from .base_matcher import BaseMatcher
+class FuzzyMatcher(BaseMatcher):
     """Matcher aproximado usando algoritmos de similaridad"""
     
     def __init__(self, default_threshold: float = 0.6):
         self.default_threshold = default_threshold
         self._similarity_cache = {}  # Cache resultados similaridad
+        super().__init__()
+    
+    # Métodos estándar requeridos por BaseMatcher
+    def find(self, text: str, pattern: str, **kwargs) -> Optional[Dict[str, Any]]:
+        """Implementación estándar del método find()"""
+        threshold = kwargs.get('threshold', self.default_threshold)
+        result = self.find_fuzzy_match(pattern, text, threshold)
+        if result.get('success') and result.get('found'):
+            return self._normalize_result(
+                result['match'],  # Es string directamente
+                result['position'],
+                result['position'] + len(result['match'])  # Calcular end
+            )
+        return None
+    
+    def match(self, text: str, pattern: str, **kwargs) -> bool:
+        """Implementación estándar del método match()"""
+        threshold = kwargs.get('threshold', self.default_threshold)
+        result = self.find_fuzzy_match(pattern, text, threshold)
+        return result.get('success', False)
+    
+    def find_all(self, text: str, pattern: str, **kwargs) -> List[Dict[str, Any]]:
+        """Implementación estándar del método find_all()"""
+        threshold = kwargs.get('threshold', self.default_threshold)
+        result = self.find_all_fuzzy_matches(pattern, text, threshold)
+        if result.get('success') and result.get('matches'):
+            return [
+                self._normalize_result(
+                    match['match'],
+                    match['position'],
+                    match['position'] + len(match['match'])
+                )
+                for match in result['matches']
+            ]
+        return []
     
     def calculate_similarity(self, text1: str, text2: str) -> float:
         """Calcular similaridad entre dos textos (0.0 - 1.0)"""
