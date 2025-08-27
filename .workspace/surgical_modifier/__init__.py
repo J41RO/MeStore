@@ -1,74 +1,15 @@
 #!/usr/bin/env python3
 """
-Surgical Modifier - Herramienta de modificación quirúrgica de archivos
-Sistema robusto de modificación de código con detección inteligente de patrones.
+Surgical Modifier - Herramienta de modificacion quirurgica de archivos
+Sistema robusto de modificacion de codigo con deteccion inteligente de patrones.
 """
 
-import sys
-import os
-import logging
-from pathlib import Path
-from typing import Dict, List, Any, Optional
+__version__ = "0.1.0"
 
-# Configuración del logger
-logger = logging.getLogger(__name__)
+# Importar modulos principales para facilitar acceso
+from . import cli
+from . import config
+from . import base_coordinator
+from . import exceptions
 
-__version__ = "1.0.0"
-__author__ = "Surgical Modifier Team"
-__description__ = "Herramienta de modificación quirúrgica de archivos"
-
-# Importar excepciones desde nuestro módulo exceptions.py
-try:
-    from .exceptions import (
-        SurgicalModifierError,
-        InvalidPatternError,
-        FileNotFoundError as SurgicalFileNotFoundError,
-        PermissionError as SurgicalPermissionError,
-        ValidationError,
-        ConfigurationError
-    )
-except ImportError:
-    # Fallback: importación directa
-    from exceptions import (
-        SurgicalModifierError,
-        InvalidPatternError,
-        FileNotFoundError as SurgicalFileNotFoundError,
-        PermissionError as SurgicalPermissionError,
-        ValidationError,
-        ConfigurationError
-    )
-
-# Importar componentes principales
-try:
-    from .functions.pattern.regex_matcher import RegexMatcher
-    from .functions.pattern.literal_matcher import LiteralMatcher  
-    from .functions.pattern.fuzzy_matcher import FuzzyMatcher
-    from .functions.pattern.multiline_matcher import MultilineMatcher
-except ImportError:
-    # Fallback: importación directa
-    from functions.pattern.regex_matcher import RegexMatcher
-    from functions.pattern.literal_matcher import LiteralMatcher
-    from functions.pattern.fuzzy_matcher import FuzzyMatcher
-    from functions.pattern.multiline_matcher import MultilineMatcher
-
-# Hacer disponibles las clases principales
-__all__ = [
-    'SurgicalModifierError',
-    'InvalidPatternError', 
-    'SurgicalFileNotFoundError',
-    'SurgicalPermissionError',
-    'ValidationError',
-    'ConfigurationError',
-    'RegexMatcher',
-    'LiteralMatcher',
-    'FuzzyMatcher',
-    'MultilineMatcher'
-]
-
-def get_version():
-    """Obtener versión del paquete"""
-    return __version__
-
-def get_logger():
-    """Obtener logger configurado"""
-    return logger
+__all__ = ['cli', 'config', 'base_coordinator', 'exceptions']

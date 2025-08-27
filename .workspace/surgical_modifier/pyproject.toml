@@ -3,90 +3,14 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "surgical-modifier"
+name = "surgical_modifier"
 version = "0.1.0"
-description = "Sistema de Modificación Precisa de Código con CLI y coordinadores especializados"
-authors = [{name = "Admin Jairo", email = "admin@example.com"}]
-license = {text = "MIT"}
-readme = "README.md"
-requires-python = ">=3.9"
-classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-]
-
-dependencies = [
-    "click>=8.0.0",
-    "colorama>=0.4.0",
-    "pyyaml>=6.0",
-    "rich>=13.0.0",
-]
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
-    "black>=23.0.0",
-    "isort>=5.12.0",
-    "flake8>=6.0.0",
-    "pre-commit>=3.0.0",
-]
-test = [
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
-    "pytest-mock>=3.10.0",
-]
+description = "Sistema de Modificación Precisa de Código"
+dependencies = ["click>=8.0.0", "colorama>=0.4.0", "pyyaml>=6.0", "rich>=13.0.0"]
 
 [project.scripts]
-surgical-modifier = "surgical_modifier.cli:main"
-smod = "surgical_modifier.cli:main"
-
-[project.urls]
-Homepage = "https://github.com/admin-jairo/surgical-modifier"
-Repository = "https://github.com/admin-jairo/surgical-modifier.git"
-Documentation = "https://github.com/admin-jairo/surgical-modifier/docs"
-Issues = "https://github.com/admin-jairo/surgical-modifier/issues"
+surgical-modifier = "surgical_modifier_pkg.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["surgical_modifier*"]
-
-[tool.black]
-line-length = 88
-target-version = ['py39']
-include = '\.pyi?$'
-
-[tool.isort]
-profile = "black"
-multi_line_output = 3
-line_length = 88
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = ["test_*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-addopts = "-v --tb=short --strict-markers"
-markers = [
-    "unit: marks tests as unit tests",
-    "integration: marks tests as integration tests",
-    "slow: marks tests as slow running",
-]
-
-[tool.coverage.run]
-source = ["surgical_modifier"]
-omit = ["tests/*", "setup.py"]
-
-[tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "raise AssertionError",
-    "raise NotImplementedError",
-]
+include = ["surgical_modifier_pkg*"]
