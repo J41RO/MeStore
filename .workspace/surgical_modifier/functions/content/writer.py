@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from typing import Dict, Optional, Union, Any
-from reader import ContentReader
+from .reader import ContentReader
 
 class ContentWriter:
     def __init__(self, backup_manager: Optional[Any] = None):
