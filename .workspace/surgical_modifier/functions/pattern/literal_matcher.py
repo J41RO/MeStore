@@ -1,18 +1,19 @@
 from typing import List, Dict, Any, Optional, Tuple
 import re
 import time
-# imports existentes...
 from .base_matcher import BaseMatcher
+
+
 class LiteralMatcher(BaseMatcher):
     """Matcher eficiente para texto literal sin overhead regex"""
     
     def __init__(self):
         super().__init__()
         self._last_search = None  
-        self._case_sensitive = False  # Cambiar a False por defecto
+        self._case_sensitive = False  # Case insensitive por defecto
         self._whole_words = False
         
-    # Herencia de BaseMatcher - métodos estándar requeridos
+    # Métodos estándar requeridos por BaseMatcher
     def find(self, text: str, pattern: str, **kwargs) -> Optional[Dict[str, Any]]:
         """Implementación estándar del método find()"""
         case_sensitive = kwargs.get('case_sensitive', self._case_sensitive)
@@ -46,6 +47,7 @@ class LiteralMatcher(BaseMatcher):
             ]
         return []
     
+    # Métodos especializados para funcionalidad literal
     def find_literal(self, pattern: str, text: str, case_sensitive: bool = True) -> Dict[str, Any]:
         """Encontrar primera ocurrencia de patron literal"""
         if not pattern:
@@ -164,7 +166,7 @@ class LiteralMatcher(BaseMatcher):
             return {'success': False, 'error': f'Whole words search error: {e}'}
 
     def replace_literal(self, pattern: str, replacement: str, text: str, 
-                    case_sensitive: bool = True, max_replacements: int = -1) -> Dict[str, Any]:
+                       case_sensitive: bool = True, max_replacements: int = -1) -> Dict[str, Any]:
         """Reemplazar ocurrencias literales"""
         if not pattern:
             return {'success': False, 'error': 'Empty pattern'}
@@ -178,8 +180,7 @@ class LiteralMatcher(BaseMatcher):
                     new_text = text.replace(pattern, replacement, max_replacements)
                     count = min(text.count(pattern), max_replacements)
             else:
-                # Case insensitive replacement requires more work
-            
+                # Case insensitive replacement requires regex
                 escaped_pattern = re.escape(pattern)
                 regex_pattern = re.compile(escaped_pattern, re.IGNORECASE)
                 if max_replacements == -1:
@@ -258,7 +259,6 @@ class LiteralMatcher(BaseMatcher):
     
     def benchmark_vs_regex(self, pattern: str, text: str, iterations: int = 1000) -> Dict[str, Any]:
         """Benchmark literal vs regex matching"""
-        import time
         try:
             # Benchmark literal matching
             start_time = time.time()
@@ -284,3 +284,62 @@ class LiteralMatcher(BaseMatcher):
             }
         except Exception as e:
             return {'success': False, 'error': f'Benchmark error: {e}'}
+
+    # Métodos adicionales requeridos por tests
+    def find_multiple_patterns(self, patterns: List[str], text: str, **kwargs) -> Dict[str, Any]:
+        """Buscar múltiples patrones usando find_all para cada uno"""
+        total_matches = 0
+        results = {}
+        case_sensitive = kwargs.get('case_sensitive', self._case_sensitive)
+        
+        for pattern in patterns:
+            matches = self.find_all(text, pattern, case_sensitive=case_sensitive)
+            if matches:
+                results[pattern] = matches
+                total_matches += len(matches)
+        
+        return {
+            'success': True,
+            'patterns_found': list(results.keys()),
+            'results': results,
+            'total_patterns': len(patterns),
+            'found_patterns': len(results),
+            'total_matches': total_matches
+        }
+    
+    def get_context_around_match(self, pattern: str, text: str, context_chars: int = 10, **kwargs) -> Dict[str, Any]:
+        """Obtener contexto alrededor de una coincidencia"""
+        case_sensitive = kwargs.get('case_sensitive', self._case_sensitive)
+        matches = self.find_all(text, pattern, case_sensitive=case_sensitive)
+        
+        if not matches:
+            return {
+                'success': False,
+                'error': 'Pattern not found',
+                'pattern': pattern
+            }
+        
+        matches_with_context = []
+        for match in matches:
+            start = match['start']
+            end = match['end']
+            
+            context_start = max(0, start - context_chars)
+            context_end = min(len(text), end + context_chars)
+            
+            matches_with_context.append({
+                'match': match['match'],
+                'match_start': start,
+                'match_end': end,
+                'context': text[context_start:context_end],
+                'context_start': context_start,
+                'context_end': context_end,
+                'before_context': text[context_start:start],
+                'after_context': text[end:context_end]
+            })
+        
+        return {
+            'success': True,
+            'pattern': pattern,
+            'matches_with_context': matches_with_context
+        }

@@ -200,15 +200,15 @@ class TestArchitecturalConstraints:
     def test_package_imports_work(self):
         """Verifica que imports desde package funcionan correctamente"""
         # Simular import desde __init__.py
-        import __init__ as pattern_module
+        from functions.pattern import BaseMatcher, MatcherCombiner, RegexMatcher, LiteralMatcher, FuzzyMatcher, MultilineMatcher
         
         # Verificar que todas las clases están disponibles
-        assert hasattr(pattern_module, 'RegexMatcher')
-        assert hasattr(pattern_module, 'LiteralMatcher')
-        assert hasattr(pattern_module, 'FuzzyMatcher')
-        assert hasattr(pattern_module, 'MultilineMatcher')
-        assert hasattr(pattern_module, 'BaseMatcher')
-        assert hasattr(pattern_module, 'MatcherCombiner')
+        assert RegexMatcher is not None
+        assert LiteralMatcher is not None
+        assert FuzzyMatcher is not None
+        assert MultilineMatcher is not None
+        assert BaseMatcher is not None
+        assert MatcherCombiner is not None
 
 
 class TestFunctionalIntegration:

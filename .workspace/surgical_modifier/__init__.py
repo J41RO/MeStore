@@ -7,9 +7,5 @@ Sistema robusto de modificacion de codigo con deteccion inteligente de patrones.
 __version__ = "0.1.0"
 
 # Importar modulos principales para facilitar acceso
-from . import cli
-from . import config
-from . import base_coordinator
-from . import exceptions
 
 __all__ = ['cli', 'config', 'base_coordinator', 'exceptions']
