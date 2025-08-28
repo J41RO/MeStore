@@ -7,8 +7,7 @@ from typing import Union, List, Tuple, Optional, Dict, Any
 from enum import Enum
 from dataclasses import dataclass
 import re
-from .indentation_detector import IndentationDetector
-
+from .indentation_detector import IndentationDetector, IndentationInfo
 
 class PositionType(Enum):
     """Tipos de posición para inserción."""
@@ -753,4 +752,51 @@ class PositionCalculator:
             'methods_available': len([m for m in dir(self) if not m.startswith('_')])
         }
     
+def calculate_position(content: str, target_pattern: str, position_type: Union[PositionType, str] = PositionType.AFTER, indentation_info: Optional[IndentationInfo] = None) -> InsertionPosition:
+    """
+    Función de conveniencia para calcular posición usando PositionCalculator.
+    
+    Args:
+        content: Contenido del archivo
+        target_pattern: Patrón de búsqueda
+        position_type: Tipo de posición (BEFORE, AFTER, etc.)
+        indentation_info: Info de indentación (opcional)
+    
+    Returns:
+        InsertionPosition con posición calculada
+    """
+    calculator = PositionCalculator()
+    
+    # Convertir string a enum si es necesario
+    if isinstance(position_type, str):
+        position_type = PositionType(position_type.lower())
+    
+    # Usar placeholder para new_content ya que solo necesitamos la posición
+    placeholder_content = ""
+    
+    # Usar el método específico según el tipo de posición
+    if position_type == PositionType.AFTER:
+        result = calculator.calculate_after_position(content, target_pattern, placeholder_content)
+    elif position_type == PositionType.BEFORE:
+        result = calculator.calculate_before_position(content, target_pattern, placeholder_content)
+    else:  # INSIDE or other
+        # Para casos no implementados, usar find_insertion_point como fallback
+        positions = calculator.find_pattern_positions(content, target_pattern)
+        if positions:
+            result = positions[0]
+        else:
+            result = None
+    
+    # Si no se pudo calcular, crear posición por defecto
+    if result is None:
+        lines = content.split('\n')
+        return InsertionPosition(
+            line_number=len(lines) - 1,
+            column_number=0,
+            position_type=position_type,
+            target_line=lines[-1] if lines else "",
+            suggested_content=""
+        )
+    
+    return result
     

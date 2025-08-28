@@ -819,4 +819,20 @@ class IndentationDetector:
             Lista con entradas del log
         """
         return getattr(self, '_log_entries', [])
+
+
+
+def detect_indentation(content: str, file_path: Optional[str] = None) -> IndentationInfo:
+    """
+    Función de conveniencia para detectar indentación usando IndentationDetector.
+    
+    Args:
+        content: Contenido del archivo a analizar
+        file_path: Ruta del archivo (opcional, para contexto)
+    
+    Returns:
+        IndentationInfo con patrón detectado
+    """
+    detector = IndentationDetector()
+    return detector.analyze_file(content)
     

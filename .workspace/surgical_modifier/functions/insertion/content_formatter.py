@@ -4,7 +4,7 @@ Integra con IndentationDetector y PositionCalculator para formateo consistente.
 """
 
 from enum import Enum
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Union
 from dataclasses import dataclass
 import textwrap
 import re
@@ -597,3 +597,26 @@ class ContentFormatter:
         
         return handled_content
     
+def format_content(content: str, indentation_info: Optional[IndentationInfo] = None, content_type: Union[ContentType, str] = ContentType.STATEMENT, preserve_blank_lines: bool = True) -> FormattedContent:
+    """
+    Función de conveniencia para formatear contenido usando ContentFormatter.
+    
+    Args:
+        content: Contenido a formatear
+        indentation_info: Info de indentación (opcional)
+        content_type: Tipo de contenido
+        preserve_blank_lines: Preservar líneas en blanco
+    
+    Returns:
+        FormattedContent con contenido formateado
+    """
+    formatter = ContentFormatter()
+    # Adaptar indentation_info a context string si se proporciona
+    context = str(indentation_info) if indentation_info else ""
+    if isinstance(content_type, str):
+        # Convertir string a enum, usar STATEMENT como fallback
+        try:
+            content_type = ContentType(content_type.lower())
+        except ValueError:
+            content_type = ContentType.STATEMENT
+    return formatter.format_content(content, context, content_type)
