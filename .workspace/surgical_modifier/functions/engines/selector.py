@@ -3,16 +3,120 @@ Engine Selector - Lógica de auto-selección de engines.
 Selecciona automáticamente el mejor engine basado en criterios como tipo de operación,
 capacidades requeridas, lenguaje de programación, y disponibilidad.
 """
-from typing import List, Dict, Optional, Any, Union
+from typing import List, Dict, Optional, Any, Union, Set, DefaultDict
 from enum import Enum
+from collections import defaultdict
+from datetime import datetime, timedelta
+import time
 import logging
 import re
 from dataclasses import dataclass
 
 from .base_engine import BaseEngine, EngineCapability, EngineRegistry
 
-# AGREGAR TODO EL CÓDIGO DE COMPLEJIDAD AQUÍ:
+# SISTEMA DE FALLBACK
+class FallbackStrategy(Enum):
+    """Estrategias de fallback para manejo de fallos de engines."""
+    STRICT = "strict"      # Falla inmediatamente si engine preferido no funciona
+    GRACEFUL = "graceful"  # Intenta engines alternativos manteniendo calidad
+    AGGRESSIVE = "aggressive"  # Usa cualquier engine disponible como fallback
 
+class FailureRegistry:
+    """Registry para trackear fallos de engines y mantener scoring de confiabilidad."""
+    
+    def __init__(self, failure_threshold: int = 3, recovery_window: int = 300):
+        self.failures: DefaultDict[str, List[datetime]] = defaultdict(list)
+        self.failure_counts: DefaultDict[str, int] = defaultdict(int)
+        self.success_counts: DefaultDict[str, int] = defaultdict(int)
+        self.last_failure_time: Dict[str, datetime] = {}
+        self.failure_threshold = failure_threshold
+        self.recovery_window = recovery_window  # seconds
+        self.circuit_breakers: Set[str] = set()
+        
+    def record_failure(self, engine_name: str, failure_type: str = "execution_error"):
+        """Registra un fallo de un engine."""
+        now = datetime.now()
+        self.failures[engine_name].append(now)
+        self.failure_counts[engine_name] += 1
+        self.last_failure_time[engine_name] = now
+        
+        # Limpiar fallos antiguos (older than recovery_window)
+        cutoff_time = now - timedelta(seconds=self.recovery_window)
+        self.failures[engine_name] = [
+            failure_time for failure_time in self.failures[engine_name] 
+            if failure_time > cutoff_time
+        ]
+        
+        # Activar circuit breaker si supera threshold
+        if len(self.failures[engine_name]) >= self.failure_threshold:
+            self.circuit_breakers.add(engine_name)
+            
+        logging.warning(f"Engine {engine_name} failure recorded: {failure_type}")
+        
+    def record_success(self, engine_name: str):
+        """Registra un éxito de un engine."""
+        self.success_counts[engine_name] += 1
+        
+        # Remover de circuit breaker si tiene éxitos recientes
+        if engine_name in self.circuit_breakers:
+            recent_failures = len(self.failures[engine_name])
+            if recent_failures < self.failure_threshold // 2:
+                self.circuit_breakers.discard(engine_name)
+                logging.info(f"Engine {engine_name} recovered from circuit breaker")
+                
+    def get_reliability_score(self, engine_name: str) -> float:
+        """Calcula score de confiabilidad (0.0 - 1.0) basado en historial."""
+        total_failures = self.failure_counts[engine_name]
+        total_successes = self.success_counts[engine_name]
+        total_operations = total_failures + total_successes
+        
+        if total_operations == 0:
+            return 0.8  # Score neutral para engines sin historial
+            
+        # Score base por ratio de éxito
+        success_rate = total_successes / total_operations
+        
+        # Penalizar fallos recientes más severamente
+        recent_failures = len(self.failures[engine_name])
+        recent_penalty = min(recent_failures * 0.1, 0.5)
+        
+        # Penalizar circuit breakers
+        circuit_breaker_penalty = 0.3 if engine_name in self.circuit_breakers else 0.0
+        
+        final_score = max(0.0, success_rate - recent_penalty - circuit_breaker_penalty)
+        return final_score
+        
+    def is_engine_available(self, engine_name: str) -> bool:
+        """Verifica si engine está disponible (no en circuit breaker)."""
+        if engine_name in self.circuit_breakers:
+            # Verificar si puede recuperarse
+            if engine_name in self.last_failure_time:
+                time_since_failure = datetime.now() - self.last_failure_time[engine_name]
+                if time_since_failure.total_seconds() > self.recovery_window:
+                    self.circuit_breakers.discard(engine_name)
+                    logging.info(f"Engine {engine_name} auto-recovered from circuit breaker")
+                    return True
+            return False
+        return True
+        
+    def get_failure_summary(self) -> Dict[str, Dict]:
+        """Obtiene resumen completo de fallos y scores."""
+        summary = {}
+        all_engines = set(self.failure_counts.keys()) | set(self.success_counts.keys())
+        
+        for engine_name in all_engines:
+            summary[engine_name] = {
+                'total_failures': self.failure_counts[engine_name],
+                'total_successes': self.success_counts[engine_name],
+                'recent_failures': len(self.failures[engine_name]),
+                'reliability_score': self.get_reliability_score(engine_name),
+                'available': self.is_engine_available(engine_name),
+                'circuit_breaker': engine_name in self.circuit_breakers
+            }
+            
+        return summary
+
+# SISTEMA DE COMPLEJIDAD
 class ComplexityLevel(Enum):
     LOW = "low"
     MEDIUM = "medium" 
@@ -161,8 +265,7 @@ class ComplexityAnalyzer:
         metrics.complexity_score = score
         return score
 
-# DESPUÉS CONTINÚA CON logger = logging.getLogger(__name__)
-
+# LOGGER Y ENUMS
 logger = logging.getLogger(__name__)
 
 class SelectionCriteria(Enum):
@@ -173,7 +276,7 @@ class SelectionCriteria(Enum):
     AVAILABILITY = "availability"
     OPERATION_TYPE = "operation_type"
 
-
+# ENGINE SELECTOR PRINCIPAL
 class EngineSelector:
     """
     Selector automático de engines basado en criterios específicos.
@@ -183,33 +286,51 @@ class EngineSelector:
     - Tipo de operación
     - Lenguaje de programación 
     - Disponibilidad de herramientas externas
+    - Sistema de fallback robusto
+    - Health monitoring y recovery
+    - Caching y optimización de performance
     """
     
     def __init__(self):
         """Inicializar selector con configuración por defecto"""
+        # Prioridades por tipo de operación
         self._engine_priorities = {
-                # Prioridades por tipo de operación (mayor número = mayor prioridad)
-                'structural_search': {'comby': 3, 'ast': 2, 'native': 1},
-                'literal_search': {'native': 3, 'comby': 2, 'ast': 1},
-                'regex_search': {'native': 3, 'comby': 2, 'ast': 1},
-                'batch_operations': {'native': 3, 'comby': 2, 'ast': 1},
-                # Nuevos tipos de operación expandidos
-                'insert_before': {'comby': 3, 'ast': 2, 'native': 1},
-                'insert_after': {'comby': 3, 'ast': 2, 'native': 1},
-                'extract': {'ast': 3, 'comby': 2, 'native': 1},
-                'transform': {'comby': 3, 'ast': 2, 'native': 1}
-            }
-            
-            # Contexto inteligente por lenguaje
+            'structural_search': {'comby': 3, 'ast-grep': 2, 'native': 1},
+            'literal_search': {'native': 3, 'comby': 2, 'ast-grep': 1},
+            'regex_search': {'native': 3, 'comby': 2, 'ast-grep': 1},
+            'batch_operations': {'native': 3, 'comby': 2, 'ast-grep': 1},
+            'insert_before': {'comby': 3, 'ast-grep': 2, 'native': 1},
+            'insert_after': {'comby': 3, 'ast-grep': 2, 'native': 1},
+            'extract': {'ast-grep': 3, 'comby': 2, 'native': 1},
+            'transform': {'comby': 3, 'ast-grep': 2, 'native': 1}
+        }
+        
+        # Contexto inteligente por lenguaje
         self._language_priorities = {
-                'python': {'ast': 1.2, 'comby': 1.1, 'native': 1.0},
-                'javascript': {'comby': 1.2, 'ast': 1.1, 'native': 1.0},
-                'typescript': {'comby': 1.2, 'ast': 1.1, 'native': 1.0},
-                'java': {'comby': 1.2, 'ast': 1.0, 'native': 0.9},
-                'c++': {'comby': 1.1, 'ast': 1.0, 'native': 1.0},
-                'c#': {'comby': 1.1, 'ast': 1.0, 'native': 0.9}
-            }
+            'python': {'ast-grep': 1.2, 'comby': 1.1, 'native': 1.0},
+            'javascript': {'comby': 1.2, 'ast-grep': 1.1, 'native': 1.0},
+            'typescript': {'comby': 1.2, 'ast-grep': 1.1, 'native': 1.0},
+            'java': {'comby': 1.2, 'ast-grep': 1.0, 'native': 0.9},
+            'c++': {'comby': 1.1, 'ast-grep': 1.0, 'native': 1.0},
+            'c#': {'comby': 1.1, 'ast-grep': 1.0, 'native': 0.9}
+        }
+        
+        # Sistema de fallback
+        self.failure_registry = FailureRegistry()
+        self.default_timeout = 30
+        self.max_retry_attempts = 3
+        
+        # Sistema de caching y performance
+        self._selection_cache = {}
+        self._cache_max_size = 100
+        self._performance_metrics = {
+            'cache_hits': 0,
+            'cache_misses': 0,
+            'selection_times': [],
+            'fallback_usage': defaultdict(int)
+        }
     
+    # MÉTODO PRINCIPAL DE SELECCIÓN CON FALLBACK
     def select_best_engine(
         self,
         operation_type: str,
@@ -217,26 +338,26 @@ class EngineSelector:
         language: Optional[str] = None,
         content: Optional[str] = None,
         complexity_level: Optional[ComplexityLevel] = None,
+        fallback_strategy: Optional[FallbackStrategy] = None,
         **kwargs
     ) -> BaseEngine:
-        """
-        Seleccionar el mejor engine para una operación específica.
+        """Seleccionar el mejor engine para una operación específica."""
+        # INICIO - Métricas y caching
+        start_time = time.time()
         
-        Args:
-            operation_type: Tipo de operación ('search', 'replace', etc.)
-            capabilities_needed: Lista de capacidades requeridas
-            language: Lenguaje de programación (opcional)
-            content: Contenido a procesar (opcional, para análisis contextual)
-            **kwargs: Parámetros adicionales para criterios específicos
-            
-        Returns:
-            Instancia del engine más apropiado
-            
-        Raises:
-            ValueError: Si no se encuentra engine apropiado
-        """
         # Normalizar capabilities a enum si vienen como strings
         normalized_capabilities = self._normalize_capabilities(capabilities_needed)
+        
+        # Generar cache key
+        cache_key = self._get_cache_key(operation_type, normalized_capabilities, language, fallback_strategy)
+        
+        # Intentar obtener desde cache
+        cached_engine_name = self._get_cached_selection(cache_key)
+        if cached_engine_name:
+            selection_time = time.time() - start_time
+            self._performance_metrics['selection_times'].append(selection_time)
+            logger.info(f"Engine seleccionado desde cache: {cached_engine_name}")
+            return EngineRegistry.get_engine(cached_engine_name)
         
         # Análisis automático de complejidad si se proporciona contenido
         if content and complexity_level is None:
@@ -250,29 +371,380 @@ class EngineSelector:
             operation_type = self._detect_operation_type(content, normalized_capabilities)
             logger.info(f"Tipo de operación detectado automáticamente: {operation_type}")
         
+        # Si se especifica estrategia de fallback, usar sistema de fallback
+        if fallback_strategy is not None:
+            logger.info(f"Usando sistema de fallback con estrategia: {fallback_strategy.value}")
+            
+            # Obtener lista de engines con fallback
+            engine_candidates = self._get_fallback_engine_list(
+                operation_type, normalized_capabilities, fallback_strategy
+            )
+            
+            if not engine_candidates:
+                logger.warning("No se encontraron engines candidatos. Usando NativeEngine como último recurso.")
+                selected_engine_name = 'native'
+                reliability = 0.9
+            else:
+                # Seleccionar el primer engine de la lista ordenada (mejor opción)
+                selected_engine_info = engine_candidates[0]
+                selected_engine_name = selected_engine_info['name']
+                reliability = selected_engine_info['reliability']
+                
+                logger.info(f"Engine seleccionado con fallback: {selected_engine_name} (confiabilidad: {reliability:.2f})")
+            
+            # Cache la selección y métricas
+            self._cache_selection(cache_key, selected_engine_name, reliability)
+            selection_time = time.time() - start_time
+            self._performance_metrics['selection_times'].append(selection_time)
+            self._performance_metrics['fallback_usage'][fallback_strategy.value] += 1
+            
+            return EngineRegistry.get_engine(selected_engine_name)
+        
+        # Flujo original sin fallback
         # Obtener engines candidatos que tengan las capacidades requeridas
         candidate_engines = self._get_engines_by_capability(normalized_capabilities)
         
         if not candidate_engines:
             logger.warning(f"No se encontraron engines con capacidades {capabilities_needed}. Usando NativeEngine como fallback.")
-            return EngineRegistry.get_engine('native')
+            selected_engine_name = 'native'
+            reliability = 0.9
+        else:
+            # Rankear engines por prioridad y criterios
+            ranked_engines = self._rank_engines(
+                candidate_engines,
+                operation_type,
+                normalized_capabilities,
+                language,
+                complexity_level
+            )
+            
+            # Seleccionar el mejor engine disponible
+            selected_engine_name = ranked_engines[0]['name']
+            reliability = self.failure_registry.get_reliability_score(selected_engine_name)
+            
+            logger.info(f"Engine seleccionado: {selected_engine_name} para operación '{operation_type}' con capacidades {[c.value for c in normalized_capabilities]}")
         
-        # Rankear engines por prioridad y criterios
-        ranked_engines = self._rank_engines(
-            candidate_engines,
-            operation_type,
-            normalized_capabilities,
-            language,
-            complexity_level
-)
-        
-        # Seleccionar el mejor engine disponible
-        selected_engine_name = ranked_engines[0]['name']
-        
-        logger.info(f"Engine seleccionado: {selected_engine_name} para operación '{operation_type}' con capacidades {[c.value for c in normalized_capabilities]}")
+        # Cache la selección y métricas - FINAL
+        self._cache_selection(cache_key, selected_engine_name, reliability)
+        selection_time = time.time() - start_time
+        self._performance_metrics['selection_times'].append(selection_time)
+        if fallback_strategy:
+            self._performance_metrics['fallback_usage'][fallback_strategy.value] += 1
         
         return EngineRegistry.get_engine(selected_engine_name)
     
+    # SISTEMA DE EJECUCIÓN CON FALLBACK
+    def execute_with_fallback(
+        self,
+        operation: str,
+        content: str,
+        pattern: str,
+        capabilities: List[EngineCapability],
+        fallback_strategy: FallbackStrategy = FallbackStrategy.GRACEFUL,
+        timeout: Optional[int] = None,
+        **kwargs
+    ):
+        """Ejecuta operación con fallback automático si el engine primario falla."""
+        from .base_engine import EngineResult, EngineStatus
+        
+        timeout = timeout or self.default_timeout
+        
+        # Obtener lista ordenada de engines para probar
+        engine_candidates = self._get_fallback_engine_list(
+            operation, capabilities, fallback_strategy
+        )
+        
+        last_error = None
+        attempts_log = []
+        
+        for attempt_num, engine_info in enumerate(engine_candidates):
+            engine_name = engine_info['name']
+            engine_instance = engine_info['instance']
+            
+            # Verificar si engine está disponible según failure registry
+            if not self.failure_registry.is_engine_available(engine_name):
+                attempts_log.append({
+                    'engine': engine_name,
+                    'status': 'skipped_circuit_breaker',
+                    'message': 'Engine in circuit breaker state'
+                })
+                continue
+            
+            logger.info(f"Intento {attempt_num + 1}: Ejecutando con {engine_name}")
+            
+            try:
+                # Ejecutar operación con timeout
+                result = self._execute_with_timeout(
+                    engine_instance, operation, content, pattern, timeout, **kwargs
+                )
+                
+                # Verificar si resultado es exitoso
+                if result and hasattr(result, 'status') and result.status == EngineStatus.SUCCESS:
+                    self.failure_registry.record_success(engine_name)
+                    attempts_log.append({
+                        'engine': engine_name,
+                        'status': 'success',
+                        'message': f'Operation completed successfully'
+                    })
+                    
+                    logger.info(f"Operación exitosa con {engine_name}")
+                    # Agregar metadata de fallback al resultado
+                    if hasattr(result, 'metadata') and result.metadata:
+                        result.metadata['fallback_attempts'] = attempts_log
+                        result.metadata['fallback_strategy'] = fallback_strategy.value
+                    
+                    return result
+                else:
+                    # Resultado no exitoso, registrar como fallo suave
+                    self.failure_registry.record_failure(engine_name, 'unsuccessful_result')
+                    attempts_log.append({
+                        'engine': engine_name,
+                        'status': 'failed_result',
+                        'message': f'Engine returned {result.status.value if result and hasattr(result, "status") else "None"}'
+                    })
+                    last_error = f"Engine {engine_name} returned unsuccessful result"
+                    
+            except TimeoutError as e:
+                self.failure_registry.record_failure(engine_name, 'timeout')
+                attempts_log.append({
+                    'engine': engine_name,
+                    'status': 'timeout',
+                    'message': f'Operation timed out after {timeout}s'
+                })
+                last_error = f"Timeout en {engine_name}: {str(e)}"
+                logger.warning(f"Timeout en {engine_name} después de {timeout}s")
+                
+            except Exception as e:
+                self.failure_registry.record_failure(engine_name, 'execution_error')
+                attempts_log.append({
+                    'engine': engine_name,
+                    'status': 'error',
+                    'message': str(e)
+                })
+                last_error = f"Error en {engine_name}: {str(e)}"
+                logger.error(f"Error ejecutando con {engine_name}: {str(e)}")
+            
+            # Estrategia STRICT: fallar inmediatamente después del primer engine
+            if fallback_strategy == FallbackStrategy.STRICT and attempt_num == 0:
+                break
+        
+        # Si llegamos aquí, todos los engines fallaron
+        error_msg = f"Todos los engines fallaron para operación '{operation}'. Último error: {last_error}"
+        logger.error(error_msg)
+        
+        # Crear resultado de fallo con información de attempts
+        result = EngineResult(
+            status=EngineStatus.FAILURE,
+            matches=[],  # Lista vacía de matches para operación fallida
+            metadata={
+                'fallback_attempts': attempts_log,
+                'fallback_strategy': fallback_strategy.value,
+                'total_attempts': len(attempts_log),
+                'error_message': error_msg
+            }
+        )
+        
+        return result
+    
+    # HEALTH MONITORING Y RECOVERY
+    def get_engines_health_report(self) -> Dict[str, Dict]:
+        """Obtiene reporte completo de salud de todos los engines."""
+        health_report = {}
+        
+        # Obtener todos los engines registrados
+        for engine_name in EngineRegistry._engines.keys():
+            try:
+                engine_instance = EngineRegistry.get_engine(engine_name)
+                
+                # Información básica del engine
+                basic_info = {
+                    'engine_class': engine_instance.__class__.__name__,
+                    'capabilities': [cap.value for cap in engine_instance.capabilities],
+                    'available': self._check_engine_availability(engine_name, engine_instance)
+                }
+                
+                # Información de confiabilidad del failure registry
+                reliability_info = self.failure_registry.get_failure_summary().get(engine_name, {
+                    'total_failures': 0,
+                    'total_successes': 0,
+                    'recent_failures': 0,
+                    'reliability_score': 0.8,
+                    'available': True,
+                    'circuit_breaker': False
+                })
+                
+                # Combinar información
+                health_report[engine_name] = {
+                    **basic_info,
+                    **reliability_info,
+                    'health_status': self._calculate_health_status(engine_name, reliability_info),
+                    'recommendations': self._generate_health_recommendations(engine_name, reliability_info)
+                }
+                
+            except Exception as e:
+                health_report[engine_name] = {
+                    'engine_class': 'Unknown',
+                    'capabilities': [],
+                    'available': False,
+                    'error': str(e),
+                    'health_status': 'ERROR',
+                    'recommendations': ['Engine initialization failed - check dependencies']
+                }
+        
+        return health_report
+    
+    def is_engine_healthy(self, engine_name: str) -> bool:
+        """Verifica si un engine específico está en estado saludable."""
+        try:
+            # Verificar disponibilidad básica
+            if not self.failure_registry.is_engine_available(engine_name):
+                return False
+            
+            # Verificar score de confiabilidad
+            reliability = self.failure_registry.get_reliability_score(engine_name)
+            if reliability < 0.3:  # Threshold de salud mínima
+                return False
+            
+            # Verificar disponibilidad del engine
+            engine_instance = EngineRegistry.get_engine(engine_name)
+            if not self._check_engine_availability(engine_name, engine_instance):
+                return False
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error verificando salud de {engine_name}: {e}")
+            return False
+    
+    def attempt_engine_recovery(self, engine_name: str) -> bool:
+        """Intenta recuperar un engine que está en mal estado."""
+        try:
+            logger.info(f"Intentando recuperación de engine: {engine_name}")
+            
+            # Verificar si el engine existe
+            if engine_name not in EngineRegistry._engines:
+                logger.error(f"Engine {engine_name} no existe en el registry")
+                return False
+            
+            # Limpiar circuit breaker si está activo
+            if engine_name in self.failure_registry.circuit_breakers:
+                self.failure_registry.circuit_breakers.discard(engine_name)
+                logger.info(f"Circuit breaker removido para {engine_name}")
+            
+            # Reintentar inicialización del engine
+            engine_instance = EngineRegistry.get_engine(engine_name)
+            
+            # Test básico de funcionalidad
+            test_content = "def test(): pass"
+            test_pattern = "test"
+            
+            # Intentar operación básica de prueba
+            if hasattr(engine_instance, 'search'):
+                result = engine_instance.search(test_content, test_pattern)
+                if result and hasattr(result, 'status'):
+                    # Si la prueba es exitosa, registrar como éxito
+                    self.failure_registry.record_success(engine_name)
+                    logger.info(f"Recuperación exitosa para {engine_name}")
+                    return True
+            
+            # Si llegamos aquí, la prueba falló
+            logger.warning(f"Prueba de recuperación falló para {engine_name}")
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error durante recuperación de {engine_name}: {e}")
+            self.failure_registry.record_failure(engine_name, 'recovery_failed')
+            return False
+    
+    # PERFORMANCE Y MÉTRICAS
+    def get_performance_metrics(self) -> Dict[str, Any]:
+        """Obtiene métricas de performance del sistema de fallback."""
+        total_requests = self._performance_metrics['cache_hits'] + self._performance_metrics['cache_misses']
+        cache_hit_rate = (self._performance_metrics['cache_hits'] / total_requests * 100) if total_requests > 0 else 0
+        
+        avg_selection_time = (
+            sum(self._performance_metrics['selection_times']) / len(self._performance_metrics['selection_times'])
+            if self._performance_metrics['selection_times'] else 0
+        )
+        
+        return {
+            'cache_statistics': {
+                'hit_rate_percent': round(cache_hit_rate, 2),
+                'total_hits': self._performance_metrics['cache_hits'],
+                'total_misses': self._performance_metrics['cache_misses'],
+                'cache_size': len(self._selection_cache),
+                'max_cache_size': self._cache_max_size
+            },
+            'performance_statistics': {
+                'average_selection_time_ms': round(avg_selection_time * 1000, 2),
+                'total_selections': len(self._performance_metrics['selection_times']),
+                'fastest_selection_ms': round(min(self._performance_metrics['selection_times']) * 1000, 2) if self._performance_metrics['selection_times'] else 0,
+                'slowest_selection_ms': round(max(self._performance_metrics['selection_times']) * 1000, 2) if self._performance_metrics['selection_times'] else 0
+            },
+            'fallback_statistics': dict(self._performance_metrics['fallback_usage']),
+            'engine_health_summary': self._get_health_summary()
+        }
+    
+    def predict_engine_failure_risk(self, engine_name: str) -> Dict[str, Any]:
+        """Predice el riesgo de fallo de un engine basado en historial."""
+        if engine_name not in EngineRegistry._engines:
+            return {'risk_level': 'UNKNOWN', 'reason': 'Engine not found'}
+        
+        # Obtener información del failure registry
+        failure_info = self.failure_registry.get_failure_summary().get(engine_name, {})
+        reliability = failure_info.get('reliability_score', 0.8)
+        recent_failures = failure_info.get('recent_failures', 0)
+        total_failures = failure_info.get('total_failures', 0)
+        
+        # Calcular riesgo basado en múltiples factores
+        risk_score = 0
+        risk_factors = []
+        
+        # Factor 1: Baja confiabilidad
+        if reliability < 0.3:
+            risk_score += 40
+            risk_factors.append('Very low reliability score')
+        elif reliability < 0.6:
+            risk_score += 20
+            risk_factors.append('Moderate reliability concerns')
+        
+        # Factor 2: Fallos recientes
+        if recent_failures >= 3:
+            risk_score += 30
+            risk_factors.append('High recent failure rate')
+        elif recent_failures >= 1:
+            risk_score += 15
+            risk_factors.append('Recent failures detected')
+        
+        # Factor 3: Circuit breaker
+        if engine_name in self.failure_registry.circuit_breakers:
+            risk_score += 50
+            risk_factors.append('Circuit breaker active')
+        
+        # Factor 4: Tendencia de fallos
+        if total_failures > 10 and reliability < 0.7:
+            risk_score += 25
+            risk_factors.append('Historical failure pattern')
+        
+        # Determinar nivel de riesgo
+        if risk_score >= 70:
+            risk_level = 'HIGH'
+        elif risk_score >= 40:
+            risk_level = 'MEDIUM'
+        elif risk_score >= 15:
+            risk_level = 'LOW'
+        else:
+            risk_level = 'MINIMAL'
+        
+        return {
+            'risk_level': risk_level,
+            'risk_score': risk_score,
+            'risk_factors': risk_factors,
+            'reliability_score': reliability,
+            'recommendations': self._get_risk_recommendations(risk_level, risk_factors)
+        }
+    
+    # MÉTODOS PRIVADOS DE SOPORTE
     def _normalize_capabilities(self, capabilities: List[Union[EngineCapability, str]]) -> List[EngineCapability]:
         """Convertir lista mixta de capabilities a enum EngineCapability"""
         normalized = []
@@ -287,12 +759,7 @@ class EngineSelector:
         return normalized
     
     def _get_engines_by_capability(self, required_capabilities: List[EngineCapability]) -> List[Dict[str, Any]]:
-        """
-        Filtrar engines que tengan todas las capacidades requeridas.
-        
-        Returns:
-            Lista de diccionarios con info de engines candidatos
-        """
+        """Filtrar engines que tengan todas las capacidades requeridas."""
         candidate_engines = []
         
         for engine_name, engine_class in EngineRegistry._engines.items():
@@ -325,12 +792,7 @@ class EngineSelector:
         language: Optional[str] = None,
         complexity_level: Optional[ComplexityLevel] = None
     ) -> List[Dict[str, Any]]:
-        """
-        Rankear engines candidatos por prioridad y criterios.
-        
-        Returns:
-            Lista de engines ordenados por ranking (mejor primero)
-        """
+        """Rankear engines candidatos por prioridad y criterios."""
         # Asignar scores a cada engine
         for engine in candidate_engines:
             score = 0
@@ -348,14 +810,14 @@ class EngineSelector:
                 priority_map = self._engine_priorities[primary_capability]
                 score += priority_map.get(engine_name, 0) * 10
                 
-                # Score por nivel de complejidad
+            # Score por nivel de complejidad
             if complexity_level:
                 complexity_bonus = self._calculate_complexity_bonus(
                     engine_name, complexity_level, operation_type
                 )
                 score += complexity_bonus
                 
-                # Bonus por contexto inteligente de lenguaje
+            # Bonus por contexto inteligente de lenguaje
             if language and language.lower() in self._language_priorities:
                 lang_multiplier = self._language_priorities[language.lower()].get(
                     engine_name, 1.0
@@ -373,6 +835,127 @@ class EngineSelector:
         ranked_engines = sorted(candidate_engines, key=lambda x: x['score'], reverse=True)
         
         return ranked_engines
+    
+    def _get_fallback_engine_list(
+        self,
+        operation: str,
+        capabilities: List[EngineCapability],
+        strategy: FallbackStrategy
+    ) -> List[Dict[str, Any]]:
+        """Obtiene lista ordenada de engines para fallback según estrategia."""
+        # Obtener engines candidatos
+        candidate_engines = self._get_engines_by_capability(capabilities)
+        
+        if not candidate_engines:
+            # Fallback a NativeEngine si no hay candidatos
+            return [{
+                'name': 'native',
+                'instance': EngineRegistry.get_engine('native'),
+                'reliability': 0.9,  # NativeEngine es confiable pero básico
+                'score': 50  # Score base
+            }]
+        
+        # Rankear engines para obtener scores
+        ranked_engines = self._rank_engines(
+            candidate_engines,
+            operation,
+            capabilities,
+            None,  # language
+            None   # complexity_level
+        )
+        
+        # Agregar scoring de confiabilidad e instancias
+        for engine_info in ranked_engines:
+            engine_name = engine_info['name']
+            reliability = self.failure_registry.get_reliability_score(engine_name)
+            engine_info['reliability'] = reliability
+            engine_info['instance'] = EngineRegistry.get_engine(engine_name)
+        
+        # Ordenar según estrategia
+        if strategy == FallbackStrategy.STRICT:
+            # STRICT: Solo el mejor engine, no fallback
+            return ranked_engines[:1]
+            
+        elif strategy == FallbackStrategy.GRACEFUL:
+            # GRACEFUL: Ordenar por score + confiabilidad, mantener calidad
+            for engine in ranked_engines:
+                engine['combined_score'] = engine['score'] + (engine['reliability'] * 20)
+            ranked = sorted(ranked_engines, key=lambda x: x['combined_score'], reverse=True)
+            return ranked
+            
+        elif strategy == FallbackStrategy.AGGRESSIVE:
+            # AGGRESSIVE: Todos los engines disponibles, incluso poco confiables
+            # Incluir NativeEngine como último recurso si no está
+            if not any(e['name'] == 'native' for e in ranked_engines):
+                ranked_engines.append({
+                    'name': 'native',
+                    'instance': EngineRegistry.get_engine('native'),
+                    'reliability': 0.9,
+                    'score': 50,  # Score base
+                    'combined_score': 68  # 50 + (0.9 * 20)
+                })
+            
+            # Ordenar por confiabilidad principalmente
+            for engine in ranked_engines:
+                if 'combined_score' not in engine:
+                    engine['combined_score'] = (engine['reliability'] * 30) + engine['score']
+            ranked = sorted(ranked_engines, key=lambda x: x['combined_score'], reverse=True)
+            return ranked
+        
+        return ranked_engines
+    
+    def _execute_with_timeout(
+        self,
+        engine,
+        operation: str,
+        content: str,
+        pattern: str,
+        timeout: int,
+        **kwargs
+    ):
+        """Ejecuta operación con timeout usando threading."""
+        import threading
+        import queue
+        
+        result_queue = queue.Queue()
+        exception_queue = queue.Queue()
+        
+        def target():
+            try:
+                # Mapear operation a método del engine
+                if operation == 'search' and hasattr(engine, 'search'):
+                    result = engine.search(content, pattern, **kwargs)
+                elif operation == 'replace' and hasattr(engine, 'replace'):
+                    replacement = kwargs.get('replacement', '')
+                    result = engine.replace(content, pattern, replacement, **kwargs)
+                elif operation == 'extract' and hasattr(engine, 'extract'):
+                    result = engine.extract(content, pattern, **kwargs)
+                else:
+                    # Fallback a search como operación por defecto
+                    result = engine.search(content, pattern, **kwargs)
+                
+                result_queue.put(result)
+            except Exception as e:
+                exception_queue.put(e)
+        
+        thread = threading.Thread(target=target)
+        thread.daemon = True
+        thread.start()
+        thread.join(timeout)
+        
+        if thread.is_alive():
+            # Timeout occurred
+            raise TimeoutError(f"Operation timed out after {timeout} seconds")
+        
+        # Verificar si hubo excepción
+        if not exception_queue.empty():
+            raise exception_queue.get()
+        
+        # Obtener resultado
+        if not result_queue.empty():
+            return result_queue.get()
+        
+        return None
     
     def _get_primary_capability(self, capabilities: List[EngineCapability]) -> str:
         """Determinar la capacidad primaria para priorización"""
@@ -395,10 +978,9 @@ class EngineSelector:
         """Calculate complexity-based bonus for engine selection"""
         # Define engine power levels (higher = more powerful/slower)
         engine_power = {
-            'ast_engine': 90,      # Most powerful for complex operations
-            'regex_engine': 70,    # Good for pattern matching
-            'native_engine': 50,   # Balanced
-            'literal_engine': 30,  # Fast but basic
+            'ast-grep': 90,        # Most powerful for complex operations
+            'comby': 70,           # Good for pattern matching
+            'native': 50,          # Balanced
         }
         
         # Define complexity requirements
@@ -451,11 +1033,7 @@ class EngineSelector:
             return 'literal_search'
     
     def _check_engine_availability(self, engine_name: str, engine_instance: BaseEngine) -> bool:
-        """
-        Verificar si un engine está realmente disponible.
-        
-        Algunos engines pueden requerir herramientas externas (como ast-grep).
-        """
+        """Verificar si un engine está realmente disponible."""
         try:
             # Para engines que requieren herramientas externas, verificar disponibilidad
             if hasattr(engine_instance, 'is_available'):
@@ -463,9 +1041,132 @@ class EngineSelector:
             return True
         except Exception:
             return False
+    
+    def _get_cache_key(self, operation_type: str, capabilities: List[EngineCapability], 
+                       language: Optional[str], fallback_strategy: Optional[FallbackStrategy]) -> str:
+        """Genera clave para cache de selecciones."""
+        caps_str = ','.join(sorted([cap.value for cap in capabilities]))
+        strategy_str = fallback_strategy.value if fallback_strategy else 'none'
+        lang_str = language or 'any'
+        return f"{operation_type}:{caps_str}:{lang_str}:{strategy_str}"
+    
+    def _get_cached_selection(self, cache_key: str) -> Optional[str]:
+        """Obtiene selección desde cache si existe."""
+        if cache_key in self._selection_cache:
+            self._performance_metrics['cache_hits'] += 1
+            cached_info = self._selection_cache[cache_key]
+            
+            # Verificar si la selección cached sigue siendo válida
+            engine_name = cached_info['engine_name']
+            if self.is_engine_healthy(engine_name):
+                return engine_name
+            else:
+                # Remover entrada inválida del cache
+                del self._selection_cache[cache_key]
+        
+        self._performance_metrics['cache_misses'] += 1
+        return None
+    
+    def _cache_selection(self, cache_key: str, engine_name: str, reliability: float):
+        """Guarda selección en cache."""
+        # Limpiar cache si está lleno
+        if len(self._selection_cache) >= self._cache_max_size:
+            # Remover entrada más antigua (FIFO simple)
+            oldest_key = next(iter(self._selection_cache))
+            del self._selection_cache[oldest_key]
+        
+        self._selection_cache[cache_key] = {
+            'engine_name': engine_name,
+            'reliability': reliability,
+            'timestamp': time.time()
+        }
+    
+    def _get_health_summary(self) -> Dict[str, int]:
+        """Genera resumen de salud de engines para métricas."""
+        health_counts = {'healthy': 0, 'degraded': 0, 'unhealthy': 0, 'unavailable': 0}
+        
+        for engine_name in EngineRegistry._engines.keys():
+            if self.is_engine_healthy(engine_name):
+                reliability = self.failure_registry.get_reliability_score(engine_name)
+                if reliability >= 0.8:
+                    health_counts['healthy'] += 1
+                elif reliability >= 0.5:
+                    health_counts['degraded'] += 1
+                else:
+                    health_counts['unhealthy'] += 1
+            else:
+                health_counts['unavailable'] += 1
+        
+        return health_counts
+    
+    def _calculate_health_status(self, engine_name: str, reliability_info: Dict) -> str:
+        """Calcula el estado de salud de un engine basado en sus métricas."""
+        if reliability_info.get('circuit_breaker', False):
+            return 'CIRCUIT_BREAKER'
+        elif not reliability_info.get('available', True):
+            return 'UNAVAILABLE'
+        elif reliability_info.get('reliability_score', 0) >= 0.8:
+            return 'HEALTHY'
+        elif reliability_info.get('reliability_score', 0) >= 0.5:
+            return 'DEGRADED'
+        else:
+            return 'UNHEALTHY'
+    
+    def _generate_health_recommendations(self, engine_name: str, reliability_info: Dict) -> List[str]:
+        """Genera recomendaciones basadas en el estado de salud del engine."""
+        recommendations = []
+        
+        if reliability_info.get('circuit_breaker', False):
+            recommendations.append('Engine in circuit breaker - wait for automatic recovery')
+        
+        if reliability_info.get('recent_failures', 0) > 2:
+            recommendations.append('High recent failure rate - consider investigating root cause')
+        
+        reliability_score = reliability_info.get('reliability_score', 0)
+        if reliability_score < 0.3:
+            recommendations.append('Very low reliability - recommend manual recovery attempt')
+        elif reliability_score < 0.6:
+            recommendations.append('Moderate reliability issues - monitor closely')
+        
+        total_operations = (reliability_info.get('total_failures', 0) + 
+                          reliability_info.get('total_successes', 0))
+        if total_operations == 0:
+            recommendations.append('No operation history - engine unused or newly initialized')
+        
+        if not reliability_info.get('available', True):
+            recommendations.append('Engine unavailable - check external dependencies')
+        
+        if not recommendations:
+            recommendations.append('Engine operating normally')
+        
+        return recommendations
+    
+    def _get_risk_recommendations(self, risk_level: str, risk_factors: List[str]) -> List[str]:
+        """Genera recomendaciones basadas en el nivel de riesgo."""
+        recommendations = []
+        
+        if risk_level == 'HIGH':
+            recommendations.append('Consider removing engine from primary selection')
+            recommendations.append('Schedule immediate maintenance/investigation')
+        elif risk_level == 'MEDIUM':
+            recommendations.append('Monitor engine closely for additional failures')
+            recommendations.append('Consider fallback strategies for this engine')
+        elif risk_level == 'LOW':
+            recommendations.append('Continue normal monitoring')
+        else:
+            recommendations.append('Engine operating within normal parameters')
+        
+        # Recomendaciones específicas por factor de riesgo
+        if 'Circuit breaker active' in risk_factors:
+            recommendations.append('Wait for circuit breaker recovery or attempt manual recovery')
+        
+        if 'High recent failure rate' in risk_factors:
+            recommendations.append('Investigate recent changes or environmental factors')
+        
+        return recommendations
 
 
-# Función de conveniencia para uso directo
+# FUNCIÓN DE CONVENIENCIA
 def get_best_engine(
     operation_type: str,
     capabilities_needed: List[Union[EngineCapability, str]],

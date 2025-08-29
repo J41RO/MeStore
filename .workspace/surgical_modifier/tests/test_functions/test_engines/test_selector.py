@@ -537,5 +537,390 @@ class TestComplexityEdgeCases:
         complexity = self.analyzer.analyze_content_complexity(patterns_content)
         assert complexity in [ComplexityLevel.HIGH, ComplexityLevel.CRITICAL]
 
+class TestFallbackSystem:
+    """Tests para el sistema de fallback robusto"""
+    
+    def test_fallback_strategy_enum_values(self):
+        """Test que verifica los valores del enum FallbackStrategy"""
+        from functions.engines.selector import FallbackStrategy
+        
+        assert FallbackStrategy.STRICT.value == "strict"
+        assert FallbackStrategy.GRACEFUL.value == "graceful"
+        assert FallbackStrategy.AGGRESSIVE.value == "aggressive"
+    
+    def test_failure_registry_initialization(self):
+        """Test inicialización de FailureRegistry"""
+        from functions.engines.selector import FailureRegistry
+        
+        registry = FailureRegistry()
+        assert registry.failure_threshold == 3
+        assert registry.recovery_window == 300
+        assert len(registry.circuit_breakers) == 0
+    
+    def test_failure_registry_record_failure(self):
+        """Test registro de fallos en FailureRegistry"""
+        from functions.engines.selector import FailureRegistry
+        
+        registry = FailureRegistry()
+        registry.record_failure('test_engine', 'timeout')
+        
+        assert registry.failure_counts['test_engine'] == 1
+        assert 'test_engine' in registry.last_failure_time
+        assert len(registry.failures['test_engine']) == 1
+    
+    def test_failure_registry_record_success(self):
+        """Test registro de éxitos en FailureRegistry"""
+        from functions.engines.selector import FailureRegistry
+        
+        registry = FailureRegistry()
+        registry.record_success('test_engine')
+        
+        assert registry.success_counts['test_engine'] == 1
+    
+    def test_failure_registry_reliability_score(self):
+        """Test cálculo de score de confiabilidad"""
+        from functions.engines.selector import FailureRegistry
+        
+        registry = FailureRegistry()
+        # Sin historial debe retornar score neutral
+        score = registry.get_reliability_score('new_engine')
+        assert score == 0.8
+        
+        # Con éxitos debe tener score alto
+        for _ in range(10):
+            registry.record_success('good_engine')
+        score = registry.get_reliability_score('good_engine')
+        assert score >= 0.8
+        
+        # Con fallos debe tener score bajo
+        for _ in range(8):
+            registry.record_failure('bad_engine', 'error')
+        for _ in range(2):
+            registry.record_success('bad_engine')
+        score = registry.get_reliability_score('bad_engine')
+        assert score < 0.5
+    
+    def test_failure_registry_circuit_breaker(self):
+        """Test activación de circuit breaker"""
+        from functions.engines.selector import FailureRegistry
+        
+        registry = FailureRegistry(failure_threshold=2)
+        
+        # No debe estar en circuit breaker inicialmente
+        assert registry.is_engine_available('test_engine')
+        
+        # Después de superar threshold debe activar circuit breaker
+        registry.record_failure('test_engine', 'error')
+        registry.record_failure('test_engine', 'error')
+        
+        assert 'test_engine' in registry.circuit_breakers
+        assert not registry.is_engine_available('test_engine')
+    
+    def test_execute_with_fallback_graceful_strategy(self):
+        """Test execute_with_fallback con estrategia GRACEFUL"""
+        from functions.engines.selector import EngineSelector, FallbackStrategy
+        from functions.engines.base_engine import EngineCapability
+        
+        selector = EngineSelector()
+        result = selector.execute_with_fallback(
+            operation='search',
+            content='def test(): pass',
+            pattern='test',
+            capabilities=[EngineCapability.LITERAL_SEARCH],
+            fallback_strategy=FallbackStrategy.GRACEFUL
+        )
+        
+        assert result is not None
+        assert hasattr(result, 'status')
+        assert hasattr(result, 'metadata')
+        if hasattr(result, 'metadata') and result.metadata:
+            assert 'fallback_strategy' in result.metadata
+            assert result.metadata['fallback_strategy'] == 'graceful'
+    
+    def test_execute_with_fallback_strict_strategy(self):
+        """Test execute_with_fallback con estrategia STRICT"""
+        from functions.engines.selector import EngineSelector, FallbackStrategy
+        from functions.engines.base_engine import EngineCapability
+        
+        selector = EngineSelector()
+        result = selector.execute_with_fallback(
+            operation='search',
+            content='def test(): pass',
+            pattern='test',
+            capabilities=[EngineCapability.LITERAL_SEARCH],
+            fallback_strategy=FallbackStrategy.STRICT
+        )
+        
+        assert result is not None
+        assert hasattr(result, 'status')
+    
+    def test_execute_with_fallback_aggressive_strategy(self):
+        """Test execute_with_fallback con estrategia AGGRESSIVE"""
+        from functions.engines.selector import EngineSelector, FallbackStrategy
+        from functions.engines.base_engine import EngineCapability
+        
+        selector = EngineSelector()
+        result = selector.execute_with_fallback(
+            operation='search',
+            content='def test(): pass',
+            pattern='test',
+            capabilities=[EngineCapability.LITERAL_SEARCH],
+            fallback_strategy=FallbackStrategy.AGGRESSIVE
+        )
+        
+        assert result is not None
+        assert hasattr(result, 'status')
+    
+    def test_select_best_engine_with_fallback_strategy(self):
+        """Test select_best_engine con parámetro fallback_strategy"""
+        from functions.engines.selector import EngineSelector, FallbackStrategy
+        from functions.engines.base_engine import EngineCapability
+        
+        selector = EngineSelector()
+        
+        # Test con diferentes estrategias
+        engine1 = selector.select_best_engine(
+            operation_type='search',
+            capabilities_needed=[EngineCapability.LITERAL_SEARCH],
+            fallback_strategy=FallbackStrategy.GRACEFUL
+        )
+        assert engine1 is not None
+        
+        engine2 = selector.select_best_engine(
+            operation_type='search',
+            capabilities_needed=[EngineCapability.LITERAL_SEARCH],
+            fallback_strategy=FallbackStrategy.AGGRESSIVE
+        )
+        assert engine2 is not None
+
+
+class TestFailureRecovery:
+    """Tests para recovery y health monitoring"""
+    
+    def test_engine_health_report_generation(self):
+        """Test generación de reporte de salud de engines"""
+        from functions.engines.selector import EngineSelector
+        
+        selector = EngineSelector()
+        health_report = selector.get_engines_health_report()
+        
+        assert isinstance(health_report, dict)
+        assert len(health_report) > 0
+        
+        # Verificar estructura de cada entry
+        for engine_name, info in health_report.items():
+            assert 'engine_class' in info
+            assert 'capabilities' in info
+            assert 'available' in info
+            assert 'health_status' in info
+            assert 'recommendations' in info
+    
+    def test_engine_health_check(self):
+        """Test verificación de salud individual de engines"""
+        from functions.engines.selector import EngineSelector
+        
+        selector = EngineSelector()
+        
+        # Test con engine que debería estar disponible
+        is_healthy = selector.is_engine_healthy('native')
+        assert isinstance(is_healthy, bool)
+        
+        # Test con engine que no existe
+        is_healthy_fake = selector.is_engine_healthy('fake_engine')
+        assert is_healthy_fake == False
+    
+    def test_engine_recovery_attempt(self):
+        """Test intento de recuperación de engine"""
+        from functions.engines.selector import EngineSelector
+        
+        selector = EngineSelector()
+        
+        # Test recovery de engine existente
+        recovery_result = selector.attempt_engine_recovery('native')
+        assert isinstance(recovery_result, bool)
+        
+        # Test recovery de engine que no existe
+        recovery_fake = selector.attempt_engine_recovery('fake_engine')
+        assert recovery_fake == False
+    
+    def test_failure_prediction_system(self):
+        """Test sistema de predicción de fallos"""
+        from functions.engines.selector import EngineSelector
+        
+        selector = EngineSelector()
+        
+        # Test predicción para engine existente
+        prediction = selector.predict_engine_failure_risk('native')
+        
+        assert isinstance(prediction, dict)
+        assert 'risk_level' in prediction
+        assert 'risk_score' in prediction
+        assert 'risk_factors' in prediction
+        assert 'reliability_score' in prediction
+        assert 'recommendations' in prediction
+        
+        # Test predicción para engine inexistente
+        prediction_fake = selector.predict_engine_failure_risk('fake_engine')
+        assert prediction_fake['risk_level'] == 'UNKNOWN'
+
+
+class TestPerformanceOptimization:
+    """Tests para optimización y caching"""
+    
+    def test_performance_metrics_availability(self):
+        """Test disponibilidad de métricas de performance"""
+        from functions.engines.selector import EngineSelector
+        
+        selector = EngineSelector()
+        metrics = selector.get_performance_metrics()
+        
+        assert isinstance(metrics, dict)
+        assert 'cache_statistics' in metrics
+        assert 'performance_statistics' in metrics
+        assert 'fallback_statistics' in metrics
+        assert 'engine_health_summary' in metrics
+        
+        # Verificar estructura de cache statistics
+        cache_stats = metrics['cache_statistics']
+        assert 'hit_rate_percent' in cache_stats
+        assert 'total_hits' in cache_stats
+        assert 'total_misses' in cache_stats
+        assert 'cache_size' in cache_stats
+    
+    def test_caching_functionality(self):
+        """Test funcionalidad de caching"""
+        from functions.engines.selector import EngineSelector, FallbackStrategy
+        from functions.engines.base_engine import EngineCapability
+        import time
+        
+        selector = EngineSelector()
+        
+        # Primera llamada (debe generar cache miss)
+        start_time = time.time()
+        engine1 = selector.select_best_engine(
+            operation_type='search',
+            capabilities_needed=[EngineCapability.LITERAL_SEARCH],
+            fallback_strategy=FallbackStrategy.GRACEFUL
+        )
+        first_call_time = time.time() - start_time
+        
+        # Segunda llamada idéntica (debe usar cache)
+        start_time = time.time()
+        engine2 = selector.select_best_engine(
+            operation_type='search',
+            capabilities_needed=[EngineCapability.LITERAL_SEARCH],
+            fallback_strategy=FallbackStrategy.GRACEFUL
+        )
+        second_call_time = time.time() - start_time
+        
+        # Segunda llamada debe ser más rápida (usa cache)
+        assert second_call_time <= first_call_time
+        assert engine1.__class__ == engine2.__class__
+        
+        # Verificar que cache hit rate aumentó
+        metrics = selector.get_performance_metrics()
+        assert metrics['cache_statistics']['total_hits'] > 0
+    
+    def test_cache_invalidation(self):
+        """Test invalidación de cache por engine unhealthy"""
+        from functions.engines.selector import EngineSelector, FallbackStrategy
+        from functions.engines.base_engine import EngineCapability
+        
+        selector = EngineSelector()
+        
+        # Forzar fallo en un engine para que sea unhealthy
+        selector.failure_registry.record_failure('native', 'test_failure')
+        selector.failure_registry.record_failure('native', 'test_failure')
+        selector.failure_registry.record_failure('native', 'test_failure')
+        
+        # Cache key debería invalidarse para engines unhealthy
+        cache_key = selector._get_cache_key(
+            'search', [EngineCapability.LITERAL_SEARCH], None, FallbackStrategy.GRACEFUL
+        )
+        
+        # Simular entrada en cache
+        selector._cache_selection(cache_key, 'native', 0.5)
+        
+        # Al intentar obtener desde cache, debería rechazar engine unhealthy
+        cached_result = selector._get_cached_selection(cache_key)
+        # Debería ser None porque native está unhealthy
+        assert cached_result is None or selector.is_engine_healthy(cached_result)
+
+
+class TestFallbackEdgeCases:
+    """Tests para casos edge del sistema de fallback"""
+    
+    def test_fallback_with_no_engines_available(self):
+        """Test fallback cuando no hay engines disponibles"""
+        from functions.engines.selector import EngineSelector, FallbackStrategy
+        from functions.engines.base_engine import EngineCapability
+        
+        selector = EngineSelector()
+        
+        # Simular que todos los engines están en circuit breaker
+        for engine_name in ['native', 'comby', 'ast-grep']:
+            for _ in range(5):  # Exceder threshold
+                selector.failure_registry.record_failure(engine_name, 'test_failure')
+        
+        result = selector.execute_with_fallback(
+            operation='search',
+            content='def test(): pass',
+            pattern='test',
+            capabilities=[EngineCapability.LITERAL_SEARCH],
+            fallback_strategy=FallbackStrategy.AGGRESSIVE
+        )
+        
+        # Debe retornar resultado de fallo
+        assert result is not None
+        assert hasattr(result, 'status')
+    
+    def test_fallback_timeout_handling(self):
+        """Test manejo de timeouts en fallback"""
+        from functions.engines.selector import EngineSelector, FallbackStrategy
+        from functions.engines.base_engine import EngineCapability
+        
+        selector = EngineSelector()
+        
+        # Test con timeout muy corto
+        result = selector.execute_with_fallback(
+            operation='search',
+            content='def test(): pass',
+            pattern='test',
+            capabilities=[EngineCapability.LITERAL_SEARCH],
+            fallback_strategy=FallbackStrategy.GRACEFUL,
+            timeout=0.001  # 1ms timeout muy corto
+        )
+        
+        assert result is not None
+        assert hasattr(result, 'metadata')
+        if result.metadata and 'fallback_attempts' in result.metadata:
+            attempts = result.metadata['fallback_attempts']
+            # Debería haber algunos intentos con timeout
+            timeout_attempts = [a for a in attempts if a['status'] == 'timeout']
+            # Al menos un timeout o resultado exitoso
+            assert len(timeout_attempts) > 0 or any(a['status'] == 'success' for a in attempts)
+    
+    def test_circuit_breaker_recovery(self):
+        """Test recuperación automática de circuit breaker"""
+        from functions.engines.selector import FailureRegistry
+        from datetime import datetime, timedelta
+        
+        registry = FailureRegistry(recovery_window=1)  # 1 segundo de recovery
+        
+        # Activar circuit breaker
+        registry.record_failure('test_engine', 'error')
+        registry.record_failure('test_engine', 'error')
+        registry.record_failure('test_engine', 'error')
+        
+        assert not registry.is_engine_available('test_engine')
+        
+        # Simular paso del tiempo ajustando last_failure_time
+        registry.last_failure_time['test_engine'] = datetime.now() - timedelta(seconds=2)
+        
+        # Ahora debería estar disponible
+        assert registry.is_engine_available('test_engine')
+        assert 'test_engine' not in registry.circuit_breakers
+
+
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])
