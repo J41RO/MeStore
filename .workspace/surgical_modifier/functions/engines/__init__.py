@@ -5,6 +5,7 @@ Permite intercambio transparente entre different engines (native, comby, ast-gre
 from .base_engine import BaseEngine, EngineCapability, EngineResult, EngineMatch, EngineStatus
 from .native_engine import NativeEngine
 from .comby_engine import CombyEngine
+from .ast_engine import AstEngine
 
 __all__ = [
     'BaseEngine',
@@ -13,5 +14,6 @@ __all__ = [
     'EngineMatch',
     'EngineStatus',
     'NativeEngine',
-    'CombyEngine'
+    'CombyEngine',
+    'AstEngine'
 ]
