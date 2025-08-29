@@ -6,6 +6,7 @@ from .base_engine import BaseEngine, EngineCapability, EngineResult, EngineMatch
 from .native_engine import NativeEngine
 from .comby_engine import CombyEngine
 from .ast_engine import AstEngine
+from .selector import EngineSelector, SelectionCriteria, get_best_engine
 
 __all__ = [
     'BaseEngine',
@@ -15,5 +16,8 @@ __all__ = [
     'EngineStatus',
     'NativeEngine',
     'CombyEngine',
-    'AstEngine'
+    'AstEngine',
+    'EngineSelector',
+    'SelectionCriteria',
+    'get_best_engine'
 ]
