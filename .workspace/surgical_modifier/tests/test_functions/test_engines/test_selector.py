@@ -357,7 +357,213 @@ class TestEngineSelector:
         assert 'content_analysis' in complex_prediction
         assert complex_prediction['content_analysis']['complexity'] in ['low', 'medium', 'high']
 
+    def test_selection_small_files(self):
+        """Test selección automática para archivos pequeños (<1KB)"""
+        small_content = "def hello(): pass"  # ~20 bytes
+        
+        engine = self.selector.select_best_engine(
+            operation_type='search',
+            capabilities_needed=[EngineCapability.LITERAL_SEARCH],
+            content=small_content
+        )
+        
+        # Para archivos pequeños debe preferir NativeEngine (más eficiente)
+        assert isinstance(engine, BaseEngine)
+        assert engine.__class__.__name__ in ['NativeEngine', 'MockEngine']
 
+    def test_selection_medium_files(self):
+        """Test selección automática para archivos medianos (1KB-50KB)"""
+        medium_content = "def function():\n    pass\n" * 100  # ~2KB
+        
+        engine = self.selector.select_best_engine(
+            operation_type='search',
+            capabilities_needed=[EngineCapability.LITERAL_SEARCH],
+            content=medium_content
+        )
+        
+        assert isinstance(engine, BaseEngine)
+
+    def test_selection_large_files(self):
+        """Test selección automática para archivos grandes (>50KB)"""  
+        large_content = "def large_function():\n    return 'data'\n" * 2000  # ~60KB
+        
+        engine = self.selector.select_best_engine(
+            operation_type='search',
+            capabilities_needed=[EngineCapability.LITERAL_SEARCH],
+            content=large_content
+        )
+        
+        assert isinstance(engine, BaseEngine)
+
+    def test_selection_search_operations(self):
+        """Test selección automática para operaciones de búsqueda"""
+        content = "function searchMe() { return true; }"
+        
+        # Search literal debería preferir NativeEngine
+        engine = self.selector.select_best_engine(
+            operation_type='search',
+            capabilities_needed=[EngineCapability.LITERAL_SEARCH],
+            content=content
+        )
+        
+        assert isinstance(engine, BaseEngine)
+        # Verificar que puede realizar búsqueda
+        result = engine.search(content, "searchMe")
+        assert hasattr(result, 'matches')
+
+    def test_selection_replace_operations(self):
+        """Test selección automática para operaciones de reemplazo"""
+        content = "function oldName() { return false; }"
+        
+        # Replace debería seleccionar engine apropiado
+        engine = self.selector.select_best_engine(
+            operation_type='replace',
+            capabilities_needed=[EngineCapability.LITERAL_SEARCH],
+            content=content
+        )
+        
+        assert isinstance(engine, BaseEngine)
+        # Verificar que puede realizar reemplazo
+        result = engine.replace(content, "oldName", "newName")
+        assert hasattr(result, 'modified_content')
+
+    def test_selection_structural_operations(self):
+        """Test selección automática para operaciones estructurales"""
+        content = "class MyClass { method() { return data; } }"
+        
+        # Operaciones estructurales necesitan engines avanzados
+        engine = self.selector.select_best_engine(
+            operation_type='search',
+            capabilities_needed=[EngineCapability.STRUCTURAL_SEARCH],
+            content=content
+        )
+        
+        assert isinstance(engine, BaseEngine)
+        # Engine debe soportar búsqueda estructural
+        assert engine.supports_capability(EngineCapability.STRUCTURAL_SEARCH) or \
+            engine.supports_capability(EngineCapability.LITERAL_SEARCH)
+    
+    def test_selection_python_language(self):
+        """Test selección automática para código Python"""
+        python_content = """
+def calculate_fibonacci(n):
+    if n <= 1:
+        return n
+    return calculate_fibonacci(n-1) + calculate_fibonacci(n-2)
+        """
+        
+        engine = self.selector.select_best_engine(
+            operation_type='search',
+            capabilities_needed=[EngineCapability.LITERAL_SEARCH],
+            content=python_content,
+            language='python'
+        )
+        
+        assert isinstance(engine, BaseEngine)
+        # Engine debe soportar Python o ser genérico
+        assert engine.supports_language('python') or len(engine.supported_languages) == 0
+
+    def test_selection_javascript_language(self):
+        """Test selección automática para código JavaScript"""
+        js_content = """
+function calculateSum(arr) {
+    return arr.reduce((acc, val) => acc + val, 0);
+}
+        """
+        
+        engine = self.selector.select_best_engine(
+            operation_type='replace',
+            capabilities_needed=[EngineCapability.LITERAL_SEARCH],
+            content=js_content,
+            language='javascript'
+        )
+        
+        assert isinstance(engine, BaseEngine)
+        # Engine debe soportar JavaScript o ser genérico
+        assert engine.supports_language('javascript') or len(engine.supported_languages) == 0
+
+    def test_selection_generic_language_fallback(self):
+        """Test selección con lenguaje no específicamente soportado"""
+        rust_content = """
+fn main() {
+    let x = 5;
+    println!("Value: {}", x);
+}
+        """
+        
+        engine = self.selector.select_best_engine(
+            operation_type='search',
+            capabilities_needed=[EngineCapability.LITERAL_SEARCH],
+            content=rust_content,
+            language='rust'
+        )
+        
+        assert isinstance(engine, BaseEngine)
+        # Engine debe funcionar aunque no soporte específicamente el lenguaje
+        result = engine.search(rust_content, "main")
+        assert hasattr(result, 'matches')
+    
+    def test_selection_simple_patterns(self):
+        """Test selección para patrones simples y literales"""
+        content = "function simple() { return true; }"
+        simple_pattern = "simple"
+        
+        engine = self.selector.select_best_engine(
+            operation_type='search',
+            capabilities_needed=[EngineCapability.LITERAL_SEARCH],
+            content=content,
+            pattern=simple_pattern
+        )
+        
+        assert isinstance(engine, BaseEngine)
+        # Para patrones simples cualquier engine debería funcionar
+        result = engine.search(content, simple_pattern)
+        assert hasattr(result, 'matches')
+
+    def test_selection_regex_patterns(self):
+        """Test selección para patrones con regex"""
+        content = "user_id_123 and admin_id_456"
+        regex_pattern = r"\w+_id_\d+"
+        
+        engine = self.selector.select_best_engine(
+            operation_type='search',
+            capabilities_needed=[EngineCapability.REGEX_SEARCH],
+            content=content
+        )
+        
+        assert isinstance(engine, BaseEngine)
+        # Engine debe soportar regex o fallback a literal
+        supports_regex = engine.supports_capability(EngineCapability.REGEX_SEARCH)
+        supports_literal = engine.supports_capability(EngineCapability.LITERAL_SEARCH)
+        assert supports_regex or supports_literal
+
+    def test_selection_complex_multiline_patterns(self):
+        """Test selección para patrones complejos multilínea"""
+        complex_content = """
+class DatabaseManager:
+    def __init__(self):
+        self.connection = None
+        
+    def connect(self):
+        # Complex connection logic
+        pass
+        
+    def disconnect(self):
+        if self.connection:
+            self.connection.close()
+        """
+        
+        engine = self.selector.select_best_engine(
+            operation_type='search',
+            capabilities_needed=[EngineCapability.MULTILINE_PATTERNS],
+            content=complex_content
+        )
+        
+        assert isinstance(engine, BaseEngine)
+        # Engine debe manejar contenido multilínea
+        result = engine.search(complex_content, "class")
+        assert hasattr(result, 'matches')
+    
 class TestConvenienceFunction:
     """Tests para función de conveniencia get_best_engine"""
     
