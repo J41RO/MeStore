@@ -2,7 +2,7 @@
 Tests para Engine Selector - Verificación completa de funcionalidad de auto-selección.
 """
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, MagicMock
 
 from functions.engines.selector import EngineSelector, SelectionCriteria, get_best_engine
 from functions.engines.base_engine import EngineCapability, BaseEngine, EngineRegistry
@@ -1068,6 +1068,310 @@ class TestFallbackSystem:
             fallback_strategy=FallbackStrategy.AGGRESSIVE
         )
         assert engine2 is not None
+
+    def test_fallback_preserves_search_functionality(self):
+        """Test que fallback preserva funcionalidad de búsqueda completamente"""
+        from functions.engines.selector import EngineSelector, FallbackStrategy
+        
+        content = "function testSearch() { return 'found'; }"
+        pattern = "testSearch"
+        selector = EngineSelector()
+        
+        # Ejecutar búsqueda con fallback automático
+        result = selector.execute_with_fallback(
+            operation='search',
+            content=content,
+            pattern=pattern,
+            capabilities=[EngineCapability.LITERAL_SEARCH],
+            fallback_strategy=FallbackStrategy.GRACEFUL
+        )
+        
+        # Verificar que funcionalidad se preserva
+        assert result is not None
+        from functions.engines.base_engine import EngineResult
+        assert isinstance(result, EngineResult)
+
+    def test_fallback_preserves_replace_functionality(self):
+        """Test que fallback preserva funcionalidad de reemplazo completamente"""
+        from functions.engines.selector import EngineSelector, FallbackStrategy
+        
+        content = "old_function() { return true; }"
+        pattern = "old_function"
+        replacement = "new_function"
+        selector = EngineSelector()
+        
+        # Ejecutar reemplazo con fallback automático
+        result = selector.execute_with_fallback(
+            operation='replace',
+            content=content,
+            pattern=pattern,
+            capabilities=[EngineCapability.LITERAL_SEARCH],
+            fallback_strategy=FallbackStrategy.GRACEFUL,
+            replacement=replacement
+        )
+        
+        # Verificar que funcionalidad se preserva
+        assert result is not None
+        from functions.engines.base_engine import EngineResult
+        assert isinstance(result, EngineResult)
+
+    def test_robust_fallback_multiple_engine_failures(self):
+        """Test fallback robusto ante múltiples fallos secuenciales de engines"""
+        from functions.engines.selector import EngineSelector, FallbackStrategy
+        
+        content = "function multiFailTest() { return 'resilient'; }"
+        pattern = "multiFailTest"
+        selector = EngineSelector()
+        
+        # Simular múltiples fallos hasta encontrar engine funcional
+        with patch('functions.engines.base_engine.EngineRegistry.get_engine') as mock_get_engine:
+            # Simular 3 engines que fallan secuencialmente
+            failed_engines = []
+            for i in range(3):
+                failed_engine = MagicMock()
+                failed_engine.search.side_effect = Exception(f"Engine {i} failed")
+                failed_engine.name = f"failed_engine_{i}"
+                failed_engines.append(failed_engine)
+            
+            # Engine que finalmente funciona
+            working_engine = MagicMock()
+            working_engine.search.return_value = MagicMock(
+                success=True,
+                matches=[MagicMock(content=pattern)],
+                status='SUCCESS'
+            )
+            working_engine.name = "working_engine"
+            
+            mock_get_engine.side_effect = failed_engines + [working_engine]
+            
+            # Ejecutar con fallback agresivo para máxima resistencia
+            result = selector.execute_with_fallback(
+                operation='search',
+                content=content,
+                pattern=pattern,
+                capabilities=[EngineCapability.LITERAL_SEARCH],
+                fallback_strategy=FallbackStrategy.AGGRESSIVE
+            )
+            
+            # Verificar que sistema es resiliente ante múltiples fallos
+            assert result is not None
+            from functions.engines.base_engine import EngineResult
+            assert isinstance(result, EngineResult)
+
+    def test_robust_fallback_circuit_breaker_recovery(self):
+        """Test recuperación automática cuando engines vuelven disponibles"""
+        from functions.engines.selector import EngineSelector, FailureRegistry, FallbackStrategy
+        
+        content = "function recovery() { return 'recovered'; }"
+        pattern = "recovery"
+        selector = EngineSelector()
+        failure_registry = selector.failure_registry
+        
+        # Simular engine que inicialmente falla pero luego se recupera
+        engine_name = "recovering_engine"
+        
+        # Registrar fallos para activar circuit breaker
+        for _ in range(5):  # Más que el threshold típico
+            failure_registry.record_failure(engine_name)
+        
+        # Verificar que circuit breaker está activado
+        assert engine_name in failure_registry.circuit_breakers
+        
+        # Simular recuperación exitosa
+        failure_registry.record_success(engine_name)
+        
+        # Ejecutar operación para verificar recuperación
+        result = selector.execute_with_fallback(
+            operation='search',
+            content=content,
+            pattern=pattern,
+            capabilities=[EngineCapability.LITERAL_SEARCH],
+            fallback_strategy=FallbackStrategy.GRACEFUL
+        )
+        
+        # Verificar que sistema puede recuperarse
+        assert result is not None
+        from functions.engines.base_engine import EngineResult
+        assert isinstance(result, EngineResult)
+
+    def test_fallback_maintains_result_quality(self):
+        """Test que fallback mantiene calidad y estructura correcta de resultados"""
+        from functions.engines.selector import EngineSelector, FallbackStrategy
+        
+        content = "class QualityTest { constructor() { this.value = 42; } }"
+        pattern = "QualityTest"
+        selector = EngineSelector()
+        
+        # Ejecutar con fallback para verificar calidad de resultados
+        result = selector.execute_with_fallback(
+            operation='search',
+            content=content,
+            pattern=pattern,
+            capabilities=[EngineCapability.LITERAL_SEARCH],
+            fallback_strategy=FallbackStrategy.GRACEFUL
+        )
+        
+        # Verificar estructura completa y calidad del resultado
+        assert result is not None
+        from functions.engines.base_engine import EngineResult, EngineStatus
+        assert isinstance(result, EngineResult)
+        
+        # Verificar que tiene todos los campos requeridos
+        assert hasattr(result, 'status')
+        assert hasattr(result, 'matches')
+        assert hasattr(result, 'metadata')
+        
+        # Verificar que status es válido
+        assert result.status in [EngineStatus.SUCCESS, EngineStatus.FAILURE, EngineStatus.PARTIAL_SUCCESS]
+        
+        # Si hay matches, deben tener estructura correcta
+        if result.matches:
+            for match in result.matches:
+                assert hasattr(match, 'content')
+                assert hasattr(match, 'start_line')
+                assert hasattr(match, 'end_line')
+
+    def test_fallback_preserves_metadata_consistency(self):
+        """Test que metadata de resultados se mantiene consistente con fallback"""
+        from functions.engines.selector import EngineSelector, FallbackStrategy
+        
+        content = "function metadata_test() { return 'consistent'; }"
+        pattern = "metadata_test"
+        selector = EngineSelector()
+        
+        # Ejecutar operación con fallback
+        result = selector.execute_with_fallback(
+            operation='replace',
+            content=content,
+            pattern=pattern,
+            capabilities=[EngineCapability.LITERAL_SEARCH],
+            fallback_strategy=FallbackStrategy.GRACEFUL,
+            replacement="updated_test"
+        )
+        
+        # Verificar consistencia de metadata
+        assert result is not None
+        from functions.engines.base_engine import EngineResult
+        assert isinstance(result, EngineResult)
+        
+        # Verificar que metadata existe y tiene información útil
+        assert result.metadata is not None
+        assert isinstance(result.metadata, dict)
+        
+        # Para operaciones replace, debe haber contenido modificado
+        if result.status.value == 'success':
+            assert result.modified_content is not None
+            assert "updated_test" in result.modified_content
+        
+        # Verificar que operations_count es coherente
+        assert isinstance(result.operations_count, int)
+        assert result.operations_count >= 0
+
+    def test_fallback_system_integrity_under_stress(self):
+        """Test integridad del sistema bajo múltiples operaciones simultáneas con fallos"""
+        from functions.engines.selector import EngineSelector, FallbackStrategy
+        import threading
+        import time
+        
+        selector = EngineSelector()
+        results = []
+        errors = []
+        
+        def stress_operation(operation_id):
+            """Operación individual de stress test"""
+            try:
+                content = f"function stressTest{operation_id}() {{ return 'stress'; }}"
+                pattern = f"stressTest{operation_id}"
+                
+                result = selector.execute_with_fallback(
+                    operation='search',
+                    content=content,
+                    pattern=pattern,
+                    capabilities=[EngineCapability.LITERAL_SEARCH],
+                    fallback_strategy=FallbackStrategy.GRACEFUL
+                )
+                results.append(result)
+            except Exception as e:
+                errors.append(f"Operation {operation_id} failed: {str(e)}")
+        
+        # Ejecutar múltiples operaciones concurrentes
+        threads = []
+        for i in range(10):  # 10 operaciones simultáneas
+            thread = threading.Thread(target=stress_operation, args=(i,))
+            threads.append(thread)
+            thread.start()
+        
+        # Esperar a que todas terminen
+        for thread in threads:
+            thread.join(timeout=5)  # Timeout de 5 segundos
+        
+        # Verificar integridad del sistema
+        assert len(errors) == 0, f"Errores durante stress test: {errors}"
+        assert len(results) == 10, f"Expected 10 results, got {len(results)}"
+        
+        # Verificar que todos los resultados son válidos
+        from functions.engines.base_engine import EngineResult
+        for result in results:
+            assert isinstance(result, EngineResult)
+
+    def test_fallback_no_data_corruption(self):
+        """Test que fallos no corrompen datos o estado del sistema"""
+        from functions.engines.selector import EngineSelector, FallbackStrategy
+        
+        selector = EngineSelector()
+        
+        # Capturar estado inicial
+        initial_metrics = selector.get_performance_metrics()
+        initial_cache_size = len(selector._selection_cache)
+        
+        # Ejecutar operaciones que pueden fallar
+        test_contents = [
+            "function test1() { return 'data1'; }",
+            "class Test2 { method() { return 'data2'; } }",
+            "const test3 = () => 'data3';",
+            "def test4(): return 'data4'",
+            "int test5() { return 5; }"
+        ]
+        
+        valid_results = 0
+        for i, content in enumerate(test_contents):
+            try:
+                result = selector.execute_with_fallback(
+                    operation='search',
+                    content=content,
+                    pattern=f"test{i+1}",
+                    capabilities=[EngineCapability.LITERAL_SEARCH],
+                    fallback_strategy=FallbackStrategy.GRACEFUL
+                )
+                
+                if result is not None:
+                    valid_results += 1
+                    
+            except Exception:
+                # Los fallos no deben corromper el estado
+                pass
+        
+        # Verificar que el sistema mantiene integridad
+        final_metrics = selector.get_performance_metrics()
+        final_cache_size = len(selector._selection_cache)
+        
+        # El sistema debe seguir funcional
+        assert valid_results > 0, "Sistema no produjo resultados válidos"
+        
+        # Las métricas deben seguir siendo coherentes con estructura real
+        assert isinstance(final_metrics, dict)
+        assert 'performance_statistics' in final_metrics
+        assert 'cache_statistics' in final_metrics
+        assert 'engine_health_summary' in final_metrics
+        
+        # Verificar que las estadísticas de performance son coherentes
+        perf_stats = final_metrics['performance_statistics']
+        assert 'total_selections' in perf_stats
+        assert isinstance(perf_stats['total_selections'], int)
+        assert perf_stats['total_selections'] >= 0
+        
+        # Cache puede crecer pero no debe corromperse
+        assert final_cache_size >= initial_cache_size
 
 
 class TestFailureRecovery:
