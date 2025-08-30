@@ -124,7 +124,7 @@ class AstEngine(BaseEngine):
             if result.returncode != 0:
                 logger.error(f"ast-grep search failed: {result.stderr}")
                 return EngineResult(
-                    status=EngineStatus.ERROR,
+                    status=EngineStatus.FAILURE,
                     matches=[],
                     error_message=f"ast-grep search failed: {result.stderr}"
                 )
@@ -138,7 +138,7 @@ class AstEngine(BaseEngine):
                 except json.JSONDecodeError as e:
                     logger.error(f"Failed to parse ast-grep JSON output: {e}")
                     return EngineResult(
-                        status=EngineStatus.ERROR,
+                        status=EngineStatus.FAILURE,
                         matches=[],
                         error_message=f"Failed to parse ast-grep JSON output: {e}"
                     )
@@ -152,14 +152,14 @@ class AstEngine(BaseEngine):
         except subprocess.TimeoutExpired:
             logger.error("ast-grep search timed out")
             return EngineResult(
-                status=EngineStatus.ERROR,
+                status=EngineStatus.FAILURE,
                 matches=[],
                 error_message="ast-grep search timed out"
             )
         except Exception as e:
             logger.error(f"Unexpected error in ast-grep search: {e}")
             return EngineResult(
-                status=EngineStatus.ERROR,
+                status=EngineStatus.FAILURE,
                 matches=[],
                 error_message=f"Unexpected error in ast-grep search: {e}"
             )
@@ -215,7 +215,7 @@ class AstEngine(BaseEngine):
             if result.returncode != 0:
                 logger.error(f"ast-grep replace failed: {result.stderr}")
                 return EngineResult(
-                    status=EngineStatus.ERROR,
+                    status=EngineStatus.FAILURE,
                     matches=[],
                     modified_content=content,
                     error_message=f"ast-grep replace failed: {result.stderr}"
@@ -243,7 +243,7 @@ class AstEngine(BaseEngine):
         except subprocess.TimeoutExpired:
             logger.error("ast-grep replace timed out")
             return EngineResult(
-                status=EngineStatus.ERROR,
+                status=EngineStatus.FAILURE,
                 matches=[],
                 modified_content=content,
                 error_message="ast-grep replace timed out"
@@ -251,7 +251,7 @@ class AstEngine(BaseEngine):
         except Exception as e:
             logger.error(f"Unexpected error in ast-grep replace: {e}")
             return EngineResult(
-                status=EngineStatus.ERROR,
+                status=EngineStatus.FAILURE,
                 matches=[],
                 modified_content=content,
                 error_message=f"Unexpected error in ast-grep replace: {e}"

@@ -128,7 +128,7 @@ class CombyEngine(BaseEngine):
             if result.returncode != 0:
                 return EngineResult(
                     matches=[],
-                    status=EngineStatus.ERROR,
+                    status=EngineStatus.FAILURE,
                     error_message=f"Comby error: {result.stderr}"
                 )
                 
@@ -163,13 +163,13 @@ class CombyEngine(BaseEngine):
         except subprocess.TimeoutExpired:
             return EngineResult(
                 matches=[],
-                status=EngineStatus.ERROR,
+                status=EngineStatus.FAILURE,
                 error_message="Comby search timeout (30s)"
             )
         except Exception as e:
             return EngineResult(
                 matches=[],
-                status=EngineStatus.ERROR,
+                status=EngineStatus.FAILURE,
                 error_message=f"Error ejecutando comby: {str(e)}"
             )
         
@@ -218,7 +218,7 @@ class CombyEngine(BaseEngine):
             if result.returncode != 0:
                 return EngineResult(
                     matches=[],
-                    status=EngineStatus.ERROR,
+                    status=EngineStatus.FAILURE,
                     error_message=f"Comby replace error: {result.stderr}"
                 )
                 
@@ -275,12 +275,12 @@ class CombyEngine(BaseEngine):
         except subprocess.TimeoutExpired:
             return EngineResult(
                 matches=[],
-                status=EngineStatus.ERROR,
+                status=EngineStatus.FAILURE,
                 error_message="Comby replace timeout (30s)"
             )
         except Exception as e:
             return EngineResult(
                 matches=[],
-                status=EngineStatus.ERROR,
+                status=EngineStatus.FAILURE,
                 error_message=f"Error ejecutando comby replace: {str(e)}"
             )
