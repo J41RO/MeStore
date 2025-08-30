@@ -13,6 +13,7 @@ import re
 from dataclasses import dataclass
 
 from .base_engine import BaseEngine, EngineCapability, EngineRegistry
+from functions.backup.manager import BackupManager
 
 # SISTEMA DE FALLBACK
 class FallbackStrategy(Enum):
@@ -519,6 +520,19 @@ class EngineSelector:
             'selection_times': [],
             'fallback_usage': defaultdict(int)
         }
+        
+        # Configurar BackupManager para engines
+        self.backup_manager = BackupManager()
+    
+    def configure_backup_for_engine(self, engine_instance: BaseEngine) -> None:
+        """
+        Configura backup para un engine específico.
+        
+        Args:
+            engine_instance: Instancia del engine a configurar
+        """
+        if hasattr(engine_instance, 'backup_manager'):
+            engine_instance.backup_manager = self.backup_manager
     
     # MÉTODO PRINCIPAL DE SELECCIÓN CON FALLBACK
     def select_best_engine(

@@ -133,13 +133,18 @@ class NativeEngine(BaseEngine):
         Reemplazar patrón usando functions nativas.
         """
         try:
+            # Crear backup antes de operación destructiva
+            file_path = kwargs.get('file_path', 'unknown_file')
+            if file_path != 'unknown_file':
+                self._create_backup_before_operation(file_path, 'replace')
+            
             use_regex = kwargs.get('use_regex', False)
             case_sensitive = kwargs.get('case_sensitive', True)
             
             # Buscar matches primero para tracking
             search_result = self._search_impl(content, pattern, 
-                                    use_regex=use_regex, 
-                                    case_sensitive=case_sensitive)
+                                            use_regex=use_regex, 
+                                            case_sensitive=case_sensitive)
             
             if not search_result.has_matches:
                 return EngineResult(
@@ -155,11 +160,13 @@ class NativeEngine(BaseEngine):
                 replace_result = self._regex_matcher.replace_pattern(content, pattern, replacement)
                 if isinstance(replace_result, dict):
                     modified_content = replace_result.get('new_text', content)
+                    operations_count = replace_result.get('replacements_made', len(search_result.matches))
                 else:
                     modified_content = replace_result
+                    operations_count = len(search_result.matches)
             else:
                 self._literal_matcher.set_case_sensitive(case_sensitive)
-                # CORRECCIÓN FINAL: signature correcta (pattern, replacement, text)
+                # Signature correcta: (pattern, replacement, text, case_sensitive)
                 replace_result = self._literal_matcher.replace_literal(pattern, replacement, content, case_sensitive)
                 if isinstance(replace_result, dict):
                     modified_content = replace_result.get('new_text', content)
@@ -176,7 +183,8 @@ class NativeEngine(BaseEngine):
                 metadata={
                     'engine': self.name,
                     'use_regex': use_regex,
-                    'case_sensitive': case_sensitive
+                    'case_sensitive': case_sensitive,
+                    'backup_created': file_path != 'unknown_file'
                 }
             )
             

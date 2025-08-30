@@ -11,6 +11,7 @@ import time
 from collections import defaultdict
 from datetime import datetime
 from threading import Lock
+from functions.backup.manager import BackupManager
 
 class EngineCapability(Enum):
     """Capacidades que puede ofrecer un engine"""
@@ -165,6 +166,7 @@ class BaseEngine(ABC):
         self._capabilities = set()
         self._supported_languages = set()
         self._metrics = EngineMetrics()  # Nuevo sistema de métricas
+        self.backup_manager = BackupManager()
 
     def _instrument_operation(self, operation_name: str):
         """Decorator interno para instrumentar operaciones con métricas automáticas"""
@@ -233,6 +235,30 @@ class BaseEngine(ABC):
     def reset_metrics(self):
         """Reinicia todas las métricas"""
         self._metrics = EngineMetrics()
+    
+    def _create_backup_before_operation(self, file_path: str, operation_type: str) -> bool:
+        """
+        Crea un backup antes de realizar operaciones destructivas.
+        
+        Args:
+            file_path: Ruta del archivo a respaldar
+            operation_type: Tipo de operación (replace, insert_before, insert_after)
+            
+        Returns:
+            bool: True si el backup se creó exitosamente
+        """
+        try:
+            if operation_type in ['replace', 'insert_before', 'insert_after']:
+                snapshot_id = self.backup_manager.create_snapshot(
+                                    file_path, 
+                                    operation_type
+                                )
+                return snapshot_id is not None
+            return True  # No se requiere backup para operaciones de solo lectura
+        except Exception as e:
+            # Si el backup falla, registrar pero no interrumpir la operación
+            print(f"Warning: Backup failed for {file_path}: {e}")
+            return False
     
     @abstractmethod
     def _search_impl(self, content: str, pattern: str, **kwargs) -> EngineResult:

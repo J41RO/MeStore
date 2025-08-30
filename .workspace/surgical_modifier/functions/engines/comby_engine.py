@@ -51,7 +51,9 @@ EJEMPLOS DE USO:
 ```python
 engine = CombyEngine()
 result = engine.search("def :[name](:[args]):", python_code, language="python")
-replacement = engine.replace("print(:[x])", "logger.info(:[x])", code, language="python") """
+replacement = engine.replace("print(:[x])", "logger.info(:[x])", code, language="python")
+```
+"""
 
 @register_engine("comby")
 class CombyEngine(BaseEngine):
@@ -192,6 +194,11 @@ class CombyEngine(BaseEngine):
             )
             
         try:
+            # Crear backup antes de operación destructiva
+            file_path = kwargs.get('file_path', 'unknown_file')
+            if file_path != 'unknown_file':
+                self._create_backup_before_operation(file_path, 'replace')
+                
             # Preparar comando comby para reemplazo
             cmd = ["comby", pattern, replacement, "-stdin", "-json-lines"]
             
@@ -250,14 +257,19 @@ class CombyEngine(BaseEngine):
                             metadata={
                                 'operation': 'replace',
                                 'pattern': pattern,
-                                'replacement': replacement
+                                'replacement': replacement,
+                                'backup_created': file_path != 'unknown_file'
                             }
                         ))
                         
             return EngineResult(
                 matches=matches,
                 status=EngineStatus.SUCCESS if matches else EngineStatus.NO_MATCHES,
-                modified_content=modified_content
+                modified_content=modified_content,
+                metadata={
+                    'engine': self.name,
+                    'backup_created': file_path != 'unknown_file'
+                }
             )
             
         except subprocess.TimeoutExpired:

@@ -187,6 +187,11 @@ class AstEngine(BaseEngine):
             )
         
         try:
+            # Crear backup antes de operación destructiva
+            file_path = kwargs.get('file_path', 'unknown_file')
+            if file_path != 'unknown_file':
+                self._create_backup_before_operation(file_path, 'replace')
+                
             # Preparar comando ast-grep para reemplazo
             cmd = ["ast-grep", "--json", "--rewrite", replacement]
             
@@ -228,7 +233,11 @@ class AstEngine(BaseEngine):
                 status=status,
                 matches=[],
                 modified_content=modified_content,
-                operations_count=operations_count
+                operations_count=operations_count,
+                metadata={
+                    'engine': self.name,
+                    'backup_created': file_path != 'unknown_file'
+                }
             )
             
         except subprocess.TimeoutExpired:
