@@ -21,18 +21,25 @@ from .literal_matcher import LiteralMatcher
 from .fuzzy_matcher import FuzzyMatcher
 from .multiline_matcher import MultilineMatcher
 
+# ==================== ENGINE-AWARE FACTORY v2.0 ====================
+from .pattern_factory import PatternMatcherFactory, pattern_factory, get_optimized_matcher
+# ==================================================================
 # Export público de todas las clases
+# Actualizar __all__ para incluir factory
 __all__ = [
     'BaseMatcher',
     'MatcherCombiner', 
     'RegexMatcher',
     'LiteralMatcher',
     'FuzzyMatcher',
-    'MultilineMatcher'
+    'MultilineMatcher',
+    'PatternMatcherFactory',
+    'pattern_factory',
+    'get_optimized_matcher'
 ]
 
-# Versión del módulo
-__version__ = '1.0.0'
+# Actualizar versión
+__version__ = '2.0.0'
 
 def create_combined_matcher(*matchers) -> MatcherCombiner:
     """

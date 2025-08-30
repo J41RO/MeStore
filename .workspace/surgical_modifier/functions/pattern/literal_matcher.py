@@ -7,9 +7,9 @@ from .base_matcher import BaseMatcher
 class LiteralMatcher(BaseMatcher):
     """Matcher eficiente para texto literal sin overhead regex"""
     
-    def __init__(self):
-        super().__init__()
-        self._last_search = None  
+    def __init__(self, engine_type: Optional[str] = None):
+        super().__init__(engine_type)  # Pasar engine_type al BaseMatcher
+        self._last_search = None
         self._case_sensitive = False  # Case insensitive por defecto
         self._whole_words = False
         
@@ -114,6 +114,126 @@ class LiteralMatcher(BaseMatcher):
             }
         except Exception as e:
             return {'success': False, 'error': f'Search error: {e}'}
+    
+    # ==================== ENGINE-SPECIFIC OPTIMIZATIONS v2.0 ====================
+
+    def _optimize_pattern_for_engine(self, pattern: str) -> str:
+        """
+        Optimiza pattern según engine capabilities específicas.
+        
+        Args:
+            pattern: Pattern literal original
+            
+        Returns:
+            Pattern optimizado para el engine actual
+        """
+        if not self._engine_type:
+            return pattern
+            
+        if self._engine_type == 'native':
+            return self._optimize_for_native_engine(pattern)
+        elif self._engine_type == 'ast':
+            return self._optimize_for_ast_engine(pattern)
+        elif self._engine_type == 'comby':
+            return self._optimize_for_structural_engine(pattern)
+        
+        return pattern
+
+    def _optimize_for_native_engine(self, pattern: str) -> str:
+        """
+        Optimizaciones específicas para NativeEngine.
+        NativeEngine maneja búsquedas de strings eficientemente.
+        """
+        # Para native engine, usar pattern tal como está
+        # Pero pre-procesar para case sensitivity si el engine lo soporta
+        if self.has_engine_capability('case_insensitive_native'):
+            return pattern.lower() if not self._case_sensitive else pattern
+        return pattern
+
+    def _optimize_for_ast_engine(self, pattern: str) -> str:
+        """
+        Optimizaciones específicas para AST-based engines.
+        AST engines pueden aprovechar estructura del código.
+        """
+        # AST engine puede beneficiarse de escape de caracteres especiales
+        if self.has_engine_capability('ast_literal_matching'):
+            # Escapar caracteres que pueden ser problemáticos en AST parsing
+            special_chars = ['(', ')', '[', ']', '{', '}', '.', '*', '+', '?', '^', '$', '|', '\\']
+            escaped_pattern = pattern
+            for char in special_chars:
+                if char in pattern:
+                    escaped_pattern = escaped_pattern.replace(char, f'\\{char}')
+            return escaped_pattern
+        return pattern
+
+    def _optimize_for_structural_engine(self, pattern: str) -> str:
+        """
+        Optimizaciones específicas para structural search engines como Comby.
+        """
+        if self.has_engine_capability('structural_matching'):
+            # Para structural engines, puede ser útil crear templates
+            if ' ' in pattern and self.has_engine_capability('template_generation'):
+                # Convertir espacios múltiples a templates flexibles
+                import re
+                normalized = re.sub(r'\s+', ' :[_] ', pattern)
+                return normalized
+        return pattern
+
+    def find_with_engine_optimization(self, text: str, pattern: str, **kwargs) -> Optional[Dict[str, Any]]:
+        """
+        Versión optimizada de find() que aprovecha engine-specific optimizations.
+        
+        Args:
+            text: Texto donde buscar
+            pattern: Pattern a buscar
+            **kwargs: Argumentos adicionales
+            
+        Returns:
+            Resultado optimizado según el engine configurado
+        """
+        optimized_pattern = self.get_engine_optimized_pattern(pattern)
+        
+        # Si el pattern no cambió, usar método estándar
+        if optimized_pattern == pattern:
+            return self.find(text, pattern, **kwargs)
+        
+        # Usar pattern optimizado
+        case_sensitive = kwargs.get('case_sensitive', self._case_sensitive)
+        result = self.find_literal(optimized_pattern, text, case_sensitive=case_sensitive)
+        
+        if result.get('success') and result.get('found'):
+            # Ajustar resultado para mostrar pattern original
+            normalized = self._normalize_result(
+                result['matched_text'],
+                result['position'], 
+                result['end_position']
+            )
+            normalized['original_pattern'] = pattern
+            normalized['optimized_pattern'] = optimized_pattern
+            normalized['engine_type'] = self._engine_type
+            return normalized
+        
+        return None
+
+    def get_engine_performance_info(self) -> Dict[str, Any]:
+        """
+        Retorna información de performance según el engine configurado.
+        
+        Returns:
+            Dict con información de capabilities y optimizaciones aplicadas
+        """
+        return {
+            'engine_type': self._engine_type,
+            'capabilities': self.engine_capabilities,
+            'optimizations_available': {
+                'native': ['case_insensitive_native'],
+                'ast': ['ast_literal_matching'],
+                'comby': ['structural_matching', 'template_generation']
+            },
+            'pattern_cache_size': len(self._pattern_cache),
+            'supported_engines': ['native', 'ast', 'comby']
+        }
+    
     
     def count_occurrences(self, pattern: str, text: str, case_sensitive: bool = True) -> Dict[str, Any]:
         """Contar ocurrencias de patron literal (mas eficiente que find_all)"""
