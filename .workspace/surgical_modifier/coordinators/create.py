@@ -39,12 +39,19 @@ class CreateCoordinator:
                 elif file_path.endswith(('.js', '.jsx', '.ts', '.tsx')):
                     required_capabilities.append(EngineCapability.JAVASCRIPT_SUPPORT)
             
+            # Derivar language de file_path  
+            language = None
+            if file_path.endswith('.py'):
+                language = 'python'
+            elif file_path.endswith(('.js', '.jsx', '.ts', '.tsx')):
+                language = 'javascript'
+
             # Obtener mejor engine usando selector
             best_engine = get_best_engine(
                 operation_type=operation_type,
-                required_capabilities=required_capabilities,
-                file_path=file_path
-            )
+                capabilities_needed=required_capabilities,  # Cambio: required_capabilities -> capabilities_needed
+                language=language  # Cambio: file_path -> language derivado
+)
             
             return best_engine
             

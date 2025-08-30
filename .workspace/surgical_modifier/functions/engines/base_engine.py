@@ -15,14 +15,21 @@ from functions.backup.manager import BackupManager
 
 class EngineCapability(Enum):
     """Capacidades que puede ofrecer un engine"""
+    # Capabilities técnicas existentes
     LITERAL_SEARCH = "literal_search"
-    REGEX_SEARCH = "regex_search"
+    REGEX_SEARCH = "regex_search" 
     STRUCTURAL_SEARCH = "structural_search"
     AST_AWARE = "ast_aware"
     MULTILINE_PATTERNS = "multiline_patterns"
     CONTEXT_AWARE = "context_aware"
     LANGUAGE_SPECIFIC = "language_specific"
     BATCH_OPERATIONS = "batch_operations"
+    
+    # Capabilities de operación requeridas por coordinadores
+    CREATE = "create"
+    WRITE = "write"
+    PYTHON_SUPPORT = "python_support"
+    JAVASCRIPT_SUPPORT = "javascript_support"
 
 class OperationType(Enum):
     """Tipos de operaciones soportadas"""
