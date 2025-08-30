@@ -72,7 +72,7 @@ class NativeEngine(BaseEngine):
                 'match_type': 'native'
             }
         )
-    def search(self, content: str, pattern: str, **kwargs) -> EngineResult:
+    def _search_impl(self, content: str, pattern: str, **kwargs) -> EngineResult:
         """
         Buscar patrón usando matchers nativos.
         """
@@ -128,7 +128,7 @@ class NativeEngine(BaseEngine):
                 metadata={'engine': self.name}
             )
 
-    def replace(self, content: str, pattern: str, replacement: str, **kwargs) -> EngineResult:
+    def _replace_impl(self, content: str, pattern: str, replacement: str, **kwargs) -> EngineResult:
         """
         Reemplazar patrón usando functions nativas.
         """
@@ -137,7 +137,7 @@ class NativeEngine(BaseEngine):
             case_sensitive = kwargs.get('case_sensitive', True)
             
             # Buscar matches primero para tracking
-            search_result = self.search(content, pattern, 
+            search_result = self._search_impl(content, pattern, 
                                     use_regex=use_regex, 
                                     case_sensitive=case_sensitive)
             

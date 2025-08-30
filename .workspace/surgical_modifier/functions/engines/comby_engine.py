@@ -87,7 +87,7 @@ class CombyEngine(BaseEngine):
         """
         return shutil.which("comby") is not None
         
-    def search(self, pattern: str, content: str, **kwargs) -> EngineResult:
+    def _search_impl(self, pattern: str, content: str, **kwargs) -> EngineResult:
         """
         Realiza búsqueda estructural usando comby.
         
@@ -171,7 +171,7 @@ class CombyEngine(BaseEngine):
                 error_message=f"Error ejecutando comby: {str(e)}"
             )
         
-    def replace(self, pattern: str, replacement: str, content: str, **kwargs) -> EngineResult:
+    def _replace_impl(self, pattern: str, replacement: str, content: str, **kwargs) -> EngineResult:
         """
         Realiza reemplazo estructural usando comby.
         

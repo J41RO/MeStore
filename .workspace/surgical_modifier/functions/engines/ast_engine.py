@@ -80,7 +80,7 @@ class AstEngine(BaseEngine):
         except (subprocess.SubprocessError, FileNotFoundError, subprocess.TimeoutExpired):
             return False
     
-    def search(self, content: str, pattern: str, **kwargs) -> EngineResult:
+    def _search_impl(self, content: str, pattern: str, **kwargs) -> EngineResult:
         """
         Buscar coincidencias usando ast-grep.
         
@@ -164,7 +164,7 @@ class AstEngine(BaseEngine):
                 error_message=f"Unexpected error in ast-grep search: {e}"
             )
     
-    def replace(self, content: str, pattern: str, replacement: str, **kwargs) -> EngineResult:
+    def _replace_impl(self, content: str, pattern: str, replacement: str, **kwargs) -> EngineResult:
         """
         Realizar reemplazo usando ast-grep.
         

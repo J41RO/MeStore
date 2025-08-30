@@ -187,6 +187,176 @@ class TestEngineSelector:
         available = self.selector._check_engine_availability('mock', mock_engine)
         assert available is False
 
+    def test_engine_metrics_tracking(self):
+        """Test tracking automático de métricas en engines"""
+        engine = NativeEngine()
+        initial_count = engine._metrics.operation_count["search"]
+        
+        result = engine.search("def test(): pass", "def")
+        
+        assert engine._metrics.operation_count["search"] == initial_count + 1
+        assert hasattr(result, "execution_time")
+        assert result.execution_time > 0
+
+    def test_performance_benchmark_functionality(self):
+        """Test sistema de benchmarking comparativo"""
+        benchmark_results = self.selector.run_comparative_benchmark(
+            operation="search",
+            test_content="def hello(): return \"world\"",
+            pattern="def",
+            engines=["native"],
+            iterations=2
+        )
+        
+        assert "native" in benchmark_results
+        assert "avg_execution_time" in benchmark_results["native"]
+        assert "success_rate" in benchmark_results["native"]
+
+    def test_ml_prediction_system(self):
+        """Test sistema predictivo ML"""
+        prediction = self.selector.predict_optimal_engine(
+            operation="search",
+            content="def complex_function(): pass",
+            context={"language": "python"}
+        )
+        
+        assert "recommended_engine" in prediction
+        assert "confidence_score" in prediction
+
+    def test_performance_dashboard(self):
+        """Test dashboard de analytics"""
+        dashboard = self.selector.get_performance_dashboard()
+        
+        required_sections = ["overview", "engine_comparison", "trends", "alerts", "recommendations"]
+        for section in required_sections:
+            assert section in dashboard
+
+    def test_adaptive_learning_feedback(self):
+        """Test sistema de aprendizaje adaptativo"""
+        feedback = self.selector.record_operation_feedback(
+            engine="native",
+            operation="search",
+            success=True,
+            execution_time=0.05
+        )
+        
+        assert feedback["feedback_recorded"] is True
+
+    def test_auto_optimization(self):
+        """Test optimización automática de parámetros"""
+        optimization = self.selector.auto_optimize_parameters()
+        
+        assert "optimizations_applied" in optimization
+        assert isinstance(optimization["optimizations_applied"], int)
+
+    def test_engine_metrics_performance_summary(self):
+        """Test resumen de métricas de performance"""
+        engine = NativeEngine()
+        
+        # Generar algunas operaciones
+        for i in range(3):
+            engine.search(f'test{i}', 'test')
+        
+        summary = engine.get_performance_metrics()
+        
+        assert 'engine_name' in summary
+        assert 'total_operations' in summary
+        assert 'success_rate' in summary
+        assert summary['total_operations'] >= 3
+
+    def test_benchmarking_error_handling(self):
+        """Test manejo de errores en benchmarking"""
+        results = self.selector.run_comparative_benchmark(
+            operation='search',
+            test_content='invalid content',
+            pattern='test',
+            engines=['native'],
+            iterations=1
+        )
+        
+        # Debe manejar errores gracefully
+        assert 'native' in results
+
+    def test_performance_alerts_system(self):
+        """Test sistema de alertas de performance"""
+        alerts = self.selector.check_performance_alerts()
+        
+        assert 'status' in alerts
+        assert 'active_alerts' in alerts
+        assert 'alert_summary' in alerts
+        assert isinstance(alerts['active_alerts'], list)
+
+    def test_optimization_recommendations(self):
+        """Test sistema de recomendaciones"""
+        recommendations = self.selector.get_optimization_recommendations()
+        
+        assert isinstance(recommendations, list)
+        for rec in recommendations:
+            assert 'type' in rec
+            assert 'priority' in rec
+
+    def test_engine_selection_with_performance_data(self):
+        """Test selección con datos de performance"""
+        # Test con performance data habilitada
+        engine1 = self.selector.select_best_engine(
+            operation_type='search',
+            capabilities_needed=[EngineCapability.LITERAL_SEARCH]
+        )
+        
+        assert isinstance(engine1, BaseEngine)
+
+    def test_metrics_persistence_across_operations(self):
+        """Test persistencia de métricas entre operaciones"""
+        engine = NativeEngine()
+        
+        # Primera operación
+        engine.search('test1', 'test')
+        first_count = engine._metrics.operation_count['search']
+        
+        # Segunda operación
+        engine.search('test2', 'test')
+        second_count = engine._metrics.operation_count['search']
+        
+        assert second_count == first_count + 1
+
+    def test_performance_trends_analysis(self):
+        """Test análisis de tendencias"""
+        dashboard = self.selector.get_performance_dashboard()
+        trends = dashboard['trends']
+        
+        assert 'selection_times' in trends
+        assert 'engine_usage' in trends
+        assert 'error_rates' in trends
+
+    def test_efficiency_report_generation(self):
+        """Test generación de reportes de eficiencia"""
+        report = self.selector.generate_efficiency_report()
+        
+        assert 'system_efficiency' in report
+        assert 'engine_efficiency' in report
+        assert 'resource_utilization' in report
+        assert 'timestamp' in report
+
+    def test_content_complexity_analysis(self):
+        """Test análisis de complejidad de contenido"""
+        # Contenido simple
+        simple_prediction = self.selector.predict_optimal_engine(
+            'search', 'hello world', {'complexity': 'low'}
+        )
+        
+        # Contenido complejo
+        complex_content = '''
+        class ComplexClass:
+            def __init__(self, *args, **kwargs):
+                self.data = [x for x in args if callable(x)]
+        '''
+        complex_prediction = self.selector.predict_optimal_engine(
+            'search', complex_content, {'complexity': 'high'}
+        )
+        
+        assert 'content_analysis' in complex_prediction
+        assert complex_prediction['content_analysis']['complexity'] in ['low', 'medium', 'high']
+
 
 class TestConvenienceFunction:
     """Tests para función de conveniencia get_best_engine"""
@@ -920,7 +1090,3 @@ class TestFallbackEdgeCases:
         # Ahora debería estar disponible
         assert registry.is_engine_available('test_engine')
         assert 'test_engine' not in registry.circuit_breakers
-
-
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])
