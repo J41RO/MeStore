@@ -27,26 +27,94 @@ class CreateCoordinator:
         self.logger = logging.getLogger(__name__)
     
     def execute(self, file_path: str, content: str = None, template: str = None, **kwargs) -> Dict[str, Any]:
-        """Orquestador ligero - solo coordina functions modulares"""
-        from functions.workflow.create_workflow import CreateWorkflow
+        """Ejecutar operación CREATE orquestando functions modulares."""
+        self.logger.info(f"Starting CREATE operation for: {file_path}")
         
-        workflow = CreateWorkflow()
-        result = workflow.execute_sequence(
-            file_path=file_path,
-            content=content, 
-            template=template,
-            path_checker=self.path_checker,
-            template_generator=self.template_generator,
-            backup_manager=self.backup_manager,
-            writer=self.writer,
-            validator=self.validator,
-            **kwargs
-        )
-        
-        if result.get('success') and template:
-            result['template_used'] = template
+        try:
+            # Validación de ruta
+            path_validation = self.path_checker.validate_path(file_path)
+            if not path_validation['success']:
+                return {
+                    'success': False,
+                    'error': 'Path validation failed',
+                    'details': path_validation['errors'],
+                    'phase': 'path_validation'
+                }
             
-        return result
+            # Verificación de permisos
+            permissions = self.path_checker.check_permissions(file_path)
+            if not permissions['can_create']:
+                return {
+                    'success': False,
+                    'error': 'Insufficient permissions',
+                    'details': permissions,
+                    'phase': 'permissions'
+                }
+            
+            # Crear directorios padres
+            parent_result = self.path_checker.ensure_parent_dirs(file_path)
+            if not parent_result['success']:
+                return {
+                    'success': False,
+                    'error': 'Failed to create parent directories',
+                    'details': parent_result['errors'],
+                    'phase': 'parent_dirs'
+                }
+            
+            # Generar contenido
+            final_content = self._generate_content(file_path, content, template, **kwargs)
+            
+            # Crear backup
+            backup_result = self._handle_backup(file_path)
+            
+            # Validar contenido
+            validation_result = self.validator.validate_content(final_content, rules=['not_empty', 'text_only'])
+            if not validation_result.get('valid', True):
+                return {
+                    'success': False,
+                    'error': 'Content validation failed',
+                    'details': validation_result,
+                    'phase': 'content_validation'
+                }
+            
+            # Escribir archivo
+            write_result = self.writer.write_file(file_path, final_content, preserve_line_endings=False, backup=True)
+            
+            if not write_result.get('success'):
+                return {
+                    'success': False,
+                    'error': 'File write failed',
+                    'details': write_result,
+                    'phase': 'write'
+                }
+            
+            # Verificación post-creación
+            post_verification = self._verify_creation(file_path, final_content)
+            
+            return {
+                'success': True,
+                'file_path': file_path,
+                'absolute_path': path_validation['absolute_path'],
+                'content_length': len(final_content),
+                'template_used': template,
+                'backup_created': backup_result.get('created', False),
+                'parent_dirs_created': parent_result.get('created_dirs', []),
+                'verification': post_verification,
+                'phases_completed': [
+                    'path_validation', 'permissions', 'parent_dirs', 
+                    'content_generation', 'backup', 'content_validation',
+                    'write', 'verification'
+                ]
+            }
+            
+        except Exception as e:
+            self.logger.error(f"CREATE operation failed: {e}")
+            return {
+                'success': False,
+                'error': f'CREATE operation exception: {str(e)}',
+                'file_path': file_path,
+                'phase': 'execution'
+            }
     
     def _generate_content(self, file_path: str, content: str = None, template: str = None, **kwargs) -> str:
         """Generar contenido final usando template_generator"""
