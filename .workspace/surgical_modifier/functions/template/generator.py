@@ -3,11 +3,12 @@ from pathlib import Path
 from typing import Dict, Optional, Any, Union
 from datetime import datetime
 import logging
+from string import Template
 
 class TemplateGenerator:
     """
     Generador de templates por tipo de archivo.
-    Sigue arquitectura modular functions/ del proyecto.
+    Usa string.Template para evitar conflictos con llaves JavaScript.
     """
     
     def __init__(self):
@@ -15,13 +16,13 @@ class TemplateGenerator:
         self._templates = self._initialize_templates()
         
     def _initialize_templates(self) -> Dict[str, str]:
-        """Inicializar templates básicos por extensión"""
+        """Inicializar templates básicos usando $variable syntax"""
         return {
             'python': '''#!/usr/bin/env python3
 """
-{description}
+$description
 
-Created: {timestamp}
+Created: $timestamp
 """
 
 def main():
@@ -32,9 +33,9 @@ if __name__ == "__main__":
     main()
 ''',
             'js': '''/**
- * {description}
+ * $description
  * 
- * Created: {timestamp}
+ * Created: $timestamp
  */
 
 function main() {
@@ -43,30 +44,30 @@ function main() {
 
 // Export for module usage
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {{ main }};
+    module.exports = { main };
 }
 ''',
             'jsx': '''import React from 'react';
 
 /**
- * {description}
+ * $description
  * 
- * Created: {timestamp}
+ * Created: $timestamp
  */
-const {component_name} = () => {
+const $component_name = () => {
     return (
         <div>
-            <h1>{component_name} Component</h1>
+            <h1>$component_name Component</h1>
         </div>
     );
 };
 
-export default {component_name};
+export default $component_name;
 ''',
             'ts': '''/**
- * {description}
+ * $description
  * 
- * Created: {timestamp}
+ * Created: $timestamp
  */
 
 interface MainInterface {
@@ -77,49 +78,49 @@ function main(): void {
     // Implementation here
 }
 
-export {{ main, MainInterface }};
+export { main, MainInterface };
 ''',
             'tsx': '''import React from 'react';
 
 /**
- * {description}
+ * $description
  * 
- * Created: {timestamp}
+ * Created: $timestamp
  */
 
-interface {component_name}Props {
+interface ${component_name}Props {
     // Define props here
 }
 
-const {component_name}: React.FC<{component_name}Props> = () => {
+const $component_name: React.FC<${component_name}Props> = () => {
     return (
         <div>
-            <h1>{component_name} Component</h1>
+            <h1>$component_name Component</h1>
         </div>
     );
 };
 
-export default {component_name};
+export default $component_name;
 ''',
             'html': '''<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{title}</title>
+    <title>$title</title>
 </head>
 <body>
-    <h1>{title}</h1>
-    <p>{description}</p>
+    <h1>$title</h1>
+    <p>$description</p>
     
-    <!-- Created: {timestamp} -->
+    <!-- Created: $timestamp -->
 </body>
 </html>
 ''',
             'css': '''/**
- * {description}
+ * $description
  * 
- * Created: {timestamp}
+ * Created: $timestamp
  */
 
 /* Reset and base styles */
@@ -135,9 +136,9 @@ body {
     color: #333;
 }
 ''',
-            'md': '''# {title}
+            'md': '''# $title
 
-{description}
+$description
 
 ## Overview
 
@@ -151,24 +152,24 @@ Add your content here.
 
 ## License
 
-<!-- Created: {timestamp} -->
+<!-- Created: $timestamp -->
 ''',
             'json': '''{
-    "name": "{name}",
-    "description": "{description}",
+    "name": "$name",
+    "description": "$description",
     "version": "1.0.0",
-    "created": "{timestamp}"
+    "created": "$timestamp"
 }
 ''',
-            'yaml': '''# {description}
-# Created: {timestamp}
+            'yaml': '''# $description
+# Created: $timestamp
 
-name: {name}
-description: {description}
+name: $name
+description: $description
 version: "1.0.0"
 ''',
-            'sql': '''-- {description}
--- Created: {timestamp}
+            'sql': '''-- $description
+-- Created: $timestamp
 
 -- Example table creation
 CREATE TABLE example (
@@ -178,9 +179,9 @@ CREATE TABLE example (
 );
 ''',
             'default': '''/**
- * {description}
+ * $description
  * 
- * Created: {timestamp}
+ * Created: $timestamp
  */
 
 // Content goes here
@@ -190,18 +191,11 @@ CREATE TABLE example (
     def get_template_for_extension(self, file_path: str) -> str:
         """
         Obtener template apropiado según extensión de archivo.
-        
-        Args:
-            file_path: Ruta del archivo para determinar extensión
-            
-        Returns:
-            Template string apropiado
         """
         try:
             path_obj = Path(file_path)
             extension = path_obj.suffix.lower().lstrip('.')
             
-            # Mapeo de extensiones a tipos de template
             extension_mapping = {
                 'py': 'python',
                 'js': 'js',
@@ -231,14 +225,7 @@ CREATE TABLE example (
     
     def customize_template(self, template: str, **kwargs) -> str:
         """
-        Personalizar template con variables específicas.
-        
-        Args:
-            template: Template string base
-            **kwargs: Variables para reemplazar en template
-            
-        Returns:
-            Template personalizado
+        Personalizar template usando string.Template.
         """
         try:
             # Variables por defecto
@@ -261,37 +248,28 @@ CREATE TABLE example (
                 component_name = component_name.replace('_', ' ').replace('-', ' ').title().replace(' ', '')
                 template_vars['component_name'] = component_name
             
-            # Reemplazar variables en template
-            customized = template.format(**template_vars)
+            # Usar string.Template para reemplazar variables
+            template_obj = Template(template)
+            customized = template_obj.safe_substitute(template_vars)
             
             self.logger.debug(f"Template customized with variables: {list(template_vars.keys())}")
             return customized
             
         except Exception as e:
             self.logger.error(f"Error customizing template: {e}")
-            # Retornar template original si falla personalización
             return template
     
     def generate_template(self, template_type: str, **kwargs) -> str:
         """
         Generar template específico con personalización.
-        
-        Args:
-            template_type: Tipo de template ('python', 'js', etc.)
-            **kwargs: Variables para personalizar
-            
-        Returns:
-            Template generado y personalizado
         """
         try:
-            # Obtener template base
             if template_type in self._templates:
                 base_template = self._templates[template_type]
             else:
                 self.logger.warning(f"Template type '{template_type}' not found, using default")
                 base_template = self._templates['default']
             
-            # Personalizar template
             generated = self.customize_template(base_template, **kwargs)
             
             self.logger.info(f"Generated template of type '{template_type}'")
@@ -308,13 +286,6 @@ CREATE TABLE example (
     def add_custom_template(self, template_type: str, template_content: str) -> bool:
         """
         Agregar template personalizado.
-        
-        Args:
-            template_type: Nombre del tipo de template
-            template_content: Contenido del template
-            
-        Returns:
-            True si se agregó exitosamente
         """
         try:
             self._templates[template_type] = template_content
