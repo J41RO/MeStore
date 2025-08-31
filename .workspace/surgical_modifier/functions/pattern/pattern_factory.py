@@ -75,13 +75,18 @@ class PatternMatcherFactory:
         # Obtener clase del matcher
         matcher_class = self._matcher_registry[pattern_type]
         
-        # Crear instancia con engine_type
-        matcher = matcher_class(engine_type=engine_type)
-        
-        # Configurar capabilities del engine
+        # Crear instancia verificando si acepta engine_type
+        import inspect
+        sig = inspect.signature(matcher_class.__init__)
+        if 'engine_type' in sig.parameters:
+            matcher = matcher_class(engine_type=engine_type)
+        else:
+            matcher = matcher_class()
+            
+        # Configurar capabilities del engine solo si el matcher lo soporta
         capabilities = self._engine_capabilities[engine_type]
-        matcher.set_engine_context(engine_type, capabilities)
-        
+        if hasattr(matcher, 'set_engine_context'):
+            matcher.set_engine_context(engine_type, capabilities)
         return matcher
     
     def get_optimal_matcher_for_use_case(self, use_case: str, engine_type: str = 'native') -> BaseMatcher:
