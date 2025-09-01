@@ -209,3 +209,74 @@ class TestReplaceCoordinatorIntegrationComplete:
         finally:
             if os.path.exists(temp_file):
                 os.unlink(temp_file)
+
+class TestReplaceModularCombination:
+    """Test que REPLACE combina functions modulares correctamente"""
+    
+    def test_combines_functions_without_duplication(self):
+        """Test que coordinador combina functions sin duplicar lógica"""
+        coordinator = ReplaceCoordinator()
+        
+        # Verificar que tiene instancias de las functions requeridas
+        assert hasattr(coordinator, 'pattern_factory')
+        assert hasattr(coordinator, 'backup_manager')
+        assert hasattr(coordinator, 'reader')
+        assert hasattr(coordinator, 'writer')
+        
+        # Verificar que no implementa lógica propia
+        import inspect
+        source = inspect.getsource(coordinator.execute)
+        
+        # No debe tener lógica de file operations
+        assert 'open(' not in source
+        assert 'read(' not in source
+        assert '.write(' not in source
+        
+        # No debe tener lógica de pattern matching
+        assert 'match(' not in source
+        assert 'search(' not in source
+        assert 'findall(' not in source
+        
+        # Debe usar functions modulares
+        assert 'pattern_factory' in source
+        assert 'backup_manager' in source
+    
+    def test_coordinator_is_lightweight_orchestrator(self):
+        """Test que coordinador es orquestador ligero, no implementador"""
+        coordinator = ReplaceCoordinator()
+        import inspect
+        
+        # Verificar que execute() es ligero
+        source = inspect.getsource(coordinator.execute)
+        lines = len(source.split('\n'))
+        assert lines <= 25, f"execute() debe ser ≤25 líneas, actual: {lines}"
+        
+        # Verificar que orquesta, no implementa
+        calls_to_functions = sum([
+            source.count('pattern_factory'),
+            source.count('backup_manager'), 
+            source.count('reader'),
+            source.count('writer')
+        ])
+        assert calls_to_functions >= 3, "Debe llamar múltiples functions"
+    
+    def test_modular_reuse_principle(self):
+        """Test que functions son modulares y reutilizables"""
+        coordinator = ReplaceCoordinator()
+        
+        # Verificar que functions son instancias independientes
+        assert coordinator.pattern_factory is not None
+        assert coordinator.backup_manager is not None
+        assert coordinator.reader is not None
+        assert coordinator.writer is not None
+        
+        # Verificar que functions podrían reutilizarse en otros coordinadores
+        from functions.pattern.pattern_factory import PatternMatcherFactory
+        from functions.backup.manager import BackupManager
+        
+        # Functions deben ser reutilizables
+        independent_pattern = PatternMatcherFactory()
+        independent_backup = BackupManager()
+        
+        assert type(coordinator.pattern_factory) == type(independent_pattern)
+        assert type(coordinator.backup_manager) == type(independent_backup)
