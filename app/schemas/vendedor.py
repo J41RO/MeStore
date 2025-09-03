@@ -42,7 +42,12 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 from app.models.user import UserType
 from app.schemas.user import UserCreate, UserRead
 from app.utils.validators import validate_celular_colombiano
-
+# Enum para tendencias de KPIs
+class TendenciaKPI(str, Enum):
+    """Enum para representar la tendencia de un KPI."""
+    SUBIENDO = "subiendo"
+    BAJANDO = "bajando"  
+    ESTABLE = "estable"
 
 # =============================================================================
 
@@ -360,7 +365,41 @@ class DashboardInventarioResponse(BaseModel):
     total_unidades_disponibles: int = Field(0, description="Total de unidades disponibles")
     valor_inventario_estimado: Decimal = Field(Decimal("0.0"), description="Valor estimado del inventario")
 
+# =============================================================================
+# SCHEMAS COMPARATIVOS - TAREA 1.5.6.6
+# =============================================================================
 
+class KPIComparison(BaseModel):
+    """Schema para comparación de KPIs entre períodos."""
+    valor_actual: Decimal = Field(..., description="Valor del KPI en el período actual")
+    valor_anterior: Decimal = Field(..., description="Valor del KPI en el período anterior") 
+    variacion_porcentual: Decimal = Field(..., description="Variación porcentual entre períodos")
+    tendencia: TendenciaKPI = Field(..., description="Tendencia del KPI basada en la variación")
+
+    class Config:
+        json_encoders = {
+            Decimal: str
+        }
+
+
+class DashboardComparativoResponse(BaseModel):
+    """Schema para respuesta del dashboard comparativo con KPIs de períodos."""
+    ventas_mes: KPIComparison = Field(..., description="Comparativa de ventas mensuales")
+    ingresos_mes: KPIComparison = Field(..., description="Comparativa de ingresos mensuales") 
+    comision_total: KPIComparison = Field(..., description="Comparativa de comisiones totales")
+    productos_vendidos: KPIComparison = Field(..., description="Comparativa de productos vendidos")
+    clientes_nuevos: KPIComparison = Field(..., description="Comparativa de clientes nuevos")
+    
+    # Metadatos del período
+    periodo_actual: str = Field(..., description="Descripción del período actual (ej: 'Enero 2025')")
+    periodo_anterior: str = Field(..., description="Descripción del período anterior (ej: 'Diciembre 2024')")
+    fecha_calculo: datetime = Field(..., description="Timestamp del cálculo de la comparativa")
+
+    class Config:
+        json_encoders = {
+            Decimal: str,
+            datetime: lambda v: v.isoformat()
+        }
 # =============================================================================
 # EXPORTS
 # =============================================================================

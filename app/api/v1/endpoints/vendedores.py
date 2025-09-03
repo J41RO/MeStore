@@ -76,6 +76,9 @@ from app.schemas.vendedor import (
     InventarioMetrica,
     EstadoComision,
     ComisionDetalle,
+    KPIComparison,
+    DashboardComparativoResponse,
+    TendenciaKPI,
     ProductoTop,
 )
 
@@ -901,6 +904,116 @@ async def get_dashboard_comisiones(
         periodo_analisis="datos_reales" if usar_datos_reales else "último_mes"
     )
 
+@router.get("/dashboard/comparativa", response_model=DashboardComparativoResponse, status_code=status.HTTP_200_OK)
+async def get_dashboard_comparativa(
+    db: AsyncSession = Depends(get_async_db),
+    current_user: User = Depends(get_current_active_user),
+    periodo_actual: Optional[str] = Query(None, description="Período actual en formato YYYY-MM")
+):
+    """
+    Endpoint para obtener comparativa de KPIs entre período actual y anterior.
+    
+    Calcula variaciones porcentuales y determina tendencias automáticamente.
+    """
+    from datetime import datetime, date
+    from dateutil.relativedelta import relativedelta
+    from sqlalchemy import func, and_, extract
+    
+    # Si no se especifica período, usar mes actual
+    if not periodo_actual:
+        ahora = datetime.now()
+        periodo_actual = ahora.strftime("%Y-%m")
+    
+    # Parsear período actual
+    año_actual, mes_actual = map(int, periodo_actual.split("-"))
+    fecha_inicio_actual = date(año_actual, mes_actual, 1)
+    
+    # Calcular período anterior (mes anterior)
+    fecha_inicio_anterior = fecha_inicio_actual - relativedelta(months=1)
+    
+    # Fechas de fin de período
+    fecha_fin_actual = (fecha_inicio_actual + relativedelta(months=1)) - relativedelta(days=1)
+    fecha_fin_anterior = (fecha_inicio_anterior + relativedelta(months=1)) - relativedelta(days=1)
+    
+    # Función auxiliar para calcular KPI comparison
+    def calcular_kpi_comparison(valor_actual: float, valor_anterior: float) -> KPIComparison:
+        if valor_anterior == 0:
+            variacion = 100.0 if valor_actual > 0 else 0.0
+        else:
+            variacion = ((valor_actual - valor_anterior) / valor_anterior) * 100
+        
+        # Determinar tendencia
+        if variacion > 5:
+            tendencia = TendenciaKPI.SUBIENDO
+        elif variacion < -5:
+            tendencia = TendenciaKPI.BAJANDO
+        else:
+            tendencia = TendenciaKPI.ESTABLE
+            
+        return KPIComparison(
+            valor_actual=Decimal(str(valor_actual)),
+            valor_anterior=Decimal(str(valor_anterior)),
+            variacion_porcentual=Decimal(str(round(variacion, 2))),
+            tendencia=tendencia
+        )
+    
+    # Consultas para período actual
+    ventas_actual = await db.scalar(
+        select(func.count(Transaction.id)).where(
+            and_(
+                Transaction.vendedor_id == current_user.id,
+                Transaction.fecha_transaccion >= fecha_inicio_actual,
+                Transaction.fecha_transaccion <= fecha_fin_actual
+            )
+        )
+    ) or 0
+    
+    ingresos_actual = await db.scalar(
+        select(func.sum(Transaction.monto_total)).where(
+            and_(
+                Transaction.vendedor_id == current_user.id,
+                Transaction.fecha_transaccion >= fecha_inicio_actual,
+                Transaction.fecha_transaccion <= fecha_fin_actual
+            )
+        )
+    ) or Decimal("0.0")
+    
+    # Consultas para período anterior
+    ventas_anterior = await db.scalar(
+        select(func.count(Transaction.id)).where(
+            and_(
+                Transaction.vendedor_id == current_user.id,
+                Transaction.fecha_transaccion >= fecha_inicio_anterior,
+                Transaction.fecha_transaccion <= fecha_fin_anterior
+            )
+        )
+    ) or 0
+    
+    ingresos_anterior = await db.scalar(
+        select(func.sum(Transaction.monto_total)).where(
+            and_(
+                Transaction.vendedor_id == current_user.id,
+                Transaction.fecha_transaccion >= fecha_inicio_anterior,
+                Transaction.fecha_transaccion <= fecha_fin_anterior
+            )
+        )
+    ) or Decimal("0.0")
+    
+    # Calcular comisiones (asumiendo 5% de comisión)
+    comision_actual = float(ingresos_actual) * 0.05
+    comision_anterior = float(ingresos_anterior) * 0.05
+    
+    # Crear comparativas
+    return DashboardComparativoResponse(
+        ventas_mes=calcular_kpi_comparison(float(ventas_actual), float(ventas_anterior)),
+        ingresos_mes=calcular_kpi_comparison(float(ingresos_actual), float(ingresos_anterior)),
+        comision_total=calcular_kpi_comparison(comision_actual, comision_anterior),
+        productos_vendidos=calcular_kpi_comparison(float(ventas_actual), float(ventas_anterior)),
+        clientes_nuevos=calcular_kpi_comparison(float(ventas_actual), float(ventas_anterior)),
+        periodo_actual=f"{fecha_inicio_actual.strftime('%B %Y')}",
+        periodo_anterior=f"{fecha_inicio_anterior.strftime('%B %Y')}",
+        fecha_calculo=datetime.now()
+    )
 
 @router.get("/dashboard/inventario", response_model=DashboardInventarioResponse, status_code=status.HTTP_200_OK)
 async def get_dashboard_inventario(

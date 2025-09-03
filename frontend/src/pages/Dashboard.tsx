@@ -25,6 +25,7 @@ import SalesChart from '../components/charts/SalesChart';
 import MonthlySalesChart from '../components/charts/MonthlySalesChart';
 import TopProductsWidget from '../components/widgets/TopProductsWidget';
 import QuickActions from '../components/QuickActions';
+import ComparativeDashboard from '../components/dashboard/ComparativeDashboard';
 
 const Dashboard: React.FC = () => {
   const {
@@ -72,6 +73,10 @@ const Dashboard: React.FC = () => {
 
       {/* MICRO-FASE 3: QuickActions prominente al inicio */}
       <QuickActions className="mb-6" />
+      {/* Comparativa Mensual - Dashboard KPIs */}
+      <div className="mb-6">
+        <ComparativeDashboard />
+      </div>
 
       {/* MICRO-FASE 5: Alerta responsive con icono oculto en pantallas pequeñas */}
       {completionStatus.missingFields.length > 0 && (
