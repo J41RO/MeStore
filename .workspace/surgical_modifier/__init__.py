@@ -1,11 +1,12 @@
-#!/usr/bin/env python3
 """
-Surgical Modifier - Herramienta de modificacion quirurgica de archivos
-Sistema robusto de modificacion de codigo con deteccion inteligente de patrones.
+Surgical Modifier - Sistema de Modificación Precisa de Código
 """
 
-__version__ = "0.1.0"
+__version__ = "6.0.0"
+__author__ = "IA Desarrolladora Universal"
+__description__ = "Sistema CLI para modificación precisa de archivos de código"
 
-# Importar modulos principales para facilitar acceso
+# Importar función principal para acceso directo
+from .cli import main
 
-__all__ = ['cli', 'config', 'base_coordinator', 'exceptions']
+__all__ = ['main', '__version__', '__author__', '__description__']

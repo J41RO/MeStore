@@ -18,6 +18,7 @@
 # 2025-07-31 - Creación inicial con registro de vendedores
 # 2025-08-07 - Agregado endpoint de dashboard de inventario
 # 2025-08-07 - Agregado endpoint de exportación PDF/Excel
+# 2025-09-02 - Agregado filtro de método de pago en dashboard comisiones
 #
 # ---------------------------------------------------------------------------------------------
 
@@ -31,6 +32,7 @@ Este módulo contiene endpoints especializados para:
 - Dashboard con estadísticas y rankings
 - Métricas de inventario y stock
 - Exportación de reportes en PDF y Excel
+- Filtros avanzados por método de pago
 """
 
 import logging
@@ -50,6 +52,7 @@ from app.models.user import User, UserType
 from app.models.inventory import Inventory, InventoryStatus
 from app.models.product import Product, ProductStatus
 from app.models.transaction import Transaction
+from app.schemas.transaction import MetodoPago 
 from app.schemas.auth import TokenResponse
 from app.schemas.user import UserRead
 from app.schemas.vendedor import (
@@ -781,6 +784,7 @@ async def get_dashboard_productos_top(
 @router.get("/dashboard/comisiones", response_model=DashboardComisionesResponse, status_code=status.HTTP_200_OK)
 async def get_dashboard_comisiones(
     estado: Optional[EstadoComision] = Query(None, description="Filtrar por estado de comisión"),
+    metodo_pago: Optional[MetodoPago] = Query(None, description="Filtrar por método de pago"),
     limite: int = Query(20, ge=1, le=100, description="Número de comisiones a retornar"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
@@ -803,6 +807,17 @@ async def get_dashboard_comisiones(
         usar_datos_reales = False
 
     if usar_datos_reales:
+        # Construir condiciones base para la query
+        conditions = [
+            Transaction.vendedor_id == current_user.id,
+            Transaction.estado == EstadoTransaccion.COMPLETADA,
+            Transaction.porcentaje_mestocker.isnot(None)
+        ]
+        
+        # Agregar filtro de método de pago si se especifica
+        if metodo_pago:
+            conditions.append(Transaction.metodo_pago == metodo_pago)
+        
         # Consultar transacciones con comisiones del vendedor
         comisiones_query = await db.execute(
             select(
@@ -815,11 +830,7 @@ async def get_dashboard_comisiones(
             ).select_from(
                 Transaction.join(Product, Transaction.product_id == Product.id)
             ).where(
-                and_(
-                    Transaction.vendedor_id == current_user.id,
-                    Transaction.estado == EstadoTransaccion.COMPLETADA,
-                    Transaction.porcentaje_mestocker.isnot(None)
-                )
+                and_(*conditions)
             ).order_by(desc(Transaction.created_at))
             .limit(limite if not estado else 100)  # Límite más alto si hay filtro
         )

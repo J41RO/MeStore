@@ -24,13 +24,14 @@ from app.models.payout_request import EstadoPayout, PayoutRequest
 from app.models.transaction import Transaction
 from app.models.user import User
 from app.schemas.payout_request import PayoutRequestCreate, PayoutRequestRead
-from app.schemas.transaction import TransactionRead
+from app.schemas.transaction import TransactionRead, MetodoPago
 
 
 @router.get("/", summary="Consultar comisiones por período")
 async def get_comisiones(
     fecha_inicio: Optional[date] = Query(None, description="Fecha inicio (YYYY-MM-DD)"),
     fecha_fin: Optional[date] = Query(None, description="Fecha fin (YYYY-MM-DD)"),
+    metodo_pago: Optional[MetodoPago] = Query(None, description="Filtrar por método de pago"),
     db: AsyncSession = Depends(get_db),
 ):
     # Construir query base
@@ -41,7 +42,8 @@ async def get_comisiones(
         query = query.where(Transaction.fecha_transaccion >= fecha_inicio)
     if fecha_fin:
         query = query.where(Transaction.fecha_transaccion <= fecha_fin)
-
+    if metodo_pago:
+        query = query.where(Transaction.metodo_pago == metodo_pago)
     # Ejecutar query
     result = await db.execute(query)
     transactions = result.scalars().all()
