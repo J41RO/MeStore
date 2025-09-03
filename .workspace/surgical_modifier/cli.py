@@ -9,6 +9,7 @@ from pathlib import Path
 # Agregar path para importar coordinadores
 sys.path.append(os.path.join(os.path.dirname(__file__), '.'))
 from coordinators.replace import ReplaceCoordinator
+from coordinators.after import AfterCoordinator
 
 
 @click.group()
@@ -109,7 +110,7 @@ def replace(filepath, pattern, replacement, fuzzy=False, regex=False, threshold=
 @main.command()
 @click.argument("filepath")
 @click.argument("pattern")
-@click.argument("content")
+@click.argument("content", required=False, default="")
 def before(filepath, pattern, content):
     """Insertar contenido antes de un patrón."""
     print(f"Insertando antes de '{pattern}' en {filepath}")
@@ -118,10 +119,29 @@ def before(filepath, pattern, content):
 @main.command()
 @click.argument("filepath")
 @click.argument("pattern")
-@click.argument("content")
-def after(filepath, pattern, content):
+@click.argument("content", required=False, default="")
+@click.option('--from-stdin', is_flag=True, help='Leer contenido desde stdin para contenido multilínea')
+def after(filepath, pattern, content, from_stdin):
     """Insertar contenido después de un patrón."""
-    print(f"Insertando después de '{pattern}' en {filepath}")
+    # Si --from-stdin está activado, leer contenido desde stdin
+    if from_stdin:
+        content = sys.stdin.read().strip()
+    
+    try:
+        coordinator = AfterCoordinator()
+        result = coordinator.execute(filepath, pattern, content)
+        
+        if result.get('success', False):
+            click.echo(f"✅ Contenido insertado exitosamente después de '{pattern}' en {filepath}")
+            return 0
+        else:
+            error_msg = result.get('error', 'Error desconocido')
+            click.echo(f"❌ Error: {error_msg}", err=True)
+            return 1
+            
+    except Exception as e:
+        click.echo(f"❌ Error inesperado: {str(e)}", err=True)
+        return 1
 
 
 @main.command()

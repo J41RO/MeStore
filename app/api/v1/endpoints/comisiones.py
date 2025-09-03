@@ -26,6 +26,12 @@ from app.models.user import User
 from app.schemas.payout_request import PayoutRequestCreate, PayoutRequestRead
 from app.schemas.transaction import TransactionRead, MetodoPago
 
+from typing import Optional, List
+from sqlalchemy import select
+from app.schemas.payout_history import PayoutHistoryRead, PayoutHistoryListResponse
+from app.models.payout_history import PayoutHistory
+from app.models.payout_request import PayoutRequest
+
 
 @router.get("/", summary="Consultar comisiones por período")
 async def get_comisiones(
@@ -233,3 +239,74 @@ async def reportar_disputa_comision(
         dispute_id=new_dispute.id,
         estado=new_dispute.estado
     )
+
+# === ENDPOINTS PARA HISTORIAL DE PAYOUTS ===
+
+@router.get("/payout-history/{payout_id}", response_model=PayoutHistoryListResponse)
+async def obtener_historial_payout(
+    payout_id: int,
+    current_user = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Obtener historial completo de cambios de estado de un payout específico.
+    Solo el vendedor propietario o administradores pueden acceder.
+    """
+    # Verificar que el payout existe y pertenece al usuario
+    payout = await db.get(PayoutRequest, payout_id)
+    if not payout:
+        raise HTTPException(status_code=404, detail="Payout no encontrado")
+    
+    # Verificar permisos (propietario o admin)
+    if payout.vendedor_id != current_user.id and not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="No tienes permisos para ver este historial")
+    
+    # Obtener historial completo
+    historial_query = await db.execute(
+        select(PayoutHistory).where(PayoutHistory.payout_request_id == payout_id)
+        .order_by(PayoutHistory.fecha_cambio.desc())
+    )
+    historial = historial_query.scalars().all()
+    
+    return PayoutHistoryListResponse(
+        payout_request_id=payout_id,
+        total_cambios=len(historial),
+        historial=historial
+    )
+
+
+@router.get("/my-payout-history", response_model=List[PayoutHistoryRead])
+async def obtener_mi_historial_completo(
+    fecha_inicio: Optional[date] = Query(None, description="Fecha inicio filtro"),
+    fecha_fin: Optional[date] = Query(None, description="Fecha fin filtro"),
+    estado_filtro: Optional[str] = Query(None, description="Filtrar por estado específico"),
+    limit: int = Query(50, ge=1, le=100, description="Límite de resultados"),
+    offset: int = Query(0, ge=0, description="Offset para paginación"),
+    current_user = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Obtener historial completo de todos los payouts del vendedor actual.
+    Incluye filtros por fecha y estado, con paginación.
+    """
+    # Query base: historial de payouts del usuario actual
+    query = select(PayoutHistory).join(PayoutRequest).where(
+        PayoutRequest.vendedor_id == current_user.id
+    )
+    
+    # Aplicar filtros opcionales
+    if fecha_inicio:
+        query = query.where(PayoutHistory.fecha_cambio >= fecha_inicio)
+    if fecha_fin:
+        query = query.where(PayoutHistory.fecha_cambio <= fecha_fin)
+    if estado_filtro:
+        query = query.where(PayoutHistory.estado_nuevo == estado_filtro)
+    
+    # Aplicar ordenamiento y paginación
+    query = query.order_by(PayoutHistory.fecha_cambio.desc()).offset(offset).limit(limit)
+    
+    # Ejecutar query
+    result = await db.execute(query)
+    historial = result.scalars().all()
+    
+    return historial
