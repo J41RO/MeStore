@@ -906,8 +906,8 @@ async def get_dashboard_comisiones(
 
 @router.get("/dashboard/comparativa", response_model=DashboardComparativoResponse, status_code=status.HTTP_200_OK)
 async def get_dashboard_comparativa(
-    db: AsyncSession = Depends(get_async_db),
-    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
     periodo_actual: Optional[str] = Query(None, description="Período actual en formato YYYY-MM")
 ):
     """
