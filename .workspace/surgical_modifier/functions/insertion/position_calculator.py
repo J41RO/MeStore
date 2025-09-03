@@ -792,11 +792,11 @@ def calculate_position(content: str, target_pattern: str, position_type: Union[P
         lines = content.split('\n')
         return InsertionPosition(
             line_number=len(lines) - 1,
-            column_number=0,
+            column=0,
             position_type=position_type,
-            target_line=lines[-1] if lines else "",
-            suggested_content=""
+            indentation_level=0,
+            context_info={},
+            is_safe=True
         )
-    
     return result
     

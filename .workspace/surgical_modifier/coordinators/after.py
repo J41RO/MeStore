@@ -28,25 +28,48 @@ class AfterCoordinator:
         self.writer = ContentWriter()
         self.logger = logging.getLogger(__name__)
     
-    def execute(self, file_path: str, target: str, content_to_insert: str, **kwargs) -> Dict[str, Any]:
-        """Orquestador ligero - coordina functions para inserción after"""
+    def execute(self, file_path: str, target: str, content: str, **kwargs) -> Dict[str, Any]:
+        """Coordinador simplificado con lógica directa"""
         try:
+            # 1. Crear backup
             self.backup_manager.create_snapshot(file_path)
+            
+            # 2. Leer archivo
             read_result = self.reader.read_file(file_path)
+            if not read_result.get('success', False):
+                return {"success": False, "error": f"Failed to read file: {read_result.get('error', 'Unknown error')}"}
+            
             current_content = read_result['content']
-            indentation = self.indentation_detector.suggest_indentation(current_content)
-            position_obj = self.position_calculator.calculate_after_position(
-                current_content, target, content_to_insert)
-            formatted_obj = self.content_formatter.format_after_insertion(
-                content_to_insert, indentation)
-            lines = current_content.split('\n')
-            insert_position = position_obj.line_number + 1
-            lines.insert(insert_position, formatted_obj.content)
+            lines = current_content.splitlines()
+            
+            # 3. LÓGICA DIRECTA - encontrar línea target
+            line_index = -1
+            for i, line in enumerate(lines):
+                if target in line:
+                    line_index = i
+                    break
+                    
+            if line_index == -1:
+                return {"success": False, "error": f"Target '{target}' not found"}
+                
+            # 4. LÓGICA DIRECTA - insertar contenido DESPUÉS
+            insert_position = line_index + 1
+            if '\n' in content:
+                new_lines = content.split('\n')
+                # Insertar líneas en orden correcto
+                for i, new_line in enumerate(new_lines):
+                    lines.insert(insert_position + i, new_line)
+            else:
+                lines.insert(insert_position, content)
+                
+            # 5. ESCRIBIR DIRECTAMENTE
             new_content = '\n'.join(lines)
-            self.writer.write_file(file_path, new_content)
-            return {"success": True, "position": position_obj.line_number + 1,
-                    "context": {"position": position_obj.line_number + 1, "simplified": True},
-                    "validation": {"valid": True, "simplified": True}}
+            write_result = self.writer.write_file(file_path, new_content)
+            
+            if not write_result.get('success', False):
+                return {"success": False, "error": f"Failed to write file: {write_result.get('error', 'Unknown error')}"}
+            
+            return {"success": True, "message": "Content inserted after target"}
+            
         except Exception as e:
-            self.logger.error(f"Error in after operation: {e}")
-            return {"success": False, "error": f"Error in after operation: {str(e)}"}
+            return {"success": False, "error": str(e)}
