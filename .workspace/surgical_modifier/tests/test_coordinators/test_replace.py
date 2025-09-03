@@ -22,8 +22,8 @@ class TestReplaceCoordinatorPatternFactory:
         """Test que REPLACE llama PatternMatcherFactory.get_optimized_matcher() correctamente"""
         with patch.object(self.coordinator, 'pattern_factory') as mock_factory:
             mock_matcher = Mock()
-            mock_matcher.find_matches.return_value = {'matches': [{'match': 'old_code'}]}
-            mock_matcher.replace_pattern.return_value = {'new_text': 'new_code content', 'success': True}
+            mock_matcher.find_all.return_value = [{'match': 'old_code'}]
+            mock_matcher.replace_literal.return_value = {'new_text': 'new_code content', 'success': True}
             mock_factory.get_optimized_matcher.return_value = mock_matcher
             
             # Mock other dependencies
@@ -41,9 +41,9 @@ class TestReplaceCoordinatorPatternFactory:
                 result = self.coordinator.execute(self.test_file_path, self.test_pattern, self.test_replacement)
                 
                 # Verificar llamadas
-                mock_factory.get_optimized_matcher.assert_called_once_with('regex')
-                mock_matcher.find_matches.assert_called_once_with(self.test_pattern, 'old_code content')
-                mock_matcher.replace_pattern.assert_called_once_with(self.test_pattern, self.test_replacement, 'old_code content')
+                mock_factory.get_optimized_matcher.assert_called_once_with('literal')
+                mock_matcher.find_all.assert_called_once_with('old_code content', self.test_pattern)
+                mock_matcher.replace_literal.assert_called_once_with(self.test_pattern, self.test_replacement, 'old_code content')
                 assert result['success'] is True
 
 class TestReplaceCoordinatorBackupManager:
@@ -67,8 +67,8 @@ class TestReplaceCoordinatorBackupManager:
                  patch.object(self.coordinator, 'validator') as mock_validator:
                 
                 mock_matcher = Mock()
-                mock_matcher.find_matches.return_value = {'matches': [{'match': 'pattern'}]}
-                mock_matcher.replace_pattern.return_value = {'new_text': 'new content', 'success': True}
+                mock_matcher.find_all.return_value = [{'match': 'pattern'}]
+                mock_matcher.replace_literal.return_value = {'new_text': 'new content', 'success': True}
                 mock_factory.get_optimized_matcher.return_value = mock_matcher
                 mock_reader.read_file.return_value = {'success': True, 'content': 'content'}
                 mock_writer.write_file.return_value = {'success': True}
@@ -104,8 +104,8 @@ class TestReplaceCoordinatorContentOperations:
             mock_validator.validate_file.return_value = {'valid': True}
             
             mock_matcher = Mock()
-            mock_matcher.find_matches.return_value = {'matches': [{'match': 'original'}]}
-            mock_matcher.replace_pattern.return_value = {'new_text': 'modified content', 'success': True}
+            mock_matcher.find_all.return_value = [{'match': 'original'}]
+            mock_matcher.replace_literal.return_value = {'new_text': 'modified content', 'success': True}
             mock_factory.get_optimized_matcher.return_value = mock_matcher
             
             result = self.coordinator.execute(self.test_file_path, 'original', 'modified')

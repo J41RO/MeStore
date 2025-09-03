@@ -25,10 +25,38 @@ def main(verbose, dry_run):
 
 @main.command()
 @click.argument("filepath")
+@click.argument("content", required=False, default="")
 @click.option("--template", help="Tipo de template a usar")
-def create(filepath, template):
-    """Crear nuevos archivos con templates."""
-    print(f"Creando {filepath} con template {template}")
+@click.option("--from-stdin", is_flag=True, help="Leer contenido desde stdin")
+def create(filepath, content, template, from_stdin):
+    """Crear nuevos archivos con contenido directo o templates."""
+    try:
+        # Validar que no se usen ambas opciones
+        if content and from_stdin:
+            click.echo("Error: No se puede usar contenido directo y --from-stdin simultáneamente", err=True)
+            return
+            
+        # Leer desde stdin si se especifica
+        if from_stdin:
+            content = sys.stdin.read()
+            
+        # Crear directorio padre si no existe
+        filepath_obj = Path(filepath)
+        filepath_obj.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Verificar si archivo existe
+        if filepath_obj.exists():
+            click.echo(f"Error: El archivo {filepath} ya existe", err=True)
+            return
+            
+        # Escribir archivo
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(content)
+            
+        click.echo(f"✅ Archivo {filepath} creado exitosamente")
+        
+    except Exception as e:
+        click.echo(f"Error creando archivo: {e}", err=True)
 
 
 @main.command()

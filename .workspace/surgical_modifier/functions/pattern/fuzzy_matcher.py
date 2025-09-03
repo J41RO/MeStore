@@ -180,28 +180,31 @@ class FuzzyMatcher(BaseMatcher):
             return {'success': False, 'error': f'Fuzzy match error: {e}'}
 
     def find_all_fuzzy_matches(self, pattern: str, text: str, threshold: float = None) -> Dict[str, Any]:
-        """Encontrar todos los matches aproximados usando lógica exitosa de find_fuzzy_match"""
+        """Encontrar todos los matches aproximados en el texto"""
         if not pattern:
             return {'success': False, 'error': 'Empty pattern'}
 
         threshold = threshold or self.default_threshold
 
-        # Usar la lógica exitosa de find_fuzzy_match
-        result = self.find_fuzzy_match(pattern, text, threshold)
-        if result.get('success') and result.get('found'):
-            return {
-                'success': True,
-                'pattern': pattern,
-                'matches': [result],
-                'count': 1,
-                'threshold': threshold
-            }
-
+        # Buscar todos los matches fuzzy en cada palabra
+        words = text.split()
+        matches = []
+        
+        for word in words:
+            similarity = difflib.SequenceMatcher(None, pattern.lower(), word.lower()).ratio()
+            if similarity >= threshold:
+                matches.append({
+                    'match': word,
+                    'position': text.find(word),
+                    'similarity': similarity,
+                    'found': True
+                })
+        
         return {
             'success': True,
             'pattern': pattern,
-            'matches': [],
-            'count': 0,
+            'matches': matches,
+            'count': len(matches),
             'threshold': threshold
         }
 
