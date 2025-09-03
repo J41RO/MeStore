@@ -3,19 +3,15 @@ import { Download, DollarSign, Calendar, BarChart3 } from 'lucide-react';
 import { useCommissions } from '../../hooks/useCommissions';
 import CommissionTable from './CommissionTable';
 import CommissionCharts from './CommissionCharts';
+import ExportModal from './ExportModal';
 import { CommissionReportProps } from '../../types/commission.types';
 
 const CommissionReport: React.FC<CommissionReportProps> = ({
  className = '',
-
  defaultFilters = {}
 }) => {
  const { commissions, isLoading, totalCommissions, totalSales, breakdown } = useCommissions(defaultFilters);
  const [currentView, setCurrentView] = useState<'summary' | 'table' | 'charts'>('summary');
-
- const handleExport = () => {
-   console.log('Exportando reporte de comisiones...');
- };
 
  if (isLoading) {
    return (
@@ -36,13 +32,15 @@ const CommissionReport: React.FC<CommissionReportProps> = ({
            <h1 className="text-2xl font-bold text-gray-900">Reporte de Comisiones</h1>
            <p className="text-gray-600">Análisis detallado de tus comisiones</p>
          </div>
-         <button
-           onClick={handleExport}
-           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-         >
-           <Download size={16} />
-           Exportar
-         </button>
+         <ExportModal 
+           defaultTipoReporte="comisiones"
+           trigger={
+             <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+               <Download size={16} />
+               Exportar
+             </button>
+           }
+         />
        </div>
 
        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -100,7 +98,7 @@ const CommissionReport: React.FC<CommissionReportProps> = ({
      <div className="bg-white rounded-lg shadow-sm border p-6">
        {currentView === 'summary' && (
          <div>
-           <h2 className="text-lg font-semibold mb-4">Resumen de Comisiones</h2>           
+           <h2 className="text-lg font-semibold mb-4">Resumen de Comisiones</h2>
            {/* Métricas de Breakdown Detallado */}
            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -110,7 +108,7 @@ const CommissionReport: React.FC<CommissionReportProps> = ({
                </p>
                <p className="text-xs text-blue-600">Por producto vendido</p>
              </div>
-             
+
              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                <h3 className="text-sm font-medium text-green-800 mb-1">Total por Categorías</h3>
                <p className="text-2xl font-bold text-green-900">
@@ -118,7 +116,7 @@ const CommissionReport: React.FC<CommissionReportProps> = ({
                </p>
                <p className="text-xs text-green-600">Categorías activas</p>
              </div>
-             
+
              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                <h3 className="text-sm font-medium text-yellow-800 mb-1">Status Breakdown</h3>
                <p className="text-2xl font-bold text-yellow-900">
@@ -149,14 +147,14 @@ const CommissionReport: React.FC<CommissionReportProps> = ({
            </div>
          </div>
        )}
-       
+
        {currentView === 'table' && (
          <div>
            <h2 className="text-lg font-semibold mb-4">Detalle de Comisiones</h2>
            <CommissionTable commissions={commissions} />
          </div>
        )}
-       
+
        {currentView === 'charts' && (
          <div>
            <h2 className="text-lg font-semibold mb-4">Gráficos y Análisis</h2>

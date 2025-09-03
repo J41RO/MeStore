@@ -366,8 +366,8 @@
 🔁 1.5.6 Reportes de ventas y comisiones
     ✅ 1.5.6.1 Crear SalesReport con gráficos por período y producto
     ✅ 1.5.6.2 Implementar CommissionReport con breakdown detallado
-    ⬜ 1.5.6.3 Añadir filtros de fecha, estado y método de pago
-    ⬜ 1.5.6.4 Crear exportación a PDF/Excel con react-pdf/xlsx
+    ✅ 1.5.6.3 Añadir filtros de fecha, estado y método de pago
+    ✅ 1.5.6.4 Crear exportación a PDF/Excel con react-pdf/xlsx
     ⬜ 1.5.6.5 Implementar PayoutHistory con tracking de transferencias
     ⬜ 1.5.6.6 Añadir comparativa período actual vs anterior con KPIs
 

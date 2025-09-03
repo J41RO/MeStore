@@ -49,11 +49,13 @@ class ReplaceWorkflow:
             original_content = content_result.get('content', '')
             
             # FASE 4: Pattern matching
-            matcher = pattern_factory.get_optimized_matcher('regex')
-            match_result = matcher.find_matches(pattern, original_content)
+            # Selección dinámica de matcher basada en parámetros
+            matcher_type = kwargs.get('matcher_type', 'literal')  # default literal
+            matcher = pattern_factory.get_optimized_matcher(matcher_type)
+            match_result = matcher.find_all(original_content, pattern)
             phases_completed.append('pattern_matching')
             
-            if not match_result.get('matches'):
+            if not match_result:
                 return {
                     'success': False,
                     'error': 'Pattern not found',
@@ -63,7 +65,11 @@ class ReplaceWorkflow:
                 }
             
             # FASE 5: Realizar replacement
-            replace_result = matcher.replace_pattern(pattern, replacement, original_content)
+            # Usar método apropiado según el tipo de matcher
+            if matcher_type == 'regex':
+                replace_result = matcher.replace_pattern(pattern, replacement, original_content)
+            else:
+                replace_result = matcher.replace_literal(pattern, replacement, original_content)
             new_content = replace_result.get("new_text", original_content)
             phases_completed.append('content_replacement')
             
@@ -86,7 +92,7 @@ class ReplaceWorkflow:
                 'file_path': file_path,
                 'pattern': pattern,
                 'replacement': replacement,
-                'matches_found': len(match_result.get('matches', [])),
+                'matches_found': len(match_result),
                 'backup_created': backup_path,
                 'phases_completed': phases_completed,
                 'validation': validation_result
