@@ -43,7 +43,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({ className = '' }) => {
       icon: Package,
       bgColor: 'bg-blue-50 hover:bg-blue-100',
       iconColor: 'text-blue-600',
-      onClick: () => setIsAddProductOpen(true)
+      onClick: () => setIsAddProductOpen(true),
     },
     {
       id: 'view-comisions',
@@ -52,7 +52,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({ className = '' }) => {
       icon: DollarSign,
       bgColor: 'bg-green-50 hover:bg-green-100',
       iconColor: 'text-green-600',
-      onClick: () => setIsComisionesOpen(true)
+      onClick: () => setIsComisionesOpen(true),
     },
     {
       id: 'contact-support',
@@ -61,19 +61,21 @@ const QuickActions: React.FC<QuickActionsProps> = ({ className = '' }) => {
       icon: HelpCircle,
       bgColor: 'bg-purple-50 hover:bg-purple-100',
       iconColor: 'text-purple-600',
-      onClick: () => setIsSoporteOpen(true)
-    }
+      onClick: () => setIsSoporteOpen(true),
+    },
   ];
 
   return (
     <>
-      <div className={`bg-white rounded-lg shadow-sm border border-gray-200 p-6 ${className}`}>
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+      <div
+        className={`bg-white rounded-lg shadow-sm border border-gray-200 p-6 ${className}`}
+      >
+        <h2 className='text-lg font-semibold text-gray-900 mb-4'>
           Acciones Rápidas
         </h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {quickActionItems.map((item) => {
+
+        <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+          {quickActionItems.map(item => {
             const IconComponent = item.icon;
             return (
               <button
@@ -81,12 +83,12 @@ const QuickActions: React.FC<QuickActionsProps> = ({ className = '' }) => {
                 onClick={item.onClick}
                 className={`${item.bgColor} p-4 rounded-lg border border-gray-200 transition-all duration-200 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
               >
-                <div className="flex flex-col items-center text-center space-y-2">
+                <div className='flex flex-col items-center text-center space-y-2'>
                   <IconComponent className={`w-8 h-8 ${item.iconColor}`} />
-                  <h3 className="font-medium text-gray-900 text-sm">
+                  <h3 className='font-medium text-gray-900 text-sm'>
                     {item.title}
                   </h3>
-                  <p className="text-xs text-gray-600 hidden sm:block">
+                  <p className='text-xs text-gray-600 hidden sm:block'>
                     {item.description}
                   </p>
                 </div>
@@ -97,17 +99,17 @@ const QuickActions: React.FC<QuickActionsProps> = ({ className = '' }) => {
       </div>
 
       {/* Modales funcionales */}
-      <AddProductModal 
-        isOpen={isAddProductOpen} 
-        onClose={() => setIsAddProductOpen(false)} 
+      <AddProductModal
+        isOpen={isAddProductOpen}
+        onClose={() => setIsAddProductOpen(false)}
       />
-      <ComisionesModal 
-        isOpen={isComisionesOpen} 
-        onClose={() => setIsComisionesOpen(false)} 
+      <ComisionesModal
+        isOpen={isComisionesOpen}
+        onClose={() => setIsComisionesOpen(false)}
       />
-      <SoporteModal 
-        isOpen={isSoporteOpen} 
-        onClose={() => setIsSoporteOpen(false)} 
+      <SoporteModal
+        isOpen={isSoporteOpen}
+        onClose={() => setIsSoporteOpen(false)}
       />
     </>
   );

@@ -5,7 +5,7 @@ import DashboardLayout from '../DashboardLayout';
 
 // Mock useLocation
 const mockLocation = {
-  pathname: '/dashboard'
+  pathname: '/dashboard',
 };
 
 const mockNavigate = jest.fn();
@@ -13,10 +13,14 @@ const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useLocation: () => mockLocation,
-  useNavigate: () => mockNavigate
+  useNavigate: () => mockNavigate,
 }));
 
-const DashboardLayoutWrapper = ({ children }: { children: React.ReactNode }) => (
+const DashboardLayoutWrapper = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => (
   <BrowserRouter>
     <DashboardLayout>{children}</DashboardLayout>
   </BrowserRouter>
@@ -59,13 +63,13 @@ describe('DashboardLayout', () => {
 
     // Encontrar botón hamburger
     const mobileMenuButton = screen.getByRole('button');
-    
+
     // Verificar que el overlay no está visible inicialmente
     expect(screen.queryByTestId('mobile-overlay')).not.toBeInTheDocument();
-    
+
     // Hacer click en el botón
     fireEvent.click(mobileMenuButton);
-    
+
     // Verificar que se puede interactuar con el sidebar mobile
     const mobileSidebar = document.querySelector('.translate-x-0');
     expect(mobileSidebar).toBeInTheDocument();

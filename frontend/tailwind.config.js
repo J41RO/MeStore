@@ -2,17 +2,17 @@
 export default {
   darkMode: 'class', // Enable class-based dark mode
   content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-    "./src/**/*.{html,md}",
-    "./src/components/**/*.tsx",
-    "./src/pages/**/*.tsx",
-    "./src/hooks/**/*.ts",
-    "./src/utils/**/*.ts",
+    './index.html',
+    './src/**/*.{js,ts,jsx,tsx}',
+    './src/**/*.{html,md}',
+    './src/components/**/*.tsx',
+    './src/pages/**/*.tsx',
+    './src/hooks/**/*.ts',
+    './src/utils/**/*.ts',
   ],
   safelist: [
     'bg-primary-500',
-    'bg-primary-600', 
+    'bg-primary-600',
     'hover:bg-primary-600',
     'bg-secondary-500',
     'bg-secondary-600',
@@ -24,7 +24,7 @@ export default {
     'focus:ring-primary-500',
     'rounded-lg',
     'rounded-md',
-    
+
     // Dark mode classes
     'dark:bg-neutral-800',
     'dark:bg-neutral-900',
@@ -47,7 +47,7 @@ export default {
           700: '#1d4ed8',
           800: '#1e40af',
           900: '#1e3a8a',
-          950: '#172554'
+          950: '#172554',
         },
         secondary: {
           50: '#ecfdf5',
@@ -60,7 +60,7 @@ export default {
           700: '#047857',
           800: '#065f46',
           900: '#064e3b',
-          950: '#022c22'
+          950: '#022c22',
         },
         accent: {
           50: '#fef7ec',
@@ -73,7 +73,7 @@ export default {
           700: '#c2410c',
           800: '#9a3412',
           900: '#7c2d12',
-          950: '#431407'
+          950: '#431407',
         },
         neutral: {
           50: '#fafafa',
@@ -86,75 +86,78 @@ export default {
           700: '#404040',
           800: '#262626',
           900: '#171717',
-          950: '#0a0a0a'
+          950: '#0a0a0a',
         },
         mestocker: {
           blue: '#3b82f6',
           green: '#10b981',
           orange: '#f97316',
           red: '#ef4444',
-          yellow: '#eab308'
-        }
+          yellow: '#eab308',
+        },
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         heading: ['Poppins', 'Inter', 'sans-serif'],
-        mono: ['JetBrains Mono', 'Consolas', 'Monaco', 'monospace']
+        mono: ['JetBrains Mono', 'Consolas', 'Monaco', 'monospace'],
       },
       fontSize: {
-        'xs': ['0.75rem', { lineHeight: '1rem' }],
-        'sm': ['0.875rem', { lineHeight: '1.25rem' }],
-        'base': ['1rem', { lineHeight: '1.5rem' }],
-        'lg': ['1.125rem', { lineHeight: '1.75rem' }],
-        'xl': ['1.25rem', { lineHeight: '1.75rem' }],
+        xs: ['0.75rem', { lineHeight: '1rem' }],
+        sm: ['0.875rem', { lineHeight: '1.25rem' }],
+        base: ['1rem', { lineHeight: '1.5rem' }],
+        lg: ['1.125rem', { lineHeight: '1.75rem' }],
+        xl: ['1.25rem', { lineHeight: '1.75rem' }],
         '2xl': ['1.5rem', { lineHeight: '2rem' }],
         '3xl': ['1.875rem', { lineHeight: '2.25rem' }],
         '4xl': ['2.25rem', { lineHeight: '2.5rem' }],
         '5xl': ['3rem', { lineHeight: '1' }],
       },
       spacing: {
-        '18': '4.5rem',
-        '88': '22rem',
-        '128': '32rem',
-        '144': '36rem',
+        18: '4.5rem',
+        88: '22rem',
+        128: '32rem',
+        144: '36rem',
       },
       borderRadius: {
-        'none': '0',
-        'sm': '0.125rem',
-        'DEFAULT': '0.375rem',
-        'md': '0.5rem',
-        'lg': '0.75rem',
-        'xl': '1rem',
+        none: '0',
+        sm: '0.125rem',
+        DEFAULT: '0.375rem',
+        md: '0.5rem',
+        lg: '0.75rem',
+        xl: '1rem',
         '2xl': '1.5rem',
-        'full': '9999px',
+        full: '9999px',
       },
       boxShadow: {
         'mestocker-sm': '0 1px 2px 0 rgba(59, 130, 246, 0.05)',
-        'mestocker': '0 4px 6px -1px rgba(59, 130, 246, 0.1), 0 2px 4px -1px rgba(59, 130, 246, 0.06)',
-        'mestocker-lg': '0 10px 15px -3px rgba(59, 130, 246, 0.1), 0 4px 6px -2px rgba(59, 130, 246, 0.05)',
-        'mestocker-xl': '0 20px 25px -5px rgba(59, 130, 246, 0.1), 0 10px 10px -5px rgba(59, 130, 246, 0.04)',
+        mestocker:
+          '0 4px 6px -1px rgba(59, 130, 246, 0.1), 0 2px 4px -1px rgba(59, 130, 246, 0.06)',
+        'mestocker-lg':
+          '0 10px 15px -3px rgba(59, 130, 246, 0.1), 0 4px 6px -2px rgba(59, 130, 246, 0.05)',
+        'mestocker-xl':
+          '0 20px 25px -5px rgba(59, 130, 246, 0.1), 0 10px 10px -5px rgba(59, 130, 246, 0.04)',
       },
       // Breakpoints personalizados para mobile/tablet/desktop
       screens: {
-        'xs': '475px',     // Extra small devices (large phones)
-        'sm': '640px',     // Small devices (landscape phones)
-        'md': '768px',     // Medium devices (tablets)
-        'lg': '1024px',    // Large devices (desktops)
-        'xl': '1280px',    // Extra large devices (large desktops)
-        '2xl': '1536px',   // 2X Extra large devices (larger desktops)
-        
+        xs: '475px', // Extra small devices (large phones)
+        sm: '640px', // Small devices (landscape phones)
+        md: '768px', // Medium devices (tablets)
+        lg: '1024px', // Large devices (desktops)
+        xl: '1280px', // Extra large devices (large desktops)
+        '2xl': '1536px', // 2X Extra large devices (larger desktops)
+
         // Breakpoints específicos para el proyecto
-        'mobile': '475px',       // Móviles en landscape
-        'tablet': '768px',       // Tablets
-        'desktop': '1024px',     // Desktop estándar
-        'desktop-lg': '1280px',  // Desktop grande
-        
+        mobile: '475px', // Móviles en landscape
+        tablet: '768px', // Tablets
+        desktop: '1024px', // Desktop estándar
+        'desktop-lg': '1280px', // Desktop grande
+
         // Breakpoints para rangos específicos
-        'tablet-only': {'min': '768px', 'max': '1023px'},
-        'desktop-only': {'min': '1024px'},
-        'mobile-only': {'max': '767px'}
-      }
+        'tablet-only': { min: '768px', max: '1023px' },
+        'desktop-only': { min: '1024px' },
+        'mobile-only': { max: '767px' },
+      },
     },
   },
   plugins: [],
-}
+};

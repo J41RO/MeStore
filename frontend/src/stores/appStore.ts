@@ -6,7 +6,7 @@
 // ---------------------------------------------------------------------------------------------
 /**
  * AppStore - Estado global de la aplicación con Zustand
- * 
+ *
  * Maneja:
  * - Theme y apariencia (dark/light/auto)
  * - Estado de UI (sidebar, modals, loading)
@@ -20,16 +20,16 @@ import { create } from 'zustand';
 import { persist, devtools } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { enableMapSet } from 'immer';
-import { ENV } from "../utils/env";
-import { 
-  AppStoreType, 
-  AppTheme, 
-  Language, 
-  Currency, 
-  NotificationItem, 
+import { ENV } from '../utils/env';
+import {
+  AppStoreType,
+  AppTheme,
+  Language,
+  Currency,
+  NotificationItem,
   AlertItem,
   AppConfig,
-  PerformanceState
+  PerformanceState,
 } from '../types/app.types';
 
 // Configuración por defecto
@@ -37,24 +37,24 @@ const defaultConfig: AppConfig = {
   language: 'es',
   currency: 'USD',
   timezone: 'America/Mexico_City',
-  
+
   features: {
     darkModeEnabled: true,
     notificationsEnabled: true,
     analyticsEnabled: false,
-    betaFeaturesEnabled: false
+    betaFeaturesEnabled: false,
   },
-  
+
   api: {
     baseUrl: ENV.API_BASE_URL,
     timeout: 30000,
-    retryAttempts: 3
+    retryAttempts: 3,
   },
-  
+
   cache: {
     enabled: true,
-    ttl: 5 // 5 minutos
-  }
+    ttl: 5, // 5 minutos
+  },
 };
 
 // Estado inicial de performance
@@ -62,13 +62,16 @@ const initialPerformance: PerformanceState = {
   lastUpdate: new Date().toISOString(),
   renderCount: 0,
   errorCount: 0,
-  averageResponseTime: 0
+  averageResponseTime: 0,
 };
 
 // Función para detectar dark mode del sistema
 const getSystemDarkMode = (): boolean => {
   if (typeof window !== 'undefined') {
-    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return (
+      window.matchMedia &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches
+    );
   }
   return false;
 };
@@ -102,35 +105,35 @@ export const useAppStore = create<AppStoreType>()(
         sidebarCollapsed: false,
         isAppLoading: false,
         isPageTransitioning: false,
-        
+
         // Error handling centralizado
         globalError: null,
         activeRequests: new Set<string>(),
         hasActiveRequests: false,
-        
+
         // Estados de modal y overlay
         activeModal: null,
         modalData: null,
         notifications: [],
         alerts: [],
-        
+
         // Configuración inicial
         config: defaultConfig,
-        
+
         // Performance inicial
         performance: initialPerformance,
-        
+
         // Meta información
         version: '1.0.0',
         buildNumber: ENV.BUILD_NUMBER,
         environment: ENV.MODE,
-        
+
         // ACCIONES DE THEME
         setTheme: (theme: AppTheme) => {
-          set((state) => {
+          set(state => {
             state.theme = theme;
             state.isDarkMode = calculateIsDarkMode(theme);
-            
+
             // Aplicar theme al DOM
             if (typeof window !== 'undefined') {
               const root = window.document.documentElement;
@@ -142,60 +145,61 @@ export const useAppStore = create<AppStoreType>()(
             }
           });
         },
-        
+
         toggleTheme: () => {
           const currentTheme = get().theme;
-          const newTheme: AppTheme = currentTheme === 'light' ? 'dark' : 'light';
+          const newTheme: AppTheme =
+            currentTheme === 'light' ? 'dark' : 'light';
           get().setTheme(newTheme);
         },
-        
+
         // ACCIONES DE UI
         setSidebarOpen: (open: boolean) => {
-          set((state) => {
+          set(state => {
             state.sidebarOpen = open;
           });
         },
-        
+
         toggleSidebar: () => {
-          set((state) => {
+          set(state => {
             state.sidebarOpen = !state.sidebarOpen;
           });
         },
-        
+
         setSidebarCollapsed: (collapsed: boolean) => {
-          set((state) => {
+          set(state => {
             state.sidebarCollapsed = collapsed;
           });
         },
-        
+
         // ACCIONES DE LOADING
         setAppLoading: (loading: boolean) => {
-          set((state) => {
+          set(state => {
             state.isAppLoading = loading;
           });
         },
-        
+
         setPageTransitioning: (transitioning: boolean) => {
-          set((state) => {
+          set(state => {
             state.isPageTransitioning = transitioning;
           });
         },
-        
+
         // ACCIONES DE ERROR HANDLING CENTRALIZADO
         setGlobalError: (error: string | null) => {
-          set((state) => {
+          set(state => {
             state.globalError = error;
           });
         },
 
         clearGlobalError: () => {
-          set((state) => {
+          set(state => {
             state.globalError = null;
           });
         },
 
         setRequestLoading: (requestId: string, loading: boolean) => {
-          set((state) => {
+          set(state => {
             if (loading) {
               state.activeRequests.add(requestId);
             } else {
@@ -204,39 +208,39 @@ export const useAppStore = create<AppStoreType>()(
             state.hasActiveRequests = state.activeRequests.size > 0;
           });
         },
-        
+
         // ACCIONES DE MODAL
         openModal: (modalId: string, data?: any) => {
-          set((state) => {
+          set(state => {
             state.activeModal = modalId;
             state.modalData = data || null;
           });
         },
-        
+
         closeModal: () => {
-          set((state) => {
+          set(state => {
             state.activeModal = null;
             state.modalData = null;
           });
         },
-        
+
         // ACCIONES DE NOTIFICACIONES
-        addNotification: (notification) => {
-          set((state) => {
+        addNotification: notification => {
+          set(state => {
             const newNotification: NotificationItem = {
               ...notification,
               id: `notification_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
               timestamp: new Date().toISOString(),
-              isRead: false
+              isRead: false,
             };
-            
+
             state.notifications.unshift(newNotification);
-            
+
             // Limitar a máximo 50 notificaciones
             if (state.notifications.length > 50) {
               state.notifications = state.notifications.slice(0, 50);
             }
-            
+
             // Auto-remover notificaciones con autoClose
             if (newNotification.autoClose && newNotification.duration) {
               setTimeout(() => {
@@ -245,78 +249,78 @@ export const useAppStore = create<AppStoreType>()(
             }
           });
         },
-        
+
         removeNotification: (id: string) => {
-          set((state) => {
+          set(state => {
             state.notifications = state.notifications.filter(n => n.id !== id);
           });
         },
-        
+
         markNotificationAsRead: (id: string) => {
-          set((state) => {
+          set(state => {
             const notification = state.notifications.find(n => n.id === id);
             if (notification) {
               notification.isRead = true;
             }
           });
         },
-        
+
         clearAllNotifications: () => {
-          set((state) => {
+          set(state => {
             state.notifications = [];
           });
         },
-        
+
         // ACCIONES DE ALERTS
-        showAlert: (alert) => {
-          set((state) => {
+        showAlert: alert => {
+          set(state => {
             const newAlert: AlertItem = {
               ...alert,
               id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-              isVisible: true
+              isVisible: true,
             };
-            
+
             state.alerts.push(newAlert);
           });
         },
-        
+
         hideAlert: (id: string) => {
-          set((state) => {
+          set(state => {
             const alert = state.alerts.find(a => a.id === id);
             if (alert) {
               alert.isVisible = false;
             }
           });
         },
-        
+
         clearAllAlerts: () => {
-          set((state) => {
+          set(state => {
             state.alerts = [];
           });
         },
-        
+
         // ACCIONES DE CONFIGURACIÓN
-        updateConfig: (configUpdate) => {
-          set((state) => {
+        updateConfig: configUpdate => {
+          set(state => {
             state.config = { ...state.config, ...configUpdate };
           });
         },
-        
+
         updateLanguage: (language: Language) => {
-          set((state) => {
+          set(state => {
             state.config.language = language;
           });
         },
-        
+
         updateCurrency: (currency: Currency) => {
-          set((state) => {
+          set(state => {
             state.config.currency = currency;
           });
         },
-        
+
         // ACCIONES DE UTILIDAD
         resetAppState: () => {
-          set((state) => {
+          set(state => {
             // Reset solo UI state, mantener configuración
             state.sidebarOpen = true;
             state.sidebarCollapsed = false;
@@ -332,26 +336,26 @@ export const useAppStore = create<AppStoreType>()(
             state.hasActiveRequests = false;
           });
         },
-        
-        updatePerformanceMetrics: (metrics) => {
-          set((state) => {
+
+        updatePerformanceMetrics: metrics => {
+          set(state => {
             state.performance = { ...state.performance, ...metrics };
             state.performance.lastUpdate = new Date().toISOString();
           });
-        }
+        },
       })),
       {
         name: 'mestore-app-state',
         // Persistir solo configuración y theme, no UI state temporal
-        partialize: (state) => ({
+        partialize: state => ({
           theme: state.theme,
           config: state.config,
-          sidebarCollapsed: state.sidebarCollapsed
-        })
+          sidebarCollapsed: state.sidebarCollapsed,
+        }),
       }
     ),
     {
-      name: 'AppStore'
+      name: 'AppStore',
     }
   )
 );
@@ -361,36 +365,38 @@ export const appSelectors = {
   // Selectores de theme
   theme: (state: AppStoreType) => state.theme,
   isDarkMode: (state: AppStoreType) => state.isDarkMode,
-  
+
   // Selectores de UI
   sidebarState: (state: AppStoreType) => ({
     isOpen: state.sidebarOpen,
-    isCollapsed: state.sidebarCollapsed
+    isCollapsed: state.sidebarCollapsed,
   }),
-  
+
   loadingState: (state: AppStoreType) => ({
     isAppLoading: state.isAppLoading,
     isPageTransitioning: state.isPageTransitioning,
-    hasActiveRequests: state.hasActiveRequests
+    hasActiveRequests: state.hasActiveRequests,
   }),
-  
+
   errorState: (state: AppStoreType) => ({
     globalError: state.globalError,
-    hasError: state.globalError !== null
+    hasError: state.globalError !== null,
   }),
-  
+
   modalState: (state: AppStoreType) => ({
     activeModal: state.activeModal,
-    modalData: state.modalData
+    modalData: state.modalData,
   }),
-  
+
   // Selectores de notificaciones
-  unreadNotifications: (state: AppStoreType) => state.notifications.filter(n => !n.isRead),
-  notificationCount: (state: AppStoreType) => state.notifications.filter(n => !n.isRead).length,
+  unreadNotifications: (state: AppStoreType) =>
+    state.notifications.filter(n => !n.isRead),
+  notificationCount: (state: AppStoreType) =>
+    state.notifications.filter(n => !n.isRead).length,
   visibleAlerts: (state: AppStoreType) => state.alerts.filter(a => a.isVisible),
-  
+
   // Selectores de configuración
   language: (state: AppStoreType) => state.config.language,
   currency: (state: AppStoreType) => state.config.currency,
-  apiConfig: (state: AppStoreType) => state.config.api
+  apiConfig: (state: AppStoreType) => state.config.api,
 };

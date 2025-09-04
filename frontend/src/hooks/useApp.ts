@@ -6,7 +6,7 @@
 // ---------------------------------------------------------------------------------------------
 /**
  * Hook simplificado para manejo del estado global de la app
- * 
+ *
  * Proporciona interfaz limpia para componentes que necesitan estado global
  */
 
@@ -29,7 +29,7 @@ export const useApp = () => {
   const alerts = useAppStore(state => state.alerts);
   const language = useAppStore(state => state.config.language);
   const currency = useAppStore(state => state.config.currency);
-  
+
   // Acciones del store
   const {
     setTheme,
@@ -50,9 +50,9 @@ export const useApp = () => {
     clearAllAlerts,
     updateLanguage,
     updateCurrency,
-    resetAppState
+    resetAppState,
   } = useAppStore();
-  
+
   // Métodos de conveniencia para notificaciones
   const showSuccessNotification = (title: string, message: string) => {
     addNotification({
@@ -60,81 +60,81 @@ export const useApp = () => {
       title,
       message,
       autoClose: true,
-      duration: 5000
+      duration: 5000,
     });
   };
-  
+
   const showErrorNotification = (title: string, message: string) => {
     addNotification({
       type: 'error',
       title,
       message,
       autoClose: true,
-      duration: 8000
+      duration: 8000,
     });
   };
-  
+
   const showInfoNotification = (title: string, message: string) => {
     addNotification({
       type: 'info',
       title,
       message,
       autoClose: true,
-      duration: 6000
+      duration: 6000,
     });
   };
-  
+
   const showWarningNotification = (title: string, message: string) => {
     addNotification({
       type: 'warning',
       title,
       message,
       autoClose: true,
-      duration: 7000
+      duration: 7000,
     });
   };
-  
+
   // Métodos de conveniencia para alerts
   const showSuccessAlert = (message: string, persistent = false) => {
     showAlert({
       type: 'success',
       message,
       isDismissible: true,
-      persistent
+      persistent,
     });
   };
-  
+
   const showErrorAlert = (message: string, persistent = true) => {
     showAlert({
       type: 'error',
       message,
       isDismissible: true,
-      persistent
+      persistent,
     });
   };
-  
+
   // Métodos de tema
   const enableDarkMode = () => setTheme('dark');
   const enableLightMode = () => setTheme('light');
   const enableAutoMode = () => setTheme('auto');
-  
+
   // Métodos de sidebar
   const openSidebar = () => setSidebarOpen(true);
   const closeSidebar = () => setSidebarOpen(false);
   const expandSidebar = () => setSidebarCollapsed(false);
   const collapseSidebar = () => setSidebarCollapsed(true);
-  
+
   // Métodos de loading
   const showAppLoading = () => setAppLoading(true);
   const hideAppLoading = () => setAppLoading(false);
   const showPageTransition = () => setPageTransitioning(true);
   const hidePageTransition = () => setPageTransitioning(false);
-  
+
   // Métodos de modal
   const openConfirmModal = (data: any) => openModal('confirm', data);
   const openSettingsModal = () => openModal('settings');
   const openProfileModal = () => openModal('profile');
-  
+
   // Estados computados (calculados una vez por render)
   const unreadNotifications = notifications.filter(n => !n.isRead);
   const notificationCount = unreadNotifications.length;
@@ -142,50 +142,50 @@ export const useApp = () => {
   const hasUnreadNotifications = notificationCount > 0;
   const hasVisibleAlerts = visibleAlerts.length > 0;
   const isSidebarVisible = sidebarOpen && !sidebarCollapsed;
-  
+
   return {
     // Estado básico
     theme,
     isDarkMode,
     language,
     currency,
-    
+
     // Estados de UI
     sidebar: {
       isOpen: sidebarOpen,
       isCollapsed: sidebarCollapsed,
-      isVisible: isSidebarVisible
+      isVisible: isSidebarVisible,
     },
-    
+
     loading: {
       isAppLoading: isAppLoading,
-      isPageTransitioning: isPageTransitioning
+      isPageTransitioning: isPageTransitioning,
     },
-    
+
     modal: {
       activeModal: activeModal,
       modalData: modalData,
-      isOpen: activeModal !== null
+      isOpen: activeModal !== null,
     },
-    
+
     notifications: {
       unread: unreadNotifications,
       count: notificationCount,
-      hasUnread: hasUnreadNotifications
+      hasUnread: hasUnreadNotifications,
     },
-    
+
     alerts: {
       visible: visibleAlerts,
-      hasVisible: hasVisibleAlerts
+      hasVisible: hasVisibleAlerts,
     },
-    
+
     // Métodos de theme
     setTheme,
     toggleTheme,
     enableDarkMode,
     enableLightMode,
     enableAutoMode,
-    
+
     // Métodos de sidebar
     setSidebarOpen,
     toggleSidebar,
@@ -194,7 +194,7 @@ export const useApp = () => {
     closeSidebar,
     expandSidebar,
     collapseSidebar,
-    
+
     // Métodos de loading
     setAppLoading,
     setPageTransitioning,
@@ -202,14 +202,14 @@ export const useApp = () => {
     hideAppLoading,
     showPageTransition,
     hidePageTransition,
-    
+
     // Métodos de modal
     openModal,
     closeModal,
     openConfirmModal,
     openSettingsModal,
     openProfileModal,
-    
+
     // Métodos de notificaciones
     addNotification,
     removeNotification,
@@ -219,20 +219,20 @@ export const useApp = () => {
     showErrorNotification,
     showInfoNotification,
     showWarningNotification,
-    
+
     // Métodos de alerts
     showAlert,
     hideAlert,
     clearAllAlerts,
     showSuccessAlert,
     showErrorAlert,
-    
+
     // Métodos de configuración
     updateLanguage,
     updateCurrency,
-    
+
     // Métodos de utilidad
-    resetAppState
+    resetAppState,
   };
 };
 

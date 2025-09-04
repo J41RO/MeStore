@@ -1,5 +1,10 @@
 import React from 'react';
-import { CardProps, CardHeaderProps, CardBodyProps, CardFooterProps } from './Card.types';
+import {
+  CardProps,
+  CardHeaderProps,
+  CardBodyProps,
+  CardFooterProps,
+} from './Card.types';
 
 // Componente principal Card
 const CardComponent: React.FC<CardProps> = ({
@@ -9,7 +14,7 @@ const CardComponent: React.FC<CardProps> = ({
   ...props
 }) => {
   const baseClasses = 'rounded-md sm:rounded-lg overflow-hidden';
-  
+
   const variantClasses = {
     default: 'card-mestocker',
     outlined: 'border-2 border-neutral-200 bg-white',
@@ -17,11 +22,9 @@ const CardComponent: React.FC<CardProps> = ({
     flat: 'bg-neutral-50',
   };
 
-  const combinedClasses = [
-    baseClasses,
-    variantClasses[variant],
-    className
-  ].filter(Boolean).join(' ');
+  const combinedClasses = [baseClasses, variantClasses[variant], className]
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <div className={combinedClasses} {...props}>
@@ -31,15 +34,26 @@ const CardComponent: React.FC<CardProps> = ({
 };
 
 // Sub-componentes
-const CardHeader: React.FC<CardHeaderProps> = ({ children, className, ...props }) => {
+const CardHeader: React.FC<CardHeaderProps> = ({
+  children,
+  className,
+  ...props
+}) => {
   return (
-    <div className={`px-4 sm:px-6 py-3 sm:py-4 border-b border-neutral-200 ${className || ''}`} {...props}>
+    <div
+      className={`px-4 sm:px-6 py-3 sm:py-4 border-b border-neutral-200 ${className || ''}`}
+      {...props}
+    >
       {children}
     </div>
   );
 };
 
-const CardBody: React.FC<CardBodyProps> = ({ children, className, ...props }) => {
+const CardBody: React.FC<CardBodyProps> = ({
+  children,
+  className,
+  ...props
+}) => {
   return (
     <div className={`px-4 sm:px-6 py-3 sm:py-4 ${className || ''}`} {...props}>
       {children}
@@ -47,9 +61,16 @@ const CardBody: React.FC<CardBodyProps> = ({ children, className, ...props }) =>
   );
 };
 
-const CardFooter: React.FC<CardFooterProps> = ({ children, className, ...props }) => {
+const CardFooter: React.FC<CardFooterProps> = ({
+  children,
+  className,
+  ...props
+}) => {
   return (
-    <div className={`px-4 sm:px-6 py-3 sm:py-4 border-t border-neutral-200 bg-neutral-50 ${className || ''}`} {...props}>
+    <div
+      className={`px-4 sm:px-6 py-3 sm:py-4 border-t border-neutral-200 bg-neutral-50 ${className || ''}`}
+      {...props}
+    >
       {children}
     </div>
   );

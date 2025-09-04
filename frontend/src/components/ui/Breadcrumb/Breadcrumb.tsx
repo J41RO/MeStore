@@ -5,9 +5,9 @@ import { useBreadcrumb } from '../../../hooks/useBreadcrumb';
 
 export const Breadcrumb: React.FC = () => {
   const breadcrumbs = useBreadcrumb();
-  
+
   return (
-    <nav aria-label="breadcrumb">
+    <nav aria-label='breadcrumb'>
       <ol style={{ display: 'flex', listStyle: 'none', padding: 0, margin: 0 }}>
         {breadcrumbs.map((item, index) => (
           <li key={item.path}>

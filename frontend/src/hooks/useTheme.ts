@@ -17,17 +17,17 @@ export const useTheme = (): UseThemeReturn => {
   // Detect system theme
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    
+
     const handleChange = (e: MediaQueryListEvent) => {
       setSystemTheme(e.matches ? 'dark' : 'light');
     };
 
     // Set initial system theme
     setSystemTheme(mediaQuery.matches ? 'dark' : 'light');
-    
+
     // Listen for changes
     mediaQuery.addEventListener('change', handleChange);
-    
+
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
@@ -40,15 +40,16 @@ export const useTheme = (): UseThemeReturn => {
   }, []);
 
   // Calculate effective theme
-  const effectiveTheme: 'light' | 'dark' = theme === 'system' ? systemTheme : theme;
+  const effectiveTheme: 'light' | 'dark' =
+    theme === 'system' ? systemTheme : theme;
 
   // Apply theme to document
   useEffect(() => {
     const root = document.documentElement;
-    
+
     // Remove existing theme classes
     root.classList.remove('light', 'dark');
-    
+
     // Add effective theme class
     if (effectiveTheme === 'dark') {
       root.classList.add('dark');

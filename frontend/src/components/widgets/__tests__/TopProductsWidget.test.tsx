@@ -9,27 +9,27 @@ const mockUseVendor = useVendor as jest.MockedFunction<typeof useVendor>;
 
 const mockTopProducts = [
   {
-    id: "1",
-    name: "Smartphone Pro Max",
+    id: '1',
+    name: 'Smartphone Pro Max',
     price: 899,
-    thumbnail: "https://picsum.photos/64/64?random=1",
+    thumbnail: 'https://picsum.photos/64/64?random=1',
     salesCount: 150,
-    category: "Electrónicos",
+    category: 'Electrónicos',
     rating: 4.8,
     rank: 1,
-    salesGrowth: "+15%"
+    salesGrowth: '+15%',
   },
   {
-    id: "2",
-    name: "Laptop Gaming RGB",
+    id: '2',
+    name: 'Laptop Gaming RGB',
     price: 1299,
-    thumbnail: "https://picsum.photos/64/64?random=2",
+    thumbnail: 'https://picsum.photos/64/64?random=2',
     salesCount: 89,
-    category: "Computadoras",
+    category: 'Computadoras',
     rating: 4.6,
     rank: 2,
-    salesGrowth: "+8%"
-  }
+    salesGrowth: '+8%',
+  },
 ];
 
 describe('TopProductsWidget', () => {
@@ -44,14 +44,23 @@ describe('TopProductsWidget', () => {
         totalRevenue: 5000,
         totalCommissions: 500,
         activeProducts: 10,
-        stockLevel: 50
+        stockLevel: 50,
       },
       storeName: 'Test Store',
-      completionStatus: { isComplete: true, percentage: 100, missingFields: [] },
-      businessSummary: { totalSales: 100, revenue: '$5,000', products: 10, growth: '+10%' },
+      completionStatus: {
+        isComplete: true,
+        percentage: 100,
+        missingFields: [],
+      },
+      businessSummary: {
+        totalSales: 100,
+        revenue: '$5,000',
+        products: 10,
+        growth: '+10%',
+      },
       refreshMetrics: jest.fn(),
       loadVendorProfile: jest.fn(),
-      updateVendorProfile: jest.fn()
+      updateVendorProfile: jest.fn(),
     });
   });
 
@@ -71,7 +80,7 @@ describe('TopProductsWidget', () => {
 
   test('renders product information correctly', () => {
     render(<TopProductsWidget />);
-    
+
     expect(screen.getByText('Smartphone Pro Max')).toBeInTheDocument();
     expect(screen.getByText('Laptop Gaming RGB')).toBeInTheDocument();
     expect(screen.getByText('Electrónicos')).toBeInTheDocument();
@@ -80,7 +89,7 @@ describe('TopProductsWidget', () => {
 
   test('displays sales count and growth correctly', () => {
     render(<TopProductsWidget />);
-    
+
     expect(screen.getByText('150 ventas')).toBeInTheDocument();
     expect(screen.getByText('89 ventas')).toBeInTheDocument();
     expect(screen.getByText('+15%')).toBeInTheDocument();
@@ -89,16 +98,18 @@ describe('TopProductsWidget', () => {
 
   test('limits products displayed when maxProducts is set', () => {
     render(<TopProductsWidget maxProducts={1} />);
-    
+
     expect(screen.getByText('Smartphone Pro Max')).toBeInTheDocument();
     expect(screen.queryByText('Laptop Gaming RGB')).not.toBeInTheDocument();
     expect(screen.getByText('Top 1')).toBeInTheDocument();
   });
 
   test('applies custom className correctly', () => {
-    const { container } = render(<TopProductsWidget className="custom-class" />);
+    const { container } = render(
+      <TopProductsWidget className='custom-class' />
+    );
     const widget = container.firstChild as HTMLElement;
-    
+
     expect(widget).toHaveClass('custom-class');
     expect(widget).toHaveClass('bg-white');
   });

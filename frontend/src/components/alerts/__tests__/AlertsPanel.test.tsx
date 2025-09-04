@@ -2,7 +2,11 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { jest, describe, it, expect, beforeEach, vi } from '@jest/globals';
 import AlertsPanel from '../AlertsPanel';
-import { AlertType, AlertSeverity, AlertCategory } from '../../../types/alerts.types';
+import {
+  AlertType,
+  AlertSeverity,
+  AlertCategory,
+} from '../../../types/alerts.types';
 
 // Mock de los hooks
 const mockStockAlerts = [
@@ -18,8 +22,8 @@ const mockStockAlerts = [
     location: 'A-1-2',
     timestamp: new Date(),
     isRead: false,
-    actionRequired: true
-  }
+    actionRequired: true,
+  },
 ];
 
 const mockQualityAlerts = [
@@ -33,8 +37,8 @@ const mockQualityAlerts = [
     issueDescription: 'Producto vencido hace 2 días',
     timestamp: new Date(),
     isRead: false,
-    actionRequired: true
-  }
+    actionRequired: true,
+  },
 ];
 
 // Mocks con patrón de hoisting correcto
@@ -46,15 +50,19 @@ const { useStockAlerts } = require('../../../hooks/useStockAlerts');
 const { useQualityAlerts } = require('../../../hooks/useQualityAlerts');
 
 // Convertir a mocks jest
-const mockUseStockAlerts = useStockAlerts as jest.MockedFunction<typeof useStockAlerts>;
-const mockUseQualityAlerts = useQualityAlerts as jest.MockedFunction<typeof useQualityAlerts>;
+const mockUseStockAlerts = useStockAlerts as jest.MockedFunction<
+  typeof useStockAlerts
+>;
+const mockUseQualityAlerts = useQualityAlerts as jest.MockedFunction<
+  typeof useQualityAlerts
+>;
 
 // Mock de useAppStore
 jest.mock('../../../stores/appStore', () => ({
   useAppStore: () => ({
     inventory: [],
-    products: []
-  })
+    products: [],
+  }),
 }));
 
 // Mock de NotificationContext
@@ -64,21 +72,21 @@ const mockNotificationContext = {
   unreadCount: 0,
   showNotification: jest.fn(),
   showAlert: jest.fn(),
-  removeNotification: jest.fn()
+  removeNotification: jest.fn(),
 };
 
 jest.mock('react', () => {
   const actual = jest.requireActual('react');
   return {
     ...actual,
-    useContext: () => mockNotificationContext
+    useContext: () => mockNotificationContext,
   };
 });
 
 describe('AlertsPanel', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Configuración por defecto de mocks
     mockUseStockAlerts.mockReturnValue({
       stockAlerts: mockStockAlerts,
@@ -88,11 +96,11 @@ describe('AlertsPanel', () => {
         critical: 0,
         high: 1,
         medium: 0,
-        low: 0
+        low: 0,
       },
       markStockAlertAsRead: jest.fn(),
       refreshStockAlerts: jest.fn(),
-      hasStockAlerts: true
+      hasStockAlerts: true,
     });
 
     mockUseQualityAlerts.mockReturnValue({
@@ -103,30 +111,32 @@ describe('AlertsPanel', () => {
         critical: 1,
         high: 0,
         medium: 0,
-        low: 0
+        low: 0,
       },
       markQualityAlertAsRead: jest.fn(),
-      hasQualityAlerts: true
+      hasQualityAlerts: true,
     });
   });
 
   describe('Renderizado básico', () => {
     it('debe renderizar el componente correctamente', () => {
       render(<AlertsPanel />);
-      
+
       expect(screen.getByText('Alertas del Sistema')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /actualizar alertas/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /actualizar alertas/i })
+      ).toBeInTheDocument();
     });
 
     it('debe mostrar el contador de alertas no leídas', () => {
       render(<AlertsPanel />);
-      
+
       expect(screen.getByText('2')).toBeInTheDocument(); // 1 stock + 1 quality
     });
 
     it('debe mostrar el botón de marcar todas como leídas cuando hay alertas no leídas', () => {
       render(<AlertsPanel />);
-      
+
       expect(screen.getByText('Marcar todas como leídas')).toBeInTheDocument();
     });
   });
@@ -134,21 +144,23 @@ describe('AlertsPanel', () => {
   describe('Generación de alertas', () => {
     it('debe mostrar alertas de stock correctamente', () => {
       render(<AlertsPanel />);
-      
+
       expect(screen.getByText('Producto Test')).toBeInTheDocument();
       expect(screen.getByText(/Stock bajo: 5\/10/)).toBeInTheDocument();
     });
 
     it('debe mostrar alertas de calidad correctamente', () => {
       render(<AlertsPanel />);
-      
+
       expect(screen.getByText('Producto Vencido')).toBeInTheDocument();
-      expect(screen.getByText('Producto vencido hace 2 días')).toBeInTheDocument();
+      expect(
+        screen.getByText('Producto vencido hace 2 días')
+      ).toBeInTheDocument();
     });
 
     it('debe mostrar badge de acción requerida para alertas críticas', () => {
       render(<AlertsPanel />);
-      
+
       const actionBadges = screen.getAllByText('Acción requerida');
       expect(actionBadges).toHaveLength(2); // Ambas alertas requieren acción
     });
@@ -157,7 +169,7 @@ describe('AlertsPanel', () => {
   describe('Funcionalidad de filtros', () => {
     it('debe mostrar el botón de filtros cuando showFilters es true', () => {
       render(<AlertsPanel showFilters={true} />);
-      
+
       const filterButton = screen.getByLabelText('filtros');
       expect(filterButton).toBeInTheDocument();
     });
@@ -165,7 +177,7 @@ describe('AlertsPanel', () => {
     it('debe aplicar filtros correctamente', () => {
       // Test de filtrado por tipo
       render(<AlertsPanel />);
-      
+
       // Por defecto debe mostrar ambas alertas
       expect(screen.getByText('Producto Test')).toBeInTheDocument();
       expect(screen.getByText('Producto Vencido')).toBeInTheDocument();
@@ -175,9 +187,9 @@ describe('AlertsPanel', () => {
   describe('Acciones de alertas', () => {
     it('debe marcar alerta como leída al hacer click', async () => {
       render(<AlertsPanel />);
-      
+
       const stockAlert = screen.getByText('Producto Test').closest('div');
-      
+
       if (stockAlert) {
         fireEvent.click(stockAlert);
         // Verificar que se llamó la función de marcar como leída
@@ -189,20 +201,20 @@ describe('AlertsPanel', () => {
 
     it('debe mostrar acciones rápidas en cada alerta', () => {
       render(<AlertsPanel />);
-      
+
       const verProductoButtons = screen.getAllByText('Ver producto');
       expect(verProductoButtons).toHaveLength(2);
-      
+
       const ajustarStockButtons = screen.getAllByText('Ajustar stock');
       expect(ajustarStockButtons).toHaveLength(1); // Solo para alertas de stock
     });
 
     it('debe ejecutar acción de marcar todas como leídas', async () => {
       render(<AlertsPanel />);
-      
+
       const markAllButton = screen.getByText('Marcar todas como leídas');
       fireEvent.click(markAllButton);
-      
+
       // Verificar que se intentó marcar todas las alertas
       await waitFor(() => {
         expect(markAllButton).toBeInTheDocument();
@@ -213,10 +225,12 @@ describe('AlertsPanel', () => {
   describe('Estados del componente', () => {
     it('debe mostrar estado de carga correctamente', () => {
       render(<AlertsPanel />);
-      
-      const refreshButton = screen.getByRole('button', { name: /actualizar alertas/i });
+
+      const refreshButton = screen.getByRole('button', {
+        name: /actualizar alertas/i,
+      });
       fireEvent.click(refreshButton);
-      
+
       // Verificar que el botón de refresh funciona
       expect(refreshButton).toBeInTheDocument();
     });
@@ -228,18 +242,18 @@ describe('AlertsPanel', () => {
         stockStats: { total: 0, unread: 0 },
         markStockAlertAsRead: jest.fn(),
         refreshStockAlerts: jest.fn(),
-        hasStockAlerts: false
+        hasStockAlerts: false,
       });
 
       mockUseQualityAlerts.mockReturnValue({
         qualityAlerts: [],
         qualityStats: { total: 0, unread: 0 },
         markQualityAlertAsRead: jest.fn(),
-        hasQualityAlerts: false
+        hasQualityAlerts: false,
       });
 
       render(<AlertsPanel />);
-      
+
       expect(screen.getByText('No hay alertas')).toBeInTheDocument();
     });
   });
@@ -247,14 +261,14 @@ describe('AlertsPanel', () => {
   describe('Integración con sistema existente', () => {
     it('debe integrar correctamente con NotificationContext', () => {
       render(<AlertsPanel />);
-      
+
       // Verificar que usa el contexto
       expect(mockNotificationContext).toBeDefined();
     });
 
     it('debe integrar correctamente con useAppStore', () => {
       render(<AlertsPanel />);
-      
+
       // El componente debe renderizar sin errores, indicando integración exitosa
       expect(screen.getByText('Alertas del Sistema')).toBeInTheDocument();
     });
@@ -263,7 +277,7 @@ describe('AlertsPanel', () => {
   describe('Props del componente', () => {
     it('debe respetar maxAlerts prop', () => {
       render(<AlertsPanel maxAlerts={1} />);
-      
+
       // Con maxAlerts=1, debe mostrar solo 1 alerta
       const alertElements = screen.getAllByText(/Producto/);
       expect(alertElements.length).toBeLessThanOrEqual(2);
@@ -272,7 +286,7 @@ describe('AlertsPanel', () => {
     it('debe manejar onAlertClick callback', () => {
       const mockCallback = jest.fn();
       render(<AlertsPanel onAlertClick={mockCallback} />);
-      
+
       const alert = screen.getByText('Producto Test').closest('div');
       if (alert) {
         fireEvent.click(alert);

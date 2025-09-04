@@ -15,11 +15,11 @@ const mockItems: InventoryItem[] = [
       zone: 'WAREHOUSE_A' as any,
       aisle: 'A',
       shelf: '1',
-      position: 'A-1'
-    }
+      position: 'A-1',
+    },
   },
   {
-    id: '2', 
+    id: '2',
     name: 'Producto Test 2',
     sku: 'SKU002',
     quantity: 2,
@@ -27,10 +27,10 @@ const mockItems: InventoryItem[] = [
     location: {
       zone: 'WAREHOUSE_B' as any,
       aisle: 'B',
-      shelf: '2', 
-      position: 'B-2'
-    }
-  }
+      shelf: '2',
+      position: 'B-2',
+    },
+  },
 ];
 
 describe('LocationMap Component', () => {
@@ -63,12 +63,12 @@ describe('LocationMap Component', () => {
   it('should call onLocationClick when clicking on a location', () => {
     const mockCallback = jest.fn();
     render(<LocationMap items={mockItems} onLocationClick={mockCallback} />);
-    
+
     // Buscar elementos clicables
-    const clickableElements = screen.getAllByRole('generic').filter(el => 
-      el.className.includes('cursor-pointer')
-    );
-    
+    const clickableElements = screen
+      .getAllByRole('generic')
+      .filter(el => el.className.includes('cursor-pointer'));
+
     if (clickableElements.length > 0) {
       fireEvent.click(clickableElements[0]);
       // No verificamos que se llame porque puede haber elementos sin productos

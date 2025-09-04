@@ -28,13 +28,13 @@ import Dashboard from '../Dashboard';
 // Mock de Recharts para evitar errores en testing
 jest.mock('recharts', () => ({
   ResponsiveContainer: ({ children }: any) => <div>{children}</div>,
-  LineChart: () => <div data-testid="line-chart">Mock Line Chart</div>,
+  LineChart: () => <div data-testid='line-chart'>Mock Line Chart</div>,
   Line: () => null,
   XAxis: () => null,
   YAxis: () => null,
   CartesianGrid: () => null,
   Tooltip: () => null,
-  BarChart: () => <div data-testid="bar-chart">Mock Bar Chart</div>,
+  BarChart: () => <div data-testid='bar-chart'>Mock Bar Chart</div>,
   Bar: () => null,
 }));
 
@@ -46,43 +46,47 @@ jest.mock('../../hooks/useVendor', () => ({
       totalSales: 15000,
       totalCommissions: 1500,
       activeProducts: 25,
-      totalOrders: 150
+      totalOrders: 150,
     },
     isLoading: false,
     getCompletionStatus: () => ({
       percentage: 80,
       isComplete: false,
       missingFields: ['logo', 'bio'],
-      canPublish: true
+      canPublish: true,
     }),
     refreshMetrics: jest.fn(),
     salesHistory: [
       { date: '2025-01', sales: 1000 },
-      { date: '2025-02', sales: 1200 }
+      { date: '2025-02', sales: 1200 },
     ],
     monthlySales: [
       { month: 'Enero', sales: 1000, target: 1100 },
-      { month: 'Febrero', sales: 1200, target: 1100 }
-    ]
-  })
+      { month: 'Febrero', sales: 1200, target: 1100 },
+    ],
+  }),
 }));
 
 // Mock de los componentes de charts
 jest.mock('../../components/charts/SalesChart', () => {
   return function MockSalesChart() {
-    return <div data-testid="sales-chart">Mock Sales Chart</div>;
+    return <div data-testid='sales-chart'>Mock Sales Chart</div>;
   };
 });
 
 jest.mock('../../components/charts/MonthlySalesChart', () => {
   return function MockMonthlySalesChart() {
-    return <div data-testid="monthly-sales-chart">Mock Monthly Sales Chart</div>;
+    return (
+      <div data-testid='monthly-sales-chart'>Mock Monthly Sales Chart</div>
+    );
   };
 });
 
 jest.mock('../../components/widgets/TopProductsWidget', () => {
   return function MockTopProductsWidget() {
-    return <div data-testid="top-products-widget">Mock Top Products Widget</div>;
+    return (
+      <div data-testid='top-products-widget'>Mock Top Products Widget</div>
+    );
   };
 });
 
@@ -180,8 +184,12 @@ describe('Dashboard Component', () => {
 
   test('renders completion status alert when fields are missing', () => {
     renderDashboard();
-    expect(screen.getByText('Completa tu perfil para mejor rendimiento')).toBeInTheDocument();
-    expect(screen.getByText(/Elementos pendientes:.*logo.*bio/)).toBeInTheDocument();
+    expect(
+      screen.getByText('Completa tu perfil para mejor rendimiento')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Elementos pendientes:.*logo.*bio/)
+    ).toBeInTheDocument();
   });
 
   test('renders activity section', () => {
@@ -195,13 +203,23 @@ describe('Dashboard Component', () => {
   test('has responsive grid layout', () => {
     renderDashboard();
     const container = screen.getByText('Ventas Totales').closest('.grid');
-    expect(container).toHaveClass('grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-4');
+    expect(container).toHaveClass(
+      'grid-cols-1',
+      'sm:grid-cols-2',
+      'lg:grid-cols-4'
+    );
   });
 
   test('applies correct container classes', () => {
     const { container } = renderDashboard();
     const mainContainer = container.firstChild;
-    expect(mainContainer).toHaveClass('p-4', 'md:p-6', 'lg:p-8', 'max-w-7xl', 'mx-auto');
+    expect(mainContainer).toHaveClass(
+      'p-4',
+      'md:p-6',
+      'lg:p-8',
+      'max-w-7xl',
+      'mx-auto'
+    );
   });
 });
 

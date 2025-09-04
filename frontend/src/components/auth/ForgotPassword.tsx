@@ -77,7 +77,8 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBackToLogin }) => {
           <div className='success-icon'>✅</div>
           <h2>Revisa tu email</h2>
           <p>
-            Se ha enviado un enlace de recuperación a <strong>{getValues('email')}</strong>
+            Se ha enviado un enlace de recuperación a{' '}
+            <strong>{getValues('email')}</strong>
           </p>
           <p className='security-note'>
             El enlace expira en 1 hora. Si no ves el email, revisa tu carpeta de
@@ -111,7 +112,7 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBackToLogin }) => {
               disabled={loading}
             />
             {errors.email && (
-              <span className="error-message">{errors.email.message}</span>
+              <span className='error-message'>{errors.email.message}</span>
             )}
           </div>
 

@@ -18,7 +18,7 @@ describe('AuthStore', () => {
 
   test('should initialize with default state', () => {
     const { result } = renderHook(() => useAuthStore());
-    
+
     expect(result.current.user).toBeNull();
     expect(result.current.token).toBeNull();
     expect(result.current.isAuthenticated).toBe(false);
@@ -36,12 +36,15 @@ describe('AuthStore', () => {
     expect(result.current.user).toEqual(mockUser);
     expect(result.current.token).toBe(mockToken);
     expect(result.current.isAuthenticated).toBe(true);
-    expect(mockLocalStorage.setItem).toHaveBeenCalledWith('auth_token', mockToken);
+    expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+      'auth_token',
+      mockToken
+    );
   });
 
   test('should logout user and clear state', () => {
     const { result } = renderHook(() => useAuthStore());
-    
+
     // First login
     act(() => {
       result.current.login('token', { id: '1', email: 'test@test.com' });

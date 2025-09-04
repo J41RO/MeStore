@@ -21,7 +21,7 @@
 
 /**
  * Schema de validación Yup para productos
- * 
+ *
  * Valida todos los campos requeridos para crear y editar productos:
  * - name: Nombre del producto (requerido, 3-100 caracteres)
  * - description: Descripción del producto (requerida, 10-500 caracteres)
@@ -45,10 +45,10 @@ export const PRODUCT_CATEGORIES = [
   'beauty',
   'food',
   'automotive',
-  'other'
+  'other',
 ] as const;
 
-export type ProductCategory = typeof PRODUCT_CATEGORIES[number];
+export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
 
 // Schema base para validación de productos
 const baseProductSchema = {
@@ -58,38 +58,34 @@ const baseProductSchema = {
     .min(3, 'El nombre debe tener al menos 3 caracteres')
     .max(100, 'El nombre no puede exceder 100 caracteres')
     .trim(),
-    
+
   description: yup
     .string()
     .required('La descripción del producto es requerida')
     .min(10, 'La descripción debe tener al menos 10 caracteres')
     .max(500, 'La descripción no puede exceder 500 caracteres')
     .trim(),
-    
+
   price: yup
     .number()
     .required('El precio es requerido')
     .positive('El precio debe ser un número positivo')
     .max(999999, 'El precio no puede exceder 99,999')
     .typeError('El precio debe ser un número válido'),
-    
+
   stock: yup
     .number()
     .required('El stock es requerido')
     .integer('El stock debe ser un número entero')
     .min(0, 'El stock no puede ser negativo')
     .typeError('El stock debe ser un número válido'),
-    
+
   category: yup
     .string()
     .required('La categoría es requerida')
     .oneOf(PRODUCT_CATEGORIES, 'Selecciona una categoría válida'),
-    
-  imageUrl: yup
-    .string()
-    .url('Debe ser una URL válida')
-    .optional()
-    .nullable()
+
+  imageUrl: yup.string().url('Debe ser una URL válida').optional().nullable(),
 };
 
 // Schema para crear productos (todos los campos requeridos)
@@ -102,7 +98,7 @@ export const updateProductSchema = yup.object({
   price: baseProductSchema.price.optional(),
   stock: baseProductSchema.stock.optional(),
   category: baseProductSchema.category.optional(),
-  imageUrl: baseProductSchema.imageUrl.optional()
+  imageUrl: baseProductSchema.imageUrl.optional(),
 });
 
 // Tipo para los datos del formulario
@@ -115,15 +111,16 @@ export const defaultProductValues: Partial<ProductFormData> = {
   price: 0,
   stock: 0,
   category: '',
-  imageUrl: ''
-,
+  imageUrl: '',
   sku: '',
   dimensions: undefined,
-  weight: undefined
+  weight: undefined,
 };
 
 // Función helper para validar una categoría
-export const isValidCategory = (category: string): category is ProductCategory => {
+export const isValidCategory = (
+  category: string
+): category is ProductCategory => {
   return PRODUCT_CATEGORIES.includes(category as ProductCategory);
 };
 
@@ -131,6 +128,6 @@ export const isValidCategory = (category: string): category is ProductCategory =
 export const getCategoryOptions = () => {
   return PRODUCT_CATEGORIES.map(category => ({
     value: category,
-    label: category.charAt(0).toUpperCase() + category.slice(1)
+    label: category.charAt(0).toUpperCase() + category.slice(1),
   }));
 };

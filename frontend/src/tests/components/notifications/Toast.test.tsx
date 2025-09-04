@@ -10,7 +10,7 @@ const mockNotification: NotificationItem = {
   title: 'Test Notification',
   message: 'This is a test message',
   timestamp: new Date().toISOString(),
-  isRead: false
+  isRead: false,
 };
 
 const mockOnRemove = jest.fn();
@@ -27,18 +27,20 @@ describe('Toast Component', () => {
 
   test('renders notification content correctly', () => {
     render(<Toast notification={mockNotification} onRemove={mockOnRemove} />);
-    
+
     expect(screen.getByText('Test Notification')).toBeInTheDocument();
     expect(screen.getByText('This is a test message')).toBeInTheDocument();
     expect(screen.getByLabelText('Cerrar notificación')).toBeInTheDocument();
   });
 
   test('applies correct CSS classes for success type', () => {
-    const { container } = render(<Toast notification={mockNotification} onRemove={mockOnRemove} />);
-    
+    const { container } = render(
+      <Toast notification={mockNotification} onRemove={mockOnRemove} />
+    );
+
     // Buscar el div principal que tiene las clases de estilo
     const toastElement = container.querySelector('.fixed.z-50.p-4');
-    
+
     expect(toastElement).toBeInTheDocument();
     expect(toastElement).toHaveClass('bg-green-500');
     expect(toastElement).toHaveClass('text-white');
@@ -47,23 +49,31 @@ describe('Toast Component', () => {
   test('applies correct CSS classes for error type', () => {
     const errorNotification: NotificationItem = {
       ...mockNotification,
-      type: 'error'
+      type: 'error',
     };
-    
-    const { container } = render(<Toast notification={errorNotification} onRemove={mockOnRemove} />);
-    
+
+    const { container } = render(
+      <Toast notification={errorNotification} onRemove={mockOnRemove} />
+    );
+
     const toastElement = container.querySelector('.fixed.z-50.p-4');
-    
+
     expect(toastElement).toBeInTheDocument();
     expect(toastElement).toHaveClass('bg-red-500');
     expect(toastElement).toHaveClass('text-white');
   });
 
   test('applies correct position classes', () => {
-    const { container } = render(<Toast notification={mockNotification} onRemove={mockOnRemove} position="bottom-left" />);
-    
+    const { container } = render(
+      <Toast
+        notification={mockNotification}
+        onRemove={mockOnRemove}
+        position='bottom-left'
+      />
+    );
+
     const toastElement = container.querySelector('.fixed.z-50.p-4');
-    
+
     expect(toastElement).toBeInTheDocument();
     expect(toastElement).toHaveClass('bottom-4');
     expect(toastElement).toHaveClass('left-4');
@@ -71,9 +81,9 @@ describe('Toast Component', () => {
 
   test('calls onRemove when close button is clicked', () => {
     render(<Toast notification={mockNotification} onRemove={mockOnRemove} />);
-    
+
     const closeButton = screen.getByLabelText('Cerrar notificación');
-    
+
     act(() => {
       fireEvent.click(closeButton);
     });
@@ -103,7 +113,9 @@ describe('Toast Component', () => {
   });
 
   test('applies visibility animation classes correctly', () => {
-    const { container } = render(<Toast notification={mockNotification} onRemove={mockOnRemove} />);
+    const { container } = render(
+      <Toast notification={mockNotification} onRemove={mockOnRemove} />
+    );
 
     const toastElement = container.querySelector('.fixed.z-50.p-4');
 
@@ -125,9 +137,9 @@ describe('Toast Component', () => {
   test('does not auto-remove error notifications', () => {
     const errorNotification: NotificationItem = {
       ...mockNotification,
-      type: 'error'
+      type: 'error',
     };
-    
+
     render(<Toast notification={errorNotification} onRemove={mockOnRemove} />);
 
     // Avanzar 5 segundos
@@ -142,13 +154,15 @@ describe('Toast Component', () => {
   test('applies warning type styles correctly', () => {
     const warningNotification: NotificationItem = {
       ...mockNotification,
-      type: 'warning'
+      type: 'warning',
     };
-    
-    const { container } = render(<Toast notification={warningNotification} onRemove={mockOnRemove} />);
-    
+
+    const { container } = render(
+      <Toast notification={warningNotification} onRemove={mockOnRemove} />
+    );
+
     const toastElement = container.querySelector('.fixed.z-50.p-4');
-    
+
     expect(toastElement).toHaveClass('bg-yellow-500');
     expect(toastElement).toHaveClass('text-black');
   });
@@ -156,13 +170,15 @@ describe('Toast Component', () => {
   test('applies info type styles correctly', () => {
     const infoNotification: NotificationItem = {
       ...mockNotification,
-      type: 'info'
+      type: 'info',
     };
-    
-    const { container } = render(<Toast notification={infoNotification} onRemove={mockOnRemove} />);
-    
+
+    const { container } = render(
+      <Toast notification={infoNotification} onRemove={mockOnRemove} />
+    );
+
     const toastElement = container.querySelector('.fixed.z-50.p-4');
-    
+
     expect(toastElement).toHaveClass('bg-blue-500');
     expect(toastElement).toHaveClass('text-white');
   });

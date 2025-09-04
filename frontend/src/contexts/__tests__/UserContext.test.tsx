@@ -8,19 +8,17 @@ const MockAuthProvider = ({ children }: { children: React.ReactNode }) => (
 );
 
 const TestComponent = () => {
-  const { 
-    vendorProfile, 
-    isLoading, 
-    completionPercentage,
-    loadVendorProfile
-  } = useUserContext();
-  
+  const { vendorProfile, isLoading, completionPercentage, loadVendorProfile } =
+    useUserContext();
+
   return (
     <div>
-      <span data-testid="loading">{isLoading ? 'loading' : 'loaded'}</span>
-      <span data-testid="store-name">{vendorProfile?.storeName || 'no-store'}</span>
-      <span data-testid="completion">{completionPercentage}%</span>
-      <button onClick={loadVendorProfile} data-testid="load-btn">
+      <span data-testid='loading'>{isLoading ? 'loading' : 'loaded'}</span>
+      <span data-testid='store-name'>
+        {vendorProfile?.storeName || 'no-store'}
+      </span>
+      <span data-testid='completion'>{completionPercentage}%</span>
+      <button onClick={loadVendorProfile} data-testid='load-btn'>
         Cargar Perfil
       </button>
     </div>
@@ -40,7 +38,7 @@ describe('UserContext', () => {
 
   test('provides initial state correctly', () => {
     renderWithProviders();
-    
+
     expect(screen.getByTestId('loading')).toHaveTextContent('loaded');
     expect(screen.getByTestId('store-name')).toHaveTextContent('no-store');
     expect(screen.getByTestId('completion')).toHaveTextContent('0%');
@@ -48,12 +46,15 @@ describe('UserContext', () => {
 
   test('loads vendor profile correctly', async () => {
     renderWithProviders();
-    
+
     const loadBtn = screen.getByTestId('load-btn');
     loadBtn.click();
-    
-    await waitFor(() => {
-      expect(screen.getByTestId('loading')).toHaveTextContent('loaded');
-    }, { timeout: 1000 });
+
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('loaded');
+      },
+      { timeout: 1000 }
+    );
   });
 });

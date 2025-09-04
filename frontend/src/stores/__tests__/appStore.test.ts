@@ -19,7 +19,7 @@ describe('AppStore', () => {
 
   test('initial state is correct', () => {
     const store = useAppStore.getState();
-    
+
     expect(store.theme).toBe('auto');
     expect(store.sidebarOpen).toBe(true);
     expect(store.sidebarCollapsed).toBe(false);
@@ -31,33 +31,33 @@ describe('AppStore', () => {
 
   test('theme changes work correctly', () => {
     const { result } = renderHook(() => useAppStore());
-    
+
     act(() => {
       result.current.setTheme('dark');
     });
-    
+
     expect(result.current.theme).toBe('dark');
     expect(result.current.isDarkMode).toBe(true);
   });
 
   test('sidebar controls work correctly - toggleSidebar FIXED', () => {
     const { result } = renderHook(() => useAppStore());
-    
+
     // Verificar estado inicial
     expect(result.current.sidebarOpen).toBe(true);
-    
+
     // Test setSidebarOpen
     act(() => {
       result.current.setSidebarOpen(false);
     });
     expect(result.current.sidebarOpen).toBe(false);
-    
+
     // Test toggleSidebar (BUG CORREGIDO)
     act(() => {
       result.current.toggleSidebar();
     });
     expect(result.current.sidebarOpen).toBe(true);
-    
+
     // Test otra vez para confirmar toggle
     act(() => {
       result.current.toggleSidebar();
@@ -67,25 +67,25 @@ describe('AppStore', () => {
 
   test('notifications work correctly', () => {
     const { result } = renderHook(() => useAppStore());
-    
+
     act(() => {
       result.current.addNotification({
         type: 'success',
         title: 'Test',
-        message: 'Test message'
+        message: 'Test message',
       });
     });
-    
+
     expect(result.current.notifications).toHaveLength(1);
     expect(result.current.notifications[0].type).toBe('success');
     expect(result.current.notifications[0].title).toBe('Test');
-    
+
     // Test remove notification
     const notificationId = result.current.notifications[0].id;
     act(() => {
       result.current.removeNotification(notificationId);
     });
-    
+
     expect(result.current.notifications).toHaveLength(0);
   });
 });

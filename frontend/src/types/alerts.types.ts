@@ -4,14 +4,14 @@
 export enum AlertType {
   STOCK = 'stock',
   QUALITY = 'quality',
-  SYSTEM = 'system'
+  SYSTEM = 'system',
 }
 
 export enum AlertSeverity {
   LOW = 'low',
-  MEDIUM = 'medium', 
+  MEDIUM = 'medium',
   HIGH = 'high',
-  CRITICAL = 'critical'
+  CRITICAL = 'critical',
 }
 
 export enum AlertCategory {
@@ -19,7 +19,7 @@ export enum AlertCategory {
   OUT_OF_STOCK = 'out_of_stock',
   EXPIRED_PRODUCT = 'expired_product',
   LOW_RATING = 'low_rating',
-  DAMAGED_PRODUCT = 'damaged_product'
+  DAMAGED_PRODUCT = 'damaged_product',
 }
 
 // Interfaces para alertas específicas
@@ -41,7 +41,10 @@ export interface StockAlert {
 export interface QualityAlert {
   id: string;
   type: AlertType.QUALITY;
-  category: AlertCategory.EXPIRED_PRODUCT | AlertCategory.LOW_RATING | AlertCategory.DAMAGED_PRODUCT;
+  category:
+    | AlertCategory.EXPIRED_PRODUCT
+    | AlertCategory.LOW_RATING
+    | AlertCategory.DAMAGED_PRODUCT;
   severity: AlertSeverity;
   productId: string;
   productName: string;

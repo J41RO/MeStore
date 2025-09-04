@@ -24,10 +24,10 @@ const localStorageMock = {
   clear: jest.fn(),
 };
 Object.defineProperty(window, 'localStorage', {
-  value: localStorageMock
+  value: localStorageMock,
 });
 
 // Mock sessionStorage
 Object.defineProperty(window, 'sessionStorage', {
-  value: localStorageMock
+  value: localStorageMock,
 });

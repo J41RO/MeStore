@@ -31,13 +31,13 @@ export type { ImageUploadProps, ImageFile } from './ImageUpload.types';
 
 /**
  * Ejemplo de uso:
- * 
+ *
  * import ImageUpload, { ImageUploadProps, ImageFile } from '@/components/ui/ImageUpload';
- * 
+ *
  * const handleImageUpload = (files: ImageFile[]) => {
  *   console.log('Imágenes subidas:', files);
  * };
- * 
+ *
  * <ImageUpload
  *   onImageUpload={handleImageUpload}
  *   maxFiles={3}

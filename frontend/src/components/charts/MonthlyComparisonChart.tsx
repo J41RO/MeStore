@@ -30,24 +30,23 @@ const MonthlyComparisonChart: React.FC<MonthlyComparisonChartProps> = ({
   height = 400,
 }) => {
   return (
-    <div className="w-full">
-      <h3 className="text-lg font-semibold mb-4">{title}</h3>
-      <ResponsiveContainer width="100%" height={height}>
-        <BarChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="month" />
+    <div className='w-full'>
+      <h3 className='text-lg font-semibold mb-4'>{title}</h3>
+      <ResponsiveContainer width='100%' height={height}>
+        <BarChart
+          data={data}
+          margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+        >
+          <CartesianGrid strokeDasharray='3 3' />
+          <XAxis dataKey='month' />
           <YAxis />
           <Tooltip />
           <Legend />
+          <Bar dataKey='currentPeriod' fill='#3B82F6' name='Período Actual' />
           <Bar
-            dataKey="currentPeriod"
-            fill="#3B82F6"
-            name="Período Actual"
-          />
-          <Bar
-            dataKey="previousPeriod"
-            fill="#9CA3AF"
-            name="Período Anterior"
+            dataKey='previousPeriod'
+            fill='#9CA3AF'
+            name='Período Anterior'
           />
         </BarChart>
       </ResponsiveContainer>

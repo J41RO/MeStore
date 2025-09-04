@@ -1,8 +1,9 @@
 import { useAuthContext } from '../contexts/AuthContext';
+import { UserType } from '../stores/authStore';
 
 /**
  * Hook simplificado para manejo de autenticación
- * 
+ *
  * Proporciona interfaz limpia para componentes que necesitan auth
  * Actúa como facade sobre AuthContext
  */
@@ -16,12 +17,12 @@ export const useAuth = () => {
     logout,
     checkAuth,
     getToken,
-    isTokenValid
+    isTokenValid,
   } = useAuthContext();
 
   // Métodos de conveniencia
   const isLoggedIn = isAuthenticated && isTokenValid();
-  const userRole = user?.role || 'guest';
+  const userRole = user?.user_type || 'guest';
   const userEmail = user?.email || '';
   const userName = user?.name || user?.email?.split('@')[0] || 'Usuario';
 
@@ -34,19 +35,23 @@ export const useAuth = () => {
         throw new Error('Email y contraseña son requeridos');
       }
 
-      const mockUser = { 
-        id: Date.now().toString(), 
-        email, 
-        name: email.split('@')[0],
-        role: 'vendedor'
+      const mockUser = {
+        id: Date.now().toString(),
+        email,
+        name: email.split('@')[0] || 'Usuario',
+        user_type: UserType.VENDEDOR,
+        profile: null,
       };
       const mockToken = `jwt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
+
       await login(mockToken, mockUser);
       return { success: true };
     } catch (error) {
       console.error('Error en signIn:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Error desconocido' };
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido',
+      };
     }
   };
 
@@ -57,7 +62,10 @@ export const useAuth = () => {
       return { success: true };
     } catch (error) {
       console.error('Error en signOut:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Error desconocido' };
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido',
+      };
     }
   };
 
@@ -67,23 +75,23 @@ export const useAuth = () => {
     token,
     isAuthenticated,
     isLoading,
-    
+
     // Estado computado
     isLoggedIn,
     userRole,
     userEmail,
     userName,
-    
+
     // Métodos principales
     signIn,
     signOut,
     checkAuth,
-    
+
     // Métodos avanzados
     login,
     logout,
     getToken,
-    isTokenValid
+    isTokenValid,
   };
 };
 

@@ -16,21 +16,33 @@ describe('RegisterForm - Validaciones Colombianas', () => {
   // Test 1: Renderizado de todos los campos
   test('renderiza todos los campos requeridos', () => {
     render(<RegisterForm />);
-    
-    expect(screen.getByPlaceholderText(/ejemplo: Juan Carlos Pérez/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/ejemplo: juan@correo.com/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/ejemplo: \+57 300 123 4567/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/Mínimo 8 caracteres/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/Repetir la contraseña/i)).toBeInTheDocument();
+
+    expect(
+      screen.getByPlaceholderText(/ejemplo: Juan Carlos Pérez/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText(/ejemplo: juan@correo.com/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText(/ejemplo: \+57 300 123 4567/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText(/Mínimo 8 caracteres/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText(/Repetir la contraseña/i)
+    ).toBeInTheDocument();
   });
 
   // Test 2: Validación de nombres colombianos
   test('valida nombres colombianos correctamente', async () => {
     const user = userEvent.setup();
     render(<RegisterForm />);
-    
-    const nameInput = screen.getByPlaceholderText(/ejemplo: Juan Carlos Pérez/i);
-    
+
+    const nameInput = screen.getByPlaceholderText(
+      /ejemplo: Juan Carlos Pérez/i
+    );
+
     await user.type(nameInput, 'María José');
     expect(nameInput).toHaveValue('María José');
   });
@@ -39,9 +51,9 @@ describe('RegisterForm - Validaciones Colombianas', () => {
   test('valida formato de email correctamente', async () => {
     const user = userEvent.setup();
     render(<RegisterForm />);
-    
+
     const emailInput = screen.getByPlaceholderText(/ejemplo: juan@correo.com/i);
-    
+
     await user.type(emailInput, 'test@example.com');
     expect(emailInput).toHaveValue('test@example.com');
   });
@@ -50,7 +62,7 @@ describe('RegisterForm - Validaciones Colombianas', () => {
   test('maneja el submit del formulario', async () => {
     const user = userEvent.setup();
     render(<RegisterForm />);
-    
+
     const submitButton = screen.getByRole('button', { name: /registrarse/i });
     expect(submitButton).toBeInTheDocument();
   });

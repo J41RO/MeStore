@@ -5,24 +5,24 @@
 // Enums para tipos de comisiones
 export enum CommissionType {
   SALE = 'sale',
-  PRODUCT = 'product', 
+  PRODUCT = 'product',
   VOLUME = 'volume',
   BONUS = 'bonus',
-  TIER = 'tier'
+  TIER = 'tier',
 }
 export enum PaymentMethod {
   CREDIT_CARD = 'credit_card',
-  DEBIT_CARD = 'debit_card', 
+  DEBIT_CARD = 'debit_card',
   CASH = 'cash',
   BANK_TRANSFER = 'bank_transfer',
-  PAYPAL = 'paypal'
+  PAYPAL = 'paypal',
 }
 
 export enum CommissionStatus {
   PENDING = 'pending',
   CONFIRMED = 'confirmed',
   PAID = 'paid',
-  CANCELLED = 'cancelled'
+  CANCELLED = 'cancelled',
 }
 
 // ====================================================================
@@ -120,7 +120,8 @@ export interface CommissionFilters {
   statuses?: CommissionStatus[];
   minAmount?: number;
   maxAmount?: number;
-  searchTerm?: string;  paymentMethods?: PaymentMethod[];
+  searchTerm?: string;
+  paymentMethods?: PaymentMethod[];
 }
 
 // Props para el componente principal
@@ -156,14 +157,18 @@ export interface ExportOptions {
 // ====================================================================
 
 export const isCommission = (obj: any): obj is Commission => {
-  return obj && 
+  return (
+    obj &&
     typeof obj.id === 'string' &&
     typeof obj.productName === 'string' &&
     typeof obj.commissionAmount === 'number' &&
-    Object.values(CommissionType).includes(obj.commissionType);
+    Object.values(CommissionType).includes(obj.commissionType)
+  );
 };
 
-export const isCommissionStatus = (status: string): status is CommissionStatus => {
+export const isCommissionStatus = (
+  status: string
+): status is CommissionStatus => {
   return Object.values(CommissionStatus).includes(status as CommissionStatus);
 };
 

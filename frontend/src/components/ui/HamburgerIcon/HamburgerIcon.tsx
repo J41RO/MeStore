@@ -9,14 +9,14 @@ interface HamburgerIconProps {
 const HamburgerIcon: React.FC<HamburgerIconProps> = ({
   isOpen,
   onClick,
-  className = ''
+  className = '',
 }) => {
   return (
     <button
       onClick={onClick}
       className={`w-6 h-6 sm:hidden flex flex-col justify-center items-center cursor-pointer touch-target active:scale-90 p-2 ${className}`}
-      type="button"
-      aria-label="Toggle mobile menu"
+      type='button'
+      aria-label='Toggle mobile menu'
     >
       {/* Línea superior */}
       <span

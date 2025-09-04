@@ -35,7 +35,7 @@ describe('authInterceptors', () => {
       // Simular interceptor de request
       const config = { headers: {} };
       const token = localStorage.getItem('access_token');
-      
+
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -49,7 +49,7 @@ describe('authInterceptors', () => {
 
       const config = { headers: {} };
       const token = localStorage.getItem('access_token');
-      
+
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -90,8 +90,14 @@ describe('authInterceptors', () => {
       localStorage.setItem('access_token', mockNewAccessToken);
       localStorage.setItem('refresh_token', mockNewRefreshToken);
 
-      expect(localStorageMock.setItem).toHaveBeenCalledWith('access_token', mockNewAccessToken);
-      expect(localStorageMock.setItem).toHaveBeenCalledWith('refresh_token', mockNewRefreshToken);
+      expect(localStorageMock.setItem).toHaveBeenCalledWith(
+        'access_token',
+        mockNewAccessToken
+      );
+      expect(localStorageMock.setItem).toHaveBeenCalledWith(
+        'refresh_token',
+        mockNewRefreshToken
+      );
     });
 
     it('should trigger logout event when refresh fails', () => {

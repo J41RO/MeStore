@@ -8,26 +8,32 @@ interface NotificationContextType {
   notifications: NotificationItem[];
   alerts: AlertItem[];
   unreadCount: number;
-  
+
   // Métodos simplificados
-  showNotification: (notification: Omit<NotificationItem, 'id' | 'timestamp' | 'isRead'>) => void;
+  showNotification: (
+    notification: Omit<NotificationItem, 'id' | 'timestamp' | 'isRead'>
+  ) => void;
   showAlert: (alert: Omit<AlertItem, 'id' | 'isVisible'>) => void;
   removeNotification: (id: string) => void;
   hideAlert: (id: string) => void;
 }
 
-const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
+const NotificationContext = createContext<NotificationContextType | undefined>(
+  undefined
+);
 
-export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const NotificationProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const {
     notifications,
     alerts,
     addNotification,
     showAlert,
     removeNotification,
-    hideAlert
+    hideAlert,
   } = useAppStore();
-  
+
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   const contextValue: NotificationContextType = {
@@ -37,7 +43,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     showNotification: addNotification,
     showAlert,
     removeNotification,
-    hideAlert
+    hideAlert,
   };
 
   return (
@@ -50,7 +56,9 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 export const useNotifications = (): NotificationContextType => {
   const context = useContext(NotificationContext);
   if (context === undefined) {
-    throw new Error('useNotifications must be used within a NotificationProvider');
+    throw new Error(
+      'useNotifications must be used within a NotificationProvider'
+    );
   }
   return context;
 };

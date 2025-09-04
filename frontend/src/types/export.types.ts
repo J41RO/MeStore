@@ -7,13 +7,13 @@ export enum TipoReporte {
   PRODUCTOS_TOP = 'productos_top',
   COMISIONES = 'comisiones',
   INVENTARIO = 'inventario',
-  COMPLETO = 'completo'
+  COMPLETO = 'completo',
 }
 
 // Enum para formatos de exportación
 export enum FormatoExport {
   PDF = 'pdf',
-  EXCEL = 'excel'
+  EXCEL = 'excel',
 }
 
 // Interface para request de exportación
@@ -70,12 +70,12 @@ export const TIPO_REPORTE_LABELS: Record<TipoReporte, string> = {
   [TipoReporte.PRODUCTOS_TOP]: 'Productos Top',
   [TipoReporte.COMISIONES]: 'Comisiones',
   [TipoReporte.INVENTARIO]: 'Inventario',
-  [TipoReporte.COMPLETO]: 'Reporte Completo'
+  [TipoReporte.COMPLETO]: 'Reporte Completo',
 };
 
 export const FORMATO_LABELS: Record<FormatoExport, string> = {
   [FormatoExport.PDF]: 'PDF',
-  [FormatoExport.EXCEL]: 'Excel'
+  [FormatoExport.EXCEL]: 'Excel',
 };
 
 // Utility types
@@ -105,5 +105,5 @@ export const DEFAULT_EXPORT_CONFIG: ExportConfig = {
   defaultTipoReporte: TipoReporte.COMISIONES,
   allowedFormatos: [FormatoExport.PDF, FormatoExport.EXCEL],
   maxFileSize: 50 * 1024 * 1024, // 50MB
-  timeout: 30000 // 30 segundos
+  timeout: 30000, // 30 segundos
 };

@@ -38,13 +38,15 @@ describe('BulkActions Component', () => {
           selectedProducts={[]}
         />
       );
-      
-      expect(screen.queryByText(/productos seleccionados/)).not.toBeInTheDocument();
+
+      expect(
+        screen.queryByText(/productos seleccionados/)
+      ).not.toBeInTheDocument();
     });
 
     it('debe renderizar correctamente con productos seleccionados', () => {
       render(<BulkActions {...defaultProps} />);
-      
+
       expect(screen.getByText('3 productos seleccionados')).toBeInTheDocument();
       expect(screen.getByText('Cambiar Estado')).toBeInTheDocument();
       expect(screen.getByText('Eliminar')).toBeInTheDocument();
@@ -59,7 +61,7 @@ describe('BulkActions Component', () => {
           selectedProducts={['product-1']}
         />
       );
-      
+
       expect(screen.getByText('1 producto seleccionado')).toBeInTheDocument();
     });
   });
@@ -67,55 +69,65 @@ describe('BulkActions Component', () => {
   describe('Interacciones UI', () => {
     it('debe mostrar modal de confirmación al hacer click en Eliminar', () => {
       render(<BulkActions {...defaultProps} />);
-      
+
       fireEvent.click(screen.getByText('Eliminar'));
-      
+
       expect(screen.getByText('Confirmar Eliminación')).toBeInTheDocument();
-      expect(screen.getByText(/¿Estás seguro de que deseas eliminar 3 productos?/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/¿Estás seguro de que deseas eliminar 3 productos?/)
+      ).toBeInTheDocument();
     });
 
     it('debe mostrar modal de estado al hacer click en Cambiar Estado', () => {
       render(<BulkActions {...defaultProps} />);
-      
+
       fireEvent.click(screen.getByText('Cambiar Estado'));
-      
-      expect(screen.getByText('Cambiar Estado de Productos')).toBeInTheDocument();
+
+      expect(
+        screen.getByText('Cambiar Estado de Productos')
+      ).toBeInTheDocument();
       expect(screen.getByText('Activo')).toBeInTheDocument();
       expect(screen.getByText('Inactivo')).toBeInTheDocument();
     });
 
     it('debe limpiar selección al hacer click en X', () => {
       render(<BulkActions {...defaultProps} />);
-      
+
       fireEvent.click(screen.getByText('✕'));
-      
+
       expect(defaultProps.onClearSelection).toHaveBeenCalled();
     });
 
     it('debe cancelar eliminación correctamente', () => {
       render(<BulkActions {...defaultProps} />);
-      
+
       fireEvent.click(screen.getByText('Eliminar'));
       fireEvent.click(screen.getByText('Cancelar'));
-      
-      expect(screen.queryByText('Confirmar Eliminación')).not.toBeInTheDocument();
+
+      expect(
+        screen.queryByText('Confirmar Eliminación')
+      ).not.toBeInTheDocument();
     });
 
     it('debe cancelar cambio de estado correctamente', () => {
       render(<BulkActions {...defaultProps} />);
-      
+
       fireEvent.click(screen.getByText('Cambiar Estado'));
       fireEvent.click(screen.getByText('Cancelar'));
-      
-      expect(screen.queryByText('Cambiar Estado de Productos')).not.toBeInTheDocument();
+
+      expect(
+        screen.queryByText('Cambiar Estado de Productos')
+      ).not.toBeInTheDocument();
     });
   });
 
   describe('Props y Estados', () => {
     it('debe manejar diferentes counts correctamente', () => {
-      const { rerender } = render(<BulkActions {...defaultProps} selectedCount={5} />);
+      const { rerender } = render(
+        <BulkActions {...defaultProps} selectedCount={5} />
+      );
       expect(screen.getByText('5 productos seleccionados')).toBeInTheDocument();
-      
+
       rerender(<BulkActions {...defaultProps} selectedCount={1} />);
       expect(screen.getByText('1 producto seleccionado')).toBeInTheDocument();
     });
@@ -128,8 +140,10 @@ describe('BulkActions Component', () => {
           selectedCount={0}
         />
       );
-      
-      expect(screen.queryByText(/productos seleccionados/)).not.toBeInTheDocument();
+
+      expect(
+        screen.queryByText(/productos seleccionados/)
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -144,7 +158,7 @@ describe('BulkActions Component', () => {
       };
 
       render(<BulkActions {...minimalProps} />);
-      
+
       expect(screen.getByText('1 producto seleccionado')).toBeInTheDocument();
     });
   });

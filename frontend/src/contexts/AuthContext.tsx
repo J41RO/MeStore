@@ -1,13 +1,8 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useAuthStore } from '../stores/authStore';
 
-// Tipos para el contexto
-interface User {
-  id: string;
-  email: string;
-  name?: string;
-  role?: string;
-}
+// Importamos el tipo User desde authStore
+import type { User } from '../stores/authStore';
 
 interface AuthContextType {
   // Estado
@@ -15,12 +10,12 @@ interface AuthContextType {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  
+
   // Métodos principales
   login: (token: string, user: User) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => boolean;
-  
+
   // Métodos adicionales para JWT
   getToken: () => string | null;
   refreshToken: () => Promise<boolean>;
@@ -43,7 +38,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAuthenticated,
     login: zustandLogin,
     logout: zustandLogout,
-    checkAuth: zustandCheckAuth
+    checkAuth: zustandCheckAuth,
   } = useAuthStore();
 
   // Listener para logout automático desde interceptores
@@ -53,7 +48,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
 
     window.addEventListener('auth:logout', handleAutoLogout);
-    
+
     return () => {
       window.removeEventListener('auth:logout', handleAutoLogout);
     };
@@ -69,7 +64,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       // Usar método de Zustand
       zustandLogin(token, user);
-      
+
       // Lógica adicional
       console.log('Usuario autenticado:', user.email);
     } catch (error) {
@@ -120,13 +115,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkAuth,
     getToken,
     refreshToken,
-    isTokenValid
+    isTokenValid,
   };
 
   return (
-    <AuthContext.Provider value={contextValue}>
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
   );
 };
 

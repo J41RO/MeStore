@@ -4,7 +4,7 @@ export enum ScanMode {
   MANUAL = 'manual',
   AUTO_SIMULATION = 'auto_simulation',
   BATCH = 'batch',
-  LOCATION_BASED = 'location_based'
+  LOCATION_BASED = 'location_based',
 }
 
 export enum ScanStatus {
@@ -12,14 +12,14 @@ export enum ScanStatus {
   SCANNING = 'scanning',
   SUCCESS = 'success',
   ERROR = 'error',
-  VALIDATING = 'validating'
+  VALIDATING = 'validating',
 }
 
 export enum PickingOperation {
   ADD_ITEM = 'add_item',
   REMOVE_ITEM = 'remove_item',
   VERIFY_ITEM = 'verify_item',
-  COMPLETE_BATCH = 'complete_batch'
+  COMPLETE_BATCH = 'complete_batch',
 }
 
 // Interface para item escaneado

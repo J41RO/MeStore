@@ -6,7 +6,11 @@
 // ---------------------------------------------------------------------------------------------
 
 import { useState, useMemo } from 'react';
-import { InventoryItem, InventoryStatus, LocationZone } from '../types/inventory.types';
+import {
+  InventoryItem,
+  InventoryStatus,
+  LocationZone,
+} from '../types/inventory.types';
 import type { InventoryFilters } from '../types/inventory.types';
 
 // Datos mock para desarrollo
@@ -20,9 +24,14 @@ const mockInventoryData: InventoryItem[] = [
     minStock: 10,
     maxStock: 50,
     status: InventoryStatus.IN_STOCK,
-    location: { zone: LocationZone.WAREHOUSE_A, aisle: 'A1', shelf: 'S1', position: 'P1' },
+    location: {
+      zone: LocationZone.WAREHOUSE_A,
+      aisle: 'A1',
+      shelf: 'S1',
+      position: 'P1',
+    },
     lastUpdated: new Date(),
-    cost: 1200
+    cost: 1200,
   },
   {
     id: '2',
@@ -33,9 +42,14 @@ const mockInventoryData: InventoryItem[] = [
     minStock: 15,
     maxStock: 100,
     status: InventoryStatus.LOW_STOCK,
-    location: { zone: LocationZone.DISPLAY_AREA, aisle: 'B2', shelf: 'S3', position: 'P2' },
+    location: {
+      zone: LocationZone.DISPLAY_AREA,
+      aisle: 'B2',
+      shelf: 'S3',
+      position: 'P2',
+    },
     lastUpdated: new Date(),
-    cost: 45
+    cost: 45,
   },
   {
     id: '3',
@@ -46,10 +60,15 @@ const mockInventoryData: InventoryItem[] = [
     minStock: 8,
     maxStock: 30,
     status: InventoryStatus.OUT_OF_STOCK,
-    location: { zone: LocationZone.STORAGE_ROOM, aisle: 'C1', shelf: 'S2', position: 'P1' },
+    location: {
+      zone: LocationZone.STORAGE_ROOM,
+      aisle: 'C1',
+      shelf: 'S2',
+      position: 'P1',
+    },
     lastUpdated: new Date(),
-    cost: 85
-  }
+    cost: 85,
+  },
 ];
 
 export interface UseInventoryReturn {
@@ -73,33 +92,38 @@ export const useInventory = (): UseInventoryReturn => {
       if (filters.status && filters.status.length > 0) {
         if (filters.status.indexOf(item.status) === -1) return false;
       }
-      
+
       // Filtro por ubicación
       if (filters.location && filters.location.length > 0) {
         if (filters.location.indexOf(item.location.zone) === -1) return false;
       }
-      
+
       // Filtro por búsqueda de texto
       if (filters.searchTerm) {
         const searchLower = filters.searchTerm.toLowerCase();
         if (
           item.productName.toLowerCase().indexOf(searchLower) === -1 &&
           item.sku.toLowerCase().indexOf(searchLower) === -1
-        ) return false;
+        )
+          return false;
       }
-      
+
       return true;
     });
   }, [filters]);
 
   const stats = useMemo(() => {
-    const lowStock = mockInventoryData.filter(item => item.status === InventoryStatus.LOW_STOCK).length;
-    const outOfStock = mockInventoryData.filter(item => item.status === InventoryStatus.OUT_OF_STOCK).length;
-    
+    const lowStock = mockInventoryData.filter(
+      item => item.status === InventoryStatus.LOW_STOCK
+    ).length;
+    const outOfStock = mockInventoryData.filter(
+      item => item.status === InventoryStatus.OUT_OF_STOCK
+    ).length;
+
     return {
       totalItems: mockInventoryData.length,
       lowStockItems: lowStock,
-      outOfStockItems: outOfStock
+      outOfStockItems: outOfStock,
     };
   }, []);
 
@@ -109,6 +133,6 @@ export const useInventory = (): UseInventoryReturn => {
     filters,
     setFilters,
     isLoading,
-    ...stats
+    ...stats,
   };
 };

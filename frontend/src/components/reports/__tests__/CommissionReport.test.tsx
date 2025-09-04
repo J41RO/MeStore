@@ -1,16 +1,20 @@
 import React from 'react';
 // Mock recharts components that cause issues in jsdom
 jest.mock('recharts', () => ({
-  BarChart: ({ children }: any) => <div data-testid="bar-chart">{children}</div>,
+  BarChart: ({ children }: any) => (
+    <div data-testid='bar-chart'>{children}</div>
+  ),
   Bar: () => <div />,
   XAxis: () => <div />,
   YAxis: () => <div />,
   CartesianGrid: () => <div />,
   Tooltip: () => <div />,
   ResponsiveContainer: ({ children }: any) => <div>{children}</div>,
-  PieChart: ({ children }: any) => <div data-testid="pie-chart">{children}</div>,
+  PieChart: ({ children }: any) => (
+    <div data-testid='pie-chart'>{children}</div>
+  ),
   Pie: () => <div />,
-  Cell: () => <div />
+  Cell: () => <div />,
 }));
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
@@ -30,8 +34,8 @@ jest.mock('../../../hooks/useCommissions', () => ({
         status: 'confirmed',
         orderId: 'order-001',
         customerName: 'Test Customer',
-        saleDate: new Date('2025-08-01')
-      }
+        saleDate: new Date('2025-08-01'),
+      },
     ],
     breakdown: {
       byProduct: [],
@@ -44,8 +48,8 @@ jest.mock('../../../hooks/useCommissions', () => ({
         commissionCount: 1,
         averageCommissionRate: 0.08,
         topProduct: 'Test Product',
-        topCategory: 'Test Category'
-      }
+        topCategory: 'Test Category',
+      },
     },
     isLoading: false,
     error: null,
@@ -53,8 +57,8 @@ jest.mock('../../../hooks/useCommissions', () => ({
     totalSales: 1000,
     updateFilters: jest.fn(),
     clearFilters: jest.fn(),
-    refreshCommissions: jest.fn()
-  }))
+    refreshCommissions: jest.fn(),
+  })),
 }));
 
 describe('CommissionReport', () => {
@@ -64,14 +68,16 @@ describe('CommissionReport', () => {
 
   test('renders commission report header', () => {
     render(<CommissionReport />);
-    
+
     expect(screen.getByText('Reporte de Comisiones')).toBeInTheDocument();
-    expect(screen.getByText('Análisis detallado de tus comisiones')).toBeInTheDocument();
+    expect(
+      screen.getByText('Análisis detallado de tus comisiones')
+    ).toBeInTheDocument();
   });
 
   test('displays correct statistics', () => {
     render(<CommissionReport />);
-    
+
     expect(screen.getByText('Total Comisiones')).toBeInTheDocument();
     expect(screen.getAllByText('$80.00')).toHaveLength(3); // Aparece en stats, métricas breakdown y lista
     expect(screen.getByText('$1000.00')).toBeInTheDocument(); // Total ventas
@@ -80,7 +86,7 @@ describe('CommissionReport', () => {
 
   test('renders navigation tabs', () => {
     render(<CommissionReport />);
-    
+
     expect(screen.getByText('Resumen')).toBeInTheDocument();
     expect(screen.getByText('Detalle')).toBeInTheDocument();
     expect(screen.getByText('Gráficos')).toBeInTheDocument();
@@ -88,14 +94,14 @@ describe('CommissionReport', () => {
 
   test('switches between tabs correctly', () => {
     render(<CommissionReport />);
-    
+
     // Initially on summary tab
     expect(screen.getByText('Resumen de Comisiones')).toBeInTheDocument();
-    
+
     // Click on table tab
     fireEvent.click(screen.getByText('Detalle'));
     expect(screen.getByText('Detalle de Comisiones')).toBeInTheDocument();
-    
+
     // Click on charts tab
     fireEvent.click(screen.getByText('Gráficos'));
     expect(screen.getByText('Gráficos y Análisis')).toBeInTheDocument();
@@ -103,7 +109,7 @@ describe('CommissionReport', () => {
 
   test('displays commission data in summary view', () => {
     render(<CommissionReport />);
-    
+
     expect(screen.getByText('Test Product')).toBeInTheDocument();
     expect(screen.getByText('Test Category')).toBeInTheDocument();
     expect(screen.getByText(/order-001/)).toBeInTheDocument();
@@ -113,10 +119,10 @@ describe('CommissionReport', () => {
   test('handles export button click', () => {
     const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
     render(<CommissionReport />);
-    
+
     const exportButton = screen.getByText('Exportar');
     fireEvent.click(exportButton);
-    
+
     // Verificar que el botón ExportModal está presente y funcional
     consoleSpy.mockRestore();
   });
@@ -125,11 +131,11 @@ describe('CommissionReport', () => {
     const { useCommissions } = require('../../../hooks/useCommissions');
     useCommissions.mockReturnValue({
       ...useCommissions(),
-      isLoading: true
+      isLoading: true,
     });
 
     render(<CommissionReport />);
-    
+
     expect(document.querySelector('.animate-pulse')).toBeTruthy();
   });
 
@@ -148,10 +154,23 @@ describe('CommissionReport', () => {
           saleDate: new Date('2023-01-01'),
           vendorId: 'vendor-001',
           vendorName: 'Test Vendor',
-          orderId: 'order-001'
-        }
+          orderId: 'order-001',
+        },
       ],
-      breakdown: { byProduct: [], byPeriod: [], byType: [], byCategory: {}, totals: { totalCommissions: 80, totalSales: 1000, commissionCount: 1, averageCommissionRate: 0.08, topProduct: 'Test Product', topCategory: 'Test Category' } },
+      breakdown: {
+        byProduct: [],
+        byPeriod: [],
+        byType: [],
+        byCategory: {},
+        totals: {
+          totalCommissions: 80,
+          totalSales: 1000,
+          commissionCount: 1,
+          averageCommissionRate: 0.08,
+          topProduct: 'Test Product',
+          topCategory: 'Test Category',
+        },
+      },
       totalCommissions: 80,
       totalSales: 1000,
       isLoading: false,
@@ -159,19 +178,19 @@ describe('CommissionReport', () => {
       filters: {},
       updateFilters: jest.fn(),
       clearFilters: jest.fn(),
-      refreshCommissions: jest.fn()
+      refreshCommissions: jest.fn(),
     });
   });
-    test('applies custom className', () => {
-    const { container } = render(<CommissionReport className="custom-class" />);
-    
+  test('applies custom className', () => {
+    const { container } = render(<CommissionReport className='custom-class' />);
+
     expect(container.firstChild).toHaveClass('space-y-6', 'custom-class');
   });
 
   test('uses default filters', () => {
     const defaultFilters = { searchTerm: 'test' };
     render(<CommissionReport defaultFilters={defaultFilters} />);
-    
+
     const { useCommissions } = require('../../../hooks/useCommissions');
     expect(useCommissions).toHaveBeenCalledWith(defaultFilters);
   });

@@ -37,7 +37,7 @@ const mockImages: GalleryImage[] = [
     createdAt: new Date('2025-01-01'),
     selected: false,
     favorite: false,
-    metadata: { width: 800, height: 600, type: 'image/jpeg' }
+    metadata: { width: 800, height: 600, type: 'image/jpeg' },
   },
   {
     id: '2',
@@ -48,8 +48,8 @@ const mockImages: GalleryImage[] = [
     createdAt: new Date('2025-01-02'),
     selected: false,
     favorite: true,
-    metadata: { width: 1200, height: 800, type: 'image/png' }
-  }
+    metadata: { width: 1200, height: 800, type: 'image/png' },
+  },
 ];
 
 describe('ImageGallery', () => {
@@ -65,20 +65,22 @@ describe('ImageGallery', () => {
       onReorder: jest.fn(),
       onDelete: jest.fn(),
       onToggleFavorite: jest.fn(),
-      onSearch: jest.fn()
+      onSearch: jest.fn(),
     };
   });
 
   it('renderiza correctamente con imágenes', () => {
     render(<ImageGallery {...defaultProps} />);
-    
+
     // Verificar que las imágenes se renderizan
     expect(screen.getByAltText('Imagen 1')).toBeInTheDocument();
     expect(screen.getByAltText('Imagen 2')).toBeInTheDocument();
-    
+
     // Verificar que el toolbar está presente
-    expect(screen.getByPlaceholderText('Buscar imágenes...')).toBeInTheDocument();
-    
+    expect(
+      screen.getByPlaceholderText('Buscar imágenes...')
+    ).toBeInTheDocument();
+
     // Verificar botones de vista
     expect(screen.getByText('Grid')).toBeInTheDocument();
     expect(screen.getByText('List')).toBeInTheDocument();
@@ -88,62 +90,73 @@ describe('ImageGallery', () => {
   it('permite búsqueda de imágenes', () => {
     const mockOnSearch = jest.fn();
     render(<ImageGallery {...defaultProps} onSearch={mockOnSearch} />);
-    
+
     const searchInput = screen.getByPlaceholderText('Buscar imágenes...');
     fireEvent.change(searchInput, { target: { value: 'Imagen 1' } });
-    
+
     expect(mockOnSearch).toHaveBeenCalledWith('Imagen 1');
   });
 
   it('permite selección múltiple cuando está habilitada', () => {
     const mockOnSelectionChange = jest.fn();
-    render(<ImageGallery {...defaultProps} onSelectionChange={mockOnSelectionChange} />);
-    
+    render(
+      <ImageGallery
+        {...defaultProps}
+        onSelectionChange={mockOnSelectionChange}
+      />
+    );
+
     // Buscar checkboxes de selección
     const checkboxes = screen.getAllByRole('checkbox');
     expect(checkboxes).toHaveLength(2);
-    
+
     // Simular click en checkbox
     fireEvent.click(checkboxes[0]);
-    
+
     expect(mockOnSelectionChange).toHaveBeenCalled();
   });
 
   it('muestra botones de acción masiva cuando hay selección múltiple', () => {
     render(<ImageGallery {...defaultProps} />);
-    
+
     expect(screen.getByText('Seleccionar Todo')).toBeInTheDocument();
     expect(screen.getByText('Limpiar')).toBeInTheDocument();
   });
 
   it('cambia modo de vista correctamente', () => {
     render(<ImageGallery {...defaultProps} />);
-    
+
     const listButton = screen.getByText('List');
     fireEvent.click(listButton);
-    
+
     // Verificar que el botón List está activo (debería tener clase bg-blue-500)
     expect(listButton).toHaveClass('bg-blue-500');
   });
 
   it('muestra mensaje cuando no hay imágenes', () => {
     render(<ImageGallery {...defaultProps} images={[]} />);
-    
-    expect(screen.getByText('No hay imágenes para mostrar')).toBeInTheDocument();
+
+    expect(
+      screen.getByText('No hay imágenes para mostrar')
+    ).toBeInTheDocument();
   });
 
   it('muestra mensaje cuando no hay resultados de búsqueda', () => {
     render(<ImageGallery {...defaultProps} />);
-    
+
     const searchInput = screen.getByPlaceholderText('Buscar imágenes...');
     fireEvent.change(searchInput, { target: { value: 'imagen inexistente' } });
-    
-    expect(screen.getByText('No se encontraron imágenes que coincidan con la búsqueda')).toBeInTheDocument();
+
+    expect(
+      screen.getByText(
+        'No se encontraron imágenes que coincidan con la búsqueda'
+      )
+    ).toBeInTheDocument();
   });
 
   it('no muestra checkboxes cuando selección múltiple está deshabilitada', () => {
     render(<ImageGallery {...defaultProps} allowMultiSelect={false} />);
-    
+
     const checkboxes = screen.queryAllByRole('checkbox');
     expect(checkboxes).toHaveLength(0);
   });

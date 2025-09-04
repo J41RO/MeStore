@@ -1,5 +1,8 @@
 import { renderHook } from '@testing-library/react';
-import { useNotifications, NotificationProvider } from '../../contexts/NotificationContext';
+import {
+  useNotifications,
+  NotificationProvider,
+} from '../../contexts/NotificationContext';
 import * as React from 'react';
 
 // Mock del store Zustand
@@ -12,18 +15,18 @@ const mockStore = {
       message: 'Test message',
       category: 'system' as const,
       timestamp: Date.now(),
-      isRead: false
-    }
+      isRead: false,
+    },
   ],
   alerts: [],
   addNotification: jest.fn(),
   showAlert: jest.fn(),
   removeNotification: jest.fn(),
-  hideAlert: jest.fn()
+  hideAlert: jest.fn(),
 };
 
 jest.mock('../../stores/appStore', () => ({
-  useAppStore: () => mockStore
+  useAppStore: () => mockStore,
 }));
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -48,15 +51,41 @@ describe('useNotifications Hook', () => {
 
     expect(result.current.showNotification).toBe(mockStore.addNotification);
     expect(result.current.showAlert).toBe(mockStore.showAlert);
-    expect(result.current.removeNotification).toBe(mockStore.removeNotification);
+    expect(result.current.removeNotification).toBe(
+      mockStore.removeNotification
+    );
     expect(result.current.hideAlert).toBe(mockStore.hideAlert);
   });
 
   test('calculates unread count correctly', () => {
     mockStore.notifications = [
-      { id: '1', type: 'success', title: 'Test', message: 'Test', category: 'system', timestamp: Date.now(), isRead: false },
-      { id: '2', type: 'info', title: 'Test', message: 'Test', category: 'system', timestamp: Date.now(), isRead: true },
-      { id: '3', type: 'error', title: 'Test', message: 'Test', category: 'system', timestamp: Date.now(), isRead: false }
+      {
+        id: '1',
+        type: 'success',
+        title: 'Test',
+        message: 'Test',
+        category: 'system',
+        timestamp: Date.now(),
+        isRead: false,
+      },
+      {
+        id: '2',
+        type: 'info',
+        title: 'Test',
+        message: 'Test',
+        category: 'system',
+        timestamp: Date.now(),
+        isRead: true,
+      },
+      {
+        id: '3',
+        type: 'error',
+        title: 'Test',
+        message: 'Test',
+        category: 'system',
+        timestamp: Date.now(),
+        isRead: false,
+      },
     ];
 
     const { result } = renderHook(() => useNotifications(), { wrapper });
@@ -65,8 +94,10 @@ describe('useNotifications Hook', () => {
   });
 
   test('throws error when used outside provider', () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    
+    const consoleSpy = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+
     expect(() => {
       renderHook(() => useNotifications());
     }).toThrow('useNotifications must be used within a NotificationProvider');

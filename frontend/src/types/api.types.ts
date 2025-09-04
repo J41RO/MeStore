@@ -30,7 +30,6 @@ export interface AuthResponse {
   user: UserProfile;
 }
 
-
 // Tipos de usuario
 export interface UserProfile {
   id: string;
@@ -75,7 +74,6 @@ export interface CreateProductData {
 export interface UpdateProductData extends Partial<CreateProductData> {
   id: number;
 }
-
 
 // Tipos para paginación
 export interface PaginatedResponse<T> {

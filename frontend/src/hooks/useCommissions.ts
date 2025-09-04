@@ -1,5 +1,11 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Commission, CommissionBreakdown, CommissionFilters, CommissionType, CommissionStatus } from '../types/commission.types';
+import {
+  Commission,
+  CommissionBreakdown,
+  CommissionFilters,
+  CommissionType,
+  CommissionStatus,
+} from '../types/commission.types';
 
 const mockCommissionsData: Commission[] = [
   {
@@ -16,7 +22,7 @@ const mockCommissionsData: Commission[] = [
     vendorId: 'vendor-001',
     vendorName: 'Vendedor Principal',
     orderId: 'order-001',
-    customerName: 'Juan Pérez'
+    customerName: 'Juan Pérez',
   },
   {
     id: 'comm-002',
@@ -33,7 +39,7 @@ const mockCommissionsData: Commission[] = [
     vendorId: 'vendor-001',
     vendorName: 'Vendedor Principal',
     orderId: 'order-002',
-    customerName: 'María González'
+    customerName: 'María González',
   },
   {
     id: 'comm-003',
@@ -41,7 +47,7 @@ const mockCommissionsData: Commission[] = [
     productName: 'Smart TV 65" OLED',
     productCategory: 'Televisores',
     saleAmount: 1599.99,
-    commissionRate: 0.10,
+    commissionRate: 0.1,
     commissionAmount: 159.99,
     commissionType: CommissionType.VOLUME,
     status: CommissionStatus.CONFIRMED,
@@ -49,8 +55,8 @@ const mockCommissionsData: Commission[] = [
     vendorId: 'vendor-001',
     vendorName: 'Vendedor Principal',
     orderId: 'order-003',
-    customerName: 'Carlos Rodríguez'
-  }
+    customerName: 'Carlos Rodríguez',
+  },
 ];
 
 export const useCommissions = (initialFilters: CommissionFilters = {}) => {
@@ -63,9 +69,15 @@ export const useCommissions = (initialFilters: CommissionFilters = {}) => {
   }, [filters]);
 
   const commissionBreakdown = useMemo(() => {
-    const totalCommissions = filteredCommissions.reduce((sum, c) => sum + c.commissionAmount, 0);
-    const totalSales = filteredCommissions.reduce((sum, c) => sum + c.saleAmount, 0);
-    
+    const totalCommissions = filteredCommissions.reduce(
+      (sum, c) => sum + c.commissionAmount,
+      0
+    );
+    const totalSales = filteredCommissions.reduce(
+      (sum, c) => sum + c.saleAmount,
+      0
+    );
+
     const breakdown: CommissionBreakdown = {
       byProduct: [],
       byPeriod: [],
@@ -75,18 +87,22 @@ export const useCommissions = (initialFilters: CommissionFilters = {}) => {
         totalCommissions,
         totalSales,
         commissionCount: filteredCommissions.length,
-        averageCommissionRate: totalSales > 0 ? totalCommissions / totalSales : 0,
+        averageCommissionRate:
+          totalSales > 0 ? totalCommissions / totalSales : 0,
         topProduct: '',
-        topCategory: ''
-      }
+        topCategory: '',
+      },
     };
-    
+
     return breakdown;
   }, [filteredCommissions]);
 
-  const updateFilters = useCallback((newFilters: Partial<CommissionFilters>) => {
-    setFilters(prev => ({ ...prev, ...newFilters }));
-  }, []);
+  const updateFilters = useCallback(
+    (newFilters: Partial<CommissionFilters>) => {
+      setFilters(prev => ({ ...prev, ...newFilters }));
+    },
+    []
+  );
 
   const clearFilters = useCallback(() => {
     setFilters({});
@@ -113,9 +129,12 @@ export const useCommissions = (initialFilters: CommissionFilters = {}) => {
     updateFilters,
     clearFilters,
     refreshCommissions,
-    totalCommissions: filteredCommissions.reduce((sum, c) => sum + c.commissionAmount, 0),
+    totalCommissions: filteredCommissions.reduce(
+      (sum, c) => sum + c.commissionAmount,
+      0
+    ),
     totalSales: filteredCommissions.reduce((sum, c) => sum + c.saleAmount, 0),
     commissionCount: filteredCommissions.length,
-    mockData: mockCommissionsData
+    mockData: mockCommissionsData,
   };
 };

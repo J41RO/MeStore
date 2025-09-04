@@ -14,7 +14,7 @@ const TestImageGallery = () => {
       createdAt: new Date('2025-01-15'),
       selected: false,
       favorite: false,
-      metadata: { width: 400, height: 300, type: 'image/jpeg' }
+      metadata: { width: 400, height: 300, type: 'image/jpeg' },
     },
     {
       id: '2',
@@ -25,7 +25,7 @@ const TestImageGallery = () => {
       createdAt: new Date('2025-01-16'),
       selected: false,
       favorite: true,
-      metadata: { width: 400, height: 300, type: 'image/png' }
+      metadata: { width: 400, height: 300, type: 'image/png' },
     },
     {
       id: '3',
@@ -36,7 +36,7 @@ const TestImageGallery = () => {
       createdAt: new Date('2025-01-17'),
       selected: false,
       favorite: false,
-      metadata: { width: 400, height: 300, type: 'image/webp' }
+      metadata: { width: 400, height: 300, type: 'image/webp' },
     },
     {
       id: '4',
@@ -47,7 +47,7 @@ const TestImageGallery = () => {
       createdAt: new Date('2025-01-18'),
       selected: false,
       favorite: true,
-      metadata: { width: 400, height: 300, type: 'image/jpeg' }
+      metadata: { width: 400, height: 300, type: 'image/jpeg' },
     },
     {
       id: '5',
@@ -58,8 +58,8 @@ const TestImageGallery = () => {
       createdAt: new Date('2025-01-19'),
       selected: false,
       favorite: false,
-      metadata: { width: 400, height: 300, type: 'image/png' }
-    }
+      metadata: { width: 400, height: 300, type: 'image/png' },
+    },
   ];
 
   const handleSelectionChange = (selectedImages: GalleryImage[]) => {
@@ -83,15 +83,15 @@ const TestImageGallery = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6 text-gray-800">
+    <div className='min-h-screen bg-gray-50 p-8'>
+      <div className='max-w-6xl mx-auto'>
+        <h1 className='text-2xl font-bold mb-6 text-gray-800'>
           🖼️ Test ImageGallery Component - Demo Galería
         </h1>
-        <div className="bg-white p-6 rounded-lg shadow-lg">
+        <div className='bg-white p-6 rounded-lg shadow-lg'>
           <ImageGallery
             images={mockImages}
-            viewMode="grid"
+            viewMode='grid'
             allowMultiSelect={true}
             allowReorder={true}
             onSelectionChange={handleSelectionChange}

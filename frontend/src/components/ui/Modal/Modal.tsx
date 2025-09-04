@@ -60,42 +60,55 @@ const Modal: React.FC<ModalProps> = ({
   if (!isOpen) return null;
 
   const modalContent = (
-    <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-8"
+    <div
+      className='fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-8'
       onClick={handleOverlayClick}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black bg-opacity-50 transition-opacity" />
-      
+      <div className='absolute inset-0 bg-black bg-opacity-50 transition-opacity' />
+
       {/* Modal */}
       <div
         ref={modalRef}
         className={`relative bg-white rounded sm:rounded-lg shadow-mestocker-xl w-full ${sizeClasses[size]} max-h-[90vh] overflow-hidden`}
         tabIndex={-1}
-        role="dialog"
-        aria-modal="true"
+        role='dialog'
+        aria-modal='true'
         aria-labelledby={title ? 'modal-title' : undefined}
       >
         {/* Header */}
         {title && (
-          <div className="flex items-center justify-between p-4 sm:p-6 border-b border-neutral-200">
-            <h2 id="modal-title" className="text-base sm:text-lg font-semibold text-neutral-900">
+          <div className='flex items-center justify-between p-4 sm:p-6 border-b border-neutral-200'>
+            <h2
+              id='modal-title'
+              className='text-base sm:text-lg font-semibold text-neutral-900'
+            >
               {title}
             </h2>
             <button
               onClick={onClose}
-              className="p-1 rounded-md hover:bg-neutral-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
-              aria-label="Cerrar modal"
+              className='p-1 rounded-md hover:bg-neutral-100 focus:outline-none focus:ring-2 focus:ring-primary-500'
+              aria-label='Cerrar modal'
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className='w-5 h-5'
+                fill='none'
+                stroke='currentColor'
+                viewBox='0 0 24 24'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M6 18L18 6M6 6l12 12'
+                />
               </svg>
             </button>
           </div>
         )}
-        
+
         {/* Content */}
-        <div className="overflow-y-auto max-h-[calc(90vh-8rem)]">
+        <div className='overflow-y-auto max-h-[calc(90vh-8rem)]'>
           {children}
         </div>
       </div>

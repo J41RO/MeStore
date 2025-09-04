@@ -9,7 +9,7 @@ jest.mock('../../stores/appStore', () => ({
     globalError: null,
     activeRequests: new Set(),
     hasActiveRequests: false,
-  })
+  }),
 }));
 
 describe('useApiRequest Simple Tests', () => {

@@ -7,7 +7,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend
+  Legend,
 } from 'recharts';
 
 interface SalesData {
@@ -24,36 +24,34 @@ interface SalesChartProps {
 
 /**
  * Componente SalesChart - Gráfico de líneas para tendencias de ventas
- * 
+ *
  * @param data - Array de datos de ventas con fecha, ventas y revenue
  * @param title - Título opcional para el gráfico
  * @param className - Clases CSS adicionales
  */
-const SalesChart: React.FC<SalesChartProps> = ({ 
-  data, 
+const SalesChart: React.FC<SalesChartProps> = ({
+  data,
   title = 'Tendencias de Ventas',
-  className = ''
+  className = '',
 }) => {
   // Formatear datos para el gráfico
   const formattedData = data.map(item => ({
     ...item,
     // Formatear fecha para mejor visualización
-    month: new Date(item.date + '-01').toLocaleDateString('es-ES', { 
+    month: new Date(item.date + '-01').toLocaleDateString('es-ES', {
       month: 'short',
-      year: '2-digit' 
-    })
+      year: '2-digit',
+    }),
   }));
 
   return (
     <div className={`bg-white rounded-lg shadow-md p-6 ${className}`}>
       {title && (
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">
-          {title}
-        </h3>
+        <h3 className='text-lg font-semibold text-gray-800 mb-4'>{title}</h3>
       )}
-      
-      <div className="h-80 w-full">
-        <ResponsiveContainer width="100%" height="100%">
+
+      <div className='h-80 w-full'>
+        <ResponsiveContainer width='100%' height='100%'>
           <LineChart
             data={formattedData}
             margin={{
@@ -63,15 +61,15 @@ const SalesChart: React.FC<SalesChartProps> = ({
               bottom: 20,
             }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis 
-              dataKey="month"
-              stroke="#6b7280"
+            <CartesianGrid strokeDasharray='3 3' stroke='#f0f0f0' />
+            <XAxis
+              dataKey='month'
+              stroke='#6b7280'
               fontSize={12}
               tickLine={false}
             />
-            <YAxis 
-              stroke="#6b7280"
+            <YAxis
+              stroke='#6b7280'
               fontSize={12}
               tickLine={false}
               axisLine={false}
@@ -81,36 +79,34 @@ const SalesChart: React.FC<SalesChartProps> = ({
                 backgroundColor: '#ffffff',
                 border: '1px solid #e5e7eb',
                 borderRadius: '8px',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
               }}
               labelStyle={{ color: '#374151', fontWeight: 'bold' }}
             />
-            <Legend 
-              wrapperStyle={{ paddingTop: '20px' }}
-            />
+            <Legend wrapperStyle={{ paddingTop: '20px' }} />
             <Line
-              type="monotone"
-              dataKey="sales"
-              stroke="#3b82f6"
+              type='monotone'
+              dataKey='sales'
+              stroke='#3b82f6'
               strokeWidth={3}
               dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
               activeDot={{ r: 6, stroke: '#3b82f6', strokeWidth: 2 }}
-              name="Ventas"
+              name='Ventas'
             />
             <Line
-              type="monotone"
-              dataKey="revenue"
-              stroke="#10b981"
+              type='monotone'
+              dataKey='revenue'
+              stroke='#10b981'
               strokeWidth={3}
               dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
               activeDot={{ r: 6, stroke: '#10b981', strokeWidth: 2 }}
-              name="Ingresos"
+              name='Ingresos'
             />
           </LineChart>
         </ResponsiveContainer>
       </div>
-      
-      <div className="mt-4 text-sm text-gray-600">
+
+      <div className='mt-4 text-sm text-gray-600'>
         <p>Tendencias de ventas e ingresos por mes</p>
       </div>
     </div>

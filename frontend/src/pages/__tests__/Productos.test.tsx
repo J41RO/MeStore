@@ -20,12 +20,12 @@ jest.mock('../../services/api', () => ({
             page: 1,
             limit: 10,
             total: 0,
-            totalPages: 0
-          }
-        }
-      })
-    }
-  }
+            totalPages: 0,
+          },
+        },
+      }),
+    },
+  },
 }));
 
 // Mock del hook useProductList
@@ -38,36 +38,50 @@ jest.mock('../../hooks/useProductList', () => ({
       page: 1,
       limit: 10,
       total: 0,
-      totalPages: 0
+      totalPages: 0,
     },
     filters: {
       search: '',
       category: '',
       sortBy: 'name',
-      sortOrder: 'asc'
+      sortOrder: 'asc',
     },
     applyFilters: jest.fn(),
     changePage: jest.fn(),
     resetFilters: jest.fn(),
-    refreshProducts: jest.fn()
-  })
+    refreshProducts: jest.fn(),
+  }),
 }));
 
 import Productos from '../Productos';
 
 describe('Productos Page', () => {
   it('renders without crashing', () => {
-    render(<NotificationProvider><Productos /></NotificationProvider>);
+    render(
+      <NotificationProvider>
+        <Productos />
+      </NotificationProvider>
+    );
     expect(screen.getByText('Gestión de Productos')).toBeInTheDocument();
   });
 
   it('renders add product button', () => {
-    render(<NotificationProvider><Productos /></NotificationProvider>);
+    render(
+      <NotificationProvider>
+        <Productos />
+      </NotificationProvider>
+    );
     expect(screen.getByText('Agregar Producto')).toBeInTheDocument();
   });
 
   it('renders product filters and table components', () => {
-    render(<NotificationProvider><Productos /></NotificationProvider>);
-    expect(screen.getByText('Administra tu catálogo de productos')).toBeInTheDocument();
+    render(
+      <NotificationProvider>
+        <Productos />
+      </NotificationProvider>
+    );
+    expect(
+      screen.getByText('Administra tu catálogo de productos')
+    ).toBeInTheDocument();
   });
 });

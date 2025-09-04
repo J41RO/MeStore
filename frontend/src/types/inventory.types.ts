@@ -4,14 +4,14 @@ export enum InventoryStatus {
   IN_STOCK = 'in_stock',
   LOW_STOCK = 'low_stock',
   OUT_OF_STOCK = 'out_of_stock',
-  RESERVED = 'reserved'
+  RESERVED = 'reserved',
 }
 
 export enum LocationZone {
   WAREHOUSE_A = 'warehouse_a',
   WAREHOUSE_B = 'warehouse_b',
   DISPLAY_AREA = 'display_area',
-  STORAGE_ROOM = 'storage_room'
+  STORAGE_ROOM = 'storage_room',
 }
 
 export interface LocationInfo {
@@ -50,7 +50,7 @@ export enum MovementType {
   ENTRADA = 'entrada',
   SALIDA = 'salida',
   AJUSTE = 'ajuste',
-  TRANSFERENCIA = 'transferencia'
+  TRANSFERENCIA = 'transferencia',
 }
 
 export enum MovementReason {
@@ -59,7 +59,7 @@ export enum MovementReason {
   DEVOLUCION = 'devolucion',
   MERMA = 'merma',
   AJUSTE_INVENTARIO = 'ajuste_inventario',
-  TRANSFERENCIA_ALMACEN = 'transferencia_almacen'
+  TRANSFERENCIA_ALMACEN = 'transferencia_almacen',
 }
 
 export interface StockMovement {

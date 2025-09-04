@@ -17,15 +17,15 @@ const mockNotifications = [
     title: 'Success 1',
     message: 'Success message',
     timestamp: new Date().toISOString(),
-    isRead: false
+    isRead: false,
   },
   {
-    id: 'notif-2', 
+    id: 'notif-2',
     type: 'error' as const,
     title: 'Error 1',
     message: 'Error message',
     timestamp: new Date().toISOString(),
-    isRead: false
+    isRead: false,
   },
   {
     id: 'notif-3',
@@ -33,14 +33,14 @@ const mockNotifications = [
     title: 'Info 1',
     message: 'Info message',
     timestamp: new Date().toISOString(),
-    isRead: true
-  }
+    isRead: true,
+  },
 ];
 
 describe('ToastContainer Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Mock básico del store
     mockUseAppStore.mockReturnValue({
       notifications: mockNotifications,
@@ -53,11 +53,7 @@ describe('ToastContainer Component', () => {
   });
 
   const renderWithProvider = (component: React.ReactElement) => {
-    return render(
-      <NotificationProvider>
-        {component}
-      </NotificationProvider>
-    );
+    return render(<NotificationProvider>{component}</NotificationProvider>);
   };
 
   test('renders when no notifications exist', () => {
@@ -71,14 +67,14 @@ describe('ToastContainer Component', () => {
     } as any);
 
     const { container } = renderWithProvider(<ToastContainer />);
-    
+
     // ToastContainer retorna null cuando no hay notificaciones
     expect(container.firstChild).toBeNull();
   });
 
   test('renders active notifications only', () => {
     renderWithProvider(<ToastContainer />);
-    
+
     // Debe mostrar todas las notificaciones (sin filtrar por isRead)
     expect(screen.getByText('Success 1')).toBeInTheDocument();
     expect(screen.getByText('Error 1')).toBeInTheDocument();
@@ -93,7 +89,7 @@ describe('ToastContainer Component', () => {
       title: `Notification ${i}`,
       message: `Message ${i}`,
       timestamp: new Date().toISOString(),
-      isRead: false
+      isRead: false,
     }));
 
     mockUseAppStore.mockReturnValue({
@@ -106,7 +102,7 @@ describe('ToastContainer Component', () => {
     } as any);
 
     renderWithProvider(<ToastContainer maxToasts={3} />);
-    
+
     // Solo debe mostrar las primeras 3
     expect(screen.getByText('Notification 0')).toBeInTheDocument();
     expect(screen.getByText('Notification 1')).toBeInTheDocument();
@@ -116,19 +112,19 @@ describe('ToastContainer Component', () => {
 
   test('applies correct stacking styles to multiple toasts', () => {
     renderWithProvider(<ToastContainer />);
-    
+
     // Verificar que se renderizan los toasts
     const successToast = screen.getByText('Success 1');
     const errorToast = screen.getByText('Error 1');
-    
+
     expect(successToast).toBeInTheDocument();
     expect(errorToast).toBeInTheDocument();
-    
+
     // Verificar que están envueltos en contenedores con estilos
-    const containers = screen.getAllByText(/Success 1|Error 1|Info 1/).map(toast =>
-      toast.closest('.pointer-events-auto')
-    );
-    
+    const containers = screen
+      .getAllByText(/Success 1|Error 1|Info 1/)
+      .map(toast => toast.closest('.pointer-events-auto'));
+
     expect(containers.length).toBeGreaterThan(0);
     containers.forEach(container => {
       expect(container).toHaveClass('pointer-events-auto');
@@ -136,8 +132,10 @@ describe('ToastContainer Component', () => {
   });
 
   test('applies position classes correctly', () => {
-    const { container } = renderWithProvider(<ToastContainer position="top-left" />);
-    
+    const { container } = renderWithProvider(
+      <ToastContainer position='top-left' />
+    );
+
     // Verificar que el contenedor principal tiene las clases correctas
     const mainContainer = container.querySelector('.fixed.z-50');
     expect(mainContainer).toBeInTheDocument();
@@ -146,12 +144,14 @@ describe('ToastContainer Component', () => {
 
   test('handles animation delays for stacked toasts', () => {
     const { container } = renderWithProvider(<ToastContainer />);
-    
+
     // Verificar que los contenedores tienen los estilos de stacking usando container
-    const stackedContainers = container.querySelectorAll('.pointer-events-auto');
-    
+    const stackedContainers = container.querySelectorAll(
+      '.pointer-events-auto'
+    );
+
     expect(stackedContainers.length).toBeGreaterThan(0);
-    
+
     // Verificar que cada contenedor tiene estilos inline de transformación
     stackedContainers.forEach((container, index) => {
       const element = container as HTMLElement;
@@ -162,18 +162,20 @@ describe('ToastContainer Component', () => {
   });
 
   test('renders with different positions correctly', () => {
-    const positions: Array<'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'> = [
-      'top-right', 'top-left', 'bottom-right', 'bottom-left'
-    ];
+    const positions: Array<
+      'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'
+    > = ['top-right', 'top-left', 'bottom-right', 'bottom-left'];
 
     positions.forEach(position => {
-      const { container } = renderWithProvider(<ToastContainer position={position} />);
-      
+      const { container } = renderWithProvider(
+        <ToastContainer position={position} />
+      );
+
       // Verificar que cada toast tiene las clases de posición correctas
       const toastElements = container.querySelectorAll('.fixed.z-50.p-4');
-      
+
       expect(toastElements.length).toBeGreaterThan(0);
-      
+
       toastElements.forEach(toast => {
         if (position === 'top-right') {
           expect(toast).toHaveClass('top-4', 'right-4');

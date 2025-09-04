@@ -11,9 +11,9 @@ describe('ExportService', () => {
   it('should handle basic export request structure', () => {
     const request = {
       tipo_reporte: 'comisiones' as const,
-      formato: 'pdf' as const
+      formato: 'pdf' as const,
     };
-    
+
     expect(request.tipo_reporte).toBe('comisiones');
     expect(request.formato).toBe('pdf');
   });

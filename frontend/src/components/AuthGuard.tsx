@@ -7,9 +7,9 @@ interface AuthGuardProps {
   fallbackPath?: string;
 }
 
-const AuthGuard: React.FC<AuthGuardProps> = ({ 
-  children, 
-  fallbackPath = '/auth/login' 
+const AuthGuard: React.FC<AuthGuardProps> = ({
+  children,
+  fallbackPath = '/auth/login',
 }) => {
   const { isAuthenticated, checkAuth } = useAuthStore();
   const location = useLocation();
@@ -20,11 +20,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({
 
   if (!isAuthenticated) {
     return (
-      <Navigate 
-        to={fallbackPath} 
-        state={{ from: location.pathname }} 
-        replace 
-      />
+      <Navigate to={fallbackPath} state={{ from: location.pathname }} replace />
     );
   }
 

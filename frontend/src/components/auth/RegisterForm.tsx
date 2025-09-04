@@ -8,10 +8,14 @@ const registerSchema = yup.object({
   nombre: yup
     .string()
     .required('Nombre completo es requerido')
-    .test('palabras-minimas', 'Debe tener al menos 2 nombres y solo letras', (value) => {
-      const words = value.trim().split(/\s+/);
-      return words.length >= 2 && /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(value);
-    }),
+    .test(
+      'palabras-minimas',
+      'Debe tener al menos 2 nombres y solo letras',
+      value => {
+        const words = value.trim().split(/\s+/);
+        return words.length >= 2 && /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(value);
+      }
+    ),
   email: yup
     .string()
     .required('Correo electrónico es requerido')
@@ -19,10 +23,18 @@ const registerSchema = yup.object({
   cedula: yup
     .string()
     .required('Cédula es requerida')
-    .test('cedula-colombiana', 'Cédula debe tener entre 8-10 dígitos numéricos', (value) => {
-      const numericValue = value.replace(/\D/g, '');
-      return numericValue.length >= 8 && numericValue.length <= 10 && /^\d+$/.test(numericValue);
-    }),
+    .test(
+      'cedula-colombiana',
+      'Cédula debe tener entre 8-10 dígitos numéricos',
+      value => {
+        const numericValue = value.replace(/\D/g, '');
+        return (
+          numericValue.length >= 8 &&
+          numericValue.length <= 10 &&
+          /^\d+$/.test(numericValue)
+        );
+      }
+    ),
   telefono: yup
     .string()
     .required('Teléfono es requerido')
@@ -31,11 +43,14 @@ const registerSchema = yup.object({
     .string()
     .required('Contraseña es requerida')
     .min(8, 'Mínimo 8 caracteres')
-    .matches(/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Mínimo 8 caracteres con mayúscula, minúscula y número'),
+    .matches(
+      /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+      'Mínimo 8 caracteres con mayúscula, minúscula y número'
+    ),
   confirmPassword: yup
     .string()
     .required('Confirmación de contraseña es requerida')
-    .oneOf([yup.ref('password')], 'Las contraseñas no coinciden')
+    .oneOf([yup.ref('password')], 'Las contraseñas no coinciden'),
 });
 
 /**
@@ -65,10 +80,10 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onRegisterSuccess }) => {
     register,
     handleSubmit,
     formState: { errors, isValid },
-    reset
+    reset,
   } = useForm({
     resolver: yupResolver(registerSchema),
-    mode: 'onChange' // Validación en tiempo real
+    mode: 'onChange', // Validación en tiempo real
   });
 
   // Estados de control (conservados)
@@ -95,10 +110,10 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onRegisterSuccess }) => {
       if (result.success) {
         setMessage('¡Registro exitoso! Bienvenido/a a MeStore');
         setMessageType('success');
-        
+
         // Limpiar formulario usando react-hook-form
         reset();
-        
+
         // Llamar callback si existe
         if (onRegisterSuccess) {
           setTimeout(() => onRegisterSuccess(), 2000);
@@ -121,22 +136,31 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onRegisterSuccess }) => {
         Registro - Usuario Colombiano
       </h2>
 
-      <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
+      >
         {/* Nombre Completo */}
         <div>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+          <label
+            style={{
+              display: 'block',
+              marginBottom: '5px',
+              fontWeight: 'bold',
+            }}
+          >
             Nombre Completo *
           </label>
           <input
             {...register('nombre')}
-            type="text"
-            placeholder="ejemplo: Juan Carlos Pérez"
+            type='text'
+            placeholder='ejemplo: Juan Carlos Pérez'
             style={{
               width: '100%',
               padding: '10px',
               border: `1px solid ${errors.nombre ? 'red' : '#ddd'}`,
               borderRadius: '4px',
-              fontSize: '16px'
+              fontSize: '16px',
             }}
           />
           {errors.nombre && (
@@ -148,19 +172,25 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onRegisterSuccess }) => {
 
         {/* Email */}
         <div>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+          <label
+            style={{
+              display: 'block',
+              marginBottom: '5px',
+              fontWeight: 'bold',
+            }}
+          >
             Correo Electrónico *
           </label>
           <input
             {...register('email')}
-            type="email"
-            placeholder="ejemplo: juan@correo.com"
+            type='email'
+            placeholder='ejemplo: juan@correo.com'
             style={{
               width: '100%',
               padding: '10px',
               border: `1px solid ${errors.email ? 'red' : '#ddd'}`,
               borderRadius: '4px',
-              fontSize: '16px'
+              fontSize: '16px',
             }}
           />
           {errors.email && (
@@ -172,19 +202,25 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onRegisterSuccess }) => {
 
         {/* Cédula */}
         <div>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+          <label
+            style={{
+              display: 'block',
+              marginBottom: '5px',
+              fontWeight: 'bold',
+            }}
+          >
             Cédula de Ciudadanía *
           </label>
           <input
             {...register('cedula')}
-            type="text"
-            placeholder="ejemplo: 12345678"
+            type='text'
+            placeholder='ejemplo: 12345678'
             style={{
               width: '100%',
               padding: '10px',
               border: `1px solid ${errors.cedula ? 'red' : '#ddd'}`,
               borderRadius: '4px',
-              fontSize: '16px'
+              fontSize: '16px',
             }}
           />
           {errors.cedula && (
@@ -196,19 +232,25 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onRegisterSuccess }) => {
 
         {/* Teléfono */}
         <div>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+          <label
+            style={{
+              display: 'block',
+              marginBottom: '5px',
+              fontWeight: 'bold',
+            }}
+          >
             Teléfono Móvil *
           </label>
           <input
             {...register('telefono')}
-            type="tel"
-            placeholder="ejemplo: +57 300 123 4567"
+            type='tel'
+            placeholder='ejemplo: +57 300 123 4567'
             style={{
               width: '100%',
               padding: '10px',
               border: `1px solid ${errors.telefono ? 'red' : '#ddd'}`,
               borderRadius: '4px',
-              fontSize: '16px'
+              fontSize: '16px',
             }}
           />
           {errors.telefono && (
@@ -220,19 +262,25 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onRegisterSuccess }) => {
 
         {/* Password */}
         <div>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+          <label
+            style={{
+              display: 'block',
+              marginBottom: '5px',
+              fontWeight: 'bold',
+            }}
+          >
             Contraseña *
           </label>
           <input
             {...register('password')}
-            type="password"
-            placeholder="Mínimo 8 caracteres, mayúscula, minúscula y número"
+            type='password'
+            placeholder='Mínimo 8 caracteres, mayúscula, minúscula y número'
             style={{
               width: '100%',
               padding: '10px',
               border: `1px solid ${errors.password ? 'red' : '#ddd'}`,
               borderRadius: '4px',
-              fontSize: '16px'
+              fontSize: '16px',
             }}
           />
           {errors.password && (
@@ -244,19 +292,25 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onRegisterSuccess }) => {
 
         {/* Confirmar Password */}
         <div>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+          <label
+            style={{
+              display: 'block',
+              marginBottom: '5px',
+              fontWeight: 'bold',
+            }}
+          >
             Confirmar Contraseña *
           </label>
           <input
             {...register('confirmPassword')}
-            type="password"
-            placeholder="Repetir la contraseña"
+            type='password'
+            placeholder='Repetir la contraseña'
             style={{
               width: '100%',
               padding: '10px',
               border: `1px solid ${errors.confirmPassword ? 'red' : '#ddd'}`,
               borderRadius: '4px',
-              fontSize: '16px'
+              fontSize: '16px',
             }}
           />
           {errors.confirmPassword && (
@@ -268,21 +322,24 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onRegisterSuccess }) => {
 
         {/* Mensaje de estado */}
         {message && (
-          <div style={{
-            color: messageType === 'success' ? 'green' : 'red',
-            fontSize: '14px',
-            textAlign: 'center',
-            padding: '10px',
-            backgroundColor: messageType === 'success' ? '#f0f8f0' : '#fef0f0',
-            borderRadius: '4px'
-          }}>
+          <div
+            style={{
+              color: messageType === 'success' ? 'green' : 'red',
+              fontSize: '14px',
+              textAlign: 'center',
+              padding: '10px',
+              backgroundColor:
+                messageType === 'success' ? '#f0f8f0' : '#fef0f0',
+              borderRadius: '4px',
+            }}
+          >
             {message}
           </div>
         )}
 
         {/* Botón de registro */}
         <button
-          type="submit"
+          type='submit'
           disabled={loading || !isValid}
           style={{
             padding: '12px',
@@ -292,7 +349,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onRegisterSuccess }) => {
             borderRadius: '4px',
             fontSize: '16px',
             fontWeight: 'bold',
-            cursor: !loading && isValid ? 'pointer' : 'not-allowed'
+            cursor: !loading && isValid ? 'pointer' : 'not-allowed',
           }}
         >
           {loading ? 'Registrando...' : 'Registrarse'}

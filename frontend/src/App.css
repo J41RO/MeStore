@@ -41,8 +41,6 @@
   color: #888;
 }
 
-
-
 /* ===== TOUCH OPTIMIZATIONS FOR MOBILE ===== */
 
 /* 1. Smooth scrolling optimization */
@@ -57,7 +55,8 @@ html {
 }
 
 /* 3. Touch action optimization */
-html, body {
+html,
+body {
   touch-action: manipulation;
 }
 

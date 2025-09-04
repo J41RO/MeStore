@@ -1,5 +1,8 @@
 import { render, screen, act } from '@testing-library/react';
-import { NotificationProvider, useNotifications } from '../../contexts/NotificationContext';
+import {
+  NotificationProvider,
+  useNotifications,
+} from '../../contexts/NotificationContext';
 import * as React from 'react';
 
 // Mock del store Zustand
@@ -9,34 +12,58 @@ const mockStore = {
   addNotification: jest.fn(),
   showAlert: jest.fn(),
   removeNotification: jest.fn(),
-  hideAlert: jest.fn()
+  hideAlert: jest.fn(),
 };
 
 jest.mock('../../stores/appStore', () => ({
-  useAppStore: () => mockStore
+  useAppStore: () => mockStore,
 }));
 
 // Componente de prueba para usar el hook
 const TestComponent = () => {
-  const { notifications, alerts, unreadCount, showNotification, showAlert, removeNotification, hideAlert } = useNotifications();
-  
+  const {
+    notifications,
+    alerts,
+    unreadCount,
+    showNotification,
+    showAlert,
+    removeNotification,
+    hideAlert,
+  } = useNotifications();
+
   return (
     <div>
-      <div data-testid="notifications-count">{notifications.length}</div>
-      <div data-testid="alerts-count">{alerts.length}</div>
-      <div data-testid="unread-count">{unreadCount}</div>
-      <button onClick={() => showNotification({ type: 'success', title: 'Test', message: 'Test message', category: 'system' })}>
+      <div data-testid='notifications-count'>{notifications.length}</div>
+      <div data-testid='alerts-count'>{alerts.length}</div>
+      <div data-testid='unread-count'>{unreadCount}</div>
+      <button
+        onClick={() =>
+          showNotification({
+            type: 'success',
+            title: 'Test',
+            message: 'Test message',
+            category: 'system',
+          })
+        }
+      >
         Add Notification
       </button>
-      <button onClick={() => showAlert({ type: 'warning', title: 'Test Alert', message: 'Test alert message', category: 'user' })}>
+      <button
+        onClick={() =>
+          showAlert({
+            type: 'warning',
+            title: 'Test Alert',
+            message: 'Test alert message',
+            category: 'user',
+          })
+        }
+      >
         Show Alert
       </button>
       <button onClick={() => removeNotification('test-id')}>
         Remove Notification
       </button>
-      <button onClick={() => hideAlert('alert-id')}>
-        Hide Alert
-      </button>
+      <button onClick={() => hideAlert('alert-id')}>Hide Alert</button>
     </div>
   );
 };
@@ -62,9 +89,33 @@ describe('NotificationContext', () => {
 
   test('calculates unread count correctly', () => {
     mockStore.notifications = [
-      { id: '1', type: 'success', title: 'Test', message: 'Test', category: 'system', timestamp: Date.now(), isRead: false },
-      { id: '2', type: 'info', title: 'Test', message: 'Test', category: 'system', timestamp: Date.now(), isRead: true },
-      { id: '3', type: 'error', title: 'Test', message: 'Test', category: 'system', timestamp: Date.now(), isRead: false }
+      {
+        id: '1',
+        type: 'success',
+        title: 'Test',
+        message: 'Test',
+        category: 'system',
+        timestamp: Date.now(),
+        isRead: false,
+      },
+      {
+        id: '2',
+        type: 'info',
+        title: 'Test',
+        message: 'Test',
+        category: 'system',
+        timestamp: Date.now(),
+        isRead: true,
+      },
+      {
+        id: '3',
+        type: 'error',
+        title: 'Test',
+        message: 'Test',
+        category: 'system',
+        timestamp: Date.now(),
+        isRead: false,
+      },
     ];
 
     render(
@@ -90,7 +141,7 @@ describe('NotificationContext', () => {
       type: 'success',
       title: 'Test',
       message: 'Test message',
-      category: 'system'
+      category: 'system',
     });
 
     act(() => {
@@ -100,7 +151,7 @@ describe('NotificationContext', () => {
       type: 'warning',
       title: 'Test Alert',
       message: 'Test alert message',
-      category: 'user'
+      category: 'user',
     });
 
     act(() => {
@@ -115,8 +166,10 @@ describe('NotificationContext', () => {
   });
 
   test('throws error when used outside provider', () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    
+    const consoleSpy = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+
     expect(() => {
       render(<TestComponent />);
     }).toThrow('useNotifications must be used within a NotificationProvider');

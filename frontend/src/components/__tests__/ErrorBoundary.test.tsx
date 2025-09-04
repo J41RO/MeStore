@@ -17,24 +17,26 @@ describe('ErrorBoundary', () => {
         <ThrowError shouldThrow={false} />
       </ErrorBoundary>
     );
-    
+
     expect(screen.getByText('No error')).toBeInTheDocument();
   });
 
   test('renders error UI when there is an error', () => {
     // Suprimir console.error para esta prueba
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    
+    const consoleSpy = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+
     render(
       <ErrorBoundary>
         <ThrowError shouldThrow={true} />
       </ErrorBoundary>
     );
-    
+
     expect(screen.getByText('Algo salió mal')).toBeInTheDocument();
     expect(screen.getByText('Reintentar')).toBeInTheDocument();
     expect(screen.getByText('Recargar página')).toBeInTheDocument();
-    
+
     consoleSpy.mockRestore();
   });
 });

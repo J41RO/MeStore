@@ -1,6 +1,6 @@
 /// <reference types="vitest" />
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
@@ -8,7 +8,9 @@ export default defineConfig({
     'process.env': {
       NODE_ENV: JSON.stringify(process.env.NODE_ENV || 'development'),
     },
-    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
+    'process.env.NODE_ENV': JSON.stringify(
+      process.env.NODE_ENV || 'development'
+    ),
     global: 'globalThis',
     process: 'globalThis.process',
   },
@@ -23,8 +25,8 @@ export default defineConfig({
       include: ['src/**/*'],
       exclude: [
         'src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
-        'src/test/**/*'
-      ]
-    }
-  }
-})
+        'src/test/**/*',
+      ],
+    },
+  },
+});

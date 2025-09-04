@@ -20,15 +20,15 @@ const mockProducts = [
     category: 'Test',
     imageUrl: '',
     createdAt: '2025-01-01',
-    updatedAt: '2025-01-01'
-  }
+    updatedAt: '2025-01-01',
+  },
 ];
 
 const mockPagination = {
   page: 1,
   limit: 10,
   total: 1,
-  totalPages: 1
+  totalPages: 1,
 };
 
 describe('ProductTable', () => {

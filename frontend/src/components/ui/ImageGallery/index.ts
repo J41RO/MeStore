@@ -28,14 +28,18 @@ export { default } from './ImageGallery';
 /**
  * Exportación de tipos TypeScript
  */
-export type { ImageGalleryProps, GalleryImage, ViewMode } from './ImageGallery.types';
+export type {
+  ImageGalleryProps,
+  GalleryImage,
+  ViewMode,
+} from './ImageGallery.types';
 
 /**
  * Ejemplo de uso:
  * import ImageGallery, { ImageGalleryProps, GalleryImage, ViewMode } from '@/components/ui/ImageGallery';
- * 
+ *
  * const images: GalleryImage[] = [...];
- * 
+ *
  * <ImageGallery
  *   images={images}
  *   viewMode="grid"

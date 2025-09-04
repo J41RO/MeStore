@@ -4,33 +4,33 @@ import ProductCard from '../ProductCard';
 import { TopProduct } from '../../../types/Product';
 
 const mockProduct: TopProduct = {
-  id: "1",
-  name: "Smartphone Pro Max",
+  id: '1',
+  name: 'Smartphone Pro Max',
   price: 899,
-  thumbnail: "https://picsum.photos/64/64?random=1",
+  thumbnail: 'https://picsum.photos/64/64?random=1',
   salesCount: 150,
-  category: "Electrónicos",
+  category: 'Electrónicos',
   rating: 4.8,
   rank: 1,
-  salesGrowth: "+15%"
+  salesGrowth: '+15%',
 };
 
 const mockProductNegativeGrowth: TopProduct = {
-  id: "2",
-  name: "Tablet Basic",
+  id: '2',
+  name: 'Tablet Basic',
   price: 299,
-  thumbnail: "https://picsum.photos/64/64?random=2",
+  thumbnail: 'https://picsum.photos/64/64?random=2',
   salesCount: 45,
-  category: "Tablets",
+  category: 'Tablets',
   rating: 3.5,
   rank: 5,
-  salesGrowth: "-5%"
+  salesGrowth: '-5%',
 };
 
 describe('ProductCard', () => {
   test('renders product information correctly', () => {
     render(<ProductCard product={mockProduct} />);
-    
+
     expect(screen.getByText('Smartphone Pro Max')).toBeInTheDocument();
     expect(screen.getByText('Electrónicos')).toBeInTheDocument();
     expect(screen.getByText('899,00 €')).toBeInTheDocument();
@@ -55,7 +55,7 @@ describe('ProductCard', () => {
 
   test('shows negative growth with red styling', () => {
     render(<ProductCard product={mockProductNegativeGrowth} />);
-    
+
     const growthElement = screen.getByText('-5%');
     expect(growthElement).toBeInTheDocument();
     expect(growthElement).toHaveClass('text-red-800');
@@ -63,7 +63,7 @@ describe('ProductCard', () => {
 
   test('shows positive growth with green styling', () => {
     render(<ProductCard product={mockProduct} />);
-    
+
     const growthElement = screen.getByText('+15%');
     expect(growthElement).toBeInTheDocument();
     expect(growthElement).toHaveClass('text-green-800');
@@ -76,9 +76,11 @@ describe('ProductCard', () => {
   });
 
   test('applies custom className correctly', () => {
-    const { container } = render(<ProductCard product={mockProduct} className="custom-class" />);
+    const { container } = render(
+      <ProductCard product={mockProduct} className='custom-class' />
+    );
     const cardElement = container.firstChild as HTMLElement;
-    
+
     expect(cardElement).toHaveClass('custom-class');
     expect(cardElement).toHaveClass('bg-white');
   });

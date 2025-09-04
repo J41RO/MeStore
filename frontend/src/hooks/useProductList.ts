@@ -76,27 +76,37 @@ export const useProductList = (): UseProductListReturn => {
     filters: initialFilters,
   });
 
-  const fetchProducts = useCallback(async (filters: ProductFilters, page: number) => {
-    setState(prev => ({ ...prev, loading: true, error: null }));
-    
-    try {
-      const response = await api.products.getWithFilters(filters, page, state.pagination.limit);
-      const data: PaginatedResponse<Product> = response.data;
-      
-      setState(prev => ({
-        ...prev,
-        products: data.data,
-        pagination: data.pagination,
-        loading: false,
-      }));
-    } catch (error) {
-      setState(prev => ({
-        ...prev,
-        error: error instanceof Error ? error.message : 'Error al cargar productos',
-        loading: false,
-      }));
-    }
-  }, [state.pagination.limit]);
+  const fetchProducts = useCallback(
+    async (filters: ProductFilters, page: number) => {
+      setState(prev => ({ ...prev, loading: true, error: null }));
+
+      try {
+        const response = await api.products.getWithFilters(
+          filters,
+          page,
+          state.pagination.limit
+        );
+        const data: PaginatedResponse<Product> = response.data;
+
+        setState(prev => ({
+          ...prev,
+          products: data.data,
+          pagination: data.pagination,
+          loading: false,
+        }));
+      } catch (error) {
+        setState(prev => ({
+          ...prev,
+          error:
+            error instanceof Error
+              ? error.message
+              : 'Error al cargar productos',
+          loading: false,
+        }));
+      }
+    },
+    [state.pagination.limit]
+  );
 
   const applyFilters = useCallback((newFilters: ProductFilters) => {
     setState(prev => ({

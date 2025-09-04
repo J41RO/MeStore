@@ -12,7 +12,11 @@ describe('PageLoader', () => {
   test('should have correct CSS classes for styling', () => {
     const { container } = render(<PageLoader />);
     const loadingContainer = container.firstChild as HTMLElement;
-    expect(loadingContainer).toHaveClass('flex', 'items-center', 'justify-center');
+    expect(loadingContainer).toHaveClass(
+      'flex',
+      'items-center',
+      'justify-center'
+    );
   });
 
   test('should render spinner element', () => {

@@ -2,16 +2,16 @@ import React, { useState } from 'react';
 
 /**
  * Componente LoginForm con validación completa
- * 
+ *
  * Características:
  * - Validación en tiempo real de email y password
  * - Integración con API /api/v1/auth/login
  * - Manejo de estados loading/success/error
  * - Callback opcional onLoginSuccess
- * 
+ *
  * @component
  * @example
- * 
+ *
  */
 // Interface para props del componente
 export interface LoginFormProps {
@@ -30,7 +30,7 @@ interface ApiResponse {
 // Componente funcional LoginForm
 export const LoginForm: React.FC<LoginFormProps> = ({
   onLoginSuccess,
-  className = ""
+  className = '',
 }) => {
   // Estados locales
   const [email, setEmail] = useState<string>('');
@@ -47,7 +47,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
   const validatePassword = (password: string): boolean => {
     // Mínimo 8 caracteres, al menos 1 número, 1 mayúscula
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/;
+    const passwordRegex =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/;
     return passwordRegex.test(password);
   };
 
@@ -57,7 +58,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   // Función handleSubmit con integración API
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
+
     // Validar formulario antes de enviar
     if (!isFormValid) {
       setMessage('Por favor corrige los errores antes de enviar');
@@ -66,28 +67,28 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     }
 
     setLoading(true);
-    
+
     // 🔧 CREDENCIALES FICTICIAS PARA DESARROLLO
     if (email === 'test@mestore.com' && password === '123456') {
       const fakeUser = {
         id: 'dev-user-001',
         email: 'test@mestore.com',
         name: 'Usuario de Prueba',
-        roles: ['vendedor', 'comprador', 'admin', 'superusuario']
+        roles: ['vendedor', 'comprador', 'admin', 'superusuario'],
       };
       const fakeToken = 'dev-token-' + Date.now();
-      
+
       setMessage('✅ Login exitoso con credenciales de desarrollo');
       setMessageType('success');
       setLoading(false);
-      
+
       if (onLoginSuccess) {
         onLoginSuccess({ user: fakeUser, token: fakeToken });
       }
       return;
     }
     setMessage('');
-    
+
     try {
       const response = await fetch('/api/v1/auth/login', {
         method: 'POST',
@@ -105,12 +106,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       if (data.success) {
         setMessage('Inicio de sesión exitoso');
         setMessageType('success');
-        
+
         // Llamar callback si se proporciona
         if (onLoginSuccess) {
           onLoginSuccess(data.data);
         }
-        
+
         // Limpiar formulario
         setEmail('');
         setPassword('');
@@ -130,47 +131,59 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   return (
     <div className={`login-form ${className}`}>
       <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label htmlFor="email">Email:</label>
+        <div className='form-group'>
+          <label htmlFor='email'>Email:</label>
           <input
-            type="email"
-            id="email"
+            type='email'
+            id='email'
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={e => setEmail(e.target.value)}
             required
           />
           {email.length > 0 && !validateEmail(email) && (
-            <span className="error-message" style={{color: 'red', fontSize: '12px', display: 'block', marginTop: '4px'}}>
+            <span
+              className='error-message'
+              style={{
+                color: 'red',
+                fontSize: '12px',
+                display: 'block',
+                marginTop: '4px',
+              }}
+            >
               Por favor ingresa un email válido
             </span>
           )}
         </div>
 
-        <div className="form-group">
-          <label htmlFor="password">Password:</label>
+        <div className='form-group'>
+          <label htmlFor='password'>Password:</label>
           <input
-            type="password"
-            id="password"
+            type='password'
+            id='password'
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={e => setPassword(e.target.value)}
             required
           />
           {password.length > 0 && !validatePassword(password) && (
-            <span className="error-message" style={{color: 'red', fontSize: '12px', display: 'block', marginTop: '4px'}}>
+            <span
+              className='error-message'
+              style={{
+                color: 'red',
+                fontSize: '12px',
+                display: 'block',
+                marginTop: '4px',
+              }}
+            >
               Mínimo 8 caracteres, 1 mayúscula y 1 número
             </span>
           )}
         </div>
 
-        <button type="submit" disabled={loading || !isFormValid}>
+        <button type='submit' disabled={loading || !isFormValid}>
           {loading ? 'Logging in...' : 'Login'}
         </button>
 
-        {message && (
-          <div className={`message ${messageType}`}>
-            {message}
-          </div>
-        )}
+        {message && <div className={`message ${messageType}`}>{message}</div>}
       </form>
     </div>
   );

@@ -4,16 +4,17 @@ import { UserProvider } from '../../contexts/UserContext';
 import { useVendor } from '../useVendor';
 import React from 'react';
 
-const wrapper = ({ children }: { children: React.ReactNode }) => React.createElement(
-  AuthProvider,
-  null,
-  React.createElement(UserProvider, null, children)
-);
+const wrapper = ({ children }: { children: React.ReactNode }) =>
+  React.createElement(
+    AuthProvider,
+    null,
+    React.createElement(UserProvider, null, children)
+  );
 
 describe('useVendor Hook', () => {
   test('returns initial state correctly', () => {
     const { result } = renderHook(() => useVendor(), { wrapper });
-    
+
     expect(result.current.storeName).toBe('Mi Tienda');
     expect(result.current.isLoading).toBe(false);
     expect(result.current.completionPercentage).toBe(0);
@@ -22,9 +23,9 @@ describe('useVendor Hook', () => {
 
   test('provides business summary correctly', () => {
     const { result } = renderHook(() => useVendor(), { wrapper });
-    
+
     const summary = result.current.getBusinessSummary();
-    
+
     expect(summary).toHaveProperty('totalSales');
     expect(summary).toHaveProperty('revenue');
     expect(summary).toHaveProperty('products');
@@ -34,9 +35,9 @@ describe('useVendor Hook', () => {
 
   test('provides completion status correctly', () => {
     const { result } = renderHook(() => useVendor(), { wrapper });
-    
+
     const status = result.current.getCompletionStatus();
-    
+
     expect(status).toHaveProperty('percentage');
     expect(status).toHaveProperty('isComplete');
     expect(status).toHaveProperty('missingFields');
@@ -47,7 +48,7 @@ describe('useVendor Hook', () => {
 
   test('provides vendor data properties correctly', () => {
     const { result } = renderHook(() => useVendor(), { wrapper });
-    
+
     expect(result.current).toHaveProperty('storeName');
     expect(result.current).toHaveProperty('storeSlug');
     expect(result.current).toHaveProperty('isVerified');
@@ -60,7 +61,7 @@ describe('useVendor Hook', () => {
 
   test('provides vendor action methods correctly', () => {
     const { result } = renderHook(() => useVendor(), { wrapper });
-    
+
     expect(typeof result.current.updateStoreName).toBe('function');
     expect(typeof result.current.updateStoreDescription).toBe('function');
     expect(typeof result.current.updateContactInfo).toBe('function');

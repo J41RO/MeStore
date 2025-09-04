@@ -13,7 +13,7 @@ const mockFilters = {
   search: '',
   category: '',
   sortBy: 'name' as const,
-  sortOrder: 'asc' as const
+  sortOrder: 'asc' as const,
 };
 
 describe('ProductFilters', () => {

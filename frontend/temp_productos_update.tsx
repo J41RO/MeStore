@@ -10,7 +10,7 @@ const showNotification = (message: string, type: 'success' | 'error') => {
     id: Date.now().toString(),
     message,
     type: type === 'success' ? 'success' : 'error',
-    duration: 5000
+    duration: 5000,
   });
 };
 

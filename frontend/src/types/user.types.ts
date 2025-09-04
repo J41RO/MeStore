@@ -21,7 +21,7 @@
 
 /**
  * Tipos específicos para vendedores y usuarios
- * 
+ *
  * Este archivo define la estructura de datos para:
  * - Usuario básico (autenticación)
  * - Perfil del vendedor (datos específicos)
@@ -43,7 +43,7 @@ export interface VendorProfile {
   storeName: string;
   storeDescription: string;
   storeSlug: string;
-  
+
   // Información de contacto y ubicación
   contactInfo: {
     phone?: string;
@@ -52,7 +52,7 @@ export interface VendorProfile {
     state?: string;
     zipCode?: string;
   };
-  
+
   // Métricas de negocio
   businessMetrics: {
     totalSales: number;
@@ -66,7 +66,7 @@ export interface VendorProfile {
     joinDate: string;
     lastActivity: string;
   };
-  
+
   // Configuraciones del vendedor
   settings: {
     notifications: {
@@ -88,7 +88,7 @@ export interface VendorProfile {
       returnPolicy: string;
     };
   };
-  
+
   // Estado del perfil
   profileStatus: {
     isVerified: boolean;
@@ -103,11 +103,13 @@ export interface UserContextState {
   vendorProfile: VendorProfile | null;
   isLoading: boolean;
   error: string | null;
-  
+
   // Métricas computadas
   completionPercentage: number;
   isProfileComplete: boolean;
   recentActivity: any[];
 }
 
-export type VendorUpdateData = Partial<Omit<VendorProfile, 'userId' | 'businessMetrics' | 'profileStatus'>>;
+export type VendorUpdateData = Partial<
+  Omit<VendorProfile, 'userId' | 'businessMetrics' | 'profileStatus'>
+>;

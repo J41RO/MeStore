@@ -11,7 +11,7 @@ const mockProduct: Product = {
   category: 'Electrónicos',
   imageUrl: 'https://example.com/image.jpg',
   createdAt: '2025-01-01T00:00:00Z',
-  updatedAt: '2025-01-15T00:00:00Z'
+  updatedAt: '2025-01-15T00:00:00Z',
 };
 
 describe('ProductDetailModal', () => {
@@ -90,7 +90,9 @@ describe('ProductDetailModal', () => {
     );
 
     expect(screen.getByText('Producto de Prueba')).toBeInTheDocument();
-    expect(screen.getByText('Descripción del producto de prueba')).toBeInTheDocument();
+    expect(
+      screen.getByText('Descripción del producto de prueba')
+    ).toBeInTheDocument();
     expect(screen.getByText('$29.99')).toBeInTheDocument();
     expect(screen.getByText('10 unidades')).toBeInTheDocument();
     expect(screen.getByText('Electrónicos')).toBeInTheDocument();

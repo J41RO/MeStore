@@ -1,5 +1,9 @@
 import React from 'react';
-import { CommissionFilters as CommissionFiltersType, CommissionStatus, PaymentMethod } from '../../types/commission.types';
+import {
+  CommissionFilters as CommissionFiltersType,
+  CommissionStatus,
+  PaymentMethod,
+} from '../../types/commission.types';
 import { Calendar, Filter } from 'lucide-react';
 
 interface CommissionFiltersProps {
@@ -11,7 +15,7 @@ interface CommissionFiltersProps {
 const CommissionFilters: React.FC<CommissionFiltersProps> = ({
   filters,
   onFiltersChange,
-  onClearFilters
+  onClearFilters,
 }) => {
   const handleStatusToggle = (status: CommissionStatus) => {
     const currentStatuses = filters.statuses || [];
@@ -30,132 +34,163 @@ const CommissionFilters: React.FC<CommissionFiltersProps> = ({
   };
 
   const handleDateRangeChange = (field: 'start' | 'end', value: string) => {
-    const dateRange = filters.dateRange || { start: new Date(), end: new Date() };
+    const dateRange = filters.dateRange || {
+      start: new Date(),
+      end: new Date(),
+    };
     onFiltersChange({
       dateRange: {
         ...dateRange,
-        [field]: new Date(value)
-      }
+        [field]: new Date(value),
+      },
     });
   };
 
   return (
-    <div className="bg-white p-4 rounded-lg border border-gray-200 mb-4">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-gray-600" />
-          <h3 className="text-lg font-medium text-gray-900">Filtros</h3>
+    <div className='bg-white p-4 rounded-lg border border-gray-200 mb-4'>
+      <div className='flex items-center justify-between mb-4'>
+        <div className='flex items-center gap-2'>
+          <Filter className='h-4 w-4 text-gray-600' />
+          <h3 className='text-lg font-medium text-gray-900'>Filtros</h3>
         </div>
         <button
           onClick={onClearFilters}
-          className="text-sm text-gray-500 hover:text-gray-700"
+          className='text-sm text-gray-500 hover:text-gray-700'
         >
           Limpiar filtros
         </button>
       </div>
 
       {/* Filtros de fecha */}
-      <div className="mb-4">
-        <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-          <Calendar className="h-4 w-4" />
+      <div className='mb-4'>
+        <h4 className='text-sm font-medium text-gray-700 mb-2 flex items-center gap-1'>
+          <Calendar className='h-4 w-4' />
           Rango de fechas
         </h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <div className='grid grid-cols-1 md:grid-cols-2 gap-2'>
           <div>
-            <label htmlFor="date-start" className="block text-xs text-gray-600 mb-1">Fecha inicio</label>
+            <label
+              htmlFor='date-start'
+              className='block text-xs text-gray-600 mb-1'
+            >
+              Fecha inicio
+            </label>
             <input
-              id="date-start"
-              type="date"
+              id='date-start'
+              type='date'
               value={filters.dateRange?.start.toISOString().split('T')[0] || ''}
-              onChange={(e) => handleDateRangeChange('start', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={e => handleDateRangeChange('start', e.target.value)}
+              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
             />
           </div>
           <div>
-            <label htmlFor="endDate" className="block text-xs text-gray-600 mb-1">Fecha fin</label>
+            <label
+              htmlFor='endDate'
+              className='block text-xs text-gray-600 mb-1'
+            >
+              Fecha fin
+            </label>
             <input
-              id="endDate"
-              type="date"
+              id='endDate'
+              type='date'
               value={filters.dateRange?.end.toISOString().split('T')[0] || ''}
-              onChange={(e) => handleDateRangeChange('end', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={e => handleDateRangeChange('end', e.target.value)}
+              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
             />
           </div>
         </div>
       </div>
 
       {/* Filtros de estado */}
-      <div className="mb-4">
-        <h4 className="text-sm font-medium text-gray-700 mb-2">Estado</h4>
-        <div className="grid grid-cols-2 gap-2">
+      <div className='mb-4'>
+        <h4 className='text-sm font-medium text-gray-700 mb-2'>Estado</h4>
+        <div className='grid grid-cols-2 gap-2'>
           {Object.values(CommissionStatus).map(status => (
-            <label key={status} className="flex items-center gap-2 cursor-pointer">
+            <label
+              key={status}
+              className='flex items-center gap-2 cursor-pointer'
+            >
               <input
-                type="checkbox"
+                type='checkbox'
                 checked={(filters.statuses || []).includes(status)}
                 onChange={() => handleStatusToggle(status)}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
               />
-              <span className="text-sm text-gray-600 capitalize">{status}</span>
+              <span className='text-sm text-gray-600 capitalize'>{status}</span>
             </label>
           ))}
         </div>
       </div>
 
       {/* Filtros de método de pago */}
-      <div className="mb-4">
-        <h4 className="text-sm font-medium text-gray-700 mb-2">Método de pago</h4>
-        <div className="grid grid-cols-2 gap-2">
+      <div className='mb-4'>
+        <h4 className='text-sm font-medium text-gray-700 mb-2'>
+          Método de pago
+        </h4>
+        <div className='grid grid-cols-2 gap-2'>
           {Object.values(PaymentMethod).map(method => (
-            <label key={method} className="flex items-center gap-2 cursor-pointer">
+            <label
+              key={method}
+              className='flex items-center gap-2 cursor-pointer'
+            >
               <input
-                type="checkbox"
+                type='checkbox'
                 checked={(filters.paymentMethods || []).includes(method)}
                 onChange={() => handlePaymentMethodToggle(method)}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
               />
-              <span className="text-sm text-gray-600 capitalize">{method.replace('_', ' ')}</span>
+              <span className='text-sm text-gray-600 capitalize'>
+                {method.replace('_', ' ')}
+              </span>
             </label>
           ))}
         </div>
       </div>
 
       {/* Filtros existentes */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className='block text-sm font-medium text-gray-700 mb-1'>
             Buscar
           </label>
           <input
-            type="text"
+            type='text'
             value={filters.searchTerm || ''}
-            onChange={(e) => onFiltersChange({ searchTerm: e.target.value })}
-            placeholder="Buscar por producto, orden, cliente..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onChange={e => onFiltersChange({ searchTerm: e.target.value })}
+            placeholder='Buscar por producto, orden, cliente...'
+            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className='block text-sm font-medium text-gray-700 mb-1'>
             Monto mínimo
           </label>
           <input
-            type="number"
+            type='number'
             value={filters.minAmount || ''}
-            onChange={(e) => onFiltersChange({ minAmount: parseFloat(e.target.value) || undefined })}
-            placeholder="0.00"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onChange={e =>
+              onFiltersChange({
+                minAmount: parseFloat(e.target.value) || undefined,
+              })
+            }
+            placeholder='0.00'
+            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className='block text-sm font-medium text-gray-700 mb-1'>
             Monto máximo
           </label>
           <input
-            type="number"
+            type='number'
             value={filters.maxAmount || ''}
-            onChange={(e) => onFiltersChange({ maxAmount: parseFloat(e.target.value) || undefined })}
-            placeholder="999999.00"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onChange={e =>
+              onFiltersChange({
+                maxAmount: parseFloat(e.target.value) || undefined,
+              })
+            }
+            placeholder='999999.00'
+            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
           />
         </div>
       </div>

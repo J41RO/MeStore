@@ -5,8 +5,8 @@ Object.defineProperty(global, 'import', {
       env: {
         VITE_API_BASE_URL: 'http://localhost:8000',
         VITE_BUILD_NUMBER: '1',
-        MODE: 'test'
-      }
-    }
-  }
+        MODE: 'test',
+      },
+    },
+  },
 });

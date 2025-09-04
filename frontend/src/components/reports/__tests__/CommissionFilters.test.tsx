@@ -2,7 +2,10 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import CommissionFilters from '../CommissionFilters';
-import { CommissionStatus, PaymentMethod } from '../../../types/commission.types';
+import {
+  CommissionStatus,
+  PaymentMethod,
+} from '../../../types/commission.types';
 
 describe('CommissionFilters', () => {
   const mockOnFiltersChange = jest.fn();
@@ -11,7 +14,7 @@ describe('CommissionFilters', () => {
   const defaultProps = {
     filters: {},
     onFiltersChange: mockOnFiltersChange,
-    onClearFilters: mockOnClearFilters
+    onClearFilters: mockOnClearFilters,
   };
 
   beforeEach(() => {
@@ -61,7 +64,7 @@ describe('CommissionFilters', () => {
     fireEvent.click(pendingCheckbox);
 
     expect(mockOnFiltersChange).toHaveBeenCalledWith({
-      statuses: [CommissionStatus.PENDING]
+      statuses: [CommissionStatus.PENDING],
     });
   });
 
@@ -72,18 +75,20 @@ describe('CommissionFilters', () => {
     fireEvent.click(cashCheckbox);
 
     expect(mockOnFiltersChange).toHaveBeenCalledWith({
-      paymentMethods: [PaymentMethod.CASH]
+      paymentMethods: [PaymentMethod.CASH],
     });
   });
 
   test('calls onFiltersChange when search term changes', () => {
     render(<CommissionFilters {...defaultProps} />);
 
-    const searchInput = screen.getByPlaceholderText('Buscar por producto, orden, cliente...');
+    const searchInput = screen.getByPlaceholderText(
+      'Buscar por producto, orden, cliente...'
+    );
     fireEvent.change(searchInput, { target: { value: 'test search' } });
 
     expect(mockOnFiltersChange).toHaveBeenCalledWith({
-      searchTerm: 'test search'
+      searchTerm: 'test search',
     });
   });
 
@@ -100,15 +105,19 @@ describe('CommissionFilters', () => {
     const filtersWithValues = {
       statuses: [CommissionStatus.CONFIRMED],
       paymentMethods: [PaymentMethod.CREDIT_CARD],
-      searchTerm: 'test product'
+      searchTerm: 'test product',
     };
 
     render(<CommissionFilters {...defaultProps} filters={filtersWithValues} />);
 
-    const confirmedCheckbox = screen.getByRole('checkbox', { name: /confirmed/i });
+    const confirmedCheckbox = screen.getByRole('checkbox', {
+      name: /confirmed/i,
+    });
     expect(confirmedCheckbox).toBeChecked();
 
-    const creditCardCheckbox = screen.getByRole('checkbox', { name: /credit card/i });
+    const creditCardCheckbox = screen.getByRole('checkbox', {
+      name: /credit card/i,
+    });
     expect(creditCardCheckbox).toBeChecked();
 
     const searchInput = screen.getByDisplayValue('test product');

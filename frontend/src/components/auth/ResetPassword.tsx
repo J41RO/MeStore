@@ -208,7 +208,9 @@ const ResetPassword: React.FC = () => {
               placeholder='Mínimo 8 caracteres'
             />
             {errors.newPassword && (
-              <span className="error-message">{errors.newPassword.message}</span>
+              <span className='error-message'>
+                {errors.newPassword.message}
+              </span>
             )}
 
             {newPassword && (
@@ -231,7 +233,9 @@ const ResetPassword: React.FC = () => {
               placeholder='Repite la contraseña'
             />
             {errors.confirmPassword && (
-              <span className="error-message">{errors.confirmPassword.message}</span>
+              <span className='error-message'>
+                {errors.confirmPassword.message}
+              </span>
             )}
 
             {confirmPassword && (

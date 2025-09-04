@@ -87,7 +87,7 @@ describe('AppStore Error Handling', () => {
 
     it('debe manejar múltiples requests activos', () => {
       const { result } = renderHook(() => useAppStore());
-      
+
       act(() => {
         result.current.setRequestLoading('request-1', true);
         result.current.setRequestLoading('request-2', true);

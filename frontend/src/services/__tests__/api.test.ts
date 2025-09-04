@@ -21,27 +21,33 @@ describe('api helper', () => {
   describe('auth methods', () => {
     it('should call login endpoint with credentials', () => {
       const credentials = { email: 'test@test.com', password: 'password' };
-      
+
       api.auth.login(credentials);
-      
-      expect(mockedApiClient.post).toHaveBeenCalledWith('/api/auth/login', credentials);
+
+      expect(mockedApiClient.post).toHaveBeenCalledWith(
+        '/api/auth/login',
+        credentials
+      );
     });
 
     it('should call register endpoint with user data', () => {
       const userData = { email: 'test@test.com', name: 'Test User' };
-      
+
       api.auth.register(userData);
-      
-      expect(mockedApiClient.post).toHaveBeenCalledWith('/api/auth/register', userData);
+
+      expect(mockedApiClient.post).toHaveBeenCalledWith(
+        '/api/auth/register',
+        userData
+      );
     });
 
     it('should call refresh endpoint with token', () => {
       const refreshToken = 'refresh-token';
-      
+
       api.auth.refresh(refreshToken);
-      
-      expect(mockedApiClient.post).toHaveBeenCalledWith('/api/auth/refresh', { 
-        refresh_token: refreshToken 
+
+      expect(mockedApiClient.post).toHaveBeenCalledWith('/api/auth/refresh', {
+        refresh_token: refreshToken,
       });
     });
   });
@@ -49,40 +55,46 @@ describe('api helper', () => {
   describe('users methods', () => {
     it('should call get profile endpoint', () => {
       api.users.getProfile();
-      
+
       expect(mockedApiClient.get).toHaveBeenCalledWith('/api/users/profile');
     });
 
     it('should call update profile endpoint with data', () => {
       const profileData = { name: 'Updated Name' };
-      
+
       api.users.updateProfile(profileData);
-      
-      expect(mockedApiClient.put).toHaveBeenCalledWith('/api/users/profile', profileData);
+
+      expect(mockedApiClient.put).toHaveBeenCalledWith(
+        '/api/users/profile',
+        profileData
+      );
     });
   });
 
   describe('products methods', () => {
     it('should call get all products endpoint', () => {
       api.products.getAll();
-      
+
       expect(mockedApiClient.get).toHaveBeenCalledWith('/api/products');
     });
 
     it('should call get product by id endpoint', () => {
       const productId = '123';
-      
+
       api.products.getById(productId);
-      
+
       expect(mockedApiClient.get).toHaveBeenCalledWith('/api/products/123');
     });
 
     it('should call create product endpoint with data', () => {
       const productData = { name: 'Test Product', price: 100 };
-      
+
       api.products.create(productData);
-      
-      expect(mockedApiClient.post).toHaveBeenCalledWith('/api/products', productData);
+
+      expect(mockedApiClient.post).toHaveBeenCalledWith(
+        '/api/products',
+        productData
+      );
     });
   });
 });

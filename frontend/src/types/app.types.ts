@@ -6,7 +6,7 @@
 // ---------------------------------------------------------------------------------------------
 /**
  * Tipos para el estado global de la aplicación
- * 
+ *
  * Define interfaces para:
  * - Estado de UI global
  * - Configuración de app
@@ -24,19 +24,19 @@ export interface UIState {
   // Theme y apariencia
   theme: AppTheme;
   isDarkMode: boolean; // computado basado en theme y preferencias del sistema
-  
+
   // Layout y navegación
   sidebarOpen: boolean;
   sidebarCollapsed: boolean;
-  
+
   // Estados de loading globales
   isAppLoading: boolean;
   isPageTransitioning: boolean;
-  
+
   // Estados de modal y overlay
   activeModal: string | null;
   modalData: any;
-  
+
   // Estados de notificaciones
   notifications: NotificationItem[];
   alerts: AlertItem[];
@@ -48,7 +48,7 @@ export interface AppConfig {
   language: Language;
   currency: Currency;
   timezone: string;
-  
+
   // Configuración de features
   features: {
     darkModeEnabled: boolean;
@@ -56,14 +56,14 @@ export interface AppConfig {
     analyticsEnabled: boolean;
     betaFeaturesEnabled: boolean;
   };
-  
+
   // Configuración de API
   api: {
     baseUrl: string;
     timeout: number;
     retryAttempts: number;
   };
-  
+
   // Configuración de cache
   cache: {
     enabled: boolean;
@@ -109,10 +109,10 @@ export interface PerformanceState {
 export interface AppState extends UIState {
   // Configuración
   config: AppConfig;
-  
+
   // Performance y debug
   performance: PerformanceState;
-  
+
   // Meta información
   version: string;
   buildNumber: string;
@@ -129,36 +129,38 @@ export interface AppActions {
   // Acciones de theme
   setTheme: (theme: AppTheme) => void;
   toggleTheme: () => void;
-  
+
   // Acciones de UI
   setSidebarOpen: (open: boolean) => void;
   toggleSidebar: () => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
-  
+
   // Acciones de loading
   setAppLoading: (loading: boolean) => void;
   setPageTransitioning: (transitioning: boolean) => void;
-  
+
   // Acciones de modal
   openModal: (modalId: string, data?: any) => void;
   closeModal: () => void;
-  
+
   // Acciones de notificaciones
-  addNotification: (notification: Omit<NotificationItem, 'id' | 'timestamp' | 'isRead'>) => void;
+  addNotification: (
+    notification: Omit<NotificationItem, 'id' | 'timestamp' | 'isRead'>
+  ) => void;
   removeNotification: (id: string) => void;
   markNotificationAsRead: (id: string) => void;
   clearAllNotifications: () => void;
-  
+
   // Acciones de alerts
   showAlert: (alert: Omit<AlertItem, 'id' | 'isVisible'>) => void;
   hideAlert: (id: string) => void;
   clearAllAlerts: () => void;
-  
+
   // Acciones de configuración
   updateConfig: (config: Partial<AppConfig>) => void;
   updateLanguage: (language: Language) => void;
   updateCurrency: (currency: Currency) => void;
-  
+
   // Acciones de utilidad
   resetAppState: () => void;
   updatePerformanceMetrics: (metrics: Partial<PerformanceState>) => void;

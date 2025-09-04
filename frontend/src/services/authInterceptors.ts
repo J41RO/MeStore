@@ -13,14 +13,15 @@ const transformErrorForUI = (error: AxiosError) => {
     ...error,
     userMessage: 'Error desconocido',
     statusCode: error.response?.status || 0,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
 
   if (error.response) {
     const status = error.response.status;
-    transformedError.userMessage = status >= 500 
-      ? 'Error del servidor. Intenta más tarde.'
-      : (error.response.data as any)?.message || 'Error en la solicitud';
+    transformedError.userMessage =
+      status >= 500
+        ? 'Error del servidor. Intenta más tarde.'
+        : (error.response.data as any)?.message || 'Error en la solicitud';
   }
 
   return transformedError;
@@ -28,20 +29,22 @@ const transformErrorForUI = (error: AxiosError) => {
 
 // Función de retry con backoff exponencial
 const retryRequest = async (
-  originalRequest: InternalAxiosRequestConfig, 
+  originalRequest: InternalAxiosRequestConfig,
   retryCount = 0
 ): Promise<any> => {
   if (retryCount >= MAX_RETRIES) {
     throw new Error(`Max retries (${MAX_RETRIES}) exceeded`);
   }
-  
+
   // Backoff exponencial: 1s, 2s, 4s
   const delay = RETRY_DELAY * Math.pow(2, retryCount);
-  
+
   await new Promise(resolve => setTimeout(resolve, delay));
-  
-  console.log(`Retry attempt ${retryCount + 1}/${MAX_RETRIES} after ${delay}ms`);
-  
+
+  console.log(
+    `Retry attempt ${retryCount + 1}/${MAX_RETRIES} after ${delay}ms`
+  );
+
   return apiClient(originalRequest);
 };
 
@@ -51,27 +54,27 @@ const isRetryableError = (error: AxiosError): boolean => {
   if (!error.response && error.code) {
     return RETRYABLE_ERROR_CODES.includes(error.code);
   }
-  
+
   // Errores HTTP específicos
   if (error.response) {
     return RETRYABLE_STATUS_CODES.includes(error.response.status);
   }
-  
+
   return false;
 };
 
 // Endpoints que NO deben hacer retry
 const shouldSkipRetry = (url?: string): boolean => {
   if (!url) return false;
-  
+
   const skipPatterns = [
     '/auth/login',
-    '/auth/refresh', 
+    '/auth/refresh',
     '/auth/logout',
     '/health',
-    '/ready'
+    '/ready',
   ];
-  
+
   return skipPatterns.some(pattern => url.includes(pattern));
 };
 
@@ -90,7 +93,7 @@ const processQueue = (error: any, token: string | null = null) => {
       resolve(token);
     }
   });
-  
+
   failedQueue = [];
 };
 
@@ -118,11 +121,11 @@ apiClient.interceptors.request.use(
       }
       return Promise.reject(transformErrorForUI(error));
     }
-    
+
     if (error.response) {
       const status = error.response.status;
       const message = (error.response.data as any)?.message || error.message;
-      
+
       switch (status) {
         case 403:
           console.error('Acceso denegado:', message);
@@ -150,7 +153,7 @@ apiClient.interceptors.response.use(
     return response;
   },
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { 
+    const originalRequest = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean;
       _retryCount?: number;
     };
@@ -161,11 +164,13 @@ apiClient.interceptors.response.use(
         // Si ya está refreshing, agregar a la cola
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
-        }).then(() => {
-          return apiClient(originalRequest);
-        }).catch(err => {
-          return Promise.reject(err);
-        });
+        })
+          .then(() => {
+            return apiClient(originalRequest);
+          })
+          .catch(err => {
+            return Promise.reject(err);
+          });
       }
 
       originalRequest._retry = true;
@@ -173,14 +178,14 @@ apiClient.interceptors.response.use(
 
       try {
         const refreshToken = localStorage.getItem('refresh_token');
-        
+
         if (!refreshToken) {
           throw new Error('No refresh token available');
         }
 
         // Llamar endpoint de refresh
         const response = await apiClient.post('/api/auth/refresh', {
-          refresh_token: refreshToken
+          refresh_token: refreshToken,
         });
 
         const { access_token, refresh_token: newRefreshToken } = response.data;
@@ -198,18 +203,17 @@ apiClient.interceptors.response.use(
         if (originalRequest.headers) {
           originalRequest.headers.Authorization = `Bearer ${access_token}`;
         }
-        
-        return apiClient(originalRequest);
 
+        return apiClient(originalRequest);
       } catch (refreshError) {
         // Refresh falló - limpiar tokens y redirigir a login
         processQueue(refreshError, null);
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
-        
+
         // Disparar evento para que AuthContext maneje logout
         window.dispatchEvent(new CustomEvent('auth:logout'));
-        
+
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
@@ -217,17 +221,20 @@ apiClient.interceptors.response.use(
     }
 
     // Retry logic para errores retryables (excepto 401 que ya se maneja arriba)
-    if (isRetryableError(error) && 
-        !originalRequest._retry && 
-        !shouldSkipRetry(originalRequest.url) &&
-        error.response?.status !== 401) {
-      
+    if (
+      isRetryableError(error) &&
+      !originalRequest._retry &&
+      !shouldSkipRetry(originalRequest.url) &&
+      error.response?.status !== 401
+    ) {
       originalRequest._retry = true;
       const retryCount = originalRequest._retryCount || 0;
       originalRequest._retryCount = retryCount;
-      
+
       try {
-        console.log(`Retrying request to ${originalRequest.url} (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+        console.log(
+          `Retrying request to ${originalRequest.url} (attempt ${retryCount + 1}/${MAX_RETRIES})`
+        );
         return await retryRequest(originalRequest, retryCount);
       } catch (retryError) {
         console.error('All retry attempts failed:', retryError);

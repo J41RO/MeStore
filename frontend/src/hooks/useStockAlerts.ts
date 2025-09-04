@@ -1,6 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { InventoryItem } from '../types/inventory.types';
-import { StockAlert, AlertType, AlertSeverity, AlertCategory } from '../types/alerts.types';
+import {
+  StockAlert,
+  AlertType,
+  AlertSeverity,
+  AlertCategory,
+} from '../types/alerts.types';
 
 /**
  * Hook personalizado para generar y gestionar alertas de stock
@@ -37,7 +42,7 @@ export const useStockAlerts = () => {
           location,
           timestamp,
           isRead: false,
-          actionRequired: true
+          actionRequired: true,
         });
       }
       // Alertas de stock bajo
@@ -45,7 +50,7 @@ export const useStockAlerts = () => {
         // Determinar severidad basada en qué tan bajo está el stock
         let severity: AlertSeverity;
         const stockPercentage = (item.quantity / item.minStock) * 100;
-        
+
         if (stockPercentage <= 25) {
           severity = AlertSeverity.HIGH; // Stock muy bajo (≤25% del mínimo)
         } else if (stockPercentage <= 50) {
@@ -66,7 +71,9 @@ export const useStockAlerts = () => {
           location,
           timestamp,
           isRead: false,
-          actionRequired: severity === AlertSeverity.HIGH || severity === AlertSeverity.MEDIUM
+          actionRequired:
+            severity === AlertSeverity.HIGH ||
+            severity === AlertSeverity.MEDIUM,
         });
       }
     });
@@ -77,13 +84,13 @@ export const useStockAlerts = () => {
         [AlertSeverity.CRITICAL]: 4,
         [AlertSeverity.HIGH]: 3,
         [AlertSeverity.MEDIUM]: 2,
-        [AlertSeverity.LOW]: 1
+        [AlertSeverity.LOW]: 1,
       };
-      
+
       if (severityOrder[a.severity] !== severityOrder[b.severity]) {
         return severityOrder[b.severity] - severityOrder[a.severity];
       }
-      
+
       return b.timestamp.getTime() - a.timestamp.getTime();
     });
   }, [inventory]);
@@ -100,13 +107,23 @@ export const useStockAlerts = () => {
   const stockStats = useMemo(() => {
     const stats = {
       total: stockAlerts.length,
-      outOfStock: stockAlerts.filter(alert => alert.category === AlertCategory.OUT_OF_STOCK).length,
-      lowStock: stockAlerts.filter(alert => alert.category === AlertCategory.LOW_STOCK).length,
-      critical: stockAlerts.filter(alert => alert.severity === AlertSeverity.CRITICAL).length,
-      high: stockAlerts.filter(alert => alert.severity === AlertSeverity.HIGH).length,
-      medium: stockAlerts.filter(alert => alert.severity === AlertSeverity.MEDIUM).length,
-      low: stockAlerts.filter(alert => alert.severity === AlertSeverity.LOW).length,
-      actionRequired: stockAlerts.filter(alert => alert.actionRequired).length
+      outOfStock: stockAlerts.filter(
+        alert => alert.category === AlertCategory.OUT_OF_STOCK
+      ).length,
+      lowStock: stockAlerts.filter(
+        alert => alert.category === AlertCategory.LOW_STOCK
+      ).length,
+      critical: stockAlerts.filter(
+        alert => alert.severity === AlertSeverity.CRITICAL
+      ).length,
+      high: stockAlerts.filter(alert => alert.severity === AlertSeverity.HIGH)
+        .length,
+      medium: stockAlerts.filter(
+        alert => alert.severity === AlertSeverity.MEDIUM
+      ).length,
+      low: stockAlerts.filter(alert => alert.severity === AlertSeverity.LOW)
+        .length,
+      actionRequired: stockAlerts.filter(alert => alert.actionRequired).length,
     };
 
     return stats;
@@ -116,9 +133,11 @@ export const useStockAlerts = () => {
    * Marcar alerta específica como leída
    */
   const markStockAlertAsRead = (alertId: string) => {
-    setStockAlerts(prev => prev.map(alert => 
-      alert.id === alertId ? { ...alert, isRead: true } : alert
-    ));
+    setStockAlerts(prev =>
+      prev.map(alert =>
+        alert.id === alertId ? { ...alert, isRead: true } : alert
+      )
+    );
   };
 
   /**
@@ -157,18 +176,18 @@ export const useStockAlerts = () => {
     stockAlerts,
     stockStats,
     lastUpdate,
-    
+
     // Métodos
     markStockAlertAsRead,
     markAllStockAlertsAsRead,
     getAlertsBySeverity,
     getAlertsByCategory,
     refreshStockAlerts,
-    
+
     // Utilidades
     hasStockAlerts: stockAlerts.length > 0,
     hasCriticalAlerts: stockStats.critical > 0,
-    hasUnreadAlerts: stockAlerts.some(a => !a.isRead)
+    hasUnreadAlerts: stockAlerts.some(a => !a.isRead),
   };
 };
 

@@ -41,7 +41,7 @@ describe('useApiRequest Hook', () => {
         headers: {},
         config: {} as any,
       };
-      
+
       const mockApiFunction = jest.fn().mockResolvedValue(mockResponse);
       const { result } = renderHook(() => useApiRequest(mockApiFunction));
 
@@ -105,7 +105,13 @@ describe('useApiRequest Hook', () => {
     });
 
     it('debe activar loading states durante request', async () => {
-      const mockResponse = { data: { test: true }, status: 200, statusText: 'OK', headers: {}, config: {} };
+      const mockResponse = {
+        data: { test: true },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {},
+      };
       const mockApiFunction = jest.fn().mockResolvedValue(mockResponse);
       const { result } = renderHook(() => useApiRequest(mockApiFunction));
 
@@ -131,7 +137,7 @@ describe('useApiRequest Hook', () => {
       const mockResponse: AxiosResponse = {
         data: mockData,
         status: 200,
-        statusText: 'OK', 
+        statusText: 'OK',
         headers: {},
         config: {} as any,
       };

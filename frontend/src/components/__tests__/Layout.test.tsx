@@ -7,14 +7,16 @@ import { useAuthStore } from '@/stores/authStore';
 
 // Mock del auth store
 jest.mock('@/stores/authStore');
-const mockUseAuthStore = useAuthStore as jest.MockedFunction<typeof useAuthStore>;
+const mockUseAuthStore = useAuthStore as jest.MockedFunction<
+  typeof useAuthStore
+>;
 
 // Mock de react-router-dom useLocation
 const mockUseLocation = jest.fn();
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useLocation: () => mockUseLocation(),
-  Outlet: () => <div data-testid="outlet">Page Content</div>,
+  Outlet: () => <div data-testid='outlet'>Page Content</div>,
 }));
 
 const renderLayout = () => {
@@ -79,7 +81,9 @@ describe('Layout Component', () => {
 
     renderLayout();
 
-    expect(screen.getByText('Cerrar Sesión (usuario@test.com)')).toBeInTheDocument();
+    expect(
+      screen.getByText('Cerrar Sesión (usuario@test.com)')
+    ).toBeInTheDocument();
   });
 
   test('should call logout when logout button is clicked', () => {
@@ -115,7 +119,7 @@ describe('Layout Component', () => {
 
     const productosLink = screen.getByText('Productos').closest('a');
     expect(productosLink).toHaveClass('bg-blue-100', 'text-blue-700');
-    
+
     const dashboardLink = screen.getByText('Dashboard').closest('a');
     expect(dashboardLink).toHaveClass('text-gray-500');
   });

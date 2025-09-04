@@ -1,11 +1,13 @@
 # DashboardLayout Component
 
 ## Descripción
+
 Componente de layout principal para el dashboard de MeStore. Proporciona una estructura responsive con sidebar de navegación y área de contenido principal.
 
 ## Props
 
 ### DashboardLayoutProps
+
 ```typescript
 interface DashboardLayoutProps {
   children: React.ReactNode; // Contenido a renderizar en el área principal
@@ -68,3 +70,4 @@ Usa Tailwind classes inline para mejor performance
 Template strings conservadores para evitar problemas de parsing
 Estado local para control del sidebar mobile
 Navegación manual via window.location.href para compatibilidad
+```

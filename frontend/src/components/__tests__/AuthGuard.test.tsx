@@ -7,19 +7,23 @@ import { useAuthStore } from '../../stores/authStore';
 
 // Mock the auth store
 jest.mock('../../stores/authStore');
-const mockUseAuthStore = useAuthStore as jest.MockedFunction<typeof useAuthStore>;
+const mockUseAuthStore = useAuthStore as jest.MockedFunction<
+  typeof useAuthStore
+>;
 
 // Mock react-router-dom Navigate
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   Navigate: ({ to, state }: { to: string; state?: any }) => (
-    <div data-testid="navigate" data-to={to} data-state={JSON.stringify(state)}>
+    <div data-testid='navigate' data-to={to} data-state={JSON.stringify(state)}>
       Redirecting to {to}
     </div>
   ),
 }));
 
-const TestChild = () => <div data-testid="protected-content">Protected Content</div>;
+const TestChild = () => (
+  <div data-testid='protected-content'>Protected Content</div>
+);
 
 const renderAuthGuard = (children: React.ReactNode = <TestChild />) => {
   return render(
@@ -67,7 +71,10 @@ describe('AuthGuard', () => {
 
     expect(screen.queryByTestId('protected-content')).not.toBeInTheDocument();
     expect(screen.getByTestId('navigate')).toBeInTheDocument();
-    expect(screen.getByTestId('navigate')).toHaveAttribute('data-to', '/auth/login');
+    expect(screen.getByTestId('navigate')).toHaveAttribute(
+      'data-to',
+      '/auth/login'
+    );
     expect(mockCheckAuth).toHaveBeenCalled();
   });
 
@@ -83,13 +90,16 @@ describe('AuthGuard', () => {
 
     render(
       <BrowserRouter>
-        <AuthGuard fallbackPath="/custom-login">
+        <AuthGuard fallbackPath='/custom-login'>
           <TestChild />
         </AuthGuard>
       </BrowserRouter>
     );
 
-    expect(screen.getByTestId('navigate')).toHaveAttribute('data-to', '/custom-login');
+    expect(screen.getByTestId('navigate')).toHaveAttribute(
+      'data-to',
+      '/custom-login'
+    );
   });
 
   test('should pass current location in state when redirecting', () => {
@@ -105,7 +115,9 @@ describe('AuthGuard', () => {
     renderAuthGuard();
 
     const navigateElement = screen.getByTestId('navigate');
-    const stateData = JSON.parse(navigateElement.getAttribute('data-state') || '{}');
+    const stateData = JSON.parse(
+      navigateElement.getAttribute('data-state') || '{}'
+    );
     expect(stateData.from).toBe('/');
   });
 });

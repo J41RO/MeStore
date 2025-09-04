@@ -66,7 +66,7 @@ export interface BulkOperationError {
 
 /**
  * Eliminar múltiples productos en una sola operación
- * 
+ *
  * @param productIds - Array de IDs de productos a eliminar
  * @returns Promise con el resultado de la operación
  * @throws BulkOperationError si la operación falla
@@ -84,13 +84,11 @@ export const bulkDeleteProducts = async (
     }
 
     const request: BulkDeleteRequest = {
-      product_ids: productIds
+      product_ids: productIds,
     };
 
-    const response: AxiosResponse<BulkOperationResponse> = await apiClient.delete(
-      '/api/v1/products/bulk',
-      { data: request }
-    );
+    const response: AxiosResponse<BulkOperationResponse> =
+      await apiClient.delete('/api/v1/products/bulk', { data: request });
 
     return response.data;
   } catch (error: any) {
@@ -98,7 +96,7 @@ export const bulkDeleteProducts = async (
     const bulkError: BulkOperationError = {
       message: 'Error al eliminar productos',
       statusCode: error.response?.status || 500,
-      errors: error.response?.data?.errors || []
+      errors: error.response?.data?.errors || [],
     };
 
     if (error.response?.data?.message) {
@@ -113,7 +111,7 @@ export const bulkDeleteProducts = async (
 
 /**
  * Actualizar estado de múltiples productos en una sola operación
- * 
+ *
  * @param productIds - Array de IDs de productos a actualizar
  * @param status - Nuevo estado para los productos
  * @returns Promise con el resultado de la operación
@@ -134,18 +132,18 @@ export const bulkUpdateProductStatus = async (
 
     const validStatuses = ['active', 'inactive', 'pending', 'archived'];
     if (!validStatuses.includes(status)) {
-      throw new Error(`Estado inválido: ${status}. Estados válidos: ${validStatuses.join(', ')}`);
+      throw new Error(
+        `Estado inválido: ${status}. Estados válidos: ${validStatuses.join(', ')}`
+      );
     }
 
     const request: BulkStatusUpdateRequest = {
       product_ids: productIds,
-      status
+      status,
     };
 
-    const response: AxiosResponse<BulkOperationResponse> = await apiClient.patch(
-      '/api/v1/products/bulk/status',
-      request
-    );
+    const response: AxiosResponse<BulkOperationResponse> =
+      await apiClient.patch('/api/v1/products/bulk/status', request);
 
     return response.data;
   } catch (error: any) {
@@ -153,7 +151,7 @@ export const bulkUpdateProductStatus = async (
     const bulkError: BulkOperationError = {
       message: 'Error al actualizar estado de productos',
       statusCode: error.response?.status || 500,
-      errors: error.response?.data?.errors || []
+      errors: error.response?.data?.errors || [],
     };
 
     if (error.response?.data?.message) {
@@ -168,7 +166,7 @@ export const bulkUpdateProductStatus = async (
 
 /**
  * Validar lista de IDs de productos
- * 
+ *
  * @param productIds - Array de IDs a validar
  * @returns true si todos los IDs son válidos
  * @throws Error si algún ID es inválido
@@ -187,13 +185,14 @@ export const validateProductIds = (productIds: string[]): boolean => {
   }
 
   // Validar formato UUID básico
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
   for (const id of productIds) {
     if (typeof id !== 'string' || !id.trim()) {
       throw new Error(`ID de producto inválido: ${id}`);
     }
-    
+
     if (!uuidRegex.test(id)) {
       throw new Error(`Formato de ID inválido: ${id}. Debe ser un UUID válido`);
     }
@@ -204,7 +203,7 @@ export const validateProductIds = (productIds: string[]): boolean => {
 
 /**
  * Obtener mensaje de error legible para el usuario
- * 
+ *
  * @param error - Error de la operación bulk
  * @returns Mensaje legible para mostrar al usuario
  */
@@ -212,19 +211,19 @@ export const getBulkErrorMessage = (error: BulkOperationError): string => {
   if (error.statusCode === 400) {
     return 'Datos inválidos en la solicitud. Verifica los IDs de productos.';
   }
-  
+
   if (error.statusCode === 401) {
     return 'No tienes autorización para realizar esta operación.';
   }
-  
+
   if (error.statusCode === 404) {
     return 'Algunos productos no fueron encontrados.';
   }
-  
+
   if (error.statusCode >= 500) {
     return 'Error del servidor. Intenta nuevamente en unos momentos.';
   }
-  
+
   return error.message || 'Error desconocido en la operación.';
 };
 
@@ -233,5 +232,5 @@ export default {
   bulkDeleteProducts,
   bulkUpdateProductStatus,
   validateProductIds,
-  getBulkErrorMessage
+  getBulkErrorMessage,
 };

@@ -43,7 +43,7 @@ global.URL.revokeObjectURL = jest.fn();
 
 describe('ImageUpload Component', () => {
   const mockOnImageUpload = jest.fn();
-  
+
   const defaultProps: ImageUploadProps = {
     onImageUpload: mockOnImageUpload,
     maxFiles: 5,
@@ -58,23 +58,27 @@ describe('ImageUpload Component', () => {
   describe('Renderizado básico', () => {
     it('debe renderizar el componente correctamente', () => {
       render(<ImageUpload {...defaultProps} />);
-      
+
       expect(screen.getByTestId('dropzone')).toBeInTheDocument();
       expect(screen.getByTestId('file-input')).toBeInTheDocument();
       expect(screen.getByText('📁')).toBeInTheDocument();
-      expect(screen.getByText('Arrastra imágenes aquí o haz clic para seleccionar')).toBeInTheDocument();
+      expect(
+        screen.getByText('Arrastra imágenes aquí o haz clic para seleccionar')
+      ).toBeInTheDocument();
     });
 
     it('debe mostrar información de límites correctamente', () => {
       render(<ImageUpload {...defaultProps} />);
-      
-      expect(screen.getByText('Máximo 5 archivos, 5MB por archivo')).toBeInTheDocument();
+
+      expect(
+        screen.getByText('Máximo 5 archivos, 5MB por archivo')
+      ).toBeInTheDocument();
       expect(screen.getByText('Formatos: JPEG, PNG, WEBP')).toBeInTheDocument();
     });
 
     it('debe aplicar clases CSS personalizadas', () => {
-      render(<ImageUpload {...defaultProps} className="custom-class" />);
-      
+      render(<ImageUpload {...defaultProps} className='custom-class' />);
+
       const dropzone = screen.getByTestId('dropzone');
       expect(dropzone).toHaveClass('custom-class');
     });
@@ -83,7 +87,7 @@ describe('ImageUpload Component', () => {
   describe('Componente deshabilitado', () => {
     it('debe aplicar estilos de disabled cuando disabled=true', () => {
       render(<ImageUpload {...defaultProps} disabled={true} />);
-      
+
       const dropzone = screen.getByTestId('dropzone');
       // Verificamos que el componente renderiza sin errores cuando disabled=true
       expect(dropzone).toBeInTheDocument();
@@ -94,13 +98,15 @@ describe('ImageUpload Component', () => {
   describe('Preview de imágenes', () => {
     it('no debe mostrar preview cuando showPreview=false', () => {
       render(<ImageUpload {...defaultProps} showPreview={false} />);
-      
-      expect(screen.queryByText('Imágenes seleccionadas:')).not.toBeInTheDocument();
+
+      expect(
+        screen.queryByText('Imágenes seleccionadas:')
+      ).not.toBeInTheDocument();
     });
 
     it('debe renderizar sin errores con props por defecto', () => {
       render(<ImageUpload {...defaultProps} />);
-      
+
       expect(screen.getByTestId('dropzone')).toBeInTheDocument();
     });
   });
@@ -114,9 +120,9 @@ describe('ImageUpload Component', () => {
   describe('Limpieza de memoria', () => {
     it('debe limpiar URLs de preview al desmontar', () => {
       const { unmount } = render(<ImageUpload {...defaultProps} />);
-      
+
       unmount();
-      
+
       expect(global.URL.revokeObjectURL).toHaveBeenCalledTimes(0);
     });
   });
