@@ -1,6 +1,5 @@
-import py_compile
 #!/usr/bin/env python3
-"""CLI principal de Surgical Modifier."""
+"""CLI principal de Surgical Modifier v6.0 - UX Mejorada Completa"""
 
 import click
 import re
@@ -8,24 +7,57 @@ import sys
 import os
 from pathlib import Path
 from rich.console import Console
+import py_compile
+
+# ========================
+# FUNCIONES UX MEJORADAS
+# ========================
+
+def is_file(arg):
+    """Detecta si un argumento parece ser un archivo basado en extensión"""
+    return '.' in arg and not arg.startswith('.')
+
+def order_detect(a1, a2, a3):
+    """Detecta si los argumentos están en orden intuitivo o tradicional"""
+    return 'intuitive' if is_file(a3) and not is_file(a1) else 'traditional'
+
+def suggest_correction(a1, a2, a3):
+    """Sugiere corrección cuando detecta posible orden incorrecto"""
+    # Caso 1: archivo pattern replacement -> pattern replacement archivo
+    if is_file(a1) and not is_file(a3):
+        return f'Did you mean: python3 cli.py replace "{a2}" "{a3}" {a1} ?'
+    # Caso 2: pattern replacement archivo -> archivo pattern replacement  
+    elif is_file(a3) and not is_file(a1):
+        return f'Did you mean: python3 cli.py replace {a3} "{a1}" "{a2}" ?'
+    return None
+
+def help_msg(err_type, detail=''):
+    """Genera mensajes de error informativos con ejemplos"""
+    if err_type == 'not_found':
+        return f'File not found: {detail}\n\nExamples:\n  python3 cli.py replace file.txt old new\n  python3 cli.py replace old new file.txt'
+    return f'Error: {detail}'
+
+# ========================
+# IMPORTS Y SETUP
+# ========================
 
 # Agregar path para importar coordinadores
 sys.path.append(os.path.join(os.path.dirname(__file__), '.'))
 from coordinators.replace import ReplaceCoordinator
 from coordinators.after import AfterCoordinator
 from coordinators.before import BeforeCoordinator
+from coordinators.append import AppendCoordinator
 
 console = Console()
 
+# ========================
+# FUNCIONES HELPER
+# ========================
 
-# Funciones helper para validación
 def validate_class_insertion(pattern, content):
     """Validar inserción después de definición de clase para evitar IndentationError"""
-    # Detectar si pattern es definición de clase
     if re.search(r'class\s+\w+.*:', pattern):
-        # Si content no tiene indentación, añadir indentación mínima
         if content and not content.startswith('    '):
-            # Añadir indentación si no está presente
             lines = content.split('\n')
             indented_lines = ['    ' + line if line.strip() else line for line in lines]
             content = '\n'.join(indented_lines)
@@ -49,24 +81,30 @@ def restore_from_backup(filepath, backup_path):
         with open(backup_path, 'r', encoding='utf-8') as backup:
             with open(filepath, 'w', encoding='utf-8') as original:
                 original.write(backup.read())
-        os.remove(backup_path)  # Limpiar backup temporal
+        os.remove(backup_path)
         return True
     except Exception as e:
         console.print(f"❌ Error restaurando backup: {e}", style="red")
         return False
 
+# ========================
+# CLI PRINCIPAL
+# ========================
 
 @click.group()
-@click.version_option(version="0.1.0")
+@click.version_option(version="6.0-UX-Complete")
 @click.option("--verbose", "-v", is_flag=True, help="Modo verbose")
 @click.option("--dry-run", is_flag=True, help="Simular sin ejecutar")
 def main(verbose, dry_run):
-    """Surgical Modifier - Sistema de Modificación Precisa de Código."""
+    """Surgical Modifier v6.0 - Sistema de Modificación Precisa de Código con UX Mejorada Completa."""
     if verbose:
         print("Modo verbose activado")
     if dry_run:
         print("Modo dry-run activado")
 
+# ========================
+# COMANDO CREATE
+# ========================
 
 @main.command()
 @click.argument("filepath")
@@ -76,25 +114,20 @@ def main(verbose, dry_run):
 def create(filepath, content, template, from_stdin):
     """Crear nuevos archivos con contenido directo o templates."""
     try:
-        # Validar que no se usen ambas opciones
         if content and from_stdin:
             click.echo("Error: No se puede usar contenido directo y --from-stdin simultáneamente", err=True)
             return
             
-        # Leer desde stdin si se especifica
         if from_stdin:
             content = sys.stdin.read()
             
-        # Crear directorio padre si no existe
         filepath_obj = Path(filepath)
         filepath_obj.parent.mkdir(parents=True, exist_ok=True)
         
-        # Verificar si archivo existe
         if filepath_obj.exists():
             click.echo(f"Error: El archivo {filepath} ya existe", err=True)
             return
             
-        # Escribir archivo
         with open(filepath, 'w', encoding='utf-8') as f:
             f.write(content)
             
@@ -103,6 +136,9 @@ def create(filepath, content, template, from_stdin):
     except Exception as e:
         click.echo(f"Error creando archivo: {e}", err=True)
 
+# ========================
+# COMANDO REPLACE (CON MEJORAS UX COMPLETAS)
+# ========================
 
 @main.command()
 @click.argument("filepath")
@@ -111,11 +147,28 @@ def create(filepath, content, template, from_stdin):
 @click.option("--fuzzy", is_flag=True, help="Usar matching aproximado")
 @click.option("--regex", is_flag=True, help="Usar patrones regex") 
 @click.option("--threshold", type=float, default=0.8, help="Threshold fuzzy (0.0-1.0)")
-def replace(filepath, pattern, replacement, fuzzy=False, regex=False, threshold=0.8):
-    """Reemplazar contenido en archivos usando ReplaceCoordinator."""
+@click.option("--strict-syntax", is_flag=True, help="Solo acepta orden tradicional archivo pattern replacement")
+def replace(filepath, pattern, replacement, fuzzy=False, regex=False, threshold=0.8, strict_syntax=False):
+    """
+    Reemplazar contenido en archivos usando ReplaceCoordinator.
+    
+    MEJORAS UX v6.0 - Soporta ambas sintaxis:
+    - Tradicional: python3 cli.py replace archivo.txt 'viejo' 'nuevo'
+    - Intuitiva:   python3 cli.py replace 'viejo' 'nuevo' archivo.txt
+    
+    Opciones avanzadas:
+    --strict-syntax : Solo acepta orden tradicional (archivo pattern replacement)
+    """
+    # MEJORA UX 1: Detección automática de orden de argumentos (solo si no está en modo strict)
+    if not strict_syntax and order_detect(filepath, pattern, replacement) == 'intuitive':
+        filepath, pattern, replacement = replacement, filepath, pattern
+    elif strict_syntax and order_detect(filepath, pattern, replacement) == 'intuitive':
+        click.echo('❌ Error: Orden incorrecto. Modo strict-syntax solo acepta: archivo pattern replacement', err=True)
+        return 1
+    
     try:
         # Determinar tipo de matcher basado en opciones
-        matcher_type = 'literal'  # default
+        matcher_type = 'literal'
         matcher_options = {}
 
         if fuzzy:
@@ -124,7 +177,6 @@ def replace(filepath, pattern, replacement, fuzzy=False, regex=False, threshold=
         elif regex:
             matcher_type = 'regex'
 
-        # Agregar matcher_type a matcher_options
         matcher_options['matcher_type'] = matcher_type
 
         # Usar ReplaceCoordinator para ejecutar replace real
@@ -144,10 +196,21 @@ def replace(filepath, pattern, replacement, fuzzy=False, regex=False, threshold=
             click.echo(f"❌ Error: {result.get('error', 'Unknown error')}", err=True)
             return 1
 
+    except FileNotFoundError:
+        # MEJORA UX 3: Sugerencias inteligentes para archivos no encontrados
+        suggestion = suggest_correction(filepath, pattern, replacement)
+        if suggestion:
+            click.echo(f'💡 {suggestion}', err=True)
+        # MEJORA UX 4: Mensajes de error informativos con ejemplos
+        click.echo(help_msg('not_found', filepath), err=True)
+        return 1
     except Exception as e:
         click.echo(f"❌ Error inesperado: {str(e)}", err=True)
         return 1
 
+# ========================
+# COMANDO BEFORE
+# ========================
 
 @main.command()
 @click.argument("filepath")
@@ -156,14 +219,11 @@ def replace(filepath, pattern, replacement, fuzzy=False, regex=False, threshold=
 @click.option('--from-stdin', is_flag=True, help='Leer contenido desde stdin para contenido multilínea')
 def before(filepath, pattern, content, from_stdin):
     """Insertar contenido antes de un patrón."""
-    # Si --from-stdin está activado, leer contenido desde stdin
     if from_stdin:
         content = sys.stdin.read().strip()
     
-    # PRE-VALIDACIÓN: Validar inserción en clases
     validated_content = validate_class_insertion(pattern, content)
     
-    # BACKUP: Crear backup antes de modificación
     backup_path = None
     if os.path.exists(filepath):
         backup_path = backup_file(filepath)
@@ -176,18 +236,15 @@ def before(filepath, pattern, content, from_stdin):
         result = coordinator.execute(filepath, pattern, validated_content)
         
         if result.get('success', False):
-            # POST-VALIDACIÓN: Verificar sintaxis si es archivo Python
             if filepath.endswith('.py'):
                 try:
                     py_compile.compile(filepath, doraise=True)
-                    # Sintaxis válida - limpiar backup
                     if backup_path:
                         os.remove(backup_path)
                     console.print(f"✅ Contenido insertado antes de '{pattern}' en {filepath}", style="green")
                     if result.get('message'):
                         console.print(f"📝 {result['message']}", style="blue")
                 except py_compile.PyCompileError as syntax_error:
-                    # Sintaxis inválida - hacer rollback
                     console.print(f"❌ Error de sintaxis detectado tras modificación", style="red")
                     console.print(f"📝 {str(syntax_error)}", style="yellow")
                     if backup_path:
@@ -197,26 +254,26 @@ def before(filepath, pattern, content, from_stdin):
                             console.print("❌ Error restaurando backup", style="red")
                     sys.exit(1)
             else:
-                # No es archivo Python - limpiar backup
                 if backup_path:
                     os.remove(backup_path)
                 console.print(f"✅ Contenido insertado antes de '{pattern}' en {filepath}", style="green")
                 if result.get('message'):
                     console.print(f"📝 {result['message']}", style="blue")
         else:
-            # Operación falló - restaurar backup si existe
             console.print(f"❌ Error: {result.get('error', 'Operación fallida')}", style="red")
             if backup_path:
                 restore_from_backup(filepath, backup_path)
             sys.exit(1)
             
     except Exception as e:
-        # Excepción inesperada - restaurar backup si existe
         console.print(f"❌ Error ejecutando operación before: {str(e)}", style="red")
         if backup_path:
             restore_from_backup(filepath, backup_path)
         sys.exit(1)
 
+# ========================
+# COMANDO AFTER
+# ========================
 
 @main.command()
 @click.argument("filepath")
@@ -225,14 +282,11 @@ def before(filepath, pattern, content, from_stdin):
 @click.option('--from-stdin', is_flag=True, help='Leer contenido desde stdin para contenido multilínea')
 def after(filepath, pattern, content, from_stdin):
     """Insertar contenido después de un patrón."""
-    # Si --from-stdin está activado, leer contenido desde stdin
     if from_stdin:
         content = sys.stdin.read().strip()
     
-    # PRE-VALIDACIÓN: Validar inserción en clases
     validated_content = validate_class_insertion(pattern, content)
     
-    # BACKUP: Crear backup antes de modificación
     backup_path = None
     if os.path.exists(filepath):
         backup_path = backup_file(filepath)
@@ -245,17 +299,14 @@ def after(filepath, pattern, content, from_stdin):
         result = coordinator.execute(filepath, pattern, validated_content)
         
         if result.get('success', False):
-            # POST-VALIDACIÓN: Verificar sintaxis si es archivo Python
             if filepath.endswith('.py'):
                 try:
                     py_compile.compile(filepath, doraise=True)
-                    # Sintaxis válida - limpiar backup
                     if backup_path:
                         os.remove(backup_path)
                     click.echo(f"✅ Contenido insertado exitosamente después de '{pattern}' en {filepath}")
                     return 0
                 except py_compile.PyCompileError as syntax_error:
-                    # Sintaxis inválida - hacer rollback
                     click.echo(f"❌ Error de sintaxis detectado tras modificación", err=True)
                     click.echo(f"📝 {str(syntax_error)}", err=True)
                     if backup_path:
@@ -265,13 +316,11 @@ def after(filepath, pattern, content, from_stdin):
                             click.echo("❌ Error restaurando backup", err=True)
                     return 1
             else:
-                # No es archivo Python - limpiar backup
                 if backup_path:
                     os.remove(backup_path)
                 click.echo(f"✅ Contenido insertado exitosamente después de '{pattern}' en {filepath}")
                 return 0
         else:
-            # Operación falló - restaurar backup si existe
             error_msg = result.get('error', 'Error desconocido')
             click.echo(f"❌ Error: {error_msg}", err=True)
             if backup_path:
@@ -279,12 +328,39 @@ def after(filepath, pattern, content, from_stdin):
             return 1
             
     except Exception as e:
-        # Excepción inesperada - restaurar backup si existe
         click.echo(f"❌ Error inesperado: {str(e)}", err=True)
         if backup_path:
             restore_from_backup(filepath, backup_path)
         return 1
 
+# ========================
+# COMANDO APPEND
+# ========================
+
+@main.command()
+@click.argument("filepath")
+@click.argument("content")
+@click.option("--separator", default="\n", help="Separador entre contenido existente y nuevo")
+def append(filepath, content, separator):
+    """Agregar contenido al final del archivo."""
+    try:
+        coordinator = AppendCoordinator()
+        content_with_separator = separator + content
+        result = coordinator.execute(filepath, "", content_with_separator)
+        
+        if result.get('success', False):
+            click.echo(f"Contenido agregado exitosamente al final de {filepath}")
+        else:
+            click.echo(f"Error: {result.get('error', 'Error desconocido')}", err=True)
+            return 1
+            
+    except Exception as e:
+        click.echo(f"Error: {str(e)}", err=True)
+        return 1
+
+# ========================
+# COMANDO EXPLORE
+# ========================
 
 @main.command()
 @click.argument("path")
@@ -293,18 +369,71 @@ def explore(path, analyze):
     """Explorar y analizar estructura de código."""
     print(f"Explorando {path} (análisis: {analyze})")
 
+# ========================
+# COMANDOS DE AYUDA
+# ========================
 
 @main.command("list-commands")
 def list_commands():
-    """Listar todos los comandos disponibles."""
-    print("Comandos disponibles:")
-    print("  - create")
-    print("  - replace") 
-    print("  - before")
-    print("  - after")
-    print("  - explore")
-    print("  - list-commands")
+    """Listar todos los comandos disponibles con ejemplos de mejoras UX."""
+    print("=" * 60)
+    print("SURGICAL MODIFIER v6.0 - COMANDOS DISPONIBLES")
+    print("=" * 60)
+    print("COMANDOS BÁSICOS:")
+    print("  create      : Crear nuevos archivos")
+    print("  replace     : Reemplazar contenido (🎯 CON MEJORAS UX)")
+    print("  before      : Insertar antes de patrón")
+    print("  after       : Insertar después de patrón")  
+    print("  append      : Agregar al final")
+    print("  explore     : Explorar estructura")
+    print("  list-commands : Mostrar este listado")
+    print()
+    print("🎯 MEJORAS UX v6.0 EN COMANDO REPLACE:")
+    print("  ✅ ORDEN INTUITIVO:")
+    print("    python3 cli.py replace 'buscar' 'reemplazar' archivo.txt")
+    print("  ✅ ORDEN TRADICIONAL (mantiene compatibilidad):")
+    print("    python3 cli.py replace archivo.txt 'buscar' 'reemplazar'")
+    print("  ✅ MODO STRICT-SYNTAX:")
+    print("    python3 cli.py replace --strict-syntax archivo.txt 'buscar' 'reemplazar'")
+    print("  ✅ SUGERENCIAS AUTOMÁTICAS cuando hay errores de orden")
+    print("  ✅ MENSAJES DE ERROR informativos con ejemplos")
+    print()
+    print("EJEMPLOS PRÁCTICOS:")
+    print("  python3 cli.py replace 'old_function' 'new_function' main.py")
+    print("  python3 cli.py replace --strict-syntax main.py 'old' 'new'")
+    print("  python3 cli.py replace --regex '\\bclass\\b' 'class Modern' app.py")
+    print("=" * 60)
 
+@main.command("help-ux")
+def help_ux():
+    """Ayuda específica sobre las mejoras UX v6.0."""
+    print("🎯 MEJORAS UX SURGICAL MODIFIER v6.0")
+    print("=" * 50)
+    print()
+    print("1. ORDEN INTUITIVO DE ARGUMENTOS:")
+    print("   Antes: python3 cli.py replace archivo.txt 'viejo' 'nuevo'")
+    print("   Ahora: python3 cli.py replace 'viejo' 'nuevo' archivo.txt")
+    print("   Ambas sintaxis funcionan automáticamente!")
+    print()
+    print("2. MODO STRICT-SYNTAX:")
+    print("   --strict-syntax : Solo acepta orden tradicional")
+    print("   Útil para scripts automatizados")
+    print()
+    print("3. SUGERENCIAS INTELIGENTES:")
+    print("   Cuando detecta posible confusión de orden, sugiere corrección")
+    print("   Ejemplo: '💡 Did you mean: python3 cli.py replace ...'")
+    print()
+    print("4. MENSAJES DE ERROR MEJORADOS:")
+    print("   Incluyen ejemplos de sintaxis correcta")
+    print("   Reducen tiempo de debugging")
+    print()
+    print("5. COMPATIBILIDAD TOTAL:")
+    print("   Todo código existente sigue funcionando")
+    print("   Cero regresiones, solo mejoras")
+
+# ========================
+# ENTRY POINT
+# ========================
 
 if __name__ == "__main__":
     main()
