@@ -1,11 +1,21 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+
+// Tipos de usuario del sistema
+export enum UserType {
+  COMPRADOR = 'COMPRADOR',
+  VENDEDOR = 'VENDEDOR', 
+  ADMIN = 'ADMIN',
+  SUPERUSER = 'SUPERUSER'
+}
+
 interface User {
   id: string;
   email: string;
   name?: string;
   role?: string;
+  user_type?: UserType;
 }
 
 interface AuthState {
@@ -17,6 +27,9 @@ interface AuthState {
   checkAuth: () => boolean;
   registerVendor: (vendorData: any) => Promise<boolean>;
   verifyOTP: (telefono: string, otp: string) => Promise<boolean>;
+  isAdmin: () => boolean;
+  isSuperuser: () => boolean;
+  getUserType: () => UserType | null;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -56,6 +69,19 @@ export const useAuthStore = create<AuthState>()(
             console.error('Error en registro:', error);
             return false;
           }
+        },
+        // Funciones helper para detección de roles
+        isAdmin: () => {
+          const state = get();
+          return state.user?.user_type === UserType.ADMIN || state.user?.user_type === UserType.SUPERUSER;
+        },
+        isSuperuser: () => {
+          const state = get();
+          return state.user?.user_type === UserType.SUPERUSER;
+        },
+        getUserType: () => {
+          const state = get();
+          return state.user?.user_type || null;
         },
 
         verifyOTP: async (telefono: string, otp: string) => {

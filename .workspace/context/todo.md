@@ -363,58 +363,58 @@
     ✅ 1.5.5.4 Crear AlertsPanel para notificaciones de stock y calidad
     ✅ 1.5.5.5 Implementar BarcodeScanner simulation para picking
     ✅ 1.5.5.6 Añadir filtros por fecha, producto y tipo de movimiento
-🔁 1.5.6 Reportes de ventas y comisiones
+✅ 1.5.6 Reportes de ventas y comisiones
     ✅ 1.5.6.1 Crear SalesReport con gráficos por período y producto
     ✅ 1.5.6.2 Implementar CommissionReport con breakdown detallado
     ✅ 1.5.6.3 Añadir filtros de fecha, estado y método de pago
     ✅ 1.5.6.4 Crear exportación a PDF/Excel con react-pdf/xlsx
-    ⬜ 1.5.6.5 Implementar PayoutHistory con tracking de transferencias
-    ⬜ 1.5.6.6 Añadir comparativa período actual vs anterior con KPIs
+    ✅ 1.5.6.5 Implementar PayoutHistory con tracking de transferencias
+    ✅ 1.5.6.6 Añadir comparativa período actual vs anterior con KPIs
 
 ## 1.6 Panel de Administración MVP
 
-⬜ 1.6.1 Dashboard superusuario con métricas globales
-⬜ 1.6.1.1 Crear AdminLayout con navegación específica para superusuario
-⬜ 1.6.1.2 Implementar KPIs globales (GMV, vendedores activos, productos, órdenes)
-⬜ 1.6.1.3 Añadir gráficos de crecimiento con comparativas mensuales
-⬜ 1.6.1.4 Crear widget de ingresos por comisiones y projecciones
-⬜ 1.6.1.5 Implementar mapa de actividad por ciudad/región en Colombia
-⬜ 1.6.1.6 Añadir alertas críticas (stock crítico, vendedores pendientes, errores)
+🔁 1.6.1 Dashboard superusuario con métricas globales
+    ⬜ 1.6.1.1 Crear AdminLayout con navegación específica para superusuario
+    ⬜ 1.6.1.2 Implementar KPIs globales (GMV, vendedores activos, productos, órdenes)
+    ⬜ 1.6.1.3 Añadir gráficos de crecimiento con comparativas mensuales
+    ⬜ 1.6.1.4 Crear widget de ingresos por comisiones y projecciones
+    ⬜ 1.6.1.5 Implementar mapa de actividad por ciudad/región en Colombia
+    ⬜ 1.6.1.6 Añadir alertas críticas (stock crítico, vendedores pendientes, errores)
 ⬜ 1.6.2 Gestión de vendedores (aprobar, suspender)
-⬜ 1.6.2.1 Crear VendorList con filtros por estado y tipo de cuenta
-⬜ 1.6.2.2 Implementar VendorDetail con toda la información y documentos
-⬜ 1.6.2.3 Añadir workflow de aprobación con verificación de documentos
-⬜ 1.6.2.4 Crear acciones bulk (aprobar múltiples, suspender, enviar emails)
-⬜ 1.6.2.5 Implementar sistema de notas internas y historial de cambios
-⬜ 1.6.2.6 Añadir métricas por vendedor (performance, comisiones, productos)
+    ⬜ 1.6.2.1 Crear VendorList con filtros por estado y tipo de cuenta
+    ⬜ 1.6.2.2 Implementar VendorDetail con toda la información y documentos
+    ⬜ 1.6.2.3 Añadir workflow de aprobación con verificación de documentos
+    ⬜ 1.6.2.4 Crear acciones bulk (aprobar múltiples, suspender, enviar emails)
+    ⬜ 1.6.2.5 Implementar sistema de notas internas y historial de cambios
+    ⬜ 1.6.2.6 Añadir métricas por vendedor (performance, comisiones, productos)
 ⬜ 1.6.3 Control de inventario físico
-⬜ 1.6.3.1 Crear WarehouseMap visual con layout del almacén físico
-⬜ 1.6.3.2 Implementar InventoryAudit para conteos físicos vs sistema
-⬜ 1.6.3.3 Añadir LocationManager para asignar/reasignar ubicaciones
-⬜ 1.6.3.4 Crear AlertSystem para productos perdidos o dañados
-⬜ 1.6.3.5 Implementar MovementTracker con historial detallado
-⬜ 1.6.3.6 Añadir generación de reportes de discrepancias y ajustes
+    ⬜ 1.6.3.1 Crear WarehouseMap visual con layout del almacén físico
+    ⬜ 1.6.3.2 Implementar InventoryAudit para conteos físicos vs sistema
+    ⬜ 1.6.3.3 Añadir LocationManager para asignar/reasignar ubicaciones
+    ⬜ 1.6.3.4 Crear AlertSystem para productos perdidos o dañados
+    ⬜ 1.6.3.5 Implementar MovementTracker con historial detallado
+    ⬜ 1.6.3.6 Añadir generación de reportes de discrepancias y ajustes
 ⬜ 1.6.4 Verificación de productos entrantes
-⬜ 1.6.4.1 Crear IncomingProducts queue con productos en tránsito
-⬜ 1.6.4.2 Implementar ProductVerification workflow paso a paso
-⬜ 1.6.4.3 Añadir checklist de calidad (fotos, dimensiones, estado)
-⬜ 1.6.4.4 Crear sistema de rechazo con notificaciones al vendedor
-⬜ 1.6.4.5 Implementar asignación automática de ubicaciones disponibles
-⬜ 1.6.4.6 Añadir generación de etiquetas QR para tracking interno
+    ⬜ 1.6.4.1 Crear IncomingProducts queue con productos en tránsito
+    ⬜ 1.6.4.2 Implementar ProductVerification workflow paso a paso
+    ⬜ 1.6.4.3 Añadir checklist de calidad (fotos, dimensiones, estado)
+    ⬜ 1.6.4.4 Crear sistema de rechazo con notificaciones al vendedor
+    ⬜ 1.6.4.5 Implementar asignación automática de ubicaciones disponibles
+    ⬜ 1.6.4.6 Añadir generación de etiquetas QR para tracking interno
 ⬜ 1.6.5 Gestión de espacios de almacenamiento
-⬜ 1.6.5.1 Crear StorageManager con visualización de ocupación por zona
-⬜ 1.6.5.2 Implementar SpaceOptimizer para maximizar uso del almacén
-⬜ 1.6.5.3 Añadir StoragePlans con diferentes tipos y tarifas
-⬜ 1.6.5.4 Crear ContractManager para gestionar acuerdos con vendedores
-⬜ 1.6.5.5 Implementar billing automático por uso de espacio
-⬜ 1.6.5.6 Añadir proyecciones de capacidad y alertas de ocupación
+    ⬜ 1.6.5.1 Crear StorageManager con visualización de ocupación por zona
+    ⬜ 1.6.5.2 Implementar SpaceOptimizer para maximizar uso del almacén
+    ⬜ 1.6.5.3 Añadir StoragePlans con diferentes tipos y tarifas
+    ⬜ 1.6.5.4 Crear ContractManager para gestionar acuerdos con vendedores
+    ⬜ 1.6.5.5 Implementar billing automático por uso de espacio
+    ⬜ 1.6.5.6 Añadir proyecciones de capacidad y alertas de ocupación
 ⬜ 1.6.6 Configuración de tarifas y comisiones
-⬜ 1.6.6.1 Crear PricingManager para configurar tarifas por servicio
-⬜ 1.6.6.2 Implementar CommissionCalculator con reglas personalizables
-⬜ 1.6.6.3 Añadir TierSystem con descuentos por volumen de ventas
-⬜ 1.6.6.4 Crear PromotionManager para campañas especiales
-⬜ 1.6.6.5 Implementar A/B testing para diferentes estructuras de pricing
-⬜ 1.6.6.6 Añadir simulador de impacto financiero por cambios de tarifas
+    ⬜ 1.6.6.1 Crear PricingManager para configurar tarifas por servicio
+    ⬜ 1.6.6.2 Implementar CommissionCalculator con reglas personalizables
+    ⬜ 1.6.6.3 Añadir TierSystem con descuentos por volumen de ventas
+    ⬜ 1.6.6.4 Crear PromotionManager para campañas especiales
+    ⬜ 1.6.6.5 Implementar A/B testing para diferentes estructuras de pricing
+    ⬜ 1.6.6.6 Añadir simulador de impacto financiero por cambios de tarifas
 
 ## 🎨 FASE 1.7: DISEÑO PROFESIONAL ULTRA-MODERNO
 1.7.1 Hero Section de Impacto (Estilo Shopify + Linear)

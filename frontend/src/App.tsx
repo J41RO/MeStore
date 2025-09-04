@@ -12,6 +12,10 @@ import './App.css';
 // Lazy loading de páginas principales
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const DashboardLayout = lazy(() => import('./components/DashboardLayout'));
+const AdminLayout = lazy(() => import('./components/AdminLayout'));
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const UserManagement = lazy(() => import('./pages/admin/UserManagement'));
+const SystemConfig = lazy(() => import('./pages/admin/SystemConfig'));
 const Productos = lazy(() => import('./pages/Productos'));
 const CommissionReport = lazy(() => import('./components/reports/CommissionReport'));
 const Login = lazy(() => import('./pages/Login'));
@@ -76,6 +80,22 @@ function App() {
             <OTPDemo />
           </Suspense>
         } />
+        {/* Rutas administrativas protegidas */}
+        <Route path="/admin/*" element={
+          <AuthGuard>
+            <Suspense fallback={<PageLoader />}>
+              <AdminLayout>
+                <Routes>
+                  <Route path="dashboard" element={<AdminDashboard />} />
+                  <Route path="users" element={<UserManagement />} />
+                  <Route path="system-config" element={<SystemConfig />} />
+                  <Route index element={<Navigate to="dashboard" replace />} />
+                </Routes>
+              </AdminLayout>
+            </Suspense>
+          </AuthGuard>
+        } />
+
         {/* Ruta 404 - DEBE IR AL FINAL */}
         <Route path="*" element={
           <Suspense fallback={<PageLoader />}>
