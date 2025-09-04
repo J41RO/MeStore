@@ -33,6 +33,46 @@ async def get_admin_dashboard_kpis(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="No tienes permisos para acceder a esta información"
         )
+
+
+
+@router.get("/dashboard/growth-data")
+async def get_growth_data(
+    *,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+    months_back: int = 6
+):
+    """Obtener datos temporales para gráficos de crecimiento."""
+    # Verificar permisos
+    if not (current_user.is_superuser or
+            (hasattr(current_user, 'user_type') and current_user.user_type in ['ADMIN', 'SUPERUSER'])):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos para acceder a esta información"
+        )
+    
+    try:
+        # Datos de ejemplo para desarrollo
+        growth_data = [
+            {"month": "Ene", "currentPeriod": 12000, "previousPeriod": 10000, "growthRate": 20},
+            {"month": "Feb", "currentPeriod": 15000, "previousPeriod": 12000, "growthRate": 25},
+            {"month": "Mar", "currentPeriod": 18000, "previousPeriod": 14000, "growthRate": 28.6},
+            {"month": "Abr", "currentPeriod": 22000, "previousPeriod": 16000, "growthRate": 37.5},
+            {"month": "May", "currentPeriod": 25000, "previousPeriod": 18000, "growthRate": 38.9},
+            {"month": "Jun", "currentPeriod": 28000, "previousPeriod": 20000, "growthRate": 40}
+        ]
+        
+        return {
+            "growth_data": growth_data,
+            "comparison_data": growth_data
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error obteniendo datos de crecimiento: {str(e)}"
+        )
     
     try:
         # Calcular KPIs actuales

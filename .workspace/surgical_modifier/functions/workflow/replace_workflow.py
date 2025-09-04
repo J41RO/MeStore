@@ -19,7 +19,7 @@ class ReplaceWorkflow:
             # FASE 1: Validación de archivo existente
             if not Path(file_path).exists():
                 return self._build_error_response(
-                    f'File does not exist: {file_path}',
+                    f'File does not exist: {file_path}\n\nExamples:\n  python3 cli.py replace file.txt old new\n  python3 cli.py replace old new file.txt',
                     [f'Cannot replace in non-existent file: {file_path}'],
                     'file_validation'
                 )
