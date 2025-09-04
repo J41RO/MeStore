@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CLI principal de Surgical Modifier v6.0 - UX Mejorada Completa"""
+"""CLI principal de Surgical Modifier v6.0 - UX Mejorada Completa con Validador JS/TS"""
 
 import click
 import re
@@ -48,6 +48,7 @@ from coordinators.replace import ReplaceCoordinator
 from coordinators.after import AfterCoordinator
 from coordinators.before import BeforeCoordinator
 from coordinators.append import AppendCoordinator
+from functions.validation.js_ts_validator import JsTsValidator
 
 console = Console()
 
@@ -87,6 +88,107 @@ def restore_from_backup(filepath, backup_path):
     except Exception as e:
         console.print(f"❌ Error restaurando backup: {e}", style="red")
         return False
+
+def is_js_ts_file(filepath):
+    """Verifica si el archivo es JavaScript o TypeScript"""
+    js_ts_extensions = ['.js', '.jsx', '.ts', '.tsx']
+    return any(filepath.endswith(ext) for ext in js_ts_extensions)
+
+def preview_replacement(filepath, pattern, replacement, matcher_options):
+    """Muestra preview del resultado sin aplicar cambios"""
+    try:
+        # Leer contenido actual
+        with open(filepath, 'r', encoding='utf-8') as f:
+            original_content = f.read()
+        
+        # Simular el reemplazo usando el coordinador en modo dry-run
+        coordinator = ReplaceCoordinator()
+        
+        # Crear una versión temporal para simular
+        import tempfile
+        with tempfile.NamedTemporaryFile(mode='w', suffix=Path(filepath).suffix, delete=False) as temp_file:
+            temp_file.write(original_content)
+            temp_filepath = temp_file.name
+        
+        try:
+            # Ejecutar reemplazo en archivo temporal
+            result = coordinator.execute(
+                file_path=temp_filepath,
+                pattern=pattern,
+                replacement=replacement,
+                **matcher_options
+            )
+            
+            if result.get('success'):
+                # Leer resultado
+                with open(temp_filepath, 'r', encoding='utf-8') as f:
+                    new_content = f.read()
+                
+                # Validar sintaxis JS/TS si aplica
+                validation_result = {'valid': True, 'errors': []}
+                if is_js_ts_file(filepath):
+                    validator = JsTsValidator()
+                    file_extension = Path(filepath).suffix
+                    errors = validator.get_syntax_errors(new_content, file_extension)
+                    validation_result = {
+                        'valid': len(errors) == 0,
+                        'errors': errors
+                    }
+                
+                return {
+                    'success': True,
+                    'original_content': original_content,
+                    'new_content': new_content,
+                    'matches_count': result.get('matches_count', 0),
+                    'validation': validation_result
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': result.get('error', 'Preview failed')
+                }
+        finally:
+            # Limpiar archivo temporal
+            os.unlink(temp_filepath)
+            
+    except Exception as e:
+        return {
+            'success': False,
+            'error': f'Error en preview: {str(e)}'
+        }
+
+def show_preview_diff(original, new, filepath):
+    """Muestra diferencias entre contenido original y nuevo"""
+    import difflib
+    
+    original_lines = original.splitlines(keepends=True)
+    new_lines = new.splitlines(keepends=True)
+    
+    diff = list(difflib.unified_diff(
+        original_lines,
+        new_lines,
+        fromfile=f"{filepath} (original)",
+        tofile=f"{filepath} (después del reemplazo)",
+        lineterm=''
+    ))
+    
+    if diff:
+        console.print("🔍 PREVIEW - Cambios que se aplicarían:", style="bold blue")
+        console.print("=" * 60, style="blue")
+        for line in diff:
+            if line.startswith('+++') or line.startswith('---'):
+                console.print(line.rstrip(), style="bold")
+            elif line.startswith('@@'):
+                console.print(line.rstrip(), style="cyan")
+            elif line.startswith('+'):
+                console.print(line.rstrip(), style="green")
+            elif line.startswith('-'):
+                console.print(line.rstrip(), style="red")
+            else:
+                console.print(line.rstrip(), style="dim")
+        console.print("=" * 60, style="blue")
+    else:
+        console.print("ℹ️ No se detectaron cambios", style="yellow")
 
 # ========================
 # CLI PRINCIPAL
@@ -138,7 +240,7 @@ def create(filepath, content, template, from_stdin):
         click.echo(f"Error creando archivo: {e}", err=True)
 
 # ========================
-# COMANDO REPLACE (CON MEJORAS UX COMPLETAS)
+# COMANDO REPLACE (CON MEJORAS UX COMPLETAS + PREVIEW + ROLLBACK)
 # ========================
 
 @main.command()
@@ -149,7 +251,9 @@ def create(filepath, content, template, from_stdin):
 @click.option("--regex", is_flag=True, help="Usar patrones regex") 
 @click.option("--threshold", type=float, default=0.8, help="Threshold fuzzy (0.0-1.0)")
 @click.option("--strict-syntax", is_flag=True, help="Solo acepta orden tradicional archivo pattern replacement")
-def replace(filepath, pattern, replacement, fuzzy=False, regex=False, threshold=0.8, strict_syntax=False):
+@click.option("--preview", is_flag=True, help="Mostrar preview del resultado antes de aplicar cambios")
+@click.option("--force", is_flag=True, help="Forzar reemplazo incluso si la validación JS/TS falla")
+def replace(filepath, pattern, replacement, fuzzy=False, regex=False, threshold=0.8, strict_syntax=False, preview=False, force=False):
     """
     Reemplazar contenido en archivos usando ReplaceCoordinator.
     
@@ -159,6 +263,8 @@ def replace(filepath, pattern, replacement, fuzzy=False, regex=False, threshold=
     
     Opciones avanzadas:
     --strict-syntax : Solo acepta orden tradicional (archivo pattern replacement)
+    --preview       : Mostrar preview antes de aplicar cambios
+    --force         : Saltear validación JS/TS si es necesario
     """
     # MEJORA UX 1: Detección automática de orden de argumentos (solo si no está en modo strict)
     if not strict_syntax and order_detect(filepath, pattern, replacement) == 'intuitive':
@@ -179,6 +285,40 @@ def replace(filepath, pattern, replacement, fuzzy=False, regex=False, threshold=
             matcher_type = 'regex'
 
         matcher_options['matcher_type'] = matcher_type
+        # Propagar parámetro force al coordinador/workflow
+        matcher_options['force'] = force
+
+        # NUEVA FUNCIONALIDAD: Modo preview
+        if preview:
+            preview_result = preview_replacement(filepath, pattern, replacement, matcher_options)
+            
+            if not preview_result['success']:
+                click.echo(f"❌ Error en preview: {preview_result['error']}", err=True)
+                return 1
+            
+            # Mostrar preview
+            show_preview_diff(preview_result['original_content'], preview_result['new_content'], filepath)
+            
+            if preview_result['matches_count'] > 0:
+                click.echo(f"📊 Coincidencias que se reemplazarían: {preview_result['matches_count']}")
+            
+            # Mostrar validación JS/TS si aplica
+            validation = preview_result['validation']
+            if not validation['valid']:
+                console.print("⚠️ ADVERTENCIA: El reemplazo resultaría en sintaxis JS/TS inválida:", style="yellow")
+                for error in validation['errors']:
+                    console.print(f"  - {error}", style="red")
+                if not force:
+                    console.print("💡 Usa --force para aplicar de todas formas", style="blue")
+            else:
+                console.print("✅ Validación JS/TS: Sintaxis válida", style="green")
+            
+            # Pedir confirmación
+            if click.confirm("¿Aplicar estos cambios?"):
+                click.echo("Aplicando cambios...")
+            else:
+                click.echo("Operación cancelada")
+                return 0
 
         # Usar ReplaceCoordinator para ejecutar replace real
         coordinator = ReplaceCoordinator()
@@ -195,7 +335,8 @@ def replace(filepath, pattern, replacement, fuzzy=False, regex=False, threshold=
                 click.echo(f"📊 Coincidencias reemplazadas: {result['matches_count']}")
         else:
             click.echo(f"❌ Error: {result.get('error', 'Unknown error')}", err=True)
-            return 1
+            import sys
+            sys.exit(1)
 
     except FileNotFoundError:
         # MEJORA UX 3: Sugerencias inteligentes para archivos no encontrados
@@ -424,7 +565,6 @@ def explore(path, analyze, lines, around, context):
         
     except (FileNotFoundError, PermissionError, UnicodeDecodeError, ValueError) as e:
         print(f"Error explorando {path}: {e}")
-    print(f"Explorando {path} (análisis: {analyze})")
 
 # ========================
 # COMANDOS DE AYUDA
@@ -438,7 +578,7 @@ def list_commands():
     print("=" * 60)
     print("COMANDOS BÁSICOS:")
     print("  create      : Crear nuevos archivos")
-    print("  replace     : Reemplazar contenido (🎯 CON MEJORAS UX)")
+    print("  replace     : Reemplazar contenido (🎯 CON MEJORAS UX + PREVIEW)")
     print("  before      : Insertar antes de patrón")
     print("  after       : Insertar después de patrón")  
     print("  append      : Agregar al final")
@@ -450,13 +590,16 @@ def list_commands():
     print("    python3 cli.py replace 'buscar' 'reemplazar' archivo.txt")
     print("  ✅ ORDEN TRADICIONAL (mantiene compatibilidad):")
     print("    python3 cli.py replace archivo.txt 'buscar' 'reemplazar'")
-    print("  ✅ MODO STRICT-SYNTAX:")
-    print("    python3 cli.py replace --strict-syntax archivo.txt 'buscar' 'reemplazar'")
+    print("  ✅ MODO PREVIEW:")
+    print("    python3 cli.py replace --preview archivo.js 'props' 'properties'")
+    print("  ✅ VALIDACIÓN JS/TS AUTOMÁTICA con rollback")
+    print("  ✅ MODO FORCE para saltear validación:")
+    print("    python3 cli.py replace --force archivo.tsx 'old' 'new'")
     print("  ✅ SUGERENCIAS AUTOMÁTICAS cuando hay errores de orden")
     print("  ✅ MENSAJES DE ERROR informativos con ejemplos")
     print()
     print("EJEMPLOS PRÁCTICOS:")
-    print("  python3 cli.py replace 'old_function' 'new_function' main.py")
+    print("  python3 cli.py replace --preview 'old_function' 'new_function' main.js")
     print("  python3 cli.py replace --strict-syntax main.py 'old' 'new'")
     print("  python3 cli.py replace --regex '\\bclass\\b' 'class Modern' app.py")
     print("=" * 60)
@@ -472,19 +615,32 @@ def help_ux():
     print("   Ahora: python3 cli.py replace 'viejo' 'nuevo' archivo.txt")
     print("   Ambas sintaxis funcionan automáticamente!")
     print()
-    print("2. MODO STRICT-SYNTAX:")
+    print("2. MODO PREVIEW:")
+    print("   --preview : Muestra cambios antes de aplicar")
+    print("   Incluye validación JS/TS automática")
+    print()
+    print("3. VALIDACIÓN JS/TS AUTOMÁTICA:")
+    print("   Detecta automáticamente archivos .js/.jsx/.ts/.tsx")
+    print("   Valida sintaxis después de modificaciones")
+    print("   Rollback automático si detecta errores")
+    print()
+    print("4. MODO FORCE:")
+    print("   --force : Saltear validación JS/TS si es necesario")
+    print("   Útil para casos especiales")
+    print()
+    print("5. MODO STRICT-SYNTAX:")
     print("   --strict-syntax : Solo acepta orden tradicional")
     print("   Útil para scripts automatizados")
     print()
-    print("3. SUGERENCIAS INTELIGENTES:")
+    print("6. SUGERENCIAS INTELIGENTES:")
     print("   Cuando detecta posible confusión de orden, sugiere corrección")
     print("   Ejemplo: '💡 Did you mean: python3 cli.py replace ...'")
     print()
-    print("4. MENSAJES DE ERROR MEJORADOS:")
+    print("7. MENSAJES DE ERROR MEJORADOS:")
     print("   Incluyen ejemplos de sintaxis correcta")
     print("   Reducen tiempo de debugging")
     print()
-    print("5. COMPATIBILIDAD TOTAL:")
+    print("8. COMPATIBILIDAD TOTAL:")
     print("   Todo código existente sigue funcionando")
     print("   Cero regresiones, solo mejoras")
 

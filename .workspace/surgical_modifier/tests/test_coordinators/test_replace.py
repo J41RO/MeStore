@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch, MagicMock
 from pathlib import Path
 from coordinators.replace import ReplaceCoordinator
 from functions.pattern.pattern_factory import PatternMatcherFactory
-from functions.backup.manager import BackupManager
+from functions.backup.intelligent_manager import IntelligentBackupManager
 from functions.content.reader import ContentReader
 from functions.content.writer import ContentWriter
 from functions.content.validator import ContentValidator
@@ -46,8 +46,8 @@ class TestReplaceCoordinatorPatternFactory:
                 mock_matcher.replace_literal.assert_called_once_with(self.test_pattern, self.test_replacement, 'old_code content')
                 assert result['success'] is True
 
-class TestReplaceCoordinatorBackupManager:
-    """Tests integration para verificar llamadas a BackupManager en ReplaceCoordinator"""
+class TestReplaceCoordinatorIntelligentBackupManager:
+    """Tests integration para verificar llamadas a IntelligentBackupManager en ReplaceCoordinator"""
     
     def setup_method(self):
         """Setup para cada test"""
@@ -55,7 +55,7 @@ class TestReplaceCoordinatorBackupManager:
         self.test_file_path = "test_backup_file.py"
     
     def test_replace_calls_backup_manager_create_snapshot(self):
-        """Test que REPLACE llama BackupManager.create_snapshot() antes del cambio"""
+        """Test que REPLACE llama IntelligentBackupManager.create_snapshot() antes del cambio"""
         with patch.object(self.coordinator, 'backup_manager') as mock_backup:
             mock_backup.create_snapshot.return_value = 'backup_path'
             
@@ -140,14 +140,14 @@ class TestReplaceCoordinatorArchitecture:
         """Test que coordinador integra todas las functions modulares requeridas"""
         # Verificar dependencies inyectadas
         assert hasattr(self.coordinator, 'pattern_factory'), "Debe tener PatternMatcherFactory"
-        assert hasattr(self.coordinator, 'backup_manager'), "Debe tener BackupManager"
+        assert hasattr(self.coordinator, 'backup_manager'), "Debe tener IntelligentBackupManager"
         assert hasattr(self.coordinator, 'reader'), "Debe tener ContentReader"
         assert hasattr(self.coordinator, 'writer'), "Debe tener ContentWriter"
         assert hasattr(self.coordinator, 'validator'), "Debe tener ContentValidator"
         
         # Verificar tipos correctos
         assert isinstance(self.coordinator.pattern_factory, PatternMatcherFactory)
-        assert isinstance(self.coordinator.backup_manager, BackupManager)
+        assert isinstance(self.coordinator.backup_manager, IntelligentBackupManager)
         assert isinstance(self.coordinator.reader, ContentReader)
         assert isinstance(self.coordinator.writer, ContentWriter)
         assert isinstance(self.coordinator.validator, ContentValidator)
@@ -272,11 +272,11 @@ class TestReplaceModularCombination:
         
         # Verificar que functions podrían reutilizarse en otros coordinadores
         from functions.pattern.pattern_factory import PatternMatcherFactory
-        from functions.backup.manager import BackupManager
+        from functions.backup.intelligent_manager import IntelligentBackupManager
         
         # Functions deben ser reutilizables
         independent_pattern = PatternMatcherFactory()
-        independent_backup = BackupManager()
+        independent_backup = IntelligentBackupManager()
         
         assert type(coordinator.pattern_factory) == type(independent_pattern)
         assert type(coordinator.backup_manager) == type(independent_backup)
