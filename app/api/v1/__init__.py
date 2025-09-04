@@ -24,6 +24,7 @@ from app.api.v1.endpoints.perfil import router as perfil_router
 from app.api.v1.endpoints.productos import router as productos_router
 from app.api.v1.endpoints.products_bulk import router as products_bulk_router
 from app.api.v1.endpoints.vendedores import router as vendedores_router
+from app.api.v1.endpoints.admin import router as admin_router
 
 # Router principal que unifica todos los endpoints v1
 api_router = APIRouter()
@@ -59,3 +60,4 @@ api_router.include_router(inventory_router, prefix="/inventario", tags=["invento
 api_router.include_router(pagos_router, prefix="/pagos", tags=["pagos"])
 api_router.include_router(perfil_router, prefix="/perfil", tags=["perfil"])
 api_router.include_router(alerts_router, prefix="/alerts", tags=["alerts"])
+api_router.include_router(admin_router, prefix="/admin", tags=["admin"])

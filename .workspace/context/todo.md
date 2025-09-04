@@ -374,7 +374,7 @@
 ## 1.6 Panel de Administración MVP
 
 🔁 1.6.1 Dashboard superusuario con métricas globales
-    ⬜ 1.6.1.1 Crear AdminLayout con navegación específica para superusuario
+    ✅ 1.6.1.1 Crear AdminLayout con navegación específica para superusuario
     ⬜ 1.6.1.2 Implementar KPIs globales (GMV, vendedores activos, productos, órdenes)
     ⬜ 1.6.1.3 Añadir gráficos de crecimiento con comparativas mensuales
     ⬜ 1.6.1.4 Crear widget de ingresos por comisiones y projecciones
