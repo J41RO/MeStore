@@ -1,6 +1,27 @@
 import React from 'react';
+import GrowthChart, { GrowthData } from '../../components/charts/GrowthChart';
+import MonthlyComparisonChart, { MonthlyComparisonData } from '../../components/charts/MonthlyComparisonChart';
 
 const AdminDashboard: React.FC = () => {
+
+  // Datos de ejemplo para gráficos de crecimiento
+  const growthData: GrowthData[] = [
+    { month: 'Ene', currentPeriod: 12000, previousPeriod: 10000, growthRate: 20 },
+    { month: 'Feb', currentPeriod: 15000, previousPeriod: 12000, growthRate: 25 },
+    { month: 'Mar', currentPeriod: 18000, previousPeriod: 14000, growthRate: 28.6 },
+    { month: 'Abr', currentPeriod: 22000, previousPeriod: 16000, growthRate: 37.5 },
+    { month: 'May', currentPeriod: 25000, previousPeriod: 18000, growthRate: 38.9 },
+    { month: 'Jun', currentPeriod: 28000, previousPeriod: 20000, growthRate: 40 },
+  ];
+
+  const comparisonData: MonthlyComparisonData[] = [
+    { month: 'Ene', currentPeriod: 12000, previousPeriod: 10000, category: 'ventas' },
+    { month: 'Feb', currentPeriod: 15000, previousPeriod: 12000, category: 'ventas' },
+    { month: 'Mar', currentPeriod: 18000, previousPeriod: 14000, category: 'ventas' },
+    { month: 'Abr', currentPeriod: 22000, previousPeriod: 16000, category: 'ventas' },
+    { month: 'May', currentPeriod: 25000, previousPeriod: 18000, category: 'ventas' },
+    { month: 'Jun', currentPeriod: 28000, previousPeriod: 20000, category: 'ventas' },
+  ];
   return (
     <div className="space-y-6">
       <div className="bg-white shadow rounded-lg p-6">
@@ -16,6 +37,34 @@ const AdminDashboard: React.FC = () => {
             <h3 className="font-semibold text-red-900">Sistema</h3>
             <p className="text-lg font-bold text-red-700">Operativo</p>
           </div>
+        
+        {/* Sección de Análisis de Crecimiento */}
+        <div className="mt-8">
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">
+            Análisis de Crecimiento
+          </h2>
+          
+          {/* Grid de gráficos */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {/* Gráfico de Crecimiento Temporal */}
+            <div className="bg-white shadow rounded-lg p-6">
+              <GrowthChart 
+                data={growthData}
+                title="Tendencia de Crecimiento"
+                height={350}
+              />
+            </div>
+            
+            {/* Gráfico de Comparación Mensual */}
+            <div className="bg-white shadow rounded-lg p-6">
+              <MonthlyComparisonChart 
+                data={comparisonData}
+                title="Comparativa Período Actual vs Anterior"
+                height={350}
+              />
+            </div>
+          </div>
+        </div>
           <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
             <h3 className="font-semibold text-blue-900">Usuarios Online</h3>
             <p className="text-lg font-bold text-blue-700">0</p>
