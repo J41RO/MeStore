@@ -1,14 +1,12 @@
-import { useState, useEffect } from 'react';
-import { Alert, AlertType, AlertSeverity, AlertCategory } from '../types/alerts.types';
+// ~/src/hooks/useSystemAlerts.ts
+// ---------------------------------------------------------------------------------------------
+// MESTORE - Hook para gestión de alertas del sistema - Completamente corregido
+// Copyright (c) 2025 Jairo. Todos los derechos reservados.
+// Licensed under the proprietary license detailed in a LICENSE file in the root of this project.
+// ---------------------------------------------------------------------------------------------
 
-export interface SystemAlert extends Alert {
-  errorCode: string;
-  errorType: 'api_error' | 'connectivity' | 'authentication' | 'database' | 'performance';
-  affectedService: string;
-  resolution?: string;
-  estimatedDowntime?: number;
-  usersAffected?: number;
-}
+import { useState, useEffect } from 'react';
+import { SystemAlert, AlertType, AlertSeverity } from '../types/alerts.types';
 
 interface UseSystemAlertsReturn {
   systemAlerts: SystemAlert[];
@@ -16,6 +14,7 @@ interface UseSystemAlertsReturn {
   error: string | null;
   refreshSystemAlerts: () => Promise<void>;
   markAsRead: (alertId: string) => void;
+  markSystemAlertAsRead: (alertId: string) => void;
   criticalCount: number;
 }
 
@@ -23,62 +22,51 @@ interface UseSystemAlertsReturn {
 const mockSystemAlerts: SystemAlert[] = [
   {
     id: 'sys-001',
-    type: 'SYSTEM' as AlertType,
-    severity: 'critical' as AlertSeverity,
-    category: 'system' as AlertCategory,
-    title: 'API Gateway Down - Servicio Principal',
-    message: 'El API Gateway principal no responde, afectando todas las operaciones',
+    type: AlertType.SYSTEM,
+    severity: AlertSeverity.CRITICAL,
+    category: AlertType.API_ERROR,
+    systemComponent: 'API Gateway',
+    issueDescription: 'El API Gateway principal no responde, afectando todas las operaciones',
     timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
     isRead: false,
-    errorCode: 'API-GW-001',
-    errorType: 'api_error',
-    affectedService: 'API Gateway',
-    usersAffected: 1250,
-    estimatedDowntime: 120
+    actionRequired: true,
+    errorCode: 'API-GW-001'
   },
   {
     id: 'sys-002',
-    type: 'SYSTEM' as AlertType,
-    severity: 'critical' as AlertSeverity,
-    category: 'security' as AlertCategory,
-    title: 'Fallo de Autenticación - JWT Token Service',
-    message: 'El servicio de tokens JWT presenta errores críticos de validación',
+    type: AlertType.SYSTEM,
+    severity: AlertSeverity.CRITICAL,
+    category: AlertType.AUTHENTICATION_ERROR,
+    systemComponent: 'Authentication Service',
+    issueDescription: 'El servicio de tokens JWT presenta errores críticos de validación',
     timestamp: new Date(Date.now() - 45 * 60 * 1000),
     isRead: false,
-    errorCode: 'AUTH-JWT-002',
-    errorType: 'authentication',
-    affectedService: 'Authentication Service',
-    resolution: 'Reiniciar servicio de tokens',
-    usersAffected: 800
+    actionRequired: true,
+    errorCode: 'AUTH-JWT-002'
   },
   {
     id: 'sys-003',
-    type: 'SYSTEM' as AlertType,
-    severity: 'high' as AlertSeverity,
-    category: 'system' as AlertCategory,
-    title: 'Base de Datos - Conexiones Agotadas',
-    message: 'Pool de conexiones a la base de datos principal alcanzó el límite',
+    type: AlertType.SYSTEM,
+    severity: AlertSeverity.HIGH,
+    category: AlertType.DATABASE_ERROR,
+    systemComponent: 'PostgreSQL Main',
+    issueDescription: 'Pool de conexiones a la base de datos principal alcanzó el límite',
     timestamp: new Date(Date.now() - 30 * 60 * 1000),
     isRead: false,
-    errorCode: 'DB-CONN-003',
-    errorType: 'database',
-    affectedService: 'PostgreSQL Main',
-    resolution: 'Escalar pool de conexiones',
-    usersAffected: 500
+    actionRequired: true,
+    errorCode: 'DB-CONN-003'
   },
   {
     id: 'sys-004',
-    type: 'SYSTEM' as AlertType,
-    severity: 'medium' as AlertSeverity,
-    category: 'performance' as AlertCategory,
-    title: 'Alto Uso de CPU - Servidor de Aplicaciones',
-    message: 'Uso de CPU sostenido al 85% en el servidor principal',
+    type: AlertType.SYSTEM,
+    severity: AlertSeverity.MEDIUM,
+    category: AlertType.PERFORMANCE_ISSUE,
+    systemComponent: 'Application Server',
+    issueDescription: 'Uso de CPU sostenido al 85% en el servidor principal',
     timestamp: new Date(Date.now() - 15 * 60 * 1000),
     isRead: true,
-    errorCode: 'PERF-CPU-001',
-    errorType: 'performance',
-    affectedService: 'Application Server',
-    usersAffected: 200
+    actionRequired: false,
+    errorCode: 'PERF-CPU-001'
   }
 ];
 
@@ -131,7 +119,7 @@ export const useSystemAlerts = (): UseSystemAlertsReturn => {
 
   // Calcular alertas críticas no leídas
   const criticalCount = systemAlerts.filter(
-    alert => alert.severity === 'critical'
+    alert => alert.severity === AlertSeverity.CRITICAL
   ).length;
 
   return {
@@ -140,6 +128,7 @@ export const useSystemAlerts = (): UseSystemAlertsReturn => {
     error,
     refreshSystemAlerts,
     markAsRead,
+    markSystemAlertAsRead: markAsRead,
     criticalCount
   };
 };

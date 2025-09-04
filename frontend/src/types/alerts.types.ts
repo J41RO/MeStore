@@ -1,4 +1,9 @@
-// Tipos específicos para AlertsPanel - Sistema de Alertas de Stock y Calidad
+// ~/src/types/alerts.types.ts
+// ---------------------------------------------------------------------------------------------
+// MESTORE - Tipos específicos para AlertsPanel - Sistema de Alertas Completo
+// Copyright (c) 2025 Jairo. Todos los derechos reservados.
+// Licensed under the proprietary license detailed in a LICENSE file in the root of this project.
+// ---------------------------------------------------------------------------------------------
 
 // Enums para categorización de alertas
 export enum AlertType {
@@ -16,7 +21,6 @@ export enum AlertType {
   DATABASE_ERROR = 'database_error',
   AUTHENTICATION_ERROR = 'authentication_error',
   PERFORMANCE_ISSUE = 'performance_issue',
-
 }
 
 export enum AlertSeverity {
@@ -68,8 +72,37 @@ export interface QualityAlert {
   actionRequired: boolean;
 }
 
-// Union type para todas las alertas
-export type AlertsPanelAlert = StockAlert | QualityAlert;
+export interface VendorAlert {
+  id: string;
+  type: AlertType.VENDOR;
+  category: AlertType.PAYMENT_PENDING | AlertType.DOCUMENTS_MISSING | AlertType.ACTIVATION_REQUIRED | AlertType.VERIFICATION_PENDING;
+  severity: AlertSeverity;
+  vendorId: string;
+  vendorName: string;
+  issueDescription: string;
+  timestamp: Date;
+  isRead: boolean;
+  actionRequired: boolean;
+}
+
+export interface SystemAlert {
+  id: string;
+  type: AlertType.SYSTEM;
+  category: AlertType.API_ERROR | AlertType.DATABASE_ERROR | AlertType.AUTHENTICATION_ERROR | AlertType.PERFORMANCE_ISSUE;
+  severity: AlertSeverity;
+  systemComponent: string;
+  errorCode?: string;
+  issueDescription: string;
+  timestamp: Date;
+  isRead: boolean;
+  actionRequired: boolean;
+}
+
+// Tipo base para compatibilidad
+export type Alert = StockAlert | QualityAlert | VendorAlert | SystemAlert;
+
+// Union type para todas las alertas (CORREGIDO - incluye todos los tipos)
+export type AlertsPanelAlert = StockAlert | QualityAlert | VendorAlert | SystemAlert;
 
 // Props para el componente AlertsPanel
 export interface AlertsPanelProps {

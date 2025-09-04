@@ -1,15 +1,12 @@
-import { useState, useEffect } from 'react';
-import { Alert, AlertType, AlertSeverity, AlertCategory } from '../types/alerts.types';
+// ~/src/hooks/useVendorAlerts.ts
+// ---------------------------------------------------------------------------------------------
+// MESTORE - Hook para gestión de alertas de vendedores - Completamente corregido
+// Copyright (c) 2025 Jairo. Todos los derechos reservados.
+// Licensed under the proprietary license detailed in a LICENSE file in the root of this project.
+// ---------------------------------------------------------------------------------------------
 
-export interface VendorAlert extends Alert {
-  vendorId: string;
-  vendorName: string;
-  vendorEmail: string;
-  pendingAction: 'payment' | 'documents' | 'activation' | 'verification';
-  pendingAmount?: number;
-  documentType?: string;
-  daysOverdue: number;
-}
+import { useState, useEffect } from 'react';
+import { VendorAlert, AlertType, AlertSeverity } from '../types/alerts.types';
 
 interface UseVendorAlertsReturn {
   vendorAlerts: VendorAlert[];
@@ -17,6 +14,7 @@ interface UseVendorAlertsReturn {
   error: string | null;
   refreshVendorAlerts: () => Promise<void>;
   markAsRead: (alertId: string) => void;
+  markVendorAlertAsRead: (alertId: string) => void;
   criticalCount: number;
 }
 
@@ -24,50 +22,39 @@ interface UseVendorAlertsReturn {
 const mockVendorAlerts: VendorAlert[] = [
   {
     id: 'vendor-001',
-    type: 'VENDOR' as AlertType,
-    severity: 'critical' as AlertSeverity,
-    category: 'financial' as AlertCategory,
-    title: 'Pago Pendiente - Vendor Premium',
-    message: 'El vendedor tiene un pago pendiente de $2,500 desde hace 15 días',
-    timestamp: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
-    isRead: false,
+    type: AlertType.VENDOR,
+    severity: AlertSeverity.CRITICAL,
+    category: AlertType.PAYMENT_PENDING,
     vendorId: 'vnd-001',
     vendorName: 'Tech Solutions Corp',
-    vendorEmail: 'admin@techsolutions.com',
-    pendingAction: 'payment',
-    pendingAmount: 2500,
-    daysOverdue: 15
+    issueDescription: 'El vendedor tiene un pago pendiente de $2,500 desde hace 15 días',
+    timestamp: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
+    isRead: false,
+    actionRequired: true
   },
   {
     id: 'vendor-002',
-    type: 'VENDOR' as AlertType,
-    severity: 'high' as AlertSeverity,
-    category: 'compliance' as AlertCategory,
-    title: 'Documentos Faltantes - Registro Fiscal',
-    message: 'Faltan documentos fiscales requeridos para completar el registro',
-    timestamp: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000),
-    isRead: false,
+    type: AlertType.VENDOR,
+    severity: AlertSeverity.HIGH,
+    category: AlertType.DOCUMENTS_MISSING,
     vendorId: 'vnd-002',
     vendorName: 'Digital Commerce Ltd',
-    vendorEmail: 'docs@digitalcommerce.com',
-    pendingAction: 'documents',
-    documentType: 'Tax Registration',
-    daysOverdue: 8
+    issueDescription: 'Faltan documentos fiscales requeridos para completar el registro',
+    timestamp: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000),
+    isRead: false,
+    actionRequired: true
   },
   {
     id: 'vendor-003',
-    type: 'VENDOR' as AlertType,
-    severity: 'critical' as AlertSeverity,
-    category: 'system' as AlertCategory,
-    title: 'Activación Requerida - Cuenta Suspendida',
-    message: 'La cuenta del vendedor requiere activación manual urgente',
-    timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-    isRead: false,
+    type: AlertType.VENDOR,
+    severity: AlertSeverity.CRITICAL,
+    category: AlertType.ACTIVATION_REQUIRED,
     vendorId: 'vnd-003',
     vendorName: 'Mobile Accessories Pro',
-    vendorEmail: 'support@mobileacc.com',
-    pendingAction: 'activation',
-    daysOverdue: 3
+    issueDescription: 'La cuenta del vendedor requiere activación manual urgente',
+    timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+    isRead: false,
+    actionRequired: true
   }
 ];
 
@@ -106,6 +93,7 @@ export const useVendorAlerts = (): UseVendorAlertsReturn => {
   }, []);
 
   const criticalCount = vendorAlerts.filter(
+    alert => alert.severity === AlertSeverity.CRITICAL
   ).length;
 
   return {
@@ -114,6 +102,7 @@ export const useVendorAlerts = (): UseVendorAlertsReturn => {
     error,
     refreshVendorAlerts,
     markAsRead,
+    markVendorAlertAsRead: markAsRead,
     criticalCount
   };
 };

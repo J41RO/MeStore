@@ -1,3 +1,10 @@
+// ~/src/components/alerts/AlertsPanel.tsx
+// ---------------------------------------------------------------------------------------------
+// MESTORE - Componente AlertsPanel corregido y funcional
+// Copyright (c) 2025 Jairo. Todos los derechos reservados.
+// Licensed under the proprietary license detailed in a LICENSE file in the root of this project.
+// ---------------------------------------------------------------------------------------------
+
 import React, { useState } from 'react';
 import { useStockAlerts } from '../../hooks/useStockAlerts';
 import { useQualityAlerts } from '../../hooks/useQualityAlerts';
@@ -8,6 +15,7 @@ import {
   AlertsPanelAlert,
   AlertType,
   AlertCategory,
+  AlertSeverity,
 } from '../../types/alerts.types';
 import { Bell, Package, RefreshCw, Filter, User, AlertTriangle } from 'lucide-react';
 
@@ -19,16 +27,32 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState(false);
 
-  const { stockAlerts, markStockAlertAsRead, refreshStockAlerts } =
-    useStockAlerts();
+  const { stockAlerts, markStockAlertAsRead, refreshStockAlerts } = useStockAlerts();
   const { qualityAlerts, markQualityAlertAsRead } = useQualityAlerts();
-  const { vendorAlerts, markVendorAlertAsRead } = useVendorAlerts();
-  const { systemAlerts, markSystemAlertAsRead } = useSystemAlerts();
+  const { vendorAlerts } = useVendorAlerts();
+  const { systemAlerts } = useSystemAlerts();
 
   const allAlerts: AlertsPanelAlert[] = [...stockAlerts, ...qualityAlerts, ...vendorAlerts, ...systemAlerts];
   const displayAlerts = allAlerts.slice(0, maxAlerts);
   const unreadCount = displayAlerts.filter(a => a.isRead === false).length;
-  const criticalCount = displayAlerts.filter(a => a.severity === 'critical' && a.isRead === false).length;
+  const criticalCount = displayAlerts.filter(a => a.severity === AlertSeverity.CRITICAL && a.isRead === false).length;
+
+  // Función getAlertIcon movida al nivel superior del componente
+  const getAlertIcon = (alert: AlertsPanelAlert) => {
+    const iconClass = 'h-5 w-5 text-gray-600';
+    switch (alert.type) {
+      case AlertType.STOCK:
+        return <Package className={iconClass} />;
+      case AlertType.QUALITY:
+        return <Package className={iconClass} />;
+      case AlertType.VENDOR:
+        return <User className={iconClass} />;
+      case AlertType.SYSTEM:
+        return <AlertTriangle className={iconClass} />;
+      default:
+        return <Package className={iconClass} />;
+    }
+  };
 
   const refreshAlerts = () => {
     setIsLoading(true);
@@ -43,7 +67,7 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({
   React.useEffect(() => {
     const interval = setInterval(() => {
       refreshAlerts();
-    }, 60000); // Refresh cada 60 segundos
+    }, 60000);
     
     return () => clearInterval(interval);
   }, []);
@@ -68,51 +92,58 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({
   };
 
   const getSeverityClass = (alert: AlertsPanelAlert) => {
-    const base =
-      'p-4 rounded-lg border-l-4 cursor-pointer transition-all hover:shadow-md ';
+    const base = 'p-4 rounded-lg border-l-4 cursor-pointer transition-all hover:shadow-md ';
     const severity =
-      alert.severity === 'critical'
+      alert.severity === AlertSeverity.CRITICAL
         ? 'border-l-red-500 bg-red-50'
-        : alert.severity === 'high'
+        : alert.severity === AlertSeverity.HIGH
           ? 'border-l-orange-500 bg-orange-50'
-          : alert.severity === 'medium'
+          : alert.severity === AlertSeverity.MEDIUM
             ? 'border-l-yellow-500 bg-yellow-50'
             : 'border-l-blue-500 bg-blue-50';
     const opacity = alert.isRead === false ? ' shadow-sm' : ' opacity-75';
     return base + severity + opacity;
   };
 
+  // Función getAlertContent corregida y simplificada
   const getAlertContent = (alert: AlertsPanelAlert) => {
     if (alert.type === AlertType.STOCK) {
-      const stockAlert = alert as any;
       if (alert.category === AlertCategory.OUT_OF_STOCK) {
         return 'Stock agotado';
-      } else {
-  const getAlertIcon = (alert: AlertsPanelAlert) => {
-    const iconClass = 'h-5 w-5 text-gray-600';
-    switch (alert.type) {
-      case 'STOCK':
-        return <Package className={iconClass} />;
-      case 'QUALITY':
-        return <Package className={iconClass} />;
-      case 'VENDOR':
-        return <User className={iconClass} />;
-      case 'SYSTEM':
-        return <AlertTriangle className={iconClass} />;
-      default:
-        return <Package className={iconClass} />;
-    }
-  };
-
-
-        return (
-          'Stock bajo: ' + stockAlert.currentStock + '/' + stockAlert.minStock
-        );
+      } else if (alert.category === AlertCategory.LOW_STOCK) {
+        const stockAlert = alert as any;
+        return `Stock bajo: ${stockAlert.currentStock || 0}/${stockAlert.minStock || 0}`;
       }
-    } else {
+      return 'Alerta de stock';
+    } else if (alert.type === AlertType.QUALITY) {
       const qualityAlert = alert as any;
       return qualityAlert.issueDescription || 'Alerta de calidad';
+    } else if (alert.type === AlertType.VENDOR) {
+      const vendorAlert = alert as any;
+      return vendorAlert.issueDescription || 'Alerta de vendedor';
+    } else if (alert.type === AlertType.SYSTEM) {
+      const systemAlert = alert as any;
+      return systemAlert.issueDescription || 'Alerta del sistema';
     }
+    return 'Alerta';
+  };
+
+  // Función para obtener el nombre apropiado dependiendo del tipo de alerta
+  const getAlertTitle = (alert: AlertsPanelAlert) => {
+    if (alert.type === AlertType.STOCK) {
+      const stockAlert = alert as any;
+      return stockAlert.productName || 'Producto';
+    } else if (alert.type === AlertType.QUALITY) {
+      const qualityAlert = alert as any;
+      return qualityAlert.productName || 'Producto';
+    } else if (alert.type === AlertType.VENDOR) {
+      const vendorAlert = alert as any;
+      return vendorAlert.vendorName || 'Vendedor';
+    } else if (alert.type === AlertType.SYSTEM) {
+      const systemAlert = alert as any;
+      return systemAlert.systemComponent || 'Sistema';
+    }
+    return 'Alerta';
   };
 
   return (
@@ -196,7 +227,7 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({
                 {getAlertIcon(alert)}
                 <div className='flex-1'>
                   <h4 className='text-sm font-medium text-gray-900'>
-                    {alert.productName}
+                    {getAlertTitle(alert)}
                   </h4>
                   <p className='text-sm text-gray-600 mt-1'>
                     {getAlertContent(alert)}
@@ -216,7 +247,7 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({
                       }}
                       className='text-xs px-2 py-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded'
                     >
-                      Ver producto
+                      Ver detalles
                     </button>
                     {alert.type === AlertType.STOCK && (
                       <button
