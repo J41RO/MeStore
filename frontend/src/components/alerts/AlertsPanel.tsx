@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { useStockAlerts } from '../../hooks/useStockAlerts';
 import { useQualityAlerts } from '../../hooks/useQualityAlerts';
+import { useVendorAlerts } from '../../hooks/useVendorAlerts';
+import { useSystemAlerts } from '../../hooks/useSystemAlerts';
 import {
   AlertsPanelProps,
   AlertsPanelAlert,
   AlertType,
   AlertCategory,
 } from '../../types/alerts.types';
-import { Bell, Package, RefreshCw, Filter } from 'lucide-react';
+import { Bell, Package, RefreshCw, Filter, User, AlertTriangle } from 'lucide-react';
 
 const AlertsPanel: React.FC<AlertsPanelProps> = ({
   className = '',
@@ -20,10 +22,13 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({
   const { stockAlerts, markStockAlertAsRead, refreshStockAlerts } =
     useStockAlerts();
   const { qualityAlerts, markQualityAlertAsRead } = useQualityAlerts();
+  const { vendorAlerts, markVendorAlertAsRead } = useVendorAlerts();
+  const { systemAlerts, markSystemAlertAsRead } = useSystemAlerts();
 
-  const allAlerts: AlertsPanelAlert[] = [...stockAlerts, ...qualityAlerts];
+  const allAlerts: AlertsPanelAlert[] = [...stockAlerts, ...qualityAlerts, ...vendorAlerts, ...systemAlerts];
   const displayAlerts = allAlerts.slice(0, maxAlerts);
   const unreadCount = displayAlerts.filter(a => a.isRead === false).length;
+  const criticalCount = displayAlerts.filter(a => a.severity === 'critical' && a.isRead === false).length;
 
   const refreshAlerts = () => {
     setIsLoading(true);
@@ -33,6 +38,15 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({
       setIsLoading(false);
     }
   };
+
+  // Auto-refresh cada 60 segundos
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      refreshAlerts();
+    }, 60000); // Refresh cada 60 segundos
+    
+    return () => clearInterval(interval);
+  }, []);
 
   const markAsRead = (alertId: string) => {
     if (alertId.includes('stock-')) {
@@ -74,6 +88,23 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({
       if (alert.category === AlertCategory.OUT_OF_STOCK) {
         return 'Stock agotado';
       } else {
+  const getAlertIcon = (alert: AlertsPanelAlert) => {
+    const iconClass = 'h-5 w-5 text-gray-600';
+    switch (alert.type) {
+      case 'STOCK':
+        return <Package className={iconClass} />;
+      case 'QUALITY':
+        return <Package className={iconClass} />;
+      case 'VENDOR':
+        return <User className={iconClass} />;
+      case 'SYSTEM':
+        return <AlertTriangle className={iconClass} />;
+      default:
+        return <Package className={iconClass} />;
+    }
+  };
+
+
         return (
           'Stock bajo: ' + stockAlert.currentStock + '/' + stockAlert.minStock
         );
@@ -95,6 +126,11 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({
           <span className='bg-red-100 text-red-800 px-2 py-1 rounded-full text-sm font-medium'>
             {unreadCount}
           </span>
+          {criticalCount > 0 && (
+            <span className='bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs font-bold border border-orange-300'>
+              {criticalCount} CRÍTICAS
+            </span>
+          )}
         </div>
 
         <div className='flex items-center gap-2'>
@@ -157,7 +193,7 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({
               className={getSeverityClass(alert)}
             >
               <div className='flex items-start gap-3'>
-                <Package className='h-5 w-5 text-gray-600' />
+                {getAlertIcon(alert)}
                 <div className='flex-1'>
                   <h4 className='text-sm font-medium text-gray-900'>
                     {alert.productName}

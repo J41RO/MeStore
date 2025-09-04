@@ -51,7 +51,7 @@ const AlertFilters: React.FC<AlertFiltersProps> = ({
 
   const resetFilters = () => {
     onFiltersChange({
-      types: [AlertType.STOCK, AlertType.QUALITY],
+      types: [AlertType.STOCK, AlertType.QUALITY, AlertType.VENDOR, AlertType.SYSTEM],
       severities: [
         AlertSeverity.HIGH,
         AlertSeverity.CRITICAL,

@@ -5,6 +5,18 @@ export enum AlertType {
   STOCK = 'stock',
   QUALITY = 'quality',
   SYSTEM = 'system',
+  VENDOR = 'vendor',
+  // Vendor categories
+  PAYMENT_PENDING = 'payment_pending',
+  DOCUMENTS_MISSING = 'documents_missing',
+  ACTIVATION_REQUIRED = 'activation_required',
+  VERIFICATION_PENDING = 'verification_pending',
+  // System categories
+  API_ERROR = 'api_error',
+  DATABASE_ERROR = 'database_error',
+  AUTHENTICATION_ERROR = 'authentication_error',
+  PERFORMANCE_ISSUE = 'performance_issue',
+
 }
 
 export enum AlertSeverity {
