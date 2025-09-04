@@ -247,7 +247,7 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({
                       }}
                       className='text-xs px-2 py-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded'
                     >
-                      Ver detalles
+                      Ver producto
                     </button>
                     {alert.type === AlertType.STOCK && (
                       <button
