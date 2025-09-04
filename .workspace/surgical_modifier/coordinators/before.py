@@ -14,6 +14,8 @@ from functions.backup.manager import BackupManager
 from functions.content.reader import ContentReader
 from functions.content.writer import ContentWriter
 from functions.content.validator import ContentValidator
+from functions.content.validator import ContentValidator
+from functions.matching.fuzzy_matcher import FuzzyMatcher
 
 class BeforeCoordinator:
     """Coordinador ligero para operación BEFORE. Orquesta functions modulares para inserción."""
@@ -28,8 +30,10 @@ class BeforeCoordinator:
         self.writer = ContentWriter()
         self.validator = ContentValidator()
         self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger(__name__)
+        self.fuzzy_matcher = FuzzyMatcher()
 
-    def execute(self, file_path: str, target: str, content: str, **kwargs) -> Dict[str, Any]:
+    def execute(self, file_path: str, target: str, content: str, flexible: bool = False, **kwargs) -> Dict[str, Any]:
         """Coordinador simplificado con lógica directa"""
         try:
             # 1. Crear backup
@@ -46,7 +50,7 @@ class BeforeCoordinator:
             # 3. LÓGICA DIRECTA - encontrar línea target
             line_index = -1
             for i, line in enumerate(lines):
-                if target in line:
+                if self.fuzzy_matcher.fuzzy_match(target, line, flexible):
                     line_index = i
                     break
                     

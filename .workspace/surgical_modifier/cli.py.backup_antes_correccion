@@ -7,7 +7,6 @@ import sys
 import os
 from pathlib import Path
 from rich.console import Console
-from functions.analysis.file_explorer import FileExplorer
 import py_compile
 
 # ========================
@@ -364,66 +363,12 @@ def append(filepath, content, separator):
 # ========================
 # COMANDO EXPLORE
 # ========================
+
 @main.command()
 @click.argument("path")
 @click.option("--analyze", is_flag=True, help="Analizar estructura")
-@click.option("--lines", help="Rango de líneas (formato: start:end)")
-@click.option("--around", type=int, help="Línea central para contexto")
-@click.option("--context", type=int, default=5, help="Líneas de contexto (default: 5)")
-def explore(path, analyze, lines, around, context):
-    """Explorar y analizar estructura de código con opciones avanzadas.
-    
-    Ejemplos de uso:
-      explore archivo.py                    # Mostrar primeras 20 líneas
-      explore archivo.py --lines 10:20      # Mostrar líneas 10 a 20
-      explore archivo.py --around 50 --context 3  # 3 líneas alrededor de la 50
-      explore archivo.py --analyze          # Análisis básico (legacy)
-    """
-    explorer = FileExplorer()
-    
-    try:
-        # Leer archivo
-        file_lines = explorer.read_file_lines(path)
-        
-        # Funcionalidad legacy (backward compatibility)
-        if analyze:
-            print(f"Analizando estructura de {path}...")
-            print(f"Total de líneas: {len(file_lines)}")
-            return
-        
-        # Nueva funcionalidad --lines
-        if lines:
-            try:
-                start, end = explorer.parse_lines_range(lines)
-                range_lines = explorer.get_lines_range(file_lines, start, end)
-                output = explorer.format_output(range_lines, start_line=start)
-                print(f"Líneas {start}-{end} de {path}:")
-                print(output)
-                return
-            except ValueError as e:
-                print(f"Error en parámetro --lines: {e}")
-                return
-        
-        # Nueva funcionalidad --around
-        if around:
-            try:
-                context_lines, start_line = explorer.get_context_around(file_lines, around, context)
-                output = explorer.format_output(context_lines, start_line=start_line, highlight_line=around)
-                print(f"Contexto alrededor de línea {around} (±{context} líneas) en {path}:")
-                print(output)
-                return
-            except ValueError as e:
-                print(f"Error en parámetro --around: {e}")
-                return
-        
-        # Si no hay parámetros específicos, mostrar primeras 20 líneas
-        default_lines = explorer.get_lines_range(file_lines, 1, min(20, len(file_lines)))
-        output = explorer.format_output(default_lines)
-        print(f"Primeras líneas de {path}:")
-        print(output)
-        
-    except (FileNotFoundError, PermissionError, UnicodeDecodeError, ValueError) as e:
-        print(f"Error explorando {path}: {e}")
+def explore(path, analyze):
+    """Explorar y analizar estructura de código."""
     print(f"Explorando {path} (análisis: {analyze})")
 
 # ========================
