@@ -20,7 +20,7 @@ class ReplaceWorkflow:
     
     def execute_sequence(self, file_path: str, pattern: str, replacement: str,
                         pattern_factory=None, backup_manager=None, reader=None, 
-                        writer=None, validator=None, **kwargs) -> Dict[str, Any]:
+                        writer=None, validator=None, dry_run=False, **kwargs) -> Dict[str, Any]:
         """Ejecutar secuencia completa del workflow REPLACE con manejo de errores"""
         self.logger.info(f"Starting REPLACE workflow for: {file_path}")
         phases_completed = []
@@ -178,6 +178,14 @@ class ReplaceWorkflow:
                 self.logger.warning(f"FORCE MODE: Skipping JS/TS validation for {file_path}")
             
             # FASE 6: Escribir nuevo contenido (solo si validación pasó)
+            if dry_run:
+                # Modo dry-run: No escribir archivo, solo retornar preview info
+                self.logger.info(f'DRY-RUN MODE: Skipping file write for {file_path}')
+                phases_completed.append('dry_run_preview')
+                return self._build_dry_run_response(
+                    file_path, original_content, new_content, matches_found
+                )
+            
             write_result = writer.write_file(file_path, new_content)
             phases_completed.append('content_writing')
             if not write_result.get('success', False):
@@ -303,3 +311,20 @@ class ReplaceWorkflow:
             })
         
         return response_data
+
+
+    def _build_dry_run_response(self, file_path: str, original_content: str, 
+                               new_content: str, matches_found: int) -> Dict[str, Any]:
+        """Construir respuesta para modo dry-run con información de preview"""
+        return {
+            'success': True,
+            'dry_run': True,
+            'message': f'DRY-RUN: Preview generated for {file_path}',
+            'file_path': file_path,
+            'matches_count': matches_found,
+            'original_content': original_content,
+            'new_content': new_content,
+            'phases_completed': ['file_validation', 'backup_creation', 'content_reading', 
+                               'pattern_matching', 'content_replacement', 'dry_run_preview'],
+            'preview_available': True
+        }

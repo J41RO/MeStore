@@ -36,6 +36,7 @@ class ReplaceCoordinator:
             replacement=replacement,
             pattern_factory=self.pattern_factory,
             backup_manager=self.backup_manager,
+            dry_run=kwargs.get('dry_run', False),
             reader=self.reader,
             writer=self.writer,
             validator=self.validator,
