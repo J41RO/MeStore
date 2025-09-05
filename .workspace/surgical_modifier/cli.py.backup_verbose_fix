@@ -254,7 +254,7 @@ def create(filepath, content, template, from_stdin):
 @click.option("--preview", is_flag=True, help="Mostrar preview del resultado antes de aplicar cambios")
 @click.option("--force", is_flag=True, help="Forzar reemplazo incluso si la validación JS/TS falla")
 @click.option('--verbose', is_flag=True, help='Mostrar información detallada de errores')
-def replace(filepath, pattern, replacement, fuzzy=False, regex=False, threshold=0.8, strict_syntax=False, preview=False, force=False, verbose=False):
+def replace(filepath, pattern, replacement, fuzzy=False, regex=False, threshold=0.8, strict_syntax=False, preview=False, force=False):
     """
     Reemplazar contenido en archivos usando ReplaceCoordinator.
     
@@ -288,8 +288,6 @@ def replace(filepath, pattern, replacement, fuzzy=False, regex=False, threshold=
         matcher_options['matcher_type'] = matcher_type
         # Propagar parámetro force al coordinador/workflow
         matcher_options['force'] = force
-        # Propagar parámetro verbose al coordinador
-        matcher_options['verbose'] = verbose
 
         # NUEVA FUNCIONALIDAD: Modo preview
         if preview:

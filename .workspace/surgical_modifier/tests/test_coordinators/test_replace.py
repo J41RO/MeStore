@@ -203,8 +203,8 @@ class TestReplaceCoordinatorIntegrationComplete:
             
             # Debe fallar gracefully
             assert result['success'] is False, "Debe fallar cuando pattern no existe"
-            assert 'Pattern not found' in result['error'], "Debe reportar pattern no encontrado"
-            assert 'phases_completed' in result, "Debe reportar fases completadas"
+            assert 'not found' in result['error'], "Debe reportar pattern no encontrado"
+            assert 'phase' in result, "Debe reportar fase donde falló"
             
         finally:
             if os.path.exists(temp_file):

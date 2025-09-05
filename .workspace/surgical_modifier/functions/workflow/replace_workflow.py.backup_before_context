@@ -1,9 +1,6 @@
 from typing import Dict, Any, Optional
 import logging
 from pathlib import Path
-from functions.debugging.context_extractor import ContextExtractor
-from functions.debugging.pattern_suggester import PatternSuggester
-from functions.response.response_builder import ResponseBuilder
 from functions.validation.js_ts_validator import JsTsValidator
 
 class ReplaceWorkflow:
@@ -12,9 +9,6 @@ class ReplaceWorkflow:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         self.js_ts_validator = JsTsValidator()
-        self.context_extractor = ContextExtractor()
-        self.pattern_suggester = PatternSuggester()
-        self.response_builder = ResponseBuilder()
     
     def execute_sequence(self, file_path: str, pattern: str, replacement: str,
                         pattern_factory=None, backup_manager=None, reader=None, 
@@ -68,49 +62,13 @@ class ReplaceWorkflow:
             phases_completed.append('pattern_matching')
             
             if not match_result:
-                # Generar error contextual usando nuevo sistema
-                try:
-                    # Obtener contenido del archivo para contexto
-                    file_result = reader.read_file(file_path)
-                    file_content = file_result.get('content', '') if isinstance(file_result, dict) else str(file_result)
-                    
-                    # Extraer contexto detallado
-                    pattern_context = self.context_extractor.extract_pattern_context(
-                        file_path, pattern, kwargs.get('regex', False)
-                    )
-                    
-                    # Generar sugerencias
-                    suggestions = self.context_extractor.suggest_alternatives(file_path, pattern)
-                    
-                    # Usar nuevo ResponseBuilder para error contextual
-                    if kwargs.get('verbose', False):
-                        debug_info = {
-                            'file_analysis': self.context_extractor.analyze_file_structure(file_path),
-                            'pattern_context': pattern_context,
-                            'match_attempt_details': match_result
-                        }
-                        return self.response_builder.build_verbose_error_response(
-                            f"Pattern '{pattern}' not found in {file_path}",
-                            file_path, pattern, debug_info, 
-                            suggestions.get('similar_patterns', [])
-                        )
-                    else:
-                        return self.response_builder.build_pattern_mismatch_response(
-                            pattern, file_path, file_content,
-                            suggestions.get('similar_patterns', [])
-                        )
-                        
-                except Exception as context_error:
-                    # Fallback al error simple si el contexto falla
-                    self.logger.error(f"Context extraction failed: {context_error}")
-                    return {
-                        'success': False,
-                        'error': 'Pattern not found',
-                        'pattern': pattern,
-                        'file_path': file_path,
-                        'phases_completed': phases_completed,
-                        'context_error': str(context_error)
-                    }
+                return {
+                    'success': False,
+                    'error': 'Pattern not found',
+                    'pattern': pattern,
+                    'file_path': file_path,
+                    'phases_completed': phases_completed
+                }
             
             # FASE 5: Realizar replacement
             # Usar método apropiado según el tipo de matcher
