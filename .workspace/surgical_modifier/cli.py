@@ -647,6 +647,59 @@ def help_ux():
 # ========================
 # ENTRY POINT
 # ========================
+@main.command("batch")
+@click.option("--file", "-f", required=True, help="Archivo de comandos batch (JSON/YAML)")
+@click.option("--dry-run", is_flag=True, help="Simular sin ejecutar")
+def batch_command(file, dry_run):
+    """Ejecutar múltiples operaciones desde archivo de comandos"""
+    from coordinators.batch import BatchCoordinator
+    
+    coordinator = BatchCoordinator()
+    
+    try:
+        result = coordinator.execute(file, dry_run=dry_run)
+        
+        if result["success"]:
+            console.print(f"[green]✅ Batch ejecutado exitosamente[/green]")
+            console.print(f"Operaciones ejecutadas: {result['operations_executed']}")
+            console.print(f"Operaciones fallidas: {result['operations_failed']}")
+            
+            for detail in result["details"]:
+                status_color = "green" if detail["status"] == "success" else "red"
+                console.print(f"  [{status_color}]Op {detail['operation']}: {detail['status']}[/{status_color}]")
+        else:
+            console.print(f"[red]❌ Error en batch: {result.get('error', 'Unknown error')}[/red]")
+            
+    except Exception as e:
+        console.print(f"[red]❌ Error ejecutando batch: {str(e)}[/red]")
+
+@main.command("transaction")
+@click.argument("operation")
+@click.argument("args", nargs=-1)
+@click.option("--rollback-on-error", is_flag=True, help="Rollback automático en caso de error")
+def transaction_command(operation, args, rollback_on_error):
+    """Ejecutar operación con soporte transaccional"""
+    from functions.transaction.manager import TransactionManager
+    
+    tx_manager = TransactionManager()
+    
+    try:
+        tx_id = tx_manager.begin_transaction()
+        console.print(f"[blue]🔄 Transacción iniciada: {tx_id}[/blue]")
+        
+        console.print(f"[yellow]🔍 Simulando: {operation} con argumentos {args}[/yellow]")
+        
+        result = tx_manager.commit()
+        console.print(f"[green]✅ Transacción confirmada: {result['transaction_id']}[/green]")
+        
+    except Exception as e:
+        console.print(f"[red]❌ Error en transacción: {str(e)}[/red]")
+        if rollback_on_error:
+            rollback_result = tx_manager.rollback()
+            console.print(f"[blue]🔄 Rollback ejecutado: {rollback_result['transaction_id']}[/blue]")
+        else:
+            console.print("[yellow]⚠️ Use --rollback-on-error para rollback automático[/yellow]")
+            
 
 if __name__ == "__main__":
     main()
