@@ -38,7 +38,7 @@ class TestReplaceCoordinatorPatternFactory:
                 mock_writer.write_file.return_value = {'success': True}
                 mock_validator.validate_file.return_value = {'valid': True}
                 
-                result = self.coordinator.execute(self.test_file_path, self.test_pattern, self.test_replacement)
+                result = self.coordinator.execute(self.test_file_path, self.test_pattern, self.test_replacement, skip_structural_analysis=True)
                 
                 # Verificar llamadas
                 mock_factory.get_optimized_matcher.assert_called_once_with('literal')
@@ -108,7 +108,7 @@ class TestReplaceCoordinatorContentOperations:
             mock_matcher.replace_literal.return_value = {'new_text': 'modified content', 'success': True}
             mock_factory.get_optimized_matcher.return_value = mock_matcher
             
-            result = self.coordinator.execute(self.test_file_path, 'original', 'modified')
+            result = self.coordinator.execute(self.test_file_path, 'original', 'modified', skip_structural_analysis=True)
             
             # Verificar secuencia de llamadas
             mock_reader.read_file.assert_called_once_with(self.test_file_path)
@@ -176,7 +176,7 @@ class TestReplaceCoordinatorIntegrationComplete:
             # Verificar resultado
             assert result['success'] is True, f"Replace failed: {result.get('error')}"
             assert result['matches_found'] == 1, "Debe encontrar 1 match"
-            assert len(result['phases_completed']) == 7, "Debe completar 7 fases"
+            assert len(result['phases_completed']) == 8, "Debe completar 8 fases (incluye análisis estructural)"
             assert 'backup_created' in result, "Debe crear backup"
             
             # Verificar contenido modificado

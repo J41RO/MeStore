@@ -240,7 +240,7 @@ def create(filepath, content, template, from_stdin):
         click.echo(f"Error creando archivo: {e}", err=True)
 
 # ========================
-# COMANDO REPLACE (CON MEJORAS UX COMPLETAS + PREVIEW + ROLLBACK)
+# COMANDO REPLACE (CON MEJORAS UX COMPLETAS + PREVIEW + ROLLBACK + ANÁLISIS ESTRUCTURAL)
 # ========================
 
 @main.command()
@@ -254,7 +254,9 @@ def create(filepath, content, template, from_stdin):
 @click.option("--preview", is_flag=True, help="Mostrar preview del resultado antes de aplicar cambios")
 @click.option("--force", is_flag=True, help="Forzar reemplazo incluso si la validación JS/TS falla")
 @click.option('--verbose', is_flag=True, help='Mostrar información detallada de errores')
-def replace(filepath, pattern, replacement, fuzzy=False, regex=False, threshold=0.8, strict_syntax=False, preview=False, force=False, verbose=False):
+@click.option('--structural-analysis', is_flag=True, default=True, help='Ejecutar análisis estructural preventivo (por defecto: activado)')
+@click.option('--skip-structural-analysis', is_flag=True, default=False, help='Omitir análisis estructural preventivo')
+def replace(filepath, pattern, replacement, fuzzy=False, regex=False, threshold=0.8, strict_syntax=False, preview=False, force=False, verbose=False, structural_analysis=True, skip_structural_analysis=False):
     """
     Reemplazar contenido en archivos usando ReplaceCoordinator.
     
@@ -266,6 +268,8 @@ def replace(filepath, pattern, replacement, fuzzy=False, regex=False, threshold=
     --strict-syntax : Solo acepta orden tradicional (archivo pattern replacement)
     --preview       : Mostrar preview antes de aplicar cambios
     --force         : Saltear validación JS/TS si es necesario
+    --structural-analysis : Análisis estructural preventivo (por defecto)
+    --skip-structural-analysis : Omitir análisis estructural
     """
     # MEJORA UX 1: Detección automática de orden de argumentos (solo si no está en modo strict)
     if not strict_syntax and order_detect(filepath, pattern, replacement) == 'intuitive':
@@ -290,6 +294,8 @@ def replace(filepath, pattern, replacement, fuzzy=False, regex=False, threshold=
         matcher_options['force'] = force
         # Propagar parámetro verbose al coordinador
         matcher_options['verbose'] = verbose
+        # Propagar parámetros de análisis estructural
+        matcher_options['skip_structural_analysis'] = skip_structural_analysis or not structural_analysis
 
         # NUEVA FUNCIONALIDAD: Modo preview
         if preview:
@@ -336,8 +342,24 @@ def replace(filepath, pattern, replacement, fuzzy=False, regex=False, threshold=
             click.echo(f"✅ Reemplazo exitoso en {filepath}")
             if result.get('matches_count'):
                 click.echo(f"📊 Coincidencias reemplazadas: {result['matches_count']}")
+            
+            # Mostrar información de análisis estructural si está disponible
+            if result.get('structural_analysis'):
+                analysis = result['structural_analysis']
+                if analysis.get('warnings', 0) > 0:
+                    console.print(f"⚠️ Advertencias estructurales: {analysis['warnings']}", style="yellow")
+                if analysis.get('critical_issues', 0) > 0:
+                    console.print(f"🚨 Problemas críticos detectados: {analysis['critical_issues']}", style="red")
         else:
             click.echo(f"❌ Error: {result.get('error', 'Unknown error')}", err=True)
+            
+            # Si hay problemas estructurales, mostrar detalles
+            if result.get('structural_analysis'):
+                analysis = result['structural_analysis']
+                console.print("🔍 Problemas estructurales detectados:", style="yellow")
+                for detail in analysis.get('details', []):
+                    console.print(f"  - {detail['type']}: {detail['message']}", style="red")
+            
             import sys
             sys.exit(1)
 
@@ -581,7 +603,7 @@ def list_commands():
     print("=" * 60)
     print("COMANDOS BÁSICOS:")
     print("  create      : Crear nuevos archivos")
-    print("  replace     : Reemplazar contenido (🎯 CON MEJORAS UX + PREVIEW)")
+    print("  replace     : Reemplazar contenido (🎯 CON MEJORAS UX + PREVIEW + ANÁLISIS)")
     print("  before      : Insertar antes de patrón")
     print("  after       : Insertar después de patrón")  
     print("  append      : Agregar al final")
@@ -595,6 +617,10 @@ def list_commands():
     print("    python3 cli.py replace archivo.txt 'buscar' 'reemplazar'")
     print("  ✅ MODO PREVIEW:")
     print("    python3 cli.py replace --preview archivo.js 'props' 'properties'")
+    print("  ✅ ANÁLISIS ESTRUCTURAL PREVENTIVO:")
+    print("    python3 cli.py replace --structural-analysis archivo.ts 'old' 'new'")
+    print("  ✅ OMITIR ANÁLISIS ESTRUCTURAL:")
+    print("    python3 cli.py replace --skip-structural-analysis archivo.js 'old' 'new'")
     print("  ✅ VALIDACIÓN JS/TS AUTOMÁTICA con rollback")
     print("  ✅ MODO FORCE para saltear validación:")
     print("    python3 cli.py replace --force archivo.tsx 'old' 'new'")
@@ -605,6 +631,7 @@ def list_commands():
     print("  python3 cli.py replace --preview 'old_function' 'new_function' main.js")
     print("  python3 cli.py replace --strict-syntax main.py 'old' 'new'")
     print("  python3 cli.py replace --regex '\\bclass\\b' 'class Modern' app.py")
+    print("  python3 cli.py replace --skip-structural-analysis 'debug' 'console.log' app.js")
     print("=" * 60)
 
 @main.command("help-ux")
@@ -622,34 +649,40 @@ def help_ux():
     print("   --preview : Muestra cambios antes de aplicar")
     print("   Incluye validación JS/TS automática")
     print()
-    print("3. VALIDACIÓN JS/TS AUTOMÁTICA:")
+    print("3. ANÁLISIS ESTRUCTURAL PREVENTIVO:")
+    print("   --structural-analysis : Detecta problemas antes de modificar (por defecto)")
+    print("   --skip-structural-analysis : Omite análisis para casos especiales")
+    print("   Detecta: interfaces duplicadas, referencias circulares, sintaxis rota")
+    print()
+    print("4. VALIDACIÓN JS/TS AUTOMÁTICA:")
     print("   Detecta automáticamente archivos .js/.jsx/.ts/.tsx")
     print("   Valida sintaxis después de modificaciones")
     print("   Rollback automático si detecta errores")
     print()
-    print("4. MODO FORCE:")
+    print("5. MODO FORCE:")
     print("   --force : Saltear validación JS/TS si es necesario")
     print("   Útil para casos especiales")
     print()
-    print("5. MODO STRICT-SYNTAX:")
+    print("6. MODO STRICT-SYNTAX:")
     print("   --strict-syntax : Solo acepta orden tradicional")
     print("   Útil para scripts automatizados")
     print()
-    print("6. SUGERENCIAS INTELIGENTES:")
+    print("7. SUGERENCIAS INTELIGENTES:")
     print("   Cuando detecta posible confusión de orden, sugiere corrección")
     print("   Ejemplo: '💡 Did you mean: python3 cli.py replace ...'")
     print()
-    print("7. MENSAJES DE ERROR MEJORADOS:")
+    print("8. MENSAJES DE ERROR MEJORADOS:")
     print("   Incluyen ejemplos de sintaxis correcta")
     print("   Reducen tiempo de debugging")
     print()
-    print("8. COMPATIBILIDAD TOTAL:")
+    print("9. COMPATIBILIDAD TOTAL:")
     print("   Todo código existente sigue funcionando")
     print("   Cero regresiones, solo mejoras")
 
 # ========================
-# ENTRY POINT
+# COMANDOS BATCH Y TRANSACTION
 # ========================
+
 @main.command("batch")
 @click.option("--file", "-f", required=True, help="Archivo de comandos batch (JSON/YAML)")
 @click.option("--dry-run", is_flag=True, help="Simular sin ejecutar")
@@ -702,7 +735,10 @@ def transaction_command(operation, args, rollback_on_error):
             console.print(f"[blue]🔄 Rollback ejecutado: {rollback_result['transaction_id']}[/blue]")
         else:
             console.print("[yellow]⚠️ Use --rollback-on-error para rollback automático[/yellow]")
-            
+
+# ========================
+# ENTRY POINT
+# ========================
 
 if __name__ == "__main__":
     main()

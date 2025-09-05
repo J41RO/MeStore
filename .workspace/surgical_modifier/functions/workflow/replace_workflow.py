@@ -5,6 +5,7 @@ from functions.debugging.context_extractor import ContextExtractor
 from functions.debugging.pattern_suggester import PatternSuggester
 from functions.response.response_builder import ResponseBuilder
 from functions.validation.js_ts_validator import JsTsValidator
+from functions.analysis.structural_analyzer import StructuralAnalyzer
 
 class ReplaceWorkflow:
     """Workflow handler para operaciones REPLACE - maneja secuencia y lógica de negocio"""
@@ -12,6 +13,7 @@ class ReplaceWorkflow:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         self.js_ts_validator = JsTsValidator()
+        self.structural_analyzer = StructuralAnalyzer()
         self.context_extractor = ContextExtractor()
         self.pattern_suggester = PatternSuggester()
         self.response_builder = ResponseBuilder()
@@ -59,6 +61,41 @@ class ReplaceWorkflow:
                 )
             
             original_content = content_result.get('content', '')
+
+            # FASE 3.5: Análisis estructural preventivo (opcional)
+            skip_structural = kwargs.get('skip_structural_analysis', False)
+            if not skip_structural:
+                self.logger.info('Ejecutando análisis estructural preventivo...')
+                try:
+                    analysis_result = self.structural_analyzer.analyze_before_modification(
+                        file_path, 
+                        original_content,
+                        ['syntax', 'duplicates']
+                    )
+                    phases_completed.append('structural_analysis')
+                    
+                    # Procesar problemas encontrados
+                    if analysis_result.has_issues:
+                        critical_issues = analysis_result.get_critical_issues()
+                        warnings = analysis_result.get_warnings()
+                        
+                        # Si hay errores críticos, detener modificación
+                        if critical_issues:
+                            self.logger.warning(f'Análisis preventivo detectó {len(critical_issues)} problemas críticos')
+                            return self._build_structural_warning_response(
+                                critical_issues, warnings, phases_completed, backup_path
+                            )
+                        
+                        # Si solo hay advertencias, continuar pero reportar
+                        if warnings:
+                            self.logger.info(f'Análisis preventivo detectó {len(warnings)} advertencias')
+                            # Las advertencias se incluirán en la respuesta final
+                    
+                except Exception as e:
+                    self.logger.warning(f'Error en análisis estructural: {str(e)}')
+                    # No detener el flujo por errores de análisis
+            else:
+                self.logger.info('Análisis estructural omitido (--skip-structural-analysis)')
             
             # FASE 4: Pattern matching
             # Selección dinámica de matcher basada en parámetros
@@ -228,3 +265,41 @@ class ReplaceWorkflow:
                 'valid': True,  # En caso de error del validador, no bloquear
                 'errors': []
             }
+
+
+    def _build_structural_warning_response(self, critical_issues, warnings, phases_completed, backup_path):
+        """Construye respuesta cuando se detectan problemas estructurales"""
+        response_data = {
+            'success': False,
+            'operation': 'replace',
+            'structural_analysis': {
+                'critical_issues': len(critical_issues),
+                'warnings': len(warnings),
+                'details': []
+            },
+            'phases_completed': phases_completed,
+            'backup_path': backup_path,
+            'message': 'Modificación bloqueada por problemas estructurales críticos'
+        }
+        
+        # Agregar detalles de problemas críticos
+        for issue in critical_issues:
+            response_data['structural_analysis']['details'].append({
+                'type': issue.type,
+                'severity': issue.severity,
+                'file': issue.file_path,
+                'line': issue.line_number,
+                'message': issue.message
+            })
+        
+        # Agregar advertencias
+        for warning in warnings:
+            response_data['structural_analysis']['details'].append({
+                'type': warning.type,
+                'severity': warning.severity,
+                'file': warning.file_path,
+                'line': warning.line_number,
+                'message': warning.message
+            })
+        
+        return response_data
