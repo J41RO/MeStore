@@ -195,6 +195,13 @@ class VendedorErrorResponse(BaseModel):
     "ExportRequest",
     "ExportResponse",
 
+    # VendorList
+    "EstadoVendedor",
+    "TipoCuentaVendedor", 
+    "VendorListFilter",
+    "VendorItem",
+    "VendorListResponse",
+
     details: Optional[str] = Field(None, description="Detalles adicionales del error")
 
     class Config:
@@ -403,6 +410,59 @@ class DashboardComparativoResponse(BaseModel):
 # =============================================================================
 # EXPORTS
 # =============================================================================
+
+
+# ============================================================================
+# VENDORLIST - Schemas para listado y filtrado de vendedores
+# ============================================================================
+
+class EstadoVendedor(str, Enum):
+    """Estados posibles para vendedores."""
+    ACTIVO = "activo"
+    INACTIVO = "inactivo"
+    SUSPENDIDO = "suspendido"
+    PENDIENTE = "pendiente"
+
+class TipoCuentaVendedor(str, Enum):
+    """Tipos de cuenta para vendedores."""
+    BASICA = "basica"
+    PREMIUM = "premium"
+    EMPRESARIAL = "empresarial"
+    VIP = "vip"
+
+class VendorListFilter(BaseModel):
+    """Filtros para listado de vendedores."""
+    estado: Optional[EstadoVendedor] = Field(None, description="Filtrar por estado del vendedor")
+    tipo_cuenta: Optional[TipoCuentaVendedor] = Field(None, description="Filtrar por tipo de cuenta")
+    limit: int = Field(20, ge=1, le=100, description="Número máximo de resultados")
+    offset: int = Field(0, ge=0, description="Número de resultados a saltar")
+
+class VendorItem(BaseModel):
+    """Item individual de vendedor para listado."""
+    id: int = Field(..., description="ID único del vendedor")
+    email: EmailStr = Field(..., description="Email del vendedor")
+    nombre_completo: Optional[str] = Field(None, description="Nombre completo del vendedor")
+    estado: EstadoVendedor = Field(..., description="Estado actual del vendedor")
+    tipo_cuenta: TipoCuentaVendedor = Field(..., description="Tipo de cuenta del vendedor")
+    fecha_registro: datetime = Field(..., description="Fecha de registro del vendedor")
+    
+    class Config:
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
+
+class VendorListResponse(BaseModel):
+    """Respuesta del listado de vendedores."""
+    vendedores: List[VendorItem] = Field(..., description="Lista de vendedores")
+    total: int = Field(..., description="Total de vendedores que cumplen los filtros")
+    limit: int = Field(..., description="Límite aplicado")
+    offset: int = Field(..., description="Número de offset aplicado")
+    
+    class Config:
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
+
 
 __all__ = [
     # Registro y autenticación

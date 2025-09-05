@@ -79,6 +79,13 @@ from app.schemas.vendedor import (
     KPIComparison,
     DashboardComparativoResponse,
     TendenciaKPI,
+    # VendorList schemas
+    EstadoVendedor,
+    TipoCuentaVendedor,
+    VendorListFilter,
+    VendorItem,
+    VendorListResponse,
+
     ProductoTop,
 )
 
@@ -1151,6 +1158,78 @@ async def get_dashboard_exportar(
         formato=formato,
         fecha_generacion=datetime.now()
     )
+
+
+
+@router.get("/list", response_model=VendorListResponse, status_code=status.HTTP_200_OK)
+async def get_vendor_list(
+    filters: VendorListFilter = Depends(),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> VendorListResponse:
+    """Obtener listado de vendedores con filtros opcionales."""
+    # Verificar que el usuario tiene permisos (admin o supervisor)
+    if current_user.user_type not in [UserType.ADMIN, UserType.SUPERVISOR]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo administradores y supervisores pueden listar vendedores"
+        )
+    
+    try:
+        # Construir query base para vendedores
+        query = select(User).where(User.user_type == UserType.VENDEDOR)
+        
+        # Aplicar filtros si están presentes
+        if filters.estado:
+            # Mapear estado a campo real (asumiendo campo 'is_active' en User)
+            if filters.estado == EstadoVendedor.ACTIVO:
+                query = query.where(User.is_active == True)
+            elif filters.estado == EstadoVendedor.INACTIVO:
+                query = query.where(User.is_active == False)
+        
+        if filters.tipo_cuenta:
+            # Mapear tipo_cuenta a campo real (asumiendo campo 'account_type' en User)
+            query = query.where(User.account_type == filters.tipo_cuenta.value)
+        
+        # Obtener total de registros que cumplen filtros
+        count_query = select(func.count()).select_from(query.subquery())
+        total_result = await db.execute(count_query)
+        total = total_result.scalar() or 0
+        
+        # Aplicar paginación
+        query = query.offset(filters.offset).limit(filters.limit)
+        
+        # Ejecutar query
+        result = await db.execute(query)
+        vendedores_db = result.scalars().all()
+        
+        # Convertir a VendorItem
+        vendedores_list = []
+        for vendedor in vendedores_db:
+            vendor_item = VendorItem(
+                id=vendedor.id,
+                email=vendedor.email,
+                nombre_completo=f"{vendedor.first_name} {vendedor.last_name}" if vendedor.first_name else None,
+                estado=EstadoVendedor.ACTIVO if vendedor.is_active else EstadoVendedor.INACTIVO,
+                tipo_cuenta=TipoCuentaVendedor(vendedor.account_type) if hasattr(vendedor, 'account_type') else TipoCuentaVendedor.BASICA,
+                fecha_registro=vendedor.created_at or datetime.now()
+            )
+            vendedores_list.append(vendor_item)
+        
+        return VendorListResponse(
+            vendedores=vendedores_list,
+            total=total,
+            limit=filters.limit,
+            offset=filters.offset
+        )
+        
+    except Exception as e:
+        logger.error(f"Error obteniendo lista de vendedores: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor al obtener lista de vendedores"
+        )
+
 
 
 @router.get("/health", status_code=status.HTTP_200_OK)

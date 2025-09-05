@@ -373,14 +373,14 @@
 
 ## 1.6 Panel de Administración MVP
 
-🔁 1.6.1 Dashboard superusuario con métricas globales
+✅ 1.6.1 Dashboard superusuario con métricas globales
     ✅ 1.6.1.1 Crear AdminLayout con navegación específica para superusuario
     ✅ 1.6.1.2 Implementar KPIs globales (GMV, vendedores activos, productos, órdenes)
     ✅ 1.6.1.3 Añadir gráficos de crecimiento con comparativas mensuales
     ✅ 1.6.1.4 Crear widget de ingresos por comisiones y projecciones
     ✅ 1.6.1.5 Implementar mapa de actividad por ciudad/región en Colombia
-    ⬜ 1.6.1.6 Añadir alertas críticas (stock crítico, vendedores pendientes, errores)
-⬜ 1.6.2 Gestión de vendedores (aprobar, suspender)
+    ✅ 1.6.1.6 Añadir alertas críticas (stock crítico, vendedores pendientes, errores)
+🔁 1.6.2 Gestión de vendedores (aprobar, suspender)
     ⬜ 1.6.2.1 Crear VendorList con filtros por estado y tipo de cuenta
     ⬜ 1.6.2.2 Implementar VendorDetail con toda la información y documentos
     ⬜ 1.6.2.3 Añadir workflow de aprobación con verificación de documentos
