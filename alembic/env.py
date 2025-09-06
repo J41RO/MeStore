@@ -4,6 +4,7 @@ import os
 
 from sqlalchemy import engine_from_config, pool
 from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy import create_engine
 
 from alembic import context
 
@@ -22,7 +23,7 @@ if config.config_file_name is not None:
 # add your model's MetaData object here
 # for 'autogenerate' support
 # Importar Base con todos los modelos
-from app.core.database import Base
+from app.database import Base
 
 def import_all_models():
     """Auto-import all models from app.models package"""
@@ -192,7 +193,7 @@ def do_run_migrations(connection) -> None:
         context.run_migrations()
 
 
-async def run_async_migrations() -> None:
+def run_sync_migrations() -> None:
     """Run migrations in async mode with proper async engine."""
     url = get_database_url()
     
@@ -208,22 +209,22 @@ async def run_async_migrations() -> None:
     else:
         poolclass = pool.NullPool  # Default for development"
     
-    connectable = create_async_engine(
+    connectable = create_engine(
         url,
         future=True,
         poolclass=poolclass,
     )
 
     try:
-        async with connectable.connect() as connection:
-            await connection.run_sync(do_run_migrations)
+        with connectable.connect() as connection:
+            do_run_migrations(connection)
     finally:
-        await connectable.dispose()
+        connectable.dispose()
 
 
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode."""
-    asyncio.run(run_async_migrations())
+    run_sync_migrations()
 
 
 if context.is_offline_mode():

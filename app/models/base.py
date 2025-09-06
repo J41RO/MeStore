@@ -35,7 +35,7 @@ from datetime import datetime
 from sqlalchemy import Column, DateTime, text
 from sqlalchemy.dialects.postgresql import UUID
 
-from app.core.database import Base
+from app.database import Base
 
 
 class BaseModel(Base):
