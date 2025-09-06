@@ -19,8 +19,23 @@ baseApi.interceptors.request.use((config) => {
   return config;
 });
 
+// Endpoints específicos para autenticación
+export const authAPI = {
+  login: (credentials: any) => baseApi.post('/api/auth/login', credentials),
+  register: (userData: any) => baseApi.post('/api/auth/register', userData),
+  refresh: (refreshToken: string) => baseApi.post('/api/auth/refresh', { refresh_token: refreshToken })
+};
+
+// Endpoints específicos para usuarios
+export const usersAPI = {
+  getProfile: () => baseApi.get('/api/users/profile'),
+  updateProfile: (profileData: any) => baseApi.put('/api/users/profile', profileData)
+};
+
 // Endpoints específicos para productos
 export const productsAPI = {
+  getAll: () => baseApi.get('/api/products'),
+  getById: (id: string) => baseApi.get(`/api/products/${id}`),
   create: (data: any) => baseApi.post('/productos', data),
   update: (id: string, data: any) => baseApi.put(`/productos/${id}`, data),
   getWithFilters: (filters: any) => baseApi.get('/productos', { params: filters })
@@ -28,6 +43,8 @@ export const productsAPI = {
 
 // API extendida con tipado explícito
 const api = Object.assign(baseApi, {
+  auth: authAPI,
+  users: usersAPI,
   products: productsAPI
 });
 

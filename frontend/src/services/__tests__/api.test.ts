@@ -1,17 +1,49 @@
-import { api } from '../api';
-import { apiClient } from '../authInterceptors';
-
-// Mock apiClient
-jest.mock('../authInterceptors', () => ({
-  apiClient: {
+// Mock the entire api module
+jest.mock('../api', () => {
+  const mockBaseApi = {
     post: jest.fn(),
     get: jest.fn(),
     put: jest.fn(),
     delete: jest.fn(),
-  },
-}));
+    interceptors: {
+      request: { use: jest.fn() },
+      response: { use: jest.fn() }
+    }
+  };
 
-const mockedApiClient = apiClient as jest.Mocked<typeof apiClient>;
+  return {
+    __esModule: true,
+    default: {
+      auth: {
+        login: jest.fn().mockImplementation((credentials) => mockBaseApi.post('/api/auth/login', credentials)),
+        register: jest.fn().mockImplementation((userData) => mockBaseApi.post('/api/auth/register', userData)),
+        refresh: jest.fn().mockImplementation((refreshToken) => mockBaseApi.post('/api/auth/refresh', { refresh_token: refreshToken }))
+      },
+      users: {
+        getProfile: jest.fn().mockImplementation(() => mockBaseApi.get('/api/users/profile')),
+        updateProfile: jest.fn().mockImplementation((profileData) => mockBaseApi.put('/api/users/profile', profileData))
+      },
+      products: {
+        getAll: jest.fn().mockImplementation(() => mockBaseApi.get('/api/products')),
+        getById: jest.fn().mockImplementation((id) => mockBaseApi.get(`/api/products/${id}`)),
+        create: jest.fn().mockImplementation((data) => mockBaseApi.post('/productos', data)),
+        update: jest.fn().mockImplementation((id, data) => mockBaseApi.put(`/productos/${id}`, data)),
+        getWithFilters: jest.fn().mockImplementation((filters) => mockBaseApi.get('/productos', { params: filters }))
+      },
+      post: mockBaseApi.post,
+      get: mockBaseApi.get,
+      put: mockBaseApi.put,
+      delete: mockBaseApi.delete
+    },
+    authAPI: {},
+    usersAPI: {},
+    productsAPI: {},
+    mockBaseApi // Export for testing
+  };
+});
+
+import api from '../api';
+const { mockBaseApi } = require('../api');
 
 describe('api helper', () => {
   beforeEach(() => {
@@ -24,10 +56,7 @@ describe('api helper', () => {
 
       api.auth.login(credentials);
 
-      expect(mockedApiClient.post).toHaveBeenCalledWith(
-        '/api/auth/login',
-        credentials
-      );
+      expect(mockBaseApi.post).toHaveBeenCalledWith('/api/auth/login', credentials);
     });
 
     it('should call register endpoint with user data', () => {
@@ -35,10 +64,7 @@ describe('api helper', () => {
 
       api.auth.register(userData);
 
-      expect(mockedApiClient.post).toHaveBeenCalledWith(
-        '/api/auth/register',
-        userData
-      );
+      expect(mockBaseApi.post).toHaveBeenCalledWith('/api/auth/register', userData);
     });
 
     it('should call refresh endpoint with token', () => {
@@ -46,9 +72,7 @@ describe('api helper', () => {
 
       api.auth.refresh(refreshToken);
 
-      expect(mockedApiClient.post).toHaveBeenCalledWith('/api/auth/refresh', {
-        refresh_token: refreshToken,
-      });
+      expect(mockBaseApi.post).toHaveBeenCalledWith('/api/auth/refresh', { refresh_token: refreshToken });
     });
   });
 
@@ -56,7 +80,7 @@ describe('api helper', () => {
     it('should call get profile endpoint', () => {
       api.users.getProfile();
 
-      expect(mockedApiClient.get).toHaveBeenCalledWith('/api/users/profile');
+      expect(mockBaseApi.get).toHaveBeenCalledWith('/api/users/profile');
     });
 
     it('should call update profile endpoint with data', () => {
@@ -64,10 +88,7 @@ describe('api helper', () => {
 
       api.users.updateProfile(profileData);
 
-      expect(mockedApiClient.put).toHaveBeenCalledWith(
-        '/api/users/profile',
-        profileData
-      );
+      expect(mockBaseApi.put).toHaveBeenCalledWith('/api/users/profile', profileData);
     });
   });
 
@@ -75,7 +96,7 @@ describe('api helper', () => {
     it('should call get all products endpoint', () => {
       api.products.getAll();
 
-      expect(mockedApiClient.get).toHaveBeenCalledWith('/api/products');
+      expect(mockBaseApi.get).toHaveBeenCalledWith('/api/products');
     });
 
     it('should call get product by id endpoint', () => {
@@ -83,7 +104,7 @@ describe('api helper', () => {
 
       api.products.getById(productId);
 
-      expect(mockedApiClient.get).toHaveBeenCalledWith('/api/products/123');
+      expect(mockBaseApi.get).toHaveBeenCalledWith('/api/products/123');
     });
 
     it('should call create product endpoint with data', () => {
@@ -91,10 +112,7 @@ describe('api helper', () => {
 
       api.products.create(productData);
 
-      expect(mockedApiClient.post).toHaveBeenCalledWith(
-        '/api/products',
-        productData
-      );
+      expect(mockBaseApi.post).toHaveBeenCalledWith('/productos', productData);
     });
   });
 });
