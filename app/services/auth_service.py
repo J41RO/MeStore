@@ -133,6 +133,67 @@ class AuthService:
             True si coincide, False si no
         """
         return self.pwd_context.verify(plain_password, hashed_password)
+
+
+    async def create_user(
+        self,
+        db,
+        email: str,
+        password: str,
+        user_type = None,
+        is_active: bool = True,
+        **additional_fields
+    ):
+        """
+        Crear un nuevo usuario en la base de datos
+        
+        Args:
+            db: Sesión de base de datos async
+            email: Email del usuario
+            password: Contraseña en texto plano
+            user_type: Tipo de usuario
+            is_active: Si el usuario está activo
+            **additional_fields: Campos adicionales del usuario
+            
+        Returns:
+            User: Objeto usuario creado
+        """
+        from app.models.user import User, UserType
+        from sqlalchemy import select
+        
+        # Establecer tipo por defecto
+        if user_type is None:
+            user_type = UserType.COMPRADOR
+        
+        # Verificar si el usuario ya existe
+        result = await db.execute(select(User).where(User.email == email))
+        existing_user = result.scalar_one_or_none()
+        
+        if existing_user:
+            raise ValueError(f"Usuario con email {email} ya existe")
+        
+        # Hash de la contraseña
+        password_hash = await self.get_password_hash(password)
+        
+        # Crear nuevo usuario
+        user_data = {
+            'email': email,
+            'password_hash': password_hash,
+            'user_type': user_type,
+            'is_active': is_active,
+            **additional_fields
+        }
+        
+        new_user = User(**user_data)
+        
+        try:
+            db.add(new_user)
+            await db.commit()
+            await db.refresh(new_user)
+            return new_user
+        except Exception as e:
+            await db.rollback()
+            raise ValueError(f"Error al crear usuario: {str(e)}")
     
 
     # === MÉTODOS OTP PARA VERIFICACIÓN EMAIL/SMS ===
