@@ -26,7 +26,7 @@ import httpx
 from sqlalchemy import text
 from loguru import logger
 
-from app.core.database import AsyncSessionLocal
+from app.database import AsyncSessionLocal
 from app.utils.query_analyzer import query_analyzer
 
 

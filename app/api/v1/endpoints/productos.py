@@ -51,7 +51,7 @@ from PIL import Image
 from sqlalchemy import and_, asc, desc, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_db
+from app.database import get_db
 from app.models.product import Product
 from app.models.product_image import ProductImage
 from app.schemas.product import (

@@ -14,7 +14,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.core.auth import AuthService, get_auth_service
 from app.core.auth import get_current_user
-from app.core.database import get_db
+from app.database import get_db
 from sqlalchemy.orm import Session
 from app.models.user import User
 from fastapi import HTTPException

@@ -21,7 +21,7 @@ from app.core.config import settings
 cors_origins = [origin.strip() for origin in settings.CORS_ORIGINS.split(",")]
 cors_methods = [method.strip() for method in settings.CORS_ALLOW_METHODS.split(",")]
 cors_headers = [header.strip() for header in settings.CORS_ALLOW_HEADERS.split(",")]
-from app.core.database import get_db
+from app.database import get_db
 from app.core.logger import get_logger, log_error, log_shutdown_info, log_startup_info
 from app.core.logging_rotation import setup_log_rotation
 from app.middleware import RequestLoggingMiddleware, SecurityHeadersMiddleware, UserAgentValidatorMiddleware

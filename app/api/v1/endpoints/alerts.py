@@ -11,7 +11,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_db
+from app.database import get_db
 from app.models.product import Product
 from app.schemas.alerts import (
     AlertConfig,

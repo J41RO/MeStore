@@ -45,7 +45,7 @@ class AuthService:
         Returns:
             Usuario si credenciales son válidas, None si son inválidas
         """
-        from app.core.database import get_db
+        from app.database import get_db
         from app.models.user import User
         from sqlalchemy import select
 

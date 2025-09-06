@@ -26,7 +26,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from loguru import logger
 
 from app.utils.query_analyzer import query_analyzer
-from app.core.database import engine
+from app.database import engine
 
 
 class PerformanceMonitorMiddleware(BaseHTTPMiddleware):

@@ -26,7 +26,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
 
-from app.core.database import AsyncSessionLocal, get_session
+from app.database import AsyncSessionLocal
 
 
 class QueryAnalyzer:

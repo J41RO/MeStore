@@ -47,7 +47,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import AuthService, get_auth_service, get_current_user
-from app.core.database import get_db
+from app.database import get_db
 from app.models.user import User, UserType
 from app.models.inventory import Inventory, InventoryStatus
 from app.models.product import Product, ProductStatus
@@ -292,7 +292,7 @@ async def login_vendedor(
             )
 
         # Actualizar last_login
-        from app.core.database import get_db
+        from app.database import get_db
 
         async for db in get_db():
             try:

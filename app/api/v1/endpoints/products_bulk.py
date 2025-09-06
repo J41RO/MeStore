@@ -37,7 +37,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
-from app.core.database import get_db
+from app.database import get_db
 from app.models.product import Product
 from app.api.v1.deps.auth import get_current_user
 from sqlalchemy.orm import Session

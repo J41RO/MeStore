@@ -23,7 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text, inspect
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.core.database import engine, AsyncSessionLocal, Base
+from app.database import engine, AsyncSessionLocal, Base
 from app.models import user  # Import para registrar modelos
 
 
