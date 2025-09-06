@@ -31,7 +31,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Product, ProductFilters, PaginatedResponse } from '../types/api.types';
-import { api } from '../services/api';
+import api from '../services/api';
 
 interface UseProductListState {
   products: Product[];
@@ -81,11 +81,11 @@ export const useProductList = (): UseProductListReturn => {
       setState(prev => ({ ...prev, loading: true, error: null }));
 
       try {
-        const response = await api.products.getWithFilters(
-          filters,
-          page,
-          state.pagination.limit
-        );
+        const response = await api.products.getWithFilters({
+          ...filters,
+          page: page,
+          limit: state.pagination.limit
+        });
         const data: PaginatedResponse<Product> = response.data;
 
         setState(prev => ({

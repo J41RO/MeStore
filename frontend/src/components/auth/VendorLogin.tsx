@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import api from '../../services/api';
 
-const VendorLogin: React.FC = () => {
+interface VendorLoginProps {
+  onLoginSuccess?: () => void;
+}
+
+const VendorLogin: React.FC<VendorLoginProps> = ({ onLoginSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,9 +21,14 @@ const VendorLogin: React.FC = () => {
         email,
         password
       });
-
+      
       localStorage.setItem('access_token', response.data.access_token);
-      window.location.href = '/dashboard';
+      
+      if (onLoginSuccess) {
+        onLoginSuccess();
+      } else {
+        window.location.href = '/dashboard';
+      }
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Error de login');
     } finally {

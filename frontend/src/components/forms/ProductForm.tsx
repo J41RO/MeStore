@@ -8,7 +8,7 @@ import {
   getCategoryOptions,
 } from '../../schemas/productSchema';
 import { CreateProductData, UpdateProductData } from '../../types/api.types';
-import { api } from '../../services/api';
+import api from '../../services/api';
 
 export interface ProductFormProps {
   mode: 'create' | 'edit';
