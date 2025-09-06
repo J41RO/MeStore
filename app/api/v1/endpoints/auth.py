@@ -663,3 +663,81 @@ async def validate_reset_token(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error interno del servidor"
         )
+
+
+
+@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+async def register(
+    user_data: LoginRequest,
+    auth_service: AuthService = Depends(get_auth_service),
+    db: Session = Depends(get_db)
+) -> TokenResponse:
+    """
+    Registrar nuevo usuario.
+    
+    Crea una nueva cuenta de usuario con email y password.
+    Retorna token de acceso para autenticación inmediata.
+    """
+    try:
+        # Verificar que el email no exista
+        existing_user = await auth_service.get_user_by_email(user_data.email, db)
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El email ya está registrado"
+            )
+        
+        # Crear nuevo usuario  
+        new_user = await auth_service.create_user(
+            email=user_data.email,
+            password=user_data.password,
+            db=db
+        )
+        
+        # Generar token para el nuevo usuario
+        access_token = auth_service.create_access_token(data={"sub": new_user.email})
+        
+        return TokenResponse(
+            access_token=access_token,
+            token_type="bearer",
+            expires_in=3600
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error en register: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )
+
+
+
+@router.get("/me", response_model=dict, status_code=status.HTTP_200_OK)
+async def get_current_user_info(
+    current_user: User = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Obtener información del usuario actual autenticado.
+    
+    Retorna información básica del usuario basada en el token JWT.
+    Requiere autenticación válida.
+    """
+    try:
+        return {
+            "id": current_user.id,
+            "email": current_user.email,
+            "nombre": getattr(current_user, 'nombre', current_user.email.split('@')[0]),
+            "email_verified": getattr(current_user, 'email_verified', False),
+            "phone_verified": getattr(current_user, 'phone_verified', False),
+            "is_active": getattr(current_user, 'is_active', True),
+            "created_at": current_user.created_at.isoformat() if hasattr(current_user, 'created_at') else None
+        }
+        
+    except Exception as e:
+        logger.error(f"Error en get_current_user_info: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error al obtener información del usuario"
+        )

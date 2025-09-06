@@ -7,7 +7,7 @@ import Layout from './components/Layout';
 import AuthGuard from './components/AuthGuard';
 import ErrorBoundary from './components/ErrorBoundary';
 import PageLoader from './components/ui/Loading/PageLoader';
-import VendorLanding from './pages/VendorLanding';
+import LandingPage from './pages/LandingPage';
 import './App.css';
 
 // Lazy loading de páginas principales
@@ -34,8 +34,8 @@ function App() {
   return (
     <ErrorBoundary>
       <Routes>
-        {/* Ruta principal pública - Landing Page */}
-        <Route path='/' element={<VendorLanding />} />
+        {/* Ruta principal pública - Nueva Landing Page */}
+        <Route path='/' element={<LandingPage />} />
         <Route path='/test-imageupload' element={<TestImageUpload />} />
         <Route path='/test-inventory' element={<TestInventory />} />
         <Route path='/test-stock-movements' element={<TestStockMovements />} />
@@ -88,6 +88,14 @@ function App() {
         {/* Rutas públicas de autenticación */}
         <Route
           path='/auth/login'
+          element={
+            <Suspense fallback={<PageLoader />}>
+              <Login />
+            </Suspense>
+          }
+        />
+        <Route
+          path='/login'
           element={
             <Suspense fallback={<PageLoader />}>
               <Login />
