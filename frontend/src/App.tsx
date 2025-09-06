@@ -28,6 +28,7 @@ const OTPVerification = lazy(() => import('./components/OTPVerification'));
 
 // Componentes de auth con lazy loading
 const OTPDemo = lazy(() => import('./components/OTPDemo'));
+const VendorTest = lazy(() => import('./pages/VendorTest'));
 
 function App() {
   return (
@@ -38,6 +39,11 @@ function App() {
         <Route path='/test-imageupload' element={<TestImageUpload />} />
         <Route path='/test-inventory' element={<TestInventory />} />
         <Route path='/test-stock-movements' element={<TestStockMovements />} />
+        <Route path='/vendor-test' element={
+          <Suspense fallback={<PageLoader />}>
+            <VendorTest />
+          </Suspense>
+        } />
 
         {/* Rutas protegidas con Layout */}
         <Route
