@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../contexts/AuthContext';
 
@@ -9,6 +9,14 @@ const LandingPage: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [scrollY, setScrollY] = useState(0);
+  
+  // Estados para loading de CTAs
+  const [isLoadingEmpezar, setIsLoadingEmpezar] = useState(false);
+  const [isLoadingDemo, setIsLoadingDemo] = useState(false);
+  
+  // Refs para ripple effect
+  const empezarButtonRef = useRef<HTMLButtonElement>(null);
+  const demoButtonRef = useRef<HTMLButtonElement>(null);
   
   // Typewriter effect state
   const [currentText, setCurrentText] = useState('');
@@ -53,6 +61,36 @@ const LandingPage: React.FC = () => {
     return () => clearTimeout(timeout);
   }, [currentText, currentIndex, isDeleting, typewriterTexts]);
 
+  // Función para crear efecto ripple
+  const createRipple = (event: React.MouseEvent<HTMLButtonElement>) => {
+    const button = event.currentTarget;
+    const rect = button.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    const x = event.clientX - rect.left - size / 2;
+    const y = event.clientY - rect.top - size / 2;
+    
+    const ripple = document.createElement('span');
+    ripple.style.cssText = `
+      position: absolute;
+      width: ${size}px;
+      height: ${size}px;
+      left: ${x}px;
+      top: ${y}px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.6);
+      pointer-events: none;
+      transform: scale(0);
+      animation: ripple-animation 600ms ease-out;
+      z-index: 1;
+    `;
+    
+    button.appendChild(ripple);
+    
+    setTimeout(() => {
+      ripple.remove();
+    }, 600);
+  };
+
   const handleEmailSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (email) {
@@ -60,41 +98,54 @@ const LandingPage: React.FC = () => {
     }
   };
 
-  // FUNCIÓN INTELIGENTE: Empezar en 5 Min
-  const handleEmpezar = () => {
-    if (!isAuthenticated) {
-      navigate('/register');
-    } else {
-      // Redirigir según rol usando lógica existente
-      if (user?.user_type === 'ADMIN' || user?.user_type === 'SUPERUSER') {
-        navigate('/admin');
-      } else if (user?.user_type === 'VENDEDOR') {
-        navigate('/vendor');
+  // FUNCIÓN INTELIGENTE: Empezar en 5 Min con loading state
+  const handleEmpezarWithRipple = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    createRipple(e);
+    setIsLoadingEmpezar(true);
+    
+    // Simular delay de redirección para mostrar loading
+    setTimeout(() => {
+      if (!isAuthenticated) {
+        navigate('/register');
       } else {
-        navigate('/dashboard');
+        // Redirigir según rol usando lógica existente
+        if (user?.user_type === 'ADMIN' || user?.user_type === 'SUPERUSER') {
+          navigate('/admin');
+        } else if (user?.user_type === 'VENDEDOR') {
+          navigate('/vendor');
+        } else {
+          navigate('/dashboard');
+        }
       }
-    }
+      setIsLoadingEmpezar(false);
+    }, 800);
   };
 
-  // FUNCIÓN INTELIGENTE: Ver Demo Live
-  const handleDemo = () => {
-    if (!isAuthenticated) {
-      navigate('/login');
-    } else {
-      // Redirigir según rol usando lógica existente
-      if (user?.user_type === 'ADMIN' || user?.user_type === 'SUPERUSER') {
-        navigate('/admin');
-      } else if (user?.user_type === 'VENDEDOR') {
-        navigate('/vendor');
+  // FUNCIÓN INTELIGENTE: Ver Demo Live con loading state
+  const handleDemoWithAnimation = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    setIsLoadingDemo(true);
+    
+    // Simular delay de redirección para mostrar loading
+    setTimeout(() => {
+      if (!isAuthenticated) {
+        navigate('/login');
       } else {
-        navigate('/dashboard');
+        // Redirigir según rol usando lógica existente
+        if (user?.user_type === 'ADMIN' || user?.user_type === 'SUPERUSER') {
+          navigate('/admin');
+        } else if (user?.user_type === 'VENDEDOR') {
+          navigate('/vendor');
+        } else {
+          navigate('/dashboard');
+        }
       }
-    }
+      setIsLoadingDemo(false);
+    }, 800);
   };
 
   return (
     <div className='min-h-screen bg-white dark:bg-gray-900'>
-      {/* Estilos para animaciones */}
+      {/* Estilos para animaciones incluyendo efectos premium CTAs */}
       <style jsx>{`
         @keyframes float-slow {
           0%, 100% { 
@@ -141,6 +192,40 @@ const LandingPage: React.FC = () => {
           0%, 50% { opacity: 1; }
           51%, 100% { opacity: 0; }
         }
+
+        /* EFECTOS PREMIUM PARA CTAs */
+        @keyframes glow-pulse {
+          0%, 100% { 
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(147, 51, 234, 0.3), 0 0 60px rgba(59, 130, 246, 0.1);
+          }
+          50% { 
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.8), 0 0 60px rgba(147, 51, 234, 0.6), 0 0 90px rgba(59, 130, 246, 0.3);
+          }
+        }
+
+        @keyframes border-rotate {
+          0% { 
+            background-position: 0% 50%; 
+          }
+          50% { 
+            background-position: 100% 50%; 
+          }
+          100% { 
+            background-position: 0% 50%; 
+          }
+        }
+
+        @keyframes ripple-animation {
+          to {
+            transform: scale(4);
+            opacity: 0;
+          }
+        }
+
+        @keyframes loading-spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
         
         .animate-float-slow { 
           animation: float-slow 8s ease-in-out infinite;
@@ -161,6 +246,47 @@ const LandingPage: React.FC = () => {
         
         .parallax-bg {
           will-change: transform;
+        }
+
+        /* CLASES PREMIUM PARA CTAs */
+        .btn-glow-pulse {
+          animation: glow-pulse 2s ease-in-out infinite;
+          will-change: transform, box-shadow;
+        }
+
+        .btn-border-animate {
+          background: linear-gradient(-45deg, transparent, transparent, rgba(59, 130, 246, 0.3), transparent, transparent);
+          background-size: 400% 400%;
+          animation: border-rotate 3s ease infinite;
+          position: relative;
+          will-change: background-position;
+        }
+
+        .btn-border-animate::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          border-radius: inherit;
+          padding: 2px;
+          background: linear-gradient(-45deg, #3b82f6, #8b5cf6, #3b82f6, #8b5cf6);
+          background-size: 400% 400%;
+          animation: border-rotate 3s ease infinite;
+          mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          mask-composite: exclude;
+          z-index: -1;
+        }
+
+        .loading-spinner {
+          display: inline-block;
+          width: 16px;
+          height: 16px;
+          border: 2px solid rgba(255, 255, 255, 0.3);
+          border-radius: 50%;
+          border-top-color: white;
+          animation: loading-spin 0.8s ease-in-out infinite;
         }
       `}</style>
 
@@ -345,19 +471,39 @@ const LandingPage: React.FC = () => {
             </div>
           </form>
           
-          {/* CTAs INTELIGENTES CON REDIRECCIÓN SEGÚN ESTADO AUTH */}
+          {/* CTAs PREMIUM CON EFECTOS VISUALES AVANZADOS */}
           <div className='flex flex-col sm:flex-row gap-4 justify-center items-center mb-12'>
             <button 
-              onClick={handleEmpezar}
-              className='bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-xl'
+              ref={empezarButtonRef}
+              onClick={handleEmpezarWithRipple}
+              disabled={isLoadingEmpezar}
+              className='relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-xl btn-glow-pulse disabled:opacity-80 disabled:cursor-not-allowed'
+              style={{ willChange: 'transform, box-shadow' }}
             >
-              Empezar en 5 Min
+              {isLoadingEmpezar ? (
+                <span className="flex items-center gap-2">
+                  <div className="loading-spinner"></div>
+                  Redirigiendo...
+                </span>
+              ) : (
+                'Empezar en 5 Min'
+              )}
             </button>
             <button 
-              onClick={handleDemo}
-              className='border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-blue-500 hover:text-blue-600 px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-300'
+              ref={demoButtonRef}
+              onClick={handleDemoWithAnimation}
+              disabled={isLoadingDemo}
+              className='relative border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-blue-500 hover:text-blue-600 px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-300 btn-border-animate disabled:opacity-80 disabled:cursor-not-allowed'
+              style={{ willChange: 'background-position' }}
             >
-              Ver Demo Live
+              {isLoadingDemo ? (
+                <span className="flex items-center gap-2">
+                  <div className="loading-spinner" style={{ borderTopColor: 'currentColor' }}></div>
+                  Redirigiendo...
+                </span>
+              ) : (
+                'Ver Demo Live'
+              )}
             </button>
           </div>
           
