@@ -42,11 +42,14 @@ const LandingPage: React.FC = () => {
               </div>
             </div>
             <div className='hidden md:flex items-center space-x-6'>
-              <a href='#features' className='text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors'>
-                Servicios
+              <a href='#solutions' className='text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors'>
+                Soluciones
               </a>
-              <a href='#process' className='text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors'>
-                Cómo Funciona
+              <a href='#resources' className='text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors'>
+                Recursos
+              </a>
+              <a href='#pricing' className='text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors'>
+                Precios
               </a>
               <a href='#contact' className='text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors'>
                 Contacto
