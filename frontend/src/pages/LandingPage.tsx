@@ -8,10 +8,14 @@ const LandingPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [isScrolled, setIsScrolled] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
 
+  // Efecto parallax y scroll detection
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
+      const currentScrollY = window.scrollY;
+      setIsScrolled(currentScrollY > 50);
+      setScrollY(currentScrollY);
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
@@ -26,6 +30,67 @@ const LandingPage: React.FC = () => {
 
   return (
     <div className='min-h-screen bg-white dark:bg-gray-900'>
+      {/* Estilos para animaciones */}
+      <style jsx>{`
+        @keyframes float-slow {
+          0%, 100% { 
+            transform: translate3d(0, 0, 0) scale(1); 
+            opacity: 0.3; 
+          }
+          50% { 
+            transform: translate3d(10px, -20px, 0) scale(1.2); 
+            opacity: 0.7; 
+          }
+        }
+        
+        @keyframes float-medium {
+          0%, 100% { 
+            transform: translate3d(0, 0, 0) scale(1); 
+            opacity: 0.4; 
+          }
+          33% { 
+            transform: translate3d(-15px, -10px, 0) scale(1.3); 
+            opacity: 0.8; 
+          }
+          66% { 
+            transform: translate3d(15px, -25px, 0) scale(0.9); 
+            opacity: 0.5; 
+          }
+        }
+        
+        @keyframes float-fast {
+          0%, 100% { 
+            transform: translate3d(0, 0, 0) scale(1); 
+            opacity: 0.2; 
+          }
+          25% { 
+            transform: translate3d(20px, -15px, 0) scale(1.1); 
+            opacity: 0.6; 
+          }
+          75% { 
+            transform: translate3d(-10px, -30px, 0) scale(1.4); 
+            opacity: 0.4; 
+          }
+        }
+        
+        .animate-float-slow { 
+          animation: float-slow 8s ease-in-out infinite;
+          will-change: transform, opacity;
+        }
+        .animate-float-medium { 
+          animation: float-medium 6s ease-in-out infinite;
+          will-change: transform, opacity;
+        }
+        .animate-float-fast { 
+          animation: float-fast 4s ease-in-out infinite;
+          will-change: transform, opacity;
+        }
+        
+        .parallax-bg {
+          will-change: transform;
+        }
+      `}</style>
+
       {/* Fixed Navigation */}
       <nav className={`fixed w-full z-50 transition-all duration-300 ${
         isScrolled 
@@ -60,7 +125,6 @@ const LandingPage: React.FC = () => {
             </div>
             <div className='flex items-center space-x-4'>
               {isAuthenticated ? (
-                // Estado autenticado - Mostrar avatar y dropdown
                 <div className="relative">
                   <button
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -80,7 +144,6 @@ const LandingPage: React.FC = () => {
                       <div className="py-1">
                         <button
                           onClick={() => {
-                            // Redirigir según el rol del usuario
                             if (user?.user_type === 'ADMIN' || user?.user_type === 'SUPERUSER') {
                               navigate('/admin');
                             } else if (user?.user_type === 'VENDEDOR') {
@@ -108,11 +171,11 @@ const LandingPage: React.FC = () => {
                   )}
                 </div>
               ) : (
-                // Estado no autenticado - Mostrar botones de login/register
                 <>
                   <button
                     onClick={() => navigate('/login')}
-                  className='text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-4 py-2 text-sm font-medium transition-all duration-300 border border-transparent hover:border-blue-200 dark:hover:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:shadow-sm transform hover:scale-[1.02] rounded-lg'                  >
+                    className='text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-4 py-2 text-sm font-medium transition-all duration-300 border border-transparent hover:border-blue-200 dark:hover:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:shadow-sm transform hover:scale-[1.02] rounded-lg'
+                  >
                     Iniciar Sesión
                   </button>
                   <button
@@ -128,9 +191,40 @@ const LandingPage: React.FC = () => {
         </div>
       </nav>
 
-      {/* Hero Section */}
+      {/* Hero Section con Background Dinámico Avanzado */}
       <section className='pt-32 pb-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden'>
-        <div className='absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800'></div>
+        {/* Background dinámico con múltiples layers y efecto parallax */}
+        <div 
+          className='absolute inset-0 bg-gradient-to-br from-blue-600/10 via-violet-500/5 to-purple-600/15 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 parallax-bg'
+          style={{
+            transform: `translate3d(0, ${scrollY * 0.1}px, 0)`
+          }}
+        ></div>
+        <div 
+          className='absolute inset-0 bg-gradient-to-tr from-transparent via-blue-400/5 to-violet-600/10 parallax-bg'
+          style={{
+            transform: `translate3d(0, ${scrollY * 0.15}px, 0)`
+          }}
+        ></div>
+        <div 
+          className='absolute inset-0 bg-gradient-to-bl from-purple-500/5 via-transparent to-blue-500/8 parallax-bg'
+          style={{
+            transform: `translate3d(0, ${scrollY * 0.05}px, 0)`
+          }}
+        ></div>
+        
+        {/* Partículas flotantes decorativas optimizadas */}
+        <div className='absolute inset-0 overflow-hidden pointer-events-none'>
+          <div className='absolute top-20 left-10 w-2 h-2 bg-blue-400/30 rounded-full animate-float-slow'></div>
+          <div className='absolute top-40 right-20 w-1 h-1 bg-violet-500/40 rounded-full animate-float-medium'></div>
+          <div className='absolute top-60 left-1/4 w-3 h-3 bg-purple-400/20 rounded-full animate-float-fast'></div>
+          <div className='absolute bottom-40 right-10 w-2 h-2 bg-blue-500/25 rounded-full animate-float-slow'></div>
+          <div className='absolute bottom-20 left-20 w-1 h-1 bg-violet-400/35 rounded-full animate-float-medium'></div>
+          <div className='absolute top-32 right-1/3 w-1.5 h-1.5 bg-blue-300/25 rounded-full animate-float-fast'></div>
+          <div className='absolute top-80 left-1/3 w-2 h-2 bg-purple-300/20 rounded-full animate-float-medium'></div>
+          <div className='absolute bottom-60 left-1/2 w-1 h-1 bg-violet-300/30 rounded-full animate-float-slow'></div>
+        </div>
+        
         <div className='relative max-w-7xl mx-auto text-center'>
           <div className='inline-flex items-center px-4 py-2 bg-blue-100 dark:bg-blue-900 rounded-full text-blue-700 dark:text-blue-300 text-sm font-medium mb-8'>
             📦 Solución completa de fulfillment
@@ -148,7 +242,7 @@ const LandingPage: React.FC = () => {
             Nosotros almacenamos, gestionamos y enviamos tus productos. 
             Tú te enfocas en <span className='font-semibold text-blue-600'>hacer crecer tu negocio</span>.
           </p>
-          
+
           {/* Email Signup Form */}
           <form onSubmit={handleEmailSubmit} className='max-w-md mx-auto mb-8'>
             <div className='flex gap-2'>
