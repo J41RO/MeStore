@@ -60,6 +60,38 @@ const LandingPage: React.FC = () => {
     }
   };
 
+  // FUNCIÓN INTELIGENTE: Empezar en 5 Min
+  const handleEmpezar = () => {
+    if (!isAuthenticated) {
+      navigate('/register');
+    } else {
+      // Redirigir según rol usando lógica existente
+      if (user?.user_type === 'ADMIN' || user?.user_type === 'SUPERUSER') {
+        navigate('/admin');
+      } else if (user?.user_type === 'VENDEDOR') {
+        navigate('/vendor');
+      } else {
+        navigate('/dashboard');
+      }
+    }
+  };
+
+  // FUNCIÓN INTELIGENTE: Ver Demo Live
+  const handleDemo = () => {
+    if (!isAuthenticated) {
+      navigate('/login');
+    } else {
+      // Redirigir según rol usando lógica existente
+      if (user?.user_type === 'ADMIN' || user?.user_type === 'SUPERUSER') {
+        navigate('/admin');
+      } else if (user?.user_type === 'VENDEDOR') {
+        navigate('/vendor');
+      } else {
+        navigate('/dashboard');
+      }
+    }
+  };
+
   return (
     <div className='min-h-screen bg-white dark:bg-gray-900'>
       {/* Estilos para animaciones */}
@@ -313,18 +345,19 @@ const LandingPage: React.FC = () => {
             </div>
           </form>
           
+          {/* CTAs INTELIGENTES CON REDIRECCIÓN SEGÚN ESTADO AUTH */}
           <div className='flex flex-col sm:flex-row gap-4 justify-center items-center mb-12'>
             <button 
-              onClick={() => navigate('/register')}
+              onClick={handleEmpezar}
               className='bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-xl'
             >
-              Soy Vendedor - Empezar
+              Empezar en 5 Min
             </button>
             <button 
-              onClick={() => navigate('/app')}
+              onClick={handleDemo}
               className='border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-blue-500 hover:text-blue-600 px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-300'
             >
-              Explorar Marketplace
+              Ver Demo Live
             </button>
           </div>
           
