@@ -38,7 +38,7 @@ const registerSchema = yup.object({
   telefono: yup
     .string()
     .required('Teléfono es requerido')
-    .matches(/^\+57\s?\d{3}\s?\d{3}\s?\d{4}$/, 'Formato: +57 300 123 4567'),
+    .matches(/^\d{3}\s\d{3}\s\d{4}$/, 'Formato: 300 123 4567'),
   password: yup
     .string()
     .required('Contraseña es requerida')
@@ -201,7 +201,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
             {...register('nombre')}
             type="text"
             placeholder="Juan Carlos Pérez"
-            className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('nombre')} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors`}
+            className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('nombre')} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
           />
           {renderValidationIcon('nombre')}
         </div>
@@ -220,7 +220,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
             {...register('email')}
             type="email"
             placeholder="juan@correo.com"
-            className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('email')} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors`}
+            className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('email')} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
           />
           {renderValidationIcon('email')}
         </div>
@@ -239,7 +239,18 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
             {...register('cedula')}
             type="text"
             placeholder="12345678"
-            className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('cedula')} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors`}
+            onInput={(e) => {
+              const target = e.target as HTMLInputElement;
+              target.value = target.value.replace(/\D/g, '');
+            }}
+            onKeyPress={(e) => {
+              // Prevenir caracteres no numéricos
+              if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Enter'].includes(e.key)) {
+                e.preventDefault();
+              }
+            }}
+            maxLength={10}
+            className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('cedula')} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
           />
           {renderValidationIcon('cedula')}
         </div>
@@ -253,12 +264,32 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Teléfono Móvil *
         </label>
-        <div className="relative">
+        <div className="relative flex">
+          {/* Selector de país (preparado para futuro) */}
+          <div className="flex items-center bg-gray-50 border border-r-0 border-gray-300 rounded-l-lg px-3 py-3">
+            <span className="text-sm font-medium text-gray-700 mr-2">🇨🇴</span>
+            <span className="text-sm text-gray-600">+57</span>
+            <svg className="w-4 h-4 ml-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
           <input
             {...register('telefono')}
             type="tel"
-            placeholder="+57 300 123 4567"
-            className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('telefono')} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors`}
+            placeholder="300 123 4567"
+            onInput={(e) => {
+              const target = e.target as HTMLInputElement;
+              let value = target.value.replace(/\D/g, '');
+              // Formatear automáticamente: 300 123 4567
+              if (value.length >= 6) {
+                value = value.replace(/(\d{3})(\d{3})(\d{0,4})/, '$1 $2 $3');
+              } else if (value.length >= 3) {
+                value = value.replace(/(\d{3})(\d{0,3})/, '$1 $2');
+              }
+              target.value = value.trim();
+            }}
+            maxLength={12}
+            className={`flex-1 px-4 py-3 rounded-r-lg border ${getInputBorderClass('telefono')} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
           />
           {renderValidationIcon('telefono')}
         </div>
@@ -277,7 +308,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
             {...register('password')}
             type="password"
             placeholder="Mínimo 8 caracteres, mayúscula, minúscula y número"
-            className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('password')} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors`}
+            className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('password')} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
           />
           {renderValidationIcon('password')}
         </div>
@@ -296,7 +327,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
             {...register('confirmPassword')}
             type="password"
             placeholder="Repetir la contraseña"
-            className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('confirmPassword')} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors`}
+            className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('confirmPassword')} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
           />
           {renderValidationIcon('confirmPassword')}
         </div>
