@@ -1,19 +1,146 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../stores/authStore';
-import RegisterForm from '../components/auth/RegisterForm';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
+import { useAuthStore, UserType } from '../stores/authStore';
+
+// Schema de validación para datos básicos (Paso 1)
+const basicDataSchema = yup.object({
+  nombre: yup
+    .string()
+    .required('Nombre completo es requerido')
+    .test(
+      'palabras-minimas',
+      'Debe tener al menos 2 nombres y solo letras',
+      value => {
+        const words = value?.trim().split(/\s+/) || [];
+        return words.length >= 2 && /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(value || '');
+      }
+    ),
+  email: yup
+    .string()
+    .required('Correo electrónico es requerido')
+    .email('Formato de email inválido'),
+  telefono: yup
+    .string()
+    .required('Teléfono es requerido')
+    .matches(/^\d{3}\s\d{3}\s\d{4}$/, 'Formato: 300 123 4567'),
+});
 
 const RegisterVendor: React.FC = () => {
   const navigate = useNavigate();
-  const [isFormComplete, setIsFormComplete] = useState(false);
+  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
+  const [basicFormData, setBasicFormData] = useState<any>(null);
+  const [selectedRole, setSelectedRole] = useState<UserType | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleRegistrationSuccess = (data: any) => {
-    // Redirigir a verificación OTP
-    navigate('/verify-otp', { state: { telefono: data.telefono } });
+  // Form para Paso 1 - Datos básicos
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isValid },
+    watch,
+  } = useForm({
+    resolver: yupResolver(basicDataSchema),
+    mode: 'onChange',
+  });
+
+  const watchedFields = watch();
+
+  // Funciones de navegación entre pasos
+  const nextStep = () => {
+    if (currentStep === 1 && isValid) {
+      setCurrentStep(2);
+    }
   };
 
-  const handleFormValidation = (isValid: boolean) => {
-    setIsFormComplete(isValid);
+  const prevStep = () => {
+    if (currentStep === 2) {
+      setCurrentStep(1);
+    }
+  };
+
+  // Manejar datos del Paso 1
+  const handleBasicDataSubmit = (data: any) => {
+    setBasicFormData(data);
+    nextStep();
+  };
+
+  // Manejar selección de rol
+  const handleRoleSelect = (role: UserType) => {
+    setSelectedRole(role);
+  };
+
+  // Envío final
+  const handleFinalSubmit = async () => {
+    if (!basicFormData || !selectedRole) return;
+
+    setLoading(true);
+    try {
+      const finalData = {
+        ...basicFormData,
+        user_type: selectedRole,
+        password: 'temp123', // En producción, agregar campo de password
+        confirmPassword: 'temp123'
+      };
+
+      const response = await fetch('/api/v1/vendedores/registro', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(finalData),
+      });
+
+      if (response.ok) {
+        navigate('/verify-otp', { state: { telefono: basicFormData.telefono } });
+      } else {
+        console.error('Error en registro');
+      }
+    } catch (error) {
+      console.error('Error de conexión:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helper function para renderizar iconos de validación
+  const renderValidationIcon = (fieldName: string) => {
+    const hasError = errors[fieldName as keyof typeof errors];
+    const hasValue = watchedFields[fieldName as keyof typeof watchedFields];
+    
+    if (hasValue && !hasError) {
+      return (
+        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+          <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+      );
+    }
+    
+    if (hasError) {
+      return (
+        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+          <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </div>
+      );
+    }
+    
+    return null;
+  };
+
+  // Helper function para clases de input
+  const getInputBorderClass = (fieldName: string) => {
+    const hasError = errors[fieldName as keyof typeof errors];
+    const hasValue = watchedFields[fieldName as keyof typeof watchedFields];
+    
+    if (hasValue && !hasError) return 'border-green-300 focus:border-green-500';
+    if (hasError) return 'border-red-300 focus:border-red-500';
+    return 'border-gray-300 focus:border-blue-500';
   };
 
   return (
@@ -24,6 +151,20 @@ const RegisterVendor: React.FC = () => {
         {/* LADO IZQUIERDO: Formulario (50%) */}
         <div className="flex items-center justify-center p-6 lg:p-12">
           <div className="w-full max-w-md space-y-8">
+            
+            {/* Indicador de progreso */}
+            <div className="flex justify-center mb-6">
+              <div className="flex space-x-4">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                  1
+                </div>
+                <div className="w-8 border-t-2 border-gray-300 mt-4"></div>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                  2
+                </div>
+              </div>
+            </div>
+
             {/* Header del formulario */}
             <div className="text-center">
               <div className="mx-auto w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
@@ -35,18 +176,218 @@ const RegisterVendor: React.FC = () => {
                 Únete a MeStocker
               </h2>
               <p className="text-gray-600">
-                Registra tu empresa y comienza a vender
+                {currentStep === 1 ? 'Completa tus datos personales' : 'Selecciona cómo quieres usar MeStocker'}
               </p>
             </div>
 
-            {/* Formulario con validaciones avanzadas */}
+            {/* Contenido por pasos */}
             <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-              <RegisterForm 
-                onSuccess={handleRegistrationSuccess}
-                onValidationChange={handleFormValidation}
-                showValidationFeedback={true}
-              />
               
+              {/* PASO 1: Datos básicos */}
+              {currentStep === 1 && (
+                <form onSubmit={handleSubmit(handleBasicDataSubmit)} className="space-y-6">
+                  <div className="text-center mb-6">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">Información Básica</h3>
+                    <p className="text-gray-600 text-sm">Paso 1 de 2</p>
+                  </div>
+
+                  {/* Nombre Completo */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Nombre Completo *
+                    </label>
+                    <div className="relative">
+                      <input
+                        {...register('nombre')}
+                        type="text"
+                        placeholder="Juan Carlos Pérez"
+                        className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('nombre')} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
+                      />
+                      {renderValidationIcon('nombre')}
+                    </div>
+                    {errors.nombre && (
+                      <p className="mt-1 text-sm text-red-600">{errors.nombre.message}</p>
+                    )}
+                  </div>
+
+                  {/* Email */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Correo Electrónico *
+                    </label>
+                    <div className="relative">
+                      <input
+                        {...register('email')}
+                        type="email"
+                        placeholder="juan@correo.com"
+                        className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('email')} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
+                      />
+                      {renderValidationIcon('email')}
+                    </div>
+                    {errors.email && (
+                      <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                    )}
+                  </div>
+
+                  {/* Teléfono */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Teléfono Móvil *
+                    </label>
+                    <div className="relative flex">
+                      <div className="flex items-center bg-gray-50 border border-r-0 border-gray-300 rounded-l-lg px-3 py-3">
+                        <span className="text-sm font-medium text-gray-700 mr-2">🇨🇴</span>
+                        <span className="text-sm text-gray-600">+57</span>
+                      </div>
+                      <input
+                        {...register('telefono')}
+                        type="tel"
+                        placeholder="300 123 4567"
+                        onInput={(e) => {
+                          const target = e.target as HTMLInputElement;
+                          let value = target.value.replace(/\D/g, '');
+                          if (value.length >= 6) {
+                            value = value.replace(/(\d{3})(\d{3})(\d{0,4})/, '$1 $2 $3');
+                          } else if (value.length >= 3) {
+                            value = value.replace(/(\d{3})(\d{0,3})/, '$1 $2');
+                          }
+                          target.value = value.trim();
+                        }}
+                        maxLength={12}
+                        className={`flex-1 px-4 py-3 rounded-r-lg border ${getInputBorderClass('telefono')} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
+                      />
+                      {renderValidationIcon('telefono')}
+                    </div>
+                    {errors.telefono && (
+                      <p className="mt-1 text-sm text-red-600">{errors.telefono.message}</p>
+                    )}
+                  </div>
+
+                  {/* Botón continuar */}
+                  <button
+                    type="submit"
+                    disabled={!isValid}
+                    className={`w-full py-3 px-4 rounded-lg font-medium text-white transition-all duration-200 ${
+                      isValid
+                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
+                        : 'bg-gray-400 cursor-not-allowed'
+                    }`}
+                  >
+                    Continuar al Paso 2
+                  </button>
+                </form>
+              )}
+
+              {/* PASO 2: Selección de rol */}
+              {currentStep === 2 && (
+                <div className="space-y-6">
+                  <div className="text-center mb-6">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">Selecciona tu Rol</h3>
+                    <p className="text-gray-600 text-sm">Paso 2 de 2</p>
+                  </div>
+
+                  {/* Cards de selección */}
+                  <div className="space-y-4">
+                    {/* Card Vendedor */}
+                    <div
+                      onClick={() => handleRoleSelect(UserType.VENDEDOR)}
+                      className={`p-6 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
+                        selectedRole === UserType.VENDEDOR
+                          ? 'border-blue-500 bg-blue-50 shadow-lg transform scale-105'
+                          : 'border-gray-200 hover:border-blue-300 hover:shadow-md'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-4">
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                          selectedRole === UserType.VENDEDOR ? 'bg-blue-100' : 'bg-gray-100'
+                        }`}>
+                          <svg className={`w-6 h-6 ${
+                            selectedRole === UserType.VENDEDOR ? 'text-blue-600' : 'text-gray-600'
+                          }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                          </svg>
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-gray-900">SOY VENDEDOR</h4>
+                          <p className="text-sm text-gray-600">Quiero vender mis productos</p>
+                        </div>
+                        {selectedRole === UserType.VENDEDOR && (
+                          <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Card Comprador */}
+                    <div
+                      onClick={() => handleRoleSelect(UserType.COMPRADOR)}
+                      className={`p-6 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
+                        selectedRole === UserType.COMPRADOR
+                          ? 'border-green-500 bg-green-50 shadow-lg transform scale-105'
+                          : 'border-gray-200 hover:border-green-300 hover:shadow-md'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-4">
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                          selectedRole === UserType.COMPRADOR ? 'bg-green-100' : 'bg-gray-100'
+                        }`}>
+                          <svg className={`w-6 h-6 ${
+                            selectedRole === UserType.COMPRADOR ? 'text-green-600' : 'text-gray-600'
+                          }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                          </svg>
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-gray-900">SOY COMPRADOR</h4>
+                          <p className="text-sm text-gray-600">Quiero comprar productos</p>
+                        </div>
+                        {selectedRole === UserType.COMPRADOR && (
+                          <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Botones de navegación */}
+                  <div className="flex space-x-4">
+                    <button
+                      onClick={prevStep}
+                      className="flex-1 py-3 px-4 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      Atrás
+                    </button>
+                    <button
+                      onClick={handleFinalSubmit}
+                      disabled={!selectedRole || loading}
+                      className={`flex-1 py-3 px-4 rounded-lg font-medium text-white transition-all duration-200 ${
+                        selectedRole && !loading
+                          ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
+                          : 'bg-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      {loading ? (
+                        <div className="flex items-center justify-center">
+                          <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Registrando...
+                        </div>
+                      ) : (
+                        'Crear Cuenta'
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Link a login */}
               <div className="text-center mt-6 pt-6 border-t border-gray-100">
                 <button
@@ -58,33 +399,21 @@ const RegisterVendor: React.FC = () => {
                 </button>
               </div>
             </div>
-
-            {/* Indicador de progreso visual */}
-            <div className="flex items-center justify-center space-x-2">
-              <div className={`w-3 h-3 rounded-full transition-colors ${isFormComplete ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-              <span className="text-sm text-gray-600">
-                {isFormComplete ? 'Formulario completo' : 'Completa todos los campos'}
-              </span>
-            </div>
           </div>
         </div>
 
-        {/* LADO DERECHO: Visual 3D con branding MeStocker (50%) */}
+        {/* LADO DERECHO: Visual 3D con branding MeStocker (50%) - MANTIENE DISEÑO ORIGINAL */}
         <div className="hidden lg:flex items-center justify-center bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 relative overflow-hidden">
           {/* Elementos de fondo 3D */}
           <div className="absolute inset-0">
-            {/* Círculos flotantes con efecto 3D */}
             <div className="absolute top-20 left-20 w-32 h-32 bg-white/10 rounded-full blur-xl animate-pulse"></div>
             <div className="absolute bottom-32 right-16 w-24 h-24 bg-white/15 rounded-full blur-lg animate-pulse delay-300"></div>
             <div className="absolute top-1/2 left-16 w-16 h-16 bg-white/20 rounded-full blur-md animate-pulse delay-700"></div>
-            
-            {/* Grid pattern */}
             <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:50px_50px]"></div>
           </div>
 
           {/* Contenido principal 3D */}
           <div className="relative z-10 text-center text-white p-12 max-w-lg">
-            {/* Logo/Brand principal */}
             <div className="mb-8">
               <div className="mx-auto w-24 h-24 bg-white/20 backdrop-blur rounded-3xl flex items-center justify-center mb-6 shadow-2xl transform rotate-3 hover:rotate-0 transition-transform duration-500">
                 <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -95,9 +424,7 @@ const RegisterVendor: React.FC = () => {
               <p className="text-xl text-blue-100">Tu almacén digital</p>
             </div>
 
-            {/* Elementos visuales 3D de almacenamiento */}
             <div className="space-y-6">
-              {/* Cajas 3D flotantes */}
               <div className="flex justify-center space-x-4 mb-8">
                 <div className="w-16 h-16 bg-gradient-to-br from-white/30 to-white/10 rounded-lg transform rotate-12 shadow-2xl backdrop-blur border border-white/20 flex items-center justify-center">
                   <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -116,7 +443,6 @@ const RegisterVendor: React.FC = () => {
                 </div>
               </div>
 
-              {/* Beneficios con iconos */}
               <div className="space-y-4 text-left">
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
@@ -144,7 +470,6 @@ const RegisterVendor: React.FC = () => {
                 </div>
               </div>
 
-              {/* Call to action visual */}
               <div className="mt-8 p-4 bg-white/10 backdrop-blur rounded-xl border border-white/20">
                 <p className="text-white/90 text-sm">
                   Únete a más de <span className="font-bold text-white">2,000+</span> empresas que confían en MeStocker
