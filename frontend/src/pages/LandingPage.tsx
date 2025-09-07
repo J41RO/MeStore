@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuthContext } from '../contexts/AuthContext';
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user, isAuthenticated, logout } = useAuthContext();
   const [email, setEmail] = useState('');
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -56,18 +59,71 @@ const LandingPage: React.FC = () => {
               </a>
             </div>
             <div className='flex items-center space-x-4'>
-              <button 
-                onClick={() => navigate('/login')}
-                className='text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-4 py-2 text-sm font-medium transition-colors'
-              >
-                Iniciar Sesión
-              </button>
-              <button 
-                onClick={() => navigate('/register')}
-                className='bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-all duration-300 transform hover:scale-105 shadow-lg'
-              >
-                Registrarse
-              </button>
+              {isAuthenticated ? (
+                // Estado autenticado - Mostrar avatar y dropdown
+                <div className="relative">
+                  <button
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className="flex items-center space-x-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  >
+                    <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                      {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                    </div>
+                    <span className="text-sm font-medium">{user?.name || 'Usuario'}</span>
+                    <svg className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  
+                  {isDropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
+                      <div className="py-1">
+                        <button
+                          onClick={() => {
+                            // Redirigir según el rol del usuario
+                            if (user?.user_type === 'ADMIN' || user?.user_type === 'SUPERUSER') {
+                              navigate('/admin');
+                            } else if (user?.user_type === 'VENDEDOR') {
+                              navigate('/vendor');
+                            } else {
+                              navigate('/dashboard');
+                            }
+                            setIsDropdownOpen(false);
+                          }}
+                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        >
+                          Dashboard
+                        </button>
+                        <button
+                          onClick={() => {
+                            logout();
+                            setIsDropdownOpen(false);
+                          }}
+                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        >
+                          Cerrar Sesión
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                // Estado no autenticado - Mostrar botones de login/register
+                <>
+                  <button
+                    onClick={() => navigate('/login')}
+                    className='text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-4 py-2 text-sm font-medium transition-colors'
+                  >
+                    Iniciar Sesión
+                  </button>
+                  <button
+                    onClick={() => navigate('/register')}
+                    className='bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-all duration-300 transform hover:scale-105 shadow-lg'
+                  >
+                    Registrarse
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
