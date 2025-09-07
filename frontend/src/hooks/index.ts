@@ -4,11 +4,12 @@
 // Copyright (c) 2025 Jairo. Todos los derechos reservados.
 // Licensed under the proprietary license detailed in a LICENSE file in the root of this project.
 // ---------------------------------------------------------------------------------------------
+
 /**
  * Hooks Index - Exportación centralizada de custom hooks
  *
  * Permite imports como:
- * import { useAuth, useVendor, useProducts, useCart } from '@/hooks'
+ * import { useAuth, useVendor, useProducts, useCart, useGoogleAuth, useFacebookAuth } from '@/hooks'
  */
 
 export { useTheme } from './useTheme';
@@ -25,3 +26,11 @@ export {
   useApiRequest,
   default as useApiRequestDefault,
 } from './useApiRequest';
+
+// OAuth Hooks exports
+export { useGoogleAuth } from './useGoogleAuth';
+export { useFacebookAuth } from './useFacebookAuth';
+
+// OAuth Types exports
+export type { GoogleAuthResponse, GoogleUserInfo, UseGoogleAuthReturn } from './useGoogleAuth';
+export type { FacebookUserInfo, FacebookAuthResponse, UseFacebookAuthReturn } from './useFacebookAuth';

@@ -4,6 +4,8 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { useAuthStore, UserType } from '../stores/authStore';
+import { GoogleLogin } from '@react-oauth/google';
+import { FaFacebook, FaGoogle } from 'react-icons/fa';
 
 // Schema de validación para datos básicos (Paso 1)
 const basicDataSchema = yup.object({
@@ -97,6 +99,7 @@ const RegisterVendor: React.FC = () => {
   const [selectedRole, setSelectedRole] = useState<UserType | null>(null);
   const [specificData, setSpecificData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState<'google' | 'facebook' | null>(null);
 
   // Form para Paso 1 - Datos básicos
   const {
@@ -104,6 +107,7 @@ const RegisterVendor: React.FC = () => {
     handleSubmit,
     formState: { errors, isValid },
     watch,
+    setValue,
   } = useForm({
     resolver: yupResolver(basicDataSchema),
     mode: 'onChange',
@@ -123,6 +127,69 @@ const RegisterVendor: React.FC = () => {
 
   const watchedFields = watch();
   const watchedFieldsStep3 = watchStep3();
+
+  // Funciones OAuth
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    setOauthLoading('google');
+    try {
+      // TODO: Integración real con Google OAuth
+      console.log('Google OAuth Success:', credentialResponse);
+      
+      // Simulación de datos del usuario desde Google
+      const mockUserData = {
+        nombre: 'Usuario Google',
+        email: 'usuario@gmail.com',
+        telefono: '', // El usuario deberá completar este campo
+      };
+      
+      // Pre-llenar formulario con datos de Google
+      setValue('nombre', mockUserData.nombre);
+      setValue('email', mockUserData.email);
+      
+      // Mostrar mensaje de éxito
+      alert('Datos de Google cargados. Por favor completa el número de teléfono.');
+      
+    } catch (error) {
+      console.error('Error en autenticación con Google:', error);
+      alert('Error al conectar con Google. Intenta nuevamente.');
+    } finally {
+      setOauthLoading(null);
+    }
+  };
+
+  const handleGoogleError = () => {
+    console.error('Error en Google OAuth');
+    alert('Error al conectar con Google. Intenta nuevamente.');
+    setOauthLoading(null);
+  };
+
+  const handleFacebookLogin = async () => {
+    setOauthLoading('facebook');
+    try {
+      // TODO: Integración real con Facebook SDK
+      console.log('Facebook OAuth Initiated');
+      
+      // Simulación de datos del usuario desde Facebook
+      const mockUserData = {
+        nombre: 'Usuario Facebook',
+        email: 'usuario@facebook.com',
+        telefono: '', // El usuario deberá completar este campo
+      };
+      
+      // Pre-llenar formulario con datos de Facebook
+      setValue('nombre', mockUserData.nombre);
+      setValue('email', mockUserData.email);
+      
+      // Mostrar mensaje de éxito
+      alert('Datos de Facebook cargados. Por favor completa el número de teléfono.');
+      
+    } catch (error) {
+      console.error('Error en autenticación con Facebook:', error);
+      alert('Error al conectar con Facebook. Intenta nuevamente.');
+    } finally {
+      setOauthLoading(null);
+    }
+  };
 
   // Funciones de navegación entre pasos
   const nextStep = () => {
@@ -204,10 +271,10 @@ const RegisterVendor: React.FC = () => {
   const renderValidationIcon = (fieldName: string, formErrors?: any, formFields?: any) => {
     const errors = formErrors || errorsStep3;
     const fields = formFields || watchedFieldsStep3;
-    
+
     const hasError = errors[fieldName as keyof typeof errors];
     const hasValue = fields[fieldName as keyof typeof fields];
-    
+
     if (hasValue && !hasError) {
       return (
         <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -217,7 +284,7 @@ const RegisterVendor: React.FC = () => {
         </div>
       );
     }
-    
+
     if (hasError) {
       return (
         <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -227,7 +294,7 @@ const RegisterVendor: React.FC = () => {
         </div>
       );
     }
-    
+
     return null;
   };
 
@@ -235,10 +302,10 @@ const RegisterVendor: React.FC = () => {
   const getInputBorderClass = (fieldName: string, formErrors?: any, formFields?: any) => {
     const errors = formErrors || errorsStep3;
     const fields = formFields || watchedFieldsStep3;
-    
+
     const hasError = errors[fieldName as keyof typeof errors];
     const hasValue = fields[fieldName as keyof typeof fields];
-    
+
     if (hasValue && !hasError) return 'border-green-300 focus:border-green-500';
     if (hasError) return 'border-red-300 focus:border-red-500';
     return 'border-gray-300 focus:border-blue-500';
@@ -248,11 +315,11 @@ const RegisterVendor: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       {/* Layout dividido: Grid responsivo */}
       <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
-        
+
         {/* LADO IZQUIERDO: Formulario (50%) */}
         <div className="flex items-center justify-center p-6 lg:p-12">
           <div className="w-full max-w-md space-y-8">
-            
+
             {/* Indicador de progreso */}
             <div className="flex justify-center mb-6">
               <div className="flex items-center space-x-4">
@@ -290,100 +357,157 @@ const RegisterVendor: React.FC = () => {
 
             {/* Contenido por pasos */}
             <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-              
+
               {/* PASO 1: Datos básicos */}
               {currentStep === 1 && (
-                <form onSubmit={handleSubmit(handleBasicDataSubmit)} className="space-y-6">
+                <div className="space-y-6">
                   <div className="text-center mb-6">
                     <h3 className="text-xl font-semibold text-gray-900 mb-2">Información Básica</h3>
                     <p className="text-gray-600 text-sm">Paso 1 de 3</p>
                   </div>
 
-                  {/* Nombre Completo */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Nombre Completo *
-                    </label>
-                    <div className="relative">
-                      <input
-                        {...register('nombre')}
-                        type="text"
-                        placeholder="Juan Carlos Pérez"
-                        className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('nombre', errors, watchedFields)} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
-                      />
-                      {renderValidationIcon('nombre', errors, watchedFields)}
+                  {/* Botones OAuth */}
+                  <div className="space-y-4 mb-6">
+                    <div className="text-center">
+                      <p className="text-sm text-gray-600 mb-4">Regístrate rápidamente con:</p>
                     </div>
-                    {errors.nombre && (
-                      <p className="mt-1 text-sm text-red-600">{errors.nombre.message}</p>
-                    )}
-                  </div>
-
-                  {/* Email */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Correo Electrónico *
-                    </label>
-                    <div className="relative">
-                      <input
-                        {...register('email')}
-                        type="email"
-                        placeholder="juan@correo.com"
-                        className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('email', errors, watchedFields)} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
+                    
+                    {/* Botón Google */}
+                    <div className="w-full">
+                      <GoogleLogin
+                        onSuccess={handleGoogleSuccess}
+                        onError={handleGoogleError}
+                        useOneTap={false}
+                        auto_select={false}
+                        width="100%"
+                        text="signup_with"
+                        theme="outline"
+                        size="large"
+                        logo_alignment="left"
                       />
-                      {renderValidationIcon('email', errors, watchedFields)}
                     </div>
-                    {errors.email && (
-                      <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
-                    )}
-                  </div>
 
-                  {/* Teléfono */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Teléfono Móvil *
-                    </label>
-                    <div className="relative flex">
-                      <div className="flex items-center bg-gray-50 border border-r-0 border-gray-300 rounded-l-lg px-3 py-3">
-                        <span className="text-sm font-medium text-gray-700 mr-2">🇨🇴</span>
-                        <span className="text-sm text-gray-600">+57</span>
+                    {/* Botón Facebook Custom */}
+                    <button
+                      onClick={handleFacebookLogin}
+                      disabled={oauthLoading === 'facebook'}
+                      className="w-full flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg bg-[#1877F2] text-white font-medium hover:bg-[#166FE5] transition-colors duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {oauthLoading === 'facebook' ? (
+                        <div className="flex items-center">
+                          <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Conectando...
+                        </div>
+                      ) : (
+                        <div className="flex items-center">
+                          <FaFacebook className="w-5 h-5 mr-3" />
+                          Registrarse con Facebook
+                        </div>
+                      )}
+                    </button>
+
+                    {/* Separador */}
+                    <div className="relative my-6">
+                      <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-gray-300"></div>
                       </div>
-                      <input
-                        {...register('telefono')}
-                        type="tel"
-                        placeholder="300 123 4567"
-                        onInput={(e) => {
-                          const target = e.target as HTMLInputElement;
-                          let value = target.value.replace(/\D/g, '');
-                          if (value.length >= 6) {
-                            value = value.replace(/(\d{3})(\d{3})(\d{0,4})/, '$1 $2 $3');
-                          } else if (value.length >= 3) {
-                            value = value.replace(/(\d{3})(\d{0,3})/, '$1 $2');
-                          }
-                          target.value = value.trim();
-                        }}
-                        maxLength={12}
-                        className={`flex-1 px-4 py-3 rounded-r-lg border ${getInputBorderClass('telefono', errors, watchedFields)} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
-                      />
-                      {renderValidationIcon('telefono', errors, watchedFields)}
+                      <div className="relative flex justify-center text-sm">
+                        <span className="px-4 bg-white text-gray-500 font-medium">o continúa con email</span>
+                      </div>
                     </div>
-                    {errors.telefono && (
-                      <p className="mt-1 text-sm text-red-600">{errors.telefono.message}</p>
-                    )}
                   </div>
 
-                  {/* Botón continuar */}
-                  <button
-                    type="submit"
-                    disabled={!isValid}
-                    className={`w-full py-3 px-4 rounded-lg font-medium text-white transition-all duration-200 ${
-                      isValid
-                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
-                        : 'bg-gray-400 cursor-not-allowed'
-                    }`}
-                  >
-                    Continuar al Paso 2
-                  </button>
-                </form>
+                  {/* Formulario tradicional */}
+                  <form onSubmit={handleSubmit(handleBasicDataSubmit)} className="space-y-6">
+                    {/* Nombre Completo */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Nombre Completo *
+                      </label>
+                      <div className="relative">
+                        <input
+                          {...register('nombre')}
+                          type="text"
+                          placeholder="Juan Carlos Pérez"
+                          className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('nombre', errors, watchedFields)} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
+                        />
+                        {renderValidationIcon('nombre', errors, watchedFields)}
+                      </div>
+                      {errors.nombre && (
+                        <p className="mt-1 text-sm text-red-600">{errors.nombre.message}</p>
+                      )}
+                    </div>
+
+                    {/* Email */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Correo Electrónico *
+                      </label>
+                      <div className="relative">
+                        <input
+                          {...register('email')}
+                          type="email"
+                          placeholder="juan@correo.com"
+                          className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('email', errors, watchedFields)} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
+                        />
+                        {renderValidationIcon('email', errors, watchedFields)}
+                      </div>
+                      {errors.email && (
+                        <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                      )}
+                    </div>
+
+                    {/* Teléfono */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Teléfono Móvil *
+                      </label>
+                      <div className="relative flex">
+                        <div className="flex items-center bg-gray-50 border border-r-0 border-gray-300 rounded-l-lg px-3 py-3">
+                          <span className="text-sm font-medium text-gray-700 mr-2">🇨🇴</span>
+                          <span className="text-sm text-gray-600">+57</span>
+                        </div>
+                        <input
+                          {...register('telefono')}
+                          type="tel"
+                          placeholder="300 123 4567"
+                          onInput={(e) => {
+                            const target = e.target as HTMLInputElement;
+                            let value = target.value.replace(/\D/g, '');
+                            if (value.length >= 6) {
+                              value = value.replace(/(\d{3})(\d{3})(\d{0,4})/, '$1 $2 $3');
+                            } else if (value.length >= 3) {
+                              value = value.replace(/(\d{3})(\d{0,3})/, '$1 $2');
+                            }
+                            target.value = value.trim();
+                          }}
+                          maxLength={12}
+                          className={`flex-1 px-4 py-3 rounded-r-lg border ${getInputBorderClass('telefono', errors, watchedFields)} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
+                        />
+                        {renderValidationIcon('telefono', errors, watchedFields)}
+                      </div>
+                      {errors.telefono && (
+                        <p className="mt-1 text-sm text-red-600">{errors.telefono.message}</p>
+                      )}
+                    </div>
+
+                    {/* Botón continuar */}
+                    <button
+                      type="submit"
+                      disabled={!isValid}
+                      className={`w-full py-3 px-4 rounded-lg font-medium text-white transition-all duration-200 ${
+                        isValid
+                          ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
+                          : 'bg-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      Continuar al Paso 2
+                    </button>
+                  </form>
+                </div>
               )}
 
               {/* PASO 2: Selección de rol */}
