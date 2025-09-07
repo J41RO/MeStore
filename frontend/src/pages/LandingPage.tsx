@@ -9,6 +9,18 @@ const LandingPage: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [scrollY, setScrollY] = useState(0);
+  
+  // Typewriter effect state
+  const [currentText, setCurrentText] = useState('');
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  const typewriterTexts = [
+    'Almacenamos tus productos de forma segura',
+    'Gestionamos tu inventario automáticamente',
+    'Enviamos a tus clientes en tiempo récord',
+    'Hacemos crecer tu negocio sin complicaciones'
+  ];
 
   // Efecto parallax y scroll detection
   useEffect(() => {
@@ -20,6 +32,26 @@ const LandingPage: React.FC = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Typewriter effect implementation
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      const current = typewriterTexts[currentIndex];
+      
+      if (!isDeleting && currentText !== current) {
+        setCurrentText(current.substring(0, currentText.length + 1));
+      } else if (isDeleting && currentText !== '') {
+        setCurrentText(current.substring(0, currentText.length - 1));
+      } else if (!isDeleting && currentText === current) {
+        setTimeout(() => setIsDeleting(true), 2000);
+      } else if (isDeleting && currentText === '') {
+        setIsDeleting(false);
+        setCurrentIndex((currentIndex + 1) % typewriterTexts.length);
+      }
+    }, isDeleting ? 50 : 100);
+
+    return () => clearTimeout(timeout);
+  }, [currentText, currentIndex, isDeleting, typewriterTexts]);
 
   const handleEmailSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,6 +104,11 @@ const LandingPage: React.FC = () => {
             opacity: 0.4; 
           }
         }
+
+        @keyframes blink {
+          0%, 50% { opacity: 1; }
+          51%, 100% { opacity: 0; }
+        }
         
         .animate-float-slow { 
           animation: float-slow 8s ease-in-out infinite;
@@ -84,6 +121,10 @@ const LandingPage: React.FC = () => {
         .animate-float-fast { 
           animation: float-fast 4s ease-in-out infinite;
           will-change: transform, opacity;
+        }
+        
+        .typewriter-cursor {
+          animation: blink 1s infinite;
         }
         
         .parallax-bg {
@@ -227,21 +268,30 @@ const LandingPage: React.FC = () => {
         
         <div className='relative max-w-7xl mx-auto text-center'>
           <div className='inline-flex items-center px-4 py-2 bg-blue-100 dark:bg-blue-900 rounded-full text-blue-700 dark:text-blue-300 text-sm font-medium mb-8'>
-            📦 Solución completa de fulfillment
+            📦 Solución completa de <span className='bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-extrabold'>fulfillment</span>
           </div>
-          <h1 className='text-6xl sm:text-7xl lg:text-8xl font-bold tracking-tight mb-8 leading-tight'>
+          <h1 className='text-6xl sm:text-7xl lg:text-8xl font-black tracking-tight mb-8 leading-tight'>
             <span className='bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent'>
-              Tu Almacén
+              Tu Almacén Virtual
             </span>
             <br />
             <span className='text-gray-900 dark:text-white'>
-              Virtual
+              en Bucaramanga
             </span>
           </h1>
-          <p className='text-xl sm:text-2xl text-gray-600 dark:text-gray-300 max-w-4xl mx-auto mb-12 leading-relaxed'>
-            Nosotros almacenamos, gestionamos y enviamos tus productos. 
-            Tú te enfocas en <span className='font-semibold text-blue-600'>hacer crecer tu negocio</span>.
-          </p>
+          <div className='text-xl sm:text-2xl text-gray-600 dark:text-gray-300 max-w-4xl mx-auto mb-12 leading-relaxed min-h-[4rem] flex items-center justify-center'>
+            <span>
+              {currentText}
+              <span className='typewriter-cursor text-blue-600'>|</span>
+            </span>
+          </div>
+          <div className='text-lg text-gray-500 dark:text-gray-400 max-w-3xl mx-auto mb-12'>
+            Tú te enfocas en hacer crecer tu negocio con nuestro 
+            <span className='bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent font-extrabold ml-1 mr-1'>
+              Marketplace
+            </span> 
+            especializado.
+          </div>
 
           {/* Email Signup Form */}
           <form onSubmit={handleEmailSubmit} className='max-w-md mx-auto mb-8'>
