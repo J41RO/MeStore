@@ -28,11 +28,74 @@ const basicDataSchema = yup.object({
     .matches(/^\d{3}\s\d{3}\s\d{4}$/, 'Formato: 300 123 4567'),
 });
 
+// Schema de validación para COMPRADOR (Paso 3)
+const compradorSchema = yup.object({
+  cedula: yup
+    .string()
+    .required('Cédula es requerida')
+    .test(
+      'cedula-colombiana',
+      'Cédula debe tener entre 8-10 dígitos numéricos',
+      value => {
+        const numericValue = value?.replace(/\D/g, '') || '';
+        return (
+          numericValue.length >= 8 &&
+          numericValue.length <= 10 &&
+          /^\d+$/.test(numericValue)
+        );
+      }
+    ),
+  direccion: yup
+    .string()
+    .required('Dirección es requerida')
+    .min(10, 'Dirección debe tener al menos 10 caracteres'),
+  ciudad: yup
+    .string()
+    .required('Ciudad es requerida')
+    .min(3, 'Ciudad debe tener al menos 3 caracteres'),
+  departamento: yup
+    .string()
+    .required('Departamento es requerido'),
+});
+
+// Schema de validación para VENDEDOR (Paso 3)
+const vendedorSchema = yup.object({
+  tipo_vendedor: yup
+    .string()
+    .required('Tipo de vendedor es requerido')
+    .oneOf(['persona_juridica', 'persona_natural'], 'Selecciona un tipo válido'),
+  nombre_empresa: yup
+    .string()
+    .when('tipo_vendedor', {
+      is: 'persona_juridica',
+      then: (schema) => schema.required('Nombre de empresa es requerido').min(3, 'Mínimo 3 caracteres'),
+      otherwise: (schema) => schema.notRequired(),
+    }),
+  nit: yup
+    .string()
+    .when('tipo_vendedor', {
+      is: 'persona_juridica',
+      then: (schema) => schema.required('NIT es requerido').matches(/^\d{9}-\d$/, 'Formato: 123456789-0'),
+      otherwise: (schema) => schema.notRequired(),
+    }),
+  direccion_fiscal: yup
+    .string()
+    .required('Dirección fiscal es requerida')
+    .min(10, 'Dirección debe tener al menos 10 caracteres'),
+  ciudad_fiscal: yup
+    .string()
+    .required('Ciudad fiscal es requerida'),
+  departamento_fiscal: yup
+    .string()
+    .required('Departamento fiscal es requerido'),
+});
+
 const RegisterVendor: React.FC = () => {
   const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
   const [basicFormData, setBasicFormData] = useState<any>(null);
   const [selectedRole, setSelectedRole] = useState<UserType | null>(null);
+  const [specificData, setSpecificData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
   // Form para Paso 1 - Datos básicos
@@ -46,18 +109,35 @@ const RegisterVendor: React.FC = () => {
     mode: 'onChange',
   });
 
+  // Form para Paso 3 - Datos específicos
+  const {
+    register: registerStep3,
+    handleSubmit: handleSubmitStep3,
+    formState: { errors: errorsStep3, isValid: isValidStep3 },
+    watch: watchStep3,
+    setValue: setValueStep3,
+  } = useForm({
+    resolver: yupResolver(selectedRole === UserType.COMPRADOR ? compradorSchema : vendedorSchema),
+    mode: 'onChange',
+  });
+
   const watchedFields = watch();
+  const watchedFieldsStep3 = watchStep3();
 
   // Funciones de navegación entre pasos
   const nextStep = () => {
     if (currentStep === 1 && isValid) {
       setCurrentStep(2);
+    } else if (currentStep === 2 && selectedRole) {
+      setCurrentStep(3);
     }
   };
 
   const prevStep = () => {
     if (currentStep === 2) {
       setCurrentStep(1);
+    } else if (currentStep === 3) {
+      setCurrentStep(2);
     }
   };
 
@@ -72,14 +152,29 @@ const RegisterVendor: React.FC = () => {
     setSelectedRole(role);
   };
 
+  // Continuar al paso 3 después de seleccionar rol
+  const handleRoleSubmit = () => {
+    if (selectedRole) {
+      nextStep();
+    }
+  };
+
+  // Manejar datos del Paso 3
+  const handleSpecificDataSubmit = (data: any) => {
+    setSpecificData(data);
+    handleFinalSubmit(data);
+  };
+
   // Envío final
-  const handleFinalSubmit = async () => {
+  const handleFinalSubmit = async (step3Data?: any) => {
     if (!basicFormData || !selectedRole) return;
 
     setLoading(true);
     try {
       const finalData = {
         ...basicFormData,
+        ...specificData,
+        ...step3Data,
         user_type: selectedRole,
         password: 'temp123', // En producción, agregar campo de password
         confirmPassword: 'temp123'
@@ -106,9 +201,12 @@ const RegisterVendor: React.FC = () => {
   };
 
   // Helper function para renderizar iconos de validación
-  const renderValidationIcon = (fieldName: string) => {
+  const renderValidationIcon = (fieldName: string, formErrors?: any, formFields?: any) => {
+    const errors = formErrors || errorsStep3;
+    const fields = formFields || watchedFieldsStep3;
+    
     const hasError = errors[fieldName as keyof typeof errors];
-    const hasValue = watchedFields[fieldName as keyof typeof watchedFields];
+    const hasValue = fields[fieldName as keyof typeof fields];
     
     if (hasValue && !hasError) {
       return (
@@ -134,9 +232,12 @@ const RegisterVendor: React.FC = () => {
   };
 
   // Helper function para clases de input
-  const getInputBorderClass = (fieldName: string) => {
+  const getInputBorderClass = (fieldName: string, formErrors?: any, formFields?: any) => {
+    const errors = formErrors || errorsStep3;
+    const fields = formFields || watchedFieldsStep3;
+    
     const hasError = errors[fieldName as keyof typeof errors];
-    const hasValue = watchedFields[fieldName as keyof typeof watchedFields];
+    const hasValue = fields[fieldName as keyof typeof fields];
     
     if (hasValue && !hasError) return 'border-green-300 focus:border-green-500';
     if (hasError) return 'border-red-300 focus:border-red-500';
@@ -154,13 +255,17 @@ const RegisterVendor: React.FC = () => {
             
             {/* Indicador de progreso */}
             <div className="flex justify-center mb-6">
-              <div className="flex space-x-4">
+              <div className="flex items-center space-x-4">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
                   1
                 </div>
-                <div className="w-8 border-t-2 border-gray-300 mt-4"></div>
+                <div className="w-6 border-t-2 border-gray-300"></div>
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
                   2
+                </div>
+                <div className="w-6 border-t-2 border-gray-300"></div>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                  3
                 </div>
               </div>
             </div>
@@ -176,7 +281,10 @@ const RegisterVendor: React.FC = () => {
                 Únete a MeStocker
               </h2>
               <p className="text-gray-600">
-                {currentStep === 1 ? 'Completa tus datos personales' : 'Selecciona cómo quieres usar MeStocker'}
+                {currentStep === 1 && 'Completa tus datos personales'}
+                {currentStep === 2 && 'Selecciona cómo quieres usar MeStocker'}
+                {currentStep === 3 && selectedRole === UserType.COMPRADOR && 'Información para entregas'}
+                {currentStep === 3 && selectedRole === UserType.VENDEDOR && 'Información comercial'}
               </p>
             </div>
 
@@ -188,7 +296,7 @@ const RegisterVendor: React.FC = () => {
                 <form onSubmit={handleSubmit(handleBasicDataSubmit)} className="space-y-6">
                   <div className="text-center mb-6">
                     <h3 className="text-xl font-semibold text-gray-900 mb-2">Información Básica</h3>
-                    <p className="text-gray-600 text-sm">Paso 1 de 2</p>
+                    <p className="text-gray-600 text-sm">Paso 1 de 3</p>
                   </div>
 
                   {/* Nombre Completo */}
@@ -201,9 +309,9 @@ const RegisterVendor: React.FC = () => {
                         {...register('nombre')}
                         type="text"
                         placeholder="Juan Carlos Pérez"
-                        className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('nombre')} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
+                        className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('nombre', errors, watchedFields)} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
                       />
-                      {renderValidationIcon('nombre')}
+                      {renderValidationIcon('nombre', errors, watchedFields)}
                     </div>
                     {errors.nombre && (
                       <p className="mt-1 text-sm text-red-600">{errors.nombre.message}</p>
@@ -220,9 +328,9 @@ const RegisterVendor: React.FC = () => {
                         {...register('email')}
                         type="email"
                         placeholder="juan@correo.com"
-                        className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('email')} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
+                        className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('email', errors, watchedFields)} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
                       />
-                      {renderValidationIcon('email')}
+                      {renderValidationIcon('email', errors, watchedFields)}
                     </div>
                     {errors.email && (
                       <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
@@ -254,9 +362,9 @@ const RegisterVendor: React.FC = () => {
                           target.value = value.trim();
                         }}
                         maxLength={12}
-                        className={`flex-1 px-4 py-3 rounded-r-lg border ${getInputBorderClass('telefono')} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
+                        className={`flex-1 px-4 py-3 rounded-r-lg border ${getInputBorderClass('telefono', errors, watchedFields)} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
                       />
-                      {renderValidationIcon('telefono')}
+                      {renderValidationIcon('telefono', errors, watchedFields)}
                     </div>
                     {errors.telefono && (
                       <p className="mt-1 text-sm text-red-600">{errors.telefono.message}</p>
@@ -283,7 +391,7 @@ const RegisterVendor: React.FC = () => {
                 <div className="space-y-6">
                   <div className="text-center mb-6">
                     <h3 className="text-xl font-semibold text-gray-900 mb-2">Selecciona tu Rol</h3>
-                    <p className="text-gray-600 text-sm">Paso 2 de 2</p>
+                    <p className="text-gray-600 text-sm">Paso 2 de 3</p>
                   </div>
 
                   {/* Cards de selección */}
@@ -364,10 +472,322 @@ const RegisterVendor: React.FC = () => {
                       Atrás
                     </button>
                     <button
-                      onClick={handleFinalSubmit}
-                      disabled={!selectedRole || loading}
+                      onClick={handleRoleSubmit}
+                      disabled={!selectedRole}
                       className={`flex-1 py-3 px-4 rounded-lg font-medium text-white transition-all duration-200 ${
-                        selectedRole && !loading
+                        selectedRole
+                          ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
+                          : 'bg-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      Continuar al Paso 3
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* PASO 3: Datos específicos según rol */}
+              {currentStep === 3 && (
+                <form onSubmit={handleSubmitStep3(handleSpecificDataSubmit)} className="space-y-6">
+                  <div className="text-center mb-6">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                      {selectedRole === UserType.COMPRADOR ? 'Información para Entregas' : 'Información Comercial'}
+                    </h3>
+                    <p className="text-gray-600 text-sm">Paso 3 de 3</p>
+                  </div>
+
+                  {/* FORMULARIO PARA COMPRADORES */}
+                  {selectedRole === UserType.COMPRADOR && (
+                    <>
+                      {/* Cédula */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Cédula de Ciudadanía *
+                        </label>
+                        <div className="relative">
+                          <input
+                            {...registerStep3('cedula')}
+                            type="text"
+                            placeholder="12345678"
+                            onInput={(e) => {
+                              const target = e.target as HTMLInputElement;
+                              target.value = target.value.replace(/\D/g, '');
+                            }}
+                            maxLength={10}
+                            className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('cedula')} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
+                          />
+                          {renderValidationIcon('cedula')}
+                        </div>
+                        {errorsStep3.cedula && (
+                          <p className="mt-1 text-sm text-red-600">{errorsStep3.cedula.message}</p>
+                        )}
+                      </div>
+
+                      {/* Dirección */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Dirección de Entrega *
+                        </label>
+                        <div className="relative">
+                          <input
+                            {...registerStep3('direccion')}
+                            type="text"
+                            placeholder="Calle 123 #45-67, Barrio Centro"
+                            className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('direccion')} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
+                          />
+                          {renderValidationIcon('direccion')}
+                        </div>
+                        {errorsStep3.direccion && (
+                          <p className="mt-1 text-sm text-red-600">{errorsStep3.direccion.message}</p>
+                        )}
+                      </div>
+
+                      {/* Ciudad y Departamento */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Ciudad *
+                          </label>
+                          <div className="relative">
+                            <input
+                              {...registerStep3('ciudad')}
+                              type="text"
+                              placeholder="Bucaramanga"
+                              className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('ciudad')} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
+                            />
+                            {renderValidationIcon('ciudad')}
+                          </div>
+                          {errorsStep3.ciudad && (
+                            <p className="mt-1 text-sm text-red-600">{errorsStep3.ciudad.message}</p>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Departamento *
+                          </label>
+                          <div className="relative">
+                            <select
+                              {...registerStep3('departamento')}
+                              className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('departamento')} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 bg-white font-medium`}
+                            >
+                              <option value="">Seleccionar</option>
+                              <option value="santander">Santander</option>
+                              <option value="cundinamarca">Cundinamarca</option>
+                              <option value="antioquia">Antioquia</option>
+                              <option value="valle">Valle del Cauca</option>
+                              <option value="atlantico">Atlántico</option>
+                            </select>
+                          </div>
+                          {errorsStep3.departamento && (
+                            <p className="mt-1 text-sm text-red-600">{errorsStep3.departamento.message}</p>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* FORMULARIO PARA VENDEDORES */}
+                  {selectedRole === UserType.VENDEDOR && (
+                    <>
+                      {/* Tipo de Vendedor */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-3">
+                          Tipo de Vendedor *
+                        </label>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div
+                            onClick={() => setValueStep3('tipo_vendedor', 'persona_juridica')}
+                            className={`p-6 rounded-lg border-2 cursor-pointer transition-all ${
+                              watchedFieldsStep3.tipo_vendedor === 'persona_juridica'
+                                ? 'border-blue-500 bg-blue-50 shadow-lg transform scale-105'
+                                : 'border-gray-300 hover:border-blue-300 hover:shadow-md bg-white'
+                            }`}
+                          >
+                            <div className="text-center">
+                              <div className={`w-12 h-12 mx-auto mb-3 rounded-full flex items-center justify-center ${
+                                watchedFieldsStep3.tipo_vendedor === 'persona_juridica' ? 'bg-blue-100' : 'bg-gray-100'
+                              }`}>
+                                <svg className={`w-6 h-6 ${
+                                  watchedFieldsStep3.tipo_vendedor === 'persona_juridica' ? 'text-blue-600' : 'text-gray-600'
+                                }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                </svg>
+                              </div>
+                              <h4 className="font-bold text-black text-base mb-1">Persona Jurídica</h4>
+                              <p className="text-sm text-gray-700 font-medium">Tengo empresa constituida</p>
+                              {watchedFieldsStep3.tipo_vendedor === 'persona_juridica' && (
+                                <div className="mt-3 w-6 h-6 mx-auto bg-blue-500 rounded-full flex items-center justify-center">
+                                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div
+                            onClick={() => setValueStep3('tipo_vendedor', 'persona_natural')}
+                            className={`p-6 rounded-lg border-2 cursor-pointer transition-all ${
+                              watchedFieldsStep3.tipo_vendedor === 'persona_natural'
+                                ? 'border-green-500 bg-green-50 shadow-lg transform scale-105'
+                                : 'border-gray-300 hover:border-green-300 hover:shadow-md bg-white'
+                            }`}
+                          >
+                            <div className="text-center">
+                              <div className={`w-12 h-12 mx-auto mb-3 rounded-full flex items-center justify-center ${
+                                watchedFieldsStep3.tipo_vendedor === 'persona_natural' ? 'bg-green-100' : 'bg-gray-100'
+                              }`}>
+                                <svg className={`w-6 h-6 ${
+                                  watchedFieldsStep3.tipo_vendedor === 'persona_natural' ? 'text-green-600' : 'text-gray-600'
+                                }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                              </div>
+                              <h4 className="font-bold text-black text-base mb-1">Persona Natural</h4>
+                              <p className="text-sm text-gray-700 font-medium">Vendo como persona natural</p>
+                              {watchedFieldsStep3.tipo_vendedor === 'persona_natural' && (
+                                <div className="mt-3 w-6 h-6 mx-auto bg-green-500 rounded-full flex items-center justify-center">
+                                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        {errorsStep3.tipo_vendedor && (
+                          <p className="mt-1 text-sm text-red-600">{errorsStep3.tipo_vendedor.message}</p>
+                        )}
+                      </div>
+
+                      {/* Campos para Persona Jurídica */}
+                      {watchedFieldsStep3.tipo_vendedor === 'persona_juridica' && (
+                        <>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Nombre de la Empresa *
+                            </label>
+                            <div className="relative">
+                              <input
+                                {...registerStep3('nombre_empresa')}
+                                type="text"
+                                placeholder="Mi Empresa S.A.S"
+                                className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('nombre_empresa')} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
+                              />
+                              {renderValidationIcon('nombre_empresa')}
+                            </div>
+                            {errorsStep3.nombre_empresa && (
+                              <p className="mt-1 text-sm text-red-600">{errorsStep3.nombre_empresa.message}</p>
+                            )}
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              NIT *
+                            </label>
+                            <div className="relative">
+                              <input
+                                {...registerStep3('nit')}
+                                type="text"
+                                placeholder="123456789-0"
+                                onInput={(e) => {
+                                  const target = e.target as HTMLInputElement;
+                                  let value = target.value.replace(/[^\d-]/g, '');
+                                  if (value.length === 9 && !value.includes('-')) {
+                                    value = value + '-';
+                                  }
+                                  target.value = value;
+                                }}
+                                maxLength={11}
+                                className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('nit')} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
+                              />
+                              {renderValidationIcon('nit')}
+                            </div>
+                            {errorsStep3.nit && (
+                              <p className="mt-1 text-sm text-red-600">{errorsStep3.nit.message}</p>
+                            )}
+                          </div>
+                        </>
+                      )}
+
+                      {/* Dirección Fiscal */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Dirección Fiscal *
+                        </label>
+                        <div className="relative">
+                          <input
+                            {...registerStep3('direccion_fiscal')}
+                            type="text"
+                            placeholder="Carrera 27 #123-45, Centro"
+                            className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('direccion_fiscal')} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
+                          />
+                          {renderValidationIcon('direccion_fiscal')}
+                        </div>
+                        {errorsStep3.direccion_fiscal && (
+                          <p className="mt-1 text-sm text-red-600">{errorsStep3.direccion_fiscal.message}</p>
+                        )}
+                      </div>
+
+                      {/* Ciudad y Departamento Fiscal */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Ciudad Fiscal *
+                          </label>
+                          <div className="relative">
+                            <input
+                              {...registerStep3('ciudad_fiscal')}
+                              type="text"
+                              placeholder="Bucaramanga"
+                              className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('ciudad_fiscal')} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
+                            />
+                            {renderValidationIcon('ciudad_fiscal')}
+                          </div>
+                          {errorsStep3.ciudad_fiscal && (
+                            <p className="mt-1 text-sm text-red-600">{errorsStep3.ciudad_fiscal.message}</p>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Departamento Fiscal *
+                          </label>
+                          <div className="relative">
+                            <select
+                              {...registerStep3('departamento_fiscal')}
+                              className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('departamento_fiscal')} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 bg-white font-medium`}
+                            >
+                              <option value="">Seleccionar</option>
+                              <option value="santander">Santander</option>
+                              <option value="cundinamarca">Cundinamarca</option>
+                              <option value="antioquia">Antioquia</option>
+                              <option value="valle">Valle del Cauca</option>
+                              <option value="atlantico">Atlántico</option>
+                            </select>
+                          </div>
+                          {errorsStep3.departamento_fiscal && (
+                            <p className="mt-1 text-sm text-red-600">{errorsStep3.departamento_fiscal.message}</p>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Botones de navegación */}
+                  <div className="flex space-x-4">
+                    <button
+                      type="button"
+                      onClick={prevStep}
+                      className="flex-1 py-3 px-4 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      Atrás
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={!isValidStep3 || loading}
+                      className={`flex-1 py-3 px-4 rounded-lg font-medium text-white transition-all duration-200 ${
+                        isValidStep3 && !loading
                           ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
                           : 'bg-gray-400 cursor-not-allowed'
                       }`}
@@ -385,7 +805,7 @@ const RegisterVendor: React.FC = () => {
                       )}
                     </button>
                   </div>
-                </div>
+                </form>
               )}
 
               {/* Link a login */}
@@ -433,7 +853,7 @@ const RegisterVendor: React.FC = () => {
                 </div>
                 <div className="w-16 h-16 bg-gradient-to-br from-white/25 to-white/5 rounded-lg transform -rotate-6 shadow-xl backdrop-blur border border-white/20 flex items-center justify-center">
                   <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2 2v14a2 2 0 002 2z" />
                   </svg>
                 </div>
                 <div className="w-16 h-16 bg-gradient-to-br from-white/35 to-white/15 rounded-lg transform rotate-3 shadow-2xl backdrop-blur border border-white/20 flex items-center justify-center">
