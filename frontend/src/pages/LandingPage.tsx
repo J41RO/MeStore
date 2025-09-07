@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../contexts/AuthContext';
+import { useDashboardMetrics } from '../hooks/useDashboardMetrics';
+import { DashboardSection } from '../components/DashboardSection';
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -13,6 +15,14 @@ const LandingPage: React.FC = () => {
   // Estados para loading de CTAs
   const [isLoadingEmpezar, setIsLoadingEmpezar] = useState(false);
   const [isLoadingDemo, setIsLoadingDemo] = useState(false);
+  
+  // Hook personalizado para métricas del dashboard
+  const { 
+    dashboardMetrics, 
+    isLoadingMetrics, 
+    metricsError, 
+    refreshMetrics 
+  } = useDashboardMetrics();
   
   // Refs para ripple effect
   const empezarButtonRef = useRef<HTMLButtonElement>(null);
@@ -85,10 +95,7 @@ const LandingPage: React.FC = () => {
     `;
     
     button.appendChild(ripple);
-    
-    setTimeout(() => {
-      ripple.remove();
-    }, 600);
+    setTimeout(() => ripple.remove(), 600);
   };
 
   const handleEmailSubmit = (e: React.FormEvent) => {
@@ -103,12 +110,10 @@ const LandingPage: React.FC = () => {
     createRipple(e);
     setIsLoadingEmpezar(true);
     
-    // Simular delay de redirección para mostrar loading
     setTimeout(() => {
       if (!isAuthenticated) {
         navigate('/register');
       } else {
-        // Redirigir según rol usando lógica existente
         if (user?.user_type === 'ADMIN' || user?.user_type === 'SUPERUSER') {
           navigate('/admin');
         } else if (user?.user_type === 'VENDEDOR') {
@@ -125,12 +130,10 @@ const LandingPage: React.FC = () => {
   const handleDemoWithAnimation = async (e: React.MouseEvent<HTMLButtonElement>) => {
     setIsLoadingDemo(true);
     
-    // Simular delay de redirección para mostrar loading
     setTimeout(() => {
       if (!isAuthenticated) {
         navigate('/login');
       } else {
-        // Redirigir según rol usando lógica existente
         if (user?.user_type === 'ADMIN' || user?.user_type === 'SUPERUSER') {
           navigate('/admin');
         } else if (user?.user_type === 'VENDEDOR') {
@@ -145,47 +148,23 @@ const LandingPage: React.FC = () => {
 
   return (
     <div className='min-h-screen bg-white dark:bg-gray-900'>
-      {/* Estilos para animaciones incluyendo efectos premium CTAs */}
+      {/* Estilos CSS completos - se mantienen igual */}
       <style jsx>{`
         @keyframes float-slow {
-          0%, 100% { 
-            transform: translate3d(0, 0, 0) scale(1); 
-            opacity: 0.3; 
-          }
-          50% { 
-            transform: translate3d(10px, -20px, 0) scale(1.2); 
-            opacity: 0.7; 
-          }
+          0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.3; }
+          50% { transform: translate3d(10px, -20px, 0) scale(1.2); opacity: 0.7; }
         }
         
         @keyframes float-medium {
-          0%, 100% { 
-            transform: translate3d(0, 0, 0) scale(1); 
-            opacity: 0.4; 
-          }
-          33% { 
-            transform: translate3d(-15px, -10px, 0) scale(1.3); 
-            opacity: 0.8; 
-          }
-          66% { 
-            transform: translate3d(15px, -25px, 0) scale(0.9); 
-            opacity: 0.5; 
-          }
+          0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.4; }
+          33% { transform: translate3d(-15px, -10px, 0) scale(1.3); opacity: 0.8; }
+          66% { transform: translate3d(15px, -25px, 0) scale(0.9); opacity: 0.5; }
         }
         
         @keyframes float-fast {
-          0%, 100% { 
-            transform: translate3d(0, 0, 0) scale(1); 
-            opacity: 0.2; 
-          }
-          25% { 
-            transform: translate3d(20px, -15px, 0) scale(1.1); 
-            opacity: 0.6; 
-          }
-          75% { 
-            transform: translate3d(-10px, -30px, 0) scale(1.4); 
-            opacity: 0.4; 
-          }
+          0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.2; }
+          25% { transform: translate3d(20px, -15px, 0) scale(1.1); opacity: 0.6; }
+          75% { transform: translate3d(-10px, -30px, 0) scale(1.4); opacity: 0.4; }
         }
 
         @keyframes blink {
@@ -193,101 +172,70 @@ const LandingPage: React.FC = () => {
           51%, 100% { opacity: 0; }
         }
 
-        /* EFECTOS PREMIUM PARA CTAs */
         @keyframes glow-pulse {
-          0%, 100% { 
-            box-shadow: 0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(147, 51, 234, 0.3), 0 0 60px rgba(59, 130, 246, 0.1);
-          }
-          50% { 
-            box-shadow: 0 0 30px rgba(59, 130, 246, 0.8), 0 0 60px rgba(147, 51, 234, 0.6), 0 0 90px rgba(59, 130, 246, 0.3);
-          }
+          0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(147, 51, 234, 0.3), 0 0 60px rgba(59, 130, 246, 0.1); }
+          50% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.8), 0 0 60px rgba(147, 51, 234, 0.6), 0 0 90px rgba(59, 130, 246, 0.3); }
         }
 
         @keyframes border-rotate {
-          0% { 
-            background-position: 0% 50%; 
-          }
-          50% { 
-            background-position: 100% 50%; 
-          }
-          100% { 
-            background-position: 0% 50%; 
-          }
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
         }
 
         @keyframes ripple-animation {
-          to {
-            transform: scale(4);
-            opacity: 0;
-          }
+          to { transform: scale(4); opacity: 0; }
         }
 
         @keyframes loading-spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
         }
+
+        @keyframes dashboard-rotate-y {
+          0% { transform: perspective(1000px) rotateY(-15deg) rotateX(5deg) scale(0.95); opacity: 0.8; }
+          50% { transform: perspective(1000px) rotateY(0deg) rotateX(0deg) scale(1); opacity: 1; }
+          100% { transform: perspective(1000px) rotateY(15deg) rotateX(-5deg) scale(0.95); opacity: 0.8; }
+        }
+
+        @keyframes float-3d {
+          0%, 100% { transform: translate3d(0, 0, 0) rotateX(0deg) rotateY(0deg); }
+          25% { transform: translate3d(10px, -5px, 20px) rotateX(2deg) rotateY(5deg); }
+          50% { transform: translate3d(0, -10px, 30px) rotateX(0deg) rotateY(0deg); }
+          75% { transform: translate3d(-10px, -5px, 20px) rotateX(-2deg) rotateY(-5deg); }
+        }
+
+        @keyframes slide-in-view {
+          from { transform: translateX(100%) scale(0.8); opacity: 0; }
+          to { transform: translateX(0%) scale(1); opacity: 1; }
+        }
+
+        @keyframes metric-pulse {
+          0%, 100% { transform: scale(1) translateZ(0); box-shadow: 0 4px 15px rgba(59, 130, 246, 0.2); }
+          50% { transform: scale(1.05) translateZ(10px); box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4); }
+        }
+
+        @keyframes loading-shimmer {
+          0% { background-position: -200px 0; }
+          100% { background-position: calc(200px + 100%) 0; }
+        }
         
-        .animate-float-slow { 
-          animation: float-slow 8s ease-in-out infinite;
-          will-change: transform, opacity;
-        }
-        .animate-float-medium { 
-          animation: float-medium 6s ease-in-out infinite;
-          will-change: transform, opacity;
-        }
-        .animate-float-fast { 
-          animation: float-fast 4s ease-in-out infinite;
-          will-change: transform, opacity;
-        }
-        
-        .typewriter-cursor {
-          animation: blink 1s infinite;
-        }
-        
-        .parallax-bg {
-          will-change: transform;
-        }
-
-        /* CLASES PREMIUM PARA CTAs */
-        .btn-glow-pulse {
-          animation: glow-pulse 2s ease-in-out infinite;
-          will-change: transform, box-shadow;
-        }
-
-        .btn-border-animate {
-          background: linear-gradient(-45deg, transparent, transparent, rgba(59, 130, 246, 0.3), transparent, transparent);
-          background-size: 400% 400%;
-          animation: border-rotate 3s ease infinite;
-          position: relative;
-          will-change: background-position;
-        }
-
-        .btn-border-animate::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          border-radius: inherit;
-          padding: 2px;
-          background: linear-gradient(-45deg, #3b82f6, #8b5cf6, #3b82f6, #8b5cf6);
-          background-size: 400% 400%;
-          animation: border-rotate 3s ease infinite;
-          mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-          mask-composite: exclude;
-          z-index: -1;
-        }
-
-        .loading-spinner {
-          display: inline-block;
-          width: 16px;
-          height: 16px;
-          border: 2px solid rgba(255, 255, 255, 0.3);
-          border-radius: 50%;
-          border-top-color: white;
-          animation: loading-spin 0.8s ease-in-out infinite;
-        }
+        .animate-float-slow { animation: float-slow 8s ease-in-out infinite; will-change: transform, opacity; }
+        .animate-float-medium { animation: float-medium 6s ease-in-out infinite; will-change: transform, opacity; }
+        .animate-float-fast { animation: float-fast 4s ease-in-out infinite; will-change: transform, opacity; }
+        .typewriter-cursor { animation: blink 1s infinite; }
+        .parallax-bg { will-change: transform; }
+        .btn-glow-pulse { animation: glow-pulse 2s ease-in-out infinite; will-change: transform, box-shadow; }
+        .btn-border-animate { background: linear-gradient(-45deg, transparent, transparent, rgba(59, 130, 246, 0.3), transparent, transparent); background-size: 400% 400%; animation: border-rotate 3s ease infinite; position: relative; will-change: background-position; }
+        .btn-border-animate::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; border-radius: inherit; padding: 2px; background: linear-gradient(-45deg, #3b82f6, #8b5cf6, #3b82f6, #8b5cf6); background-size: 400% 400%; animation: border-rotate 3s ease infinite; mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); mask-composite: exclude; z-index: -1; }
+        .loading-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 50%; border-top-color: white; animation: loading-spin 0.8s ease-in-out infinite; }
+        .dashboard-container { perspective: 1200px; transform-style: preserve-3d; }
+        .dashboard-mockup { animation: dashboard-rotate-y 8s ease-in-out infinite; will-change: transform; transform-style: preserve-3d; }
+        .floating-metric { animation: float-3d 6s ease-in-out infinite, metric-pulse 3s ease-in-out infinite; will-change: transform, box-shadow; transform-style: preserve-3d; }
+        .view-transition { animation: slide-in-view 0.6s ease-out; }
+        .dashboard-glow { box-shadow: 0 0 40px rgba(59, 130, 246, 0.3), 0 0 80px rgba(147, 51, 234, 0.2), 0 20px 40px rgba(0, 0, 0, 0.1); }
+        .loading-shimmer { background: linear-gradient(90deg, #f3f4f6 0%, #e5e7eb 50%, #f3f4f6 100%); background-size: 200px 100%; animation: loading-shimmer 1.5s infinite; }
+        .metrics-loading { background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%); background-size: 200% 100%; animation: loading-shimmer 1.5s infinite; border-radius: 0.5rem; }
       `}</style>
 
       {/* Fixed Navigation */}
@@ -390,26 +338,20 @@ const LandingPage: React.FC = () => {
         </div>
       </nav>
 
-      {/* Hero Section con Background Dinámico Avanzado */}
+      {/* Hero Section */}
       <section className='pt-32 pb-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden'>
         {/* Background dinámico con múltiples layers y efecto parallax */}
         <div 
           className='absolute inset-0 bg-gradient-to-br from-blue-600/10 via-violet-500/5 to-purple-600/15 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 parallax-bg'
-          style={{
-            transform: `translate3d(0, ${scrollY * 0.1}px, 0)`
-          }}
+          style={{ transform: `translate3d(0, ${scrollY * 0.1}px, 0)` }}
         ></div>
         <div 
           className='absolute inset-0 bg-gradient-to-tr from-transparent via-blue-400/5 to-violet-600/10 parallax-bg'
-          style={{
-            transform: `translate3d(0, ${scrollY * 0.15}px, 0)`
-          }}
+          style={{ transform: `translate3d(0, ${scrollY * 0.15}px, 0)` }}
         ></div>
         <div 
           className='absolute inset-0 bg-gradient-to-bl from-purple-500/5 via-transparent to-blue-500/8 parallax-bg'
-          style={{
-            transform: `translate3d(0, ${scrollY * 0.05}px, 0)`
-          }}
+          style={{ transform: `translate3d(0, ${scrollY * 0.05}px, 0)` }}
         ></div>
         
         {/* Partículas flotantes decorativas optimizadas */}
@@ -513,25 +455,47 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Statistics Section */}
+      {/* INSERTAR AQUÍ DASHBOARD SECTION - PARTE 2 */}
+      <DashboardSection 
+        dashboardMetrics={dashboardMetrics}
+        isLoadingMetrics={isLoadingMetrics}
+        metricsError={metricsError}
+        refreshMetrics={refreshMetrics}
+        navigate={navigate}
+      />
+
+      {/* RESTO DE SECCIONES - PARTE 3 */}
+{/* Statistics Section CON DATOS REALES */}
       <section className='py-20 bg-gray-50 dark:bg-gray-800'>
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
           <div className='grid grid-cols-2 md:grid-cols-4 gap-8 text-center'>
             <div className='group'>
               <div className='text-4xl md:text-5xl font-bold text-blue-600 mb-2 group-hover:scale-110 transition-transform'>
-                50+
+                {isLoadingMetrics ? (
+                  <div className="metrics-loading w-16 h-12 mx-auto"></div>
+                ) : (
+                  dashboardMetrics?.activeVendors || '50+'
+                )}
               </div>
               <div className='text-gray-600 dark:text-gray-300 font-medium'>Vendedores Registrados</div>
             </div>
             <div className='group'>
               <div className='text-4xl md:text-5xl font-bold text-purple-600 mb-2 group-hover:scale-110 transition-transform'>
-                1K+
+                {isLoadingMetrics ? (
+                  <div className="metrics-loading w-16 h-12 mx-auto"></div>
+                ) : (
+                  dashboardMetrics?.totalProducts > 0 ? `${Math.floor(dashboardMetrics.totalProducts / 1000)}K+` : '1K+'
+                )}
               </div>
               <div className='text-gray-600 dark:text-gray-300 font-medium'>Productos Listados</div>
             </div>
             <div className='group'>
               <div className='text-4xl md:text-5xl font-bold text-green-600 mb-2 group-hover:scale-110 transition-transform'>
-                95%
+                {isLoadingMetrics ? (
+                  <div className="metrics-loading w-16 h-12 mx-auto"></div>
+                ) : (
+                  `${dashboardMetrics?.deliverySuccessRate || 95}%`
+                )}
               </div>
               <div className='text-gray-600 dark:text-gray-300 font-medium'>Entregas a Tiempo</div>
             </div>
