@@ -757,6 +757,172 @@ def batch_command(file, dry_run):
    except Exception as e:
        console.print(f"[red]❌ Error ejecutando batch: {str(e)}[/red]")
 
+
+@main.command('config-detect')
+@click.option('--detailed', '-d', is_flag=True, help='Mostrar análisis detallado')
+@click.option('--json-output', '-j', is_flag=True, help='Salida en formato JSON')
+@click.option('--suggestions', '-s', is_flag=True, help='Mostrar sugerencias de mejora')
+@click.argument('project-path', default='.', type=click.Path(exists=True))
+def config_detect_command(detailed, json_output, suggestions, project_path):
+    """Detectar y mostrar configuración automática del proyecto"""
+    import json
+    from rich.console import Console
+    from rich.table import Table
+    from rich.panel import Panel
+    from rich.tree import Tree
+    from config import detect_project_config
+    
+    console = Console()
+    
+    try:
+        # Detectar configuración del proyecto
+        with console.status('[bold green]Analizando proyecto...'):
+            result = detect_project_config(project_path)
+        
+        if not result.get('detected'):
+            console.print('[red]❌ No se pudo detectar configuración del proyecto[/red]')
+            if 'error' in result:
+                console.print(f'[red]Error: {result["error"]}[/red]')
+            return
+        
+        config = result.get('config', {})
+        raw_analysis = result.get('raw_analysis', {})
+        
+        # Salida JSON si se solicita
+        if json_output:
+            console.print(json.dumps(result, indent=2, default=str))
+            return
+        
+        # Mostrar resumen principal
+        project_type = config.get('project_type', 'unknown')
+        console.print(Panel(
+            f'[bold cyan]Proyecto detectado:[/bold cyan] {project_type}\n'
+            f'[bold cyan]Ruta:[/bold cyan] {project_path}',
+            title='🎯 Configuración Detectada',
+            border_style='cyan'
+        ))
+        
+        # Tabla de tecnologías
+        tech_stack = config.get('technology_stack', {})
+        if tech_stack:
+            table = Table(title='🛠️ Stack Tecnológico')
+            table.add_column('Categoría', style='cyan')
+            table.add_column('Tecnologías', style='green')
+            
+            frameworks = tech_stack.get('frameworks', [])
+            if frameworks:
+                table.add_row('Frameworks', ', '.join(frameworks))
+            
+            build_tools = tech_stack.get('build_tools', [])
+            if build_tools:
+                table.add_row('Build Tools', ', '.join(build_tools))
+            
+            testing = tech_stack.get('testing', [])
+            if testing:
+                table.add_row('Testing', ', '.join(testing))
+            
+            ui_libs = tech_stack.get('ui_libraries', [])
+            if ui_libs:
+                table.add_row('UI Libraries', ', '.join(ui_libs))
+            
+            if tech_stack.get('is_typescript'):
+                table.add_row('TypeScript', '✅ Detectado')
+            
+            console.print(table)
+        
+        # Configuración de alias
+        alias_config = config.get('alias_configuration', {})
+        total_aliases = alias_config.get('total_aliases', 0)
+        if total_aliases > 0:
+            common_aliases = alias_config.get('common_aliases', [])
+            aliases_text = ', '.join(common_aliases) if common_aliases else 'Ninguno'
+            console.print(Panel(
+                f'[bold yellow]Total alias:[/bold yellow] {total_aliases}\n'
+                f'[bold yellow]Alias comunes:[/bold yellow] {aliases_text}',
+                title='📂 Configuración de Alias',
+                border_style='yellow'
+            ))
+        
+        # Configuración de build
+        build_config = config.get('build_configuration', {})
+        if build_config:
+            primary_tool = build_config.get('primary_build_tool', 'No detectada')
+            has_dev = '✅' if build_config.get('has_dev_script') else '❌'
+            has_build = '✅' if build_config.get('has_build_script') else '❌'
+            console.print(Panel(
+                f'[bold magenta]Herramienta principal:[/bold magenta] {primary_tool}\n'
+                f'[bold magenta]Script dev:[/bold magenta] {has_dev}\n'
+                f'[bold magenta]Script build:[/bold magenta] {has_build}',
+                title='⚙️ Configuración de Build',
+                border_style='magenta'
+            ))
+        
+        # Mostrar análisis detallado si se solicita
+        if detailed:
+            console.print('\n[bold blue]📊 Análisis Detallado:[/bold blue]')
+            
+            # Archivos de configuración encontrados
+            config_files = raw_analysis.get('config_files', {})
+            config_files_found = config_files.get('config_files_found', [])
+            if config_files_found:
+                tree = Tree('📁 Archivos de Configuración')
+                for file in config_files_found:
+                    tree.add(f'✅ {file}')
+                console.print(tree)
+            
+            # Estadísticas de dependencias
+            deps = raw_analysis.get('dependencies', {})
+            if deps and 'dependency_stats' in deps:
+                stats = deps['dependency_stats']
+                total_deps = stats.get('total_dependencies', 0)
+                prod_deps = stats.get('production_dependencies', 0)
+                dev_deps = stats.get('development_dependencies', 0)
+                console.print(Panel(
+                    f'[bold]Total dependencias:[/bold] {total_deps}\n'
+                    f'[bold]Producción:[/bold] {prod_deps}\n'
+                    f'[bold]Desarrollo:[/bold] {dev_deps}',
+                    title='📦 Estadísticas de Dependencias',
+                    border_style='blue'
+                ))
+        
+        # Mostrar sugerencias si se solicita
+        if suggestions:
+            recommendations = config.get('recommended_settings', {})
+            if recommendations:
+                console.print('\n[bold green]💡 Configuraciones Recomendadas:[/bold green]')
+                
+                suggestions_table = Table()
+                suggestions_table.add_column('Configuración', style='cyan')
+                suggestions_table.add_column('Valor Recomendado', style='green')
+                
+                for key, value in recommendations.items():
+                    if isinstance(value, list):
+                        value = ', '.join(value)
+                    elif isinstance(value, bool):
+                        value = '✅' if value else '❌'
+                    display_key = key.replace('_', ' ').title()
+                    suggestions_table.add_row(display_key, str(value))
+                
+                console.print(suggestions_table)
+            
+            # Sugerencias de alias
+            aliases = raw_analysis.get('aliases', {})
+            alias_suggestions = aliases.get('suggestions', [])
+            if alias_suggestions:
+                console.print('\n[bold yellow]📂 Sugerencias de Alias:[/bold yellow]')
+                for suggestion in alias_suggestions[:3]:  # Mostrar máximo 3
+                    suggested_alias = suggestion.get('suggested_alias', '')
+                    target_path = suggestion.get('target_path', '')
+                    console.print(f'  • {suggested_alias} → {target_path}')
+        
+        console.print('\n[green]✅ Análisis de configuración completado[/green]')
+        
+    except Exception as e:
+        console.print(f'[red]❌ Error durante el análisis: {str(e)}[/red]')
+        if detailed:
+            console.print(f'[red]Detalles del error: {repr(e)}[/red]')
+
+
 @main.command("transaction")
 @click.argument("operation")
 @click.argument("args", nargs=-1)
