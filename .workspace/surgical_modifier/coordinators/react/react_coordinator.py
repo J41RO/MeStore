@@ -3,6 +3,7 @@ from typing import Dict, Any, Optional
 import logging
 from coordinators.typescript_react import TypeScriptReactCoordinator
 
+
 class ReactCoordinator(TypeScriptReactCoordinator):
     """
     Coordinador especializado para React (JSX + TypeScript)
@@ -13,8 +14,8 @@ class ReactCoordinator(TypeScriptReactCoordinator):
         super().__init__()
         self.logger = logging.getLogger(__name__)
         self.jsx_extensions = {'.jsx', '.tsx'}
-        
-    def execute(self, operation: str, file_path: str, **kwargs) -> Dict[str, Any]:
+    
+    def execute(self, file_path: str, operation: str, **kwargs) -> Dict[str, Any]:
         """
         Ejecuta operaciones especializadas para React
         Extiende funcionalidad base con análisis JSX específico
@@ -26,7 +27,7 @@ class ReactCoordinator(TypeScriptReactCoordinator):
             self.logger.warning(f"File {file_path} may not be a React file")
         
         # Ejecutar operación usando capacidades heredadas de TypeScriptReactCoordinator
-        result = super().execute(file_path, operation, **kwargs)
+        result = super().execute(operation, **kwargs)
         
         # Agregar análisis React específico al resultado
         if result.get('success', False):

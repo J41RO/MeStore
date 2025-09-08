@@ -383,7 +383,10 @@ def replace(filepath, pattern, replacement, fuzzy=False, regex=False, threshold=
                return 0
 
        # MEJORA v6.0: Detección automática de tecnología
-       coordinator, detected_tech = get_technology_coordinator(filepath)
+       # Para operaciones replace, usar ReplaceCoordinator directamente
+       from coordinators.replace import ReplaceCoordinator
+       coordinator = ReplaceCoordinator()
+       detected_tech = 'replace_operation'
        if verbose:
            console.print(f"[blue]🔍 Tecnología detectada: {detected_tech}[/blue]")
        result = coordinator.execute(
