@@ -23,8 +23,10 @@ class CoordinatorRouter:
         elif file_extension == '.ts':
             return self._get_typescript_coordinator()
         elif file_extension == '.tsx':
-            return self._get_typescript_react_coordinator()
-        elif file_extension in ['.js', '.jsx']:
+            return self._get_react_coordinator()
+        elif file_extension == '.jsx':
+            return self._get_react_coordinator()
+        elif file_extension == '.js':
             return self._get_javascript_coordinator()
         else:
             return self._get_fallback_coordinator()
@@ -39,10 +41,10 @@ class CoordinatorRouter:
         from coordinators.typescript.typescript_coordinator import TypeScriptCoordinator
         return TypeScriptCoordinator()
         
-    def _get_typescript_react_coordinator(self):
-        """Retorna coordinador TypeScript+React para archivos .tsx"""
-        from coordinators.typescript_react import TypeScriptReactCoordinator
-        return TypeScriptReactCoordinator()
+    def _get_react_coordinator(self):
+        """Retorna coordinador React especializado para archivos .tsx y .jsx"""
+        from coordinators.react.react_coordinator import ReactCoordinator
+        return ReactCoordinator()
         
     def _get_javascript_coordinator(self):
         """Retorna coordinador JavaScript"""

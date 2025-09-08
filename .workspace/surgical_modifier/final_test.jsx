@@ -1,0 +1,1 @@
+const FinalButton = ({onClick}) => <button onClick={onClick}>Final Test</button>;

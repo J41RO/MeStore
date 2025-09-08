@@ -1,0 +1,1 @@
+const FinalTest: React.FC = () => { const [state, setState] = useState(0); return <div>{state}</div>; };

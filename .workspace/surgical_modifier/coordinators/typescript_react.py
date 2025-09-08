@@ -12,6 +12,7 @@ from functions.content.writer import ContentWriter
 from functions.content.validator import ContentValidator
 from functions.debugging.context_extractor import ContextExtractor
 from functions.debugging.pattern_suggester import PatternSuggester
+from functions.validation.path_checker import PathChecker
 
 
 class TypeScriptReactCoordinator:
@@ -25,6 +26,7 @@ class TypeScriptReactCoordinator:
         self.context_extractor = ContextExtractor()
         self.pattern_suggester = PatternSuggester()
         self.validator = ContentValidator()
+        self.path_checker = PathChecker()
         self.logger = logging.getLogger(__name__)
         
     def execute(self, file_path: str, operation: str, **kwargs) -> Dict[str, Any]:
@@ -215,10 +217,16 @@ class TypeScriptReactCoordinator:
         from functions.workflow.create_workflow import CreateWorkflow
         
         workflow = CreateWorkflow()
+        # Extraer content de kwargs para evitar duplicación
+        content = kwargs.pop('content', '')
         result = workflow.execute_sequence(
             file_path=file_path,
-            content=kwargs.get('content', ''),
+            content=content,
             context=context,
+            path_checker=self.path_checker,
+            writer=self.writer,
+            validator=self.validator,
+            backup_manager=self.backup_manager,
             **kwargs
         )
         
