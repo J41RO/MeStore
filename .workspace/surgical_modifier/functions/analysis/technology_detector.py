@@ -42,7 +42,63 @@ def get_coordinator_for_technology(technology: str) -> str:
         'vue': 'vue',
         'svelte': 'svelte'
     }
-    return coordinator_mapping.get(technology, 'python')  # fallback a python
+    return coordinator_mapping.get(technology, 'base')  # fallback a base
+
+def analyze_file_context(file_path: str) -> Dict[str, Any]:
+    """
+    Analiza el contexto de un archivo específico.
+    Args:
+        file_path: Ruta del archivo a analizar
+    Returns:
+        Dict con información del contexto del archivo
+    """
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # Detectar framework
+        framework = 'unknown'
+        if 'react' in content.lower() or 'import React' in content:
+            framework = 'react'
+        elif 'vue' in content.lower() or '@vue' in content:
+            framework = 'vue'
+        elif 'angular' in content.lower() or '@angular' in content:
+            framework = 'angular'
+        
+        context = {
+            'file_path': file_path,
+            'extension': Path(file_path).suffix,
+            'technology': detect_technology_by_extension(file_path),
+            'framework': framework,
+            'lines_count': len(content.split('\n')),
+            'has_imports': 'import ' in content,
+            'has_functions': 'def ' in content or 'function ' in content,
+            'has_classes': 'class ' in content,
+            'has_jsx': '<' in content and '>' in content and Path(file_path).suffix in ['.jsx', '.tsx'],
+            'has_typescript': ': ' in content and Path(file_path).suffix in ['.ts', '.tsx'],
+            'content_preview': content[:200] if content else '',
+            'file_size': len(content.encode('utf-8')),
+            'imports': [line.strip() for line in content.split('\n') if line.strip().startswith('import ')]
+        }
+        
+        return context
+    except Exception as e:
+        return {
+            'file_path': file_path,
+            'error': str(e),
+            'technology': 'unknown',
+            'framework': 'unknown',
+            'extension': Path(file_path).suffix if file_path else '',
+            'lines_count': 0,
+            'has_imports': False,
+            'has_functions': False,
+            'has_classes': False,
+            'has_jsx': False,
+            'has_typescript': False,
+            'content_preview': '',
+            'file_size': 0,
+            'imports': []
+        }
 
 def _extract_tsconfig_aliases(tsconfig_path: Path) -> Dict[str, str]:
     """Extrae alias de paths desde tsconfig.json"""

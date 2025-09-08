@@ -37,8 +37,6 @@ def get_technology_coordinator(file_path):
        console.print(f"[yellow]Warning: Error en CoordinatorRouter, usando coordinador fallback: {e}[/yellow]")
        from coordinators.replace import ReplaceCoordinator
        return ReplaceCoordinator(), 'fallback'
-   """Detecta si un argumento parece ser un archivo basado en extensión"""
-   return '.' in arg and not arg.startswith('.')
 
 def order_detect(a1, a2, a3):
    """Detecta si los argumentos están en orden intuitivo o tradicional"""
@@ -140,7 +138,6 @@ def preview_replacement(filepath, pattern, replacement, matcher_options, dry_run
                file_path=temp_filepath,
                pattern=pattern,
                replacement=replacement,
-               
                **matcher_options
            )
            
@@ -197,7 +194,7 @@ def show_preview_diff(original, new, filepath):
 @click.option("--verbose", "-v", is_flag=True, help="Modo verbose")
 @click.option("--dry-run", is_flag=True, help="Simular sin ejecutar")
 def main(verbose, dry_run):
-   """Surgical Modifier v6.0 - Sistema de Modificación Precisa de Código con UX Mejorada Completa y Preview/Dry-Run."""
+   """Surgical Modifier v6.0 - Sistema Multi-Tecnología (Python + TypeScript + React)."""
    if verbose:
        print("Modo verbose activado")
    if dry_run:
@@ -754,7 +751,6 @@ def batch_command(file, dry_run):
    except Exception as e:
        console.print(f"[red]❌ Error ejecutando batch: {str(e)}[/red]")
 
-
 @main.command('config-detect')
 @click.option('--detailed', '-d', is_flag=True, help='Mostrar análisis detallado')
 @click.option('--json-output', '-j', is_flag=True, help='Salida en formato JSON')
@@ -919,7 +915,6 @@ def config_detect_command(detailed, json_output, suggestions, project_path):
         if detailed:
             console.print(f'[red]Detalles del error: {repr(e)}[/red]')
 
-
 @main.command("transaction")
 @click.argument("operation")
 @click.argument("args", nargs=-1)
@@ -946,6 +941,46 @@ def transaction_command(operation, args, rollback_on_error):
            console.print(f"[blue]🔄 Rollback ejecutado: {rollback_result['transaction_id']}[/blue]")
        else:
            console.print("[yellow]⚠️ Use --rollback-on-error para rollback automático[/yellow]")
+
+# ========================
+# COMANDO DETECT-TECH
+# ========================
+
+@main.command("detect-tech")
+@click.argument('filepath')
+def detect_tech(filepath):
+    """Detectar tecnología y coordinador que se usará para el archivo"""
+    try:
+        from coordinators.coordinator_router import CoordinatorRouter
+        router = CoordinatorRouter()
+        coordinator = router.get_coordinator(filepath)
+        coordinator_name = type(coordinator).__name__
+        
+        # Mapeo de coordinadores a tecnologías
+        tech_mapping = {
+            'CreateCoordinator': 'Python',
+            'TypeScriptCoordinator': 'TypeScript', 
+            'ReactCoordinator': 'React (TypeScript + JSX)',
+            'TypeScriptReactCoordinator': 'React (TypeScript + JSX)'
+        }
+        
+        technology = tech_mapping.get(coordinator_name, 'Unknown')
+        
+        click.echo(f"📁 Archivo: {filepath}")
+        click.echo(f"🔍 Tecnología detectada: {technology}")
+        click.echo(f"⚙️  Coordinador asignado: {coordinator_name}")
+        click.echo(f"📍 Ubicación: {coordinator.__class__.__module__}")
+        
+        # Mostrar comandos disponibles
+        click.echo(f"\n🛠️  Comandos disponibles:")
+        click.echo(f"   python cli.py create {filepath} 'content'")
+        click.echo(f"   python cli.py replace {filepath} 'old' 'new'")
+        click.echo(f"   python cli.py before {filepath} 'pattern' 'content'")
+        click.echo(f"   python cli.py after {filepath} 'pattern' 'content'")
+        click.echo(f"   python cli.py append {filepath} 'content'")
+        
+    except Exception as e:
+        click.echo(f"❌ Error detectando tecnología: {e}")
 
 # ========================
 # ENTRY POINT

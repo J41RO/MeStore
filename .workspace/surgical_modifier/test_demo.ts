@@ -1,0 +1,1 @@
+interface Demo { test: boolean; }

@@ -1,0 +1,1 @@
+interface Final { status: 'repaired'; }
