@@ -23,6 +23,7 @@ const CommissionReport = lazy(
 );
 const Login = lazy(() => import('./pages/Login'));
 const AdminLogin = lazy(() => import('./pages/AdminLogin'));
+const AdminPortal = lazy(() => import('./pages/AdminPortal'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const RegisterVendor = lazy(() => import('./pages/RegisterVendor'));
 const OTPVerification = lazy(() => import('./components/OTPVerification'));
@@ -47,6 +48,16 @@ function App() {
             <VendorTest />
           </Suspense>
         } />
+
+        {/* Portal Admin Corporativo - Página de presentación */}
+        <Route
+          path="/admin-portal"
+          element={
+            <Suspense fallback={<PageLoader />}>
+              <AdminPortal />
+            </Suspense>
+          }
+        />
 
         {/* Ruta del Marketplace para compradores */}
         <Route

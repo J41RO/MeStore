@@ -1,0 +1,1 @@
+{"operations": [{"command": "replace", "args": ["test.txt", "old", "new"]}]}

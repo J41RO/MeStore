@@ -1,0 +1,224 @@
+"""
+TypeScript Import Resolver
+==========================
+Resolución de imports con alias para TypeScript
+"""
+
+import re
+import json
+import os
+from typing import Dict, Any, List, Optional
+from pathlib import Path
+
+class ImportResolver:
+    """Resolver especializado para imports TypeScript con alias"""
+    
+    def __init__(self, tsconfig_path: Optional[str] = None):
+        """Inicializar resolver con configuración TypeScript"""
+        self.aliases = {}
+        self.base_url = '.'
+        
+        if tsconfig_path and os.path.exists(tsconfig_path):
+            self._load_aliases_from_tsconfig(tsconfig_path)
+        else:
+            # Alias comunes por defecto
+            self.aliases = {
+                '@': './src',
+                '@components': './src/components',
+                '@utils': './src/utils',
+                '@types': './src/types'
+            }
+            
+    def _load_aliases_from_tsconfig(self, tsconfig_path: str):
+        """Cargar alias desde tsconfig.json"""
+        try:
+            with open(tsconfig_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+                # Remover comentarios JSON
+                content = re.sub(r'//.*?\n', '\n', content)
+                content = re.sub(r'/\*.*?\*/', '', content, flags=re.DOTALL)
+                
+                tsconfig = json.loads(content)
+                
+            compiler_options = tsconfig.get('compilerOptions', {})
+            self.base_url = compiler_options.get('baseUrl', '.')
+            paths = compiler_options.get('paths', {})
+            
+            # Convertir paths a aliases
+            for alias, path_list in paths.items():
+                if alias.endswith('/*'):
+                    clean_alias = alias[:-2]
+                    if path_list and path_list[0].endswith('/*'):
+                        clean_path = path_list[0][:-2]
+                        self.aliases[clean_alias] = clean_path
+                else:
+                    if path_list:
+                        self.aliases[alias] = path_list[0]
+                        
+        except Exception as e:
+            print(f'Warning: Could not load tsconfig.json: {e}')
+            
+    def resolve_import_path(self, import_statement: str) -> str:
+        """Resolver import con alias a ruta real"""
+        
+        # Extraer path del import
+        import_path = self._extract_import_path(import_statement)
+        if not import_path:
+            return import_statement
+            
+        # Resolver alias
+        for alias, real_path in self.aliases.items():
+            if import_path.startswith(alias):
+                resolved_path = import_path.replace(alias, real_path, 1)
+                return import_statement.replace(import_path, resolved_path)
+                
+        return import_statement
+        
+    def add_import_if_missing(self, file_content: str, import_statement: str) -> str:
+        """Agregar import si no existe"""
+        
+        # Normalizar import statement
+        import_statement = import_statement.strip()
+        if not import_statement.endswith(';'):
+            import_statement += ';'
+            
+        # Verificar si el import ya existe
+        if self._import_exists(file_content, import_statement):
+            return file_content
+            
+        # Encontrar mejor posición para insertar
+        insertion_point = self._find_import_insertion_point(file_content)
+        
+        # Insertar import
+        lines = file_content.split('\n')
+        lines.insert(insertion_point, import_statement)
+        
+        return '\n'.join(lines)
+        
+    def organize_imports(self, file_content: str) -> str:
+        """Organizar imports TypeScript por categorías"""
+        
+        lines = file_content.split('\n')
+        imports = []
+        other_lines = []
+        
+        # Separar imports del resto del código
+        for i, line in enumerate(lines):
+            if line.strip().startswith('import '):
+                imports.append(line)
+            else:
+                other_lines.extend(lines[i:])
+                break
+                
+        if not imports:
+            return file_content
+            
+        # Categorizar imports
+        categorized_imports = {
+            'libraries': [],  # node_modules
+            'aliases': [],    # @/... imports
+            'relative': []    # ./... imports
+        }
+        
+        for import_line in imports:
+            import_path = self._extract_import_path(import_line)
+            
+            if import_path.startswith('@/') or any(import_path.startswith(alias) for alias in self.aliases.keys()):
+                categorized_imports['aliases'].append(import_line)
+            elif import_path.startswith('./') or import_path.startswith('../'):
+                categorized_imports['relative'].append(import_line)
+            else:
+                categorized_imports['libraries'].append(import_line)
+                
+        # Reconstruir imports organizados
+        organized_imports = []
+        
+        # Libraries primero
+        if categorized_imports['libraries']:
+            organized_imports.extend(sorted(categorized_imports['libraries']))
+            organized_imports.append('')  # Línea vacía
+            
+        # Alias imports
+        if categorized_imports['aliases']:
+            organized_imports.extend(sorted(categorized_imports['aliases']))
+            organized_imports.append('')  # Línea vacía
+            
+        # Relative imports al final
+        if categorized_imports['relative']:
+            organized_imports.extend(sorted(categorized_imports['relative']))
+            organized_imports.append('')  # Línea vacía
+            
+        # Remover línea vacía extra al final
+        while organized_imports and organized_imports[-1] == '':
+            organized_imports.pop()
+            
+        return '\n'.join(organized_imports + other_lines)
+        
+    def _extract_import_path(self, import_statement: str) -> str:
+        """Extraer path del import statement"""
+        
+        # Patterns para diferentes tipos de import
+        patterns = [
+            r'import\s+.*?from\s+[\'\"](.*?)[\'\"',  # import x from 'path'
+            r'import\s+[\'\"](.*?)[\'\"',              # import 'path'
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, import_statement)
+            if match:
+                return match.group(1)
+                
+        return ''
+        
+    def _import_exists(self, content: str, import_statement: str) -> bool:
+        """Verificar si import ya existe"""
+        
+        import_path = self._extract_import_path(import_statement)
+        if not import_path:
+            return False
+            
+        # Buscar imports existentes con el mismo path
+        existing_imports = re.findall(r'import\s+.*?from\s+[\'\"](.*?)[\'\"', content)
+        
+        return import_path in existing_imports
+        
+    def _find_import_insertion_point(self, content: str) -> int:
+        """Encontrar mejor punto para insertar import"""
+        
+        lines = content.split('\n')
+        
+        # Buscar último import existente
+        last_import_line = -1
+        for i, line in enumerate(lines):
+            if line.strip().startswith('import '):
+                last_import_line = i
+                
+        # Si hay imports existentes, insertar después del último
+        if last_import_line >= 0:
+            return last_import_line + 1
+            
+        # Si no hay imports, insertar al principio (después de comentarios)
+        for i, line in enumerate(lines):
+            stripped = line.strip()
+            if stripped and not stripped.startswith('//') and not stripped.startswith('/*'):
+                return i
+                
+        return 0
+        
+    def get_available_aliases(self) -> Dict[str, str]:
+        """Obtener alias disponibles"""
+        return self.aliases.copy()
+        
+    def create_import_statement(self, module_name: str, import_path: str, import_type: str = 'default') -> str:
+        """Crear import statement TypeScript"""
+        
+        if import_type == 'default':
+            return f'import {module_name} from \'{import_path}\';'
+        elif import_type == 'named':
+            return f'import {{ {module_name} }} from \'{import_path}\';'
+        elif import_type == 'namespace':
+            return f'import * as {module_name} from \'{import_path}\';'
+        elif import_type == 'side_effect':
+            return f'import \'{import_path}\';'
+        else:
+            raise ValueError(f'Unknown import type: {import_type}')

@@ -1,0 +1,1 @@
+interface ChecklistTest { success: boolean; }

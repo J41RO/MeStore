@@ -1,0 +1,1 @@
+print('auto detection test')
