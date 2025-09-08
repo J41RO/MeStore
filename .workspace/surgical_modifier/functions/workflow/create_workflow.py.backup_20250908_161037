@@ -1,16 +1,12 @@
 from typing import Dict, Any, Optional
-import sys
-sys.path.append('.')
 import logging
 from pathlib import Path
-from functions.validation.js_ts_validator import JsTsValidator
 
 
 class CreateWorkflow:
     """Workflow handler para operaciones CREATE - maneja secuencia y lógica de negocio"""
     
     def __init__(self):
-        self.js_ts_validator = JsTsValidator()
         self.logger = logging.getLogger(__name__)
     
     def execute_sequence(self, file_path: str, content: str = None, template: str = None, 
@@ -63,16 +59,6 @@ class CreateWorkflow:
             # FASE 6: Validación de contenido
             content_validation = validator.validate_content(final_content, [])
             phases_completed.append('content_validation')
-
-            # FASE 6.5: Validación de sintaxis TypeScript/JSX
-            syntax_validation = self._validate_syntax_by_extension(file_path, final_content)
-            phases_completed.append('syntax_validation')
-            if not syntax_validation.get('valid', False):
-                return self._build_error_response(
-                    f'Syntax validation failed for {syntax_validation.get("extension", "unknown")} file',
-                    syntax_validation.get('errors', []),
-                    'syntax_validation'
-                )
             if not content_validation.get('valid', False):
                 return self._build_error_response(
                     'Content validation failed',
@@ -121,34 +107,6 @@ class CreateWorkflow:
         component_name = Path(file_path).stem.replace('_', '').replace('-', '').title()
         return template_generator.customize_template(raw_template, component_name=component_name)
     
-    def _validate_syntax_by_extension(self, file_path: str, content: str) -> Dict[str, Any]:
-        """Validar sintaxis según la extensión del archivo"""
-        path_obj = Path(file_path)
-        extension = path_obj.suffix.lower()
-        
-        # Solo validar archivos JavaScript/TypeScript
-        if extension not in ['.js', '.jsx', '.ts', '.tsx']:
-            return {'valid': True, 'message': 'No syntax validation needed'}
-        
-        try:
-            if extension in ['.ts', '.tsx']:
-                result = self.js_ts_validator.validate_ts_syntax(content)
-            else:  # .js, .jsx
-                result = self.js_ts_validator.validate_js_syntax(content)
-            
-            return {
-                'valid': result.get('valid', False),
-                'errors': result.get('errors', []),
-                'extension': extension,
-                'validator_used': 'JsTsValidator'
-            }
-        except Exception as e:
-            return {
-                'valid': False,
-                'errors': [f'Syntax validation failed: {str(e)}'],
-                'extension': extension
-            }
-
     def _handle_backup(self, file_path: str, backup_manager) -> Dict[str, Any]:
         """Manejar backup usando backup_manager"""
         path_obj = Path(file_path)
