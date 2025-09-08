@@ -29,6 +29,8 @@ const OTPVerification = lazy(() => import('./components/OTPVerification'));
 // Componentes de auth con lazy loading
 const OTPDemo = lazy(() => import('./components/OTPDemo'));
 const VendorTest = lazy(() => import('./pages/VendorTest'));
+const Marketplace = lazy(() => import('./pages/Marketplace'));
+const AdminRestricted = lazy(() => import('./pages/AdminRestricted'));
 
 function App() {
   return (
@@ -44,6 +46,18 @@ function App() {
             <VendorTest />
           </Suspense>
         } />
+
+        {/* Ruta del Marketplace para compradores */}
+        <Route
+          path='/marketplace'
+          element={
+            <AuthGuard>
+              <Suspense fallback={<PageLoader />}>
+                <Marketplace />
+              </Suspense>
+            </AuthGuard>
+          }
+        />
 
         {/* Rutas protegidas con Layout */}
         <Route
@@ -72,7 +86,7 @@ function App() {
                 <Productos />
               </Suspense>
             }
-          />{' '}
+          />
           <Route
             path='reportes/comisiones'
             element={
@@ -126,9 +140,22 @@ function App() {
             </Suspense>
           }
         />
-        {/* Rutas administrativas protegidas */}
+
+        {/* Admin original - ACCESO RESTRINGIDO */}
         <Route
           path='/admin/*'
+          element={
+            <Suspense fallback={<PageLoader />}>
+              <AdminRestricted />
+            </Suspense>
+          }
+        />
+
+        {/* Portal Admin Oculto - FUTURO SUBDOMAIN admin.mestocker.com */}
+        {/* MIGRATION NOTE: Esta ruta será migrada a admin.mestocker.com en producción */}
+        {/* Ver MIGRATION_TO_SUBDOMAIN.md para pasos completos de migración */}
+        <Route
+          path='/admin-secure-portal/*'
           element={
             <AuthGuard>
               <Suspense fallback={<PageLoader />}>

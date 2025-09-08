@@ -1,13 +1,33 @@
 import React, { useState } from 'react';
 import { UserType } from '../stores/authStore';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
+
+// Función de redirección inteligente basada en UserType y portal_type
+const getRedirectPath = (userType: UserType, portalType?: string): string => {
+  switch (userType) {
+    case 'VENDEDOR':
+      return '/vendor';
+    case 'COMPRADOR':
+      return '/marketplace';
+    case 'ADMIN':
+    case 'SUPERUSER':
+      // Portal oculto para admins con credenciales específicas
+      if (portalType === 'secure') {
+        return '/admin-secure-portal/dashboard';
+      }
+      return '/admin/dashboard';
+    default:
+      return '/dashboard';
+  }
+};
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const { login, isAuthenticated } = useAuthStore();
+  const navigate = useNavigate();
   const location = useLocation();
 
   const from = (location.state as any)?.from || '/dashboard';
@@ -19,7 +39,83 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 🔧 CREDENCIALES FICTICIAS PARA DESARROLLO
+    // 🔧 CREDENCIALES FICTICIAS PARA DESARROLLO - MÚLTIPLES ROLES
+    const testCredentials = [
+      {
+        email: 'admin@mestore.com',
+        password: '123456',
+        user: {
+          id: 'dev-admin-001',
+          email: 'admin@mestore.com',
+          name: 'Admin de Prueba',
+          user_type: 'ADMIN' as UserType,
+          profile: null,
+        },
+        portal_type: 'standard'  // Admin estándar
+      },
+      {
+        email: 'secure.admin@mestore.com',
+        password: 'SecurePortal2024!',
+        user: {
+          id: 'dev-secure-admin-001',
+          email: 'secure.admin@mestore.com',
+          name: 'Admin Portal Seguro',
+          user_type: 'ADMIN' as UserType,
+          profile: null,
+        },
+        portal_type: 'secure'  // Admin portal oculto
+      },
+      {
+        email: 'vendor@mestore.com',
+        password: '123456',
+        user: {
+          id: 'dev-vendor-001',
+          email: 'vendor@mestore.com',
+          name: 'Vendedor de Prueba',
+          user_type: 'VENDEDOR' as UserType,
+          profile: null,
+        }
+      },
+      {
+        email: 'buyer@mestore.com',
+        password: '123456',
+        user: {
+          id: 'dev-buyer-001',
+          email: 'buyer@mestore.com',
+          name: 'Comprador de Prueba',
+          user_type: 'COMPRADOR' as UserType,
+          profile: null,
+        }
+      },
+      {
+        email: 'super@mestore.com',
+        password: '123456',
+        user: {
+          id: 'dev-super-001',
+          email: 'super@mestore.com',
+          name: 'SuperUsuario de Prueba',
+          user_type: 'SUPERUSER' as UserType,
+          profile: null,
+        }
+      }
+    ];
+
+    // Buscar credenciales de prueba
+    const testUser = testCredentials.find(
+      cred => cred.email === email && cred.password === password
+    );
+
+    if (testUser) {
+      const fakeToken = 'dev-token-' + Date.now();
+      login(fakeToken, testUser.user);
+      
+      // REDIRECCIÓN INTELIGENTE usando getRedirectPath con portal_type
+      const redirectPath = getRedirectPath(testUser.user.user_type, testUser.portal_type);
+      navigate(redirectPath);
+      return;
+    }
+
+    // Mantener compatibilidad con credencial original
     if (email === 'test@mestore.com' && password === '123456') {
       const fakeUser = {
         id: 'dev-user-001',
@@ -29,10 +125,14 @@ const Login: React.FC = () => {
         profile: null,
       };
       const fakeToken = 'dev-token-' + Date.now();
-
       login(fakeToken, fakeUser);
+      
+      // REDIRECCIÓN INTELIGENTE
+      const redirectPath = getRedirectPath(fakeUser.user_type);
+      navigate(redirectPath);
       return;
     }
+
     // Conectar con API real de vendedores
     try {
       const response = await fetch('/api/v1/vendedores/login', {
@@ -44,6 +144,10 @@ const Login: React.FC = () => {
       if (response.ok) {
         const data = await response.json();
         login(data.token, data.user);
+        
+        // REDIRECCIÓN INTELIGENTE para API real
+        const redirectPath = getRedirectPath(data.user.user_type);
+        navigate(redirectPath);
       } else {
         console.error('Error de autenticación');
       }
@@ -69,6 +173,18 @@ const Login: React.FC = () => {
               <p className="text-gray-600">
                 Accede a tu cuenta MeStocker
               </p>
+              
+              {/* Credenciales de prueba visible */}
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-xs text-blue-700 font-medium mb-1">Credenciales de Prueba:</p>
+                <div className="text-xs text-blue-600 space-y-1">
+                  <div>🔑 admin@mestore.com / 123456 (Admin)</div>
+                  <div>🔑 vendor@mestore.com / 123456 (Vendedor)</div>
+                  <div>🔑 buyer@mestore.com / 123456 (Comprador)</div>
+                  <div>🔑 super@mestore.com / 123456 (SuperUser)</div>
+                  <div>🔐 secure.admin@mestore.com / SecurePortal2024! (Portal Oculto)</div>
+                </div>
+              </div>
             </div>
 
             {/* Formulario de login */}
