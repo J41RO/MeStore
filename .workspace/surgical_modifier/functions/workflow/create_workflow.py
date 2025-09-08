@@ -101,7 +101,11 @@ class CreateWorkflow:
             return content
         if template:
             return template_generator.generate_template(template, file_path=file_path)
-        return template_generator.get_template_for_extension(file_path)
+        # Obtener template y customizarlo con variables automáticas
+        raw_template = template_generator.get_template_for_extension(file_path)
+        from pathlib import Path
+        component_name = Path(file_path).stem.replace('_', '').replace('-', '').title()
+        return template_generator.customize_template(raw_template, component_name=component_name)
     
     def _handle_backup(self, file_path: str, backup_manager) -> Dict[str, Any]:
         """Manejar backup usando backup_manager"""

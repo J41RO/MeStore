@@ -226,6 +226,24 @@ def create(filepath, content, template, from_stdin):
            click.echo(f"Error: El archivo {filepath} ya existe", err=True)
            return
            
+       # Usar CreateCoordinator apropiadamente
+       from coordinators.create import CreateCoordinator
+       coordinator = CreateCoordinator()
+       
+       # Ejecutar usando coordinador con soporte para templates
+       result = coordinator.execute(
+           file_path=filepath,
+           content=content if content else None,
+           template=template
+       )
+       
+       if result.get('success'):
+           return
+       else:
+           click.echo(f"Error: {result.get('error', 'Error desconocido')}", err=True)
+           return 1
+       
+       # CÓDIGO ORIGINAL (FALLBACK - NO DEBERÍA EJECUTARSE):
        with open(filepath, 'w', encoding='utf-8') as f:
            f.write(content)
            
