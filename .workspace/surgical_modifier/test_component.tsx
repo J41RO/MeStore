@@ -1,1 +1,1 @@
-const Button: React.FC<{onClick: () => void}> = ({onClick}) => { return <button onClick={onClick}>Click</button>; }
+import React from "react";
