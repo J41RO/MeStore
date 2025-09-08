@@ -24,7 +24,16 @@ DEFAULT_CONFIG = {
     "excluded_dirs": ["__pycache__", ".git", "node_modules", ".pytest_cache"],
     "max_file_size_mb": 10,
     "log_level": "INFO",
-    "encoding": "utf-8"
+    "encoding": "utf-8",
+    "technology_mapping": {
+        ".py": "python",
+        ".tsx": "typescript_react", 
+        ".ts": "typescript",
+        ".jsx": "javascript_react",
+        ".js": "javascript",
+        ".vue": "vue",
+        ".svelte": "svelte"
+    }
 }
 
 # Constantes requeridas por los tests

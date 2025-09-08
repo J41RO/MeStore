@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 from rich.console import Console
 from functions.analysis.file_explorer import FileExplorer
+from functions.analysis.technology_detector import detect_technology_by_extension, get_coordinator_for_technology
 import py_compile
 
 # ========================
@@ -15,6 +16,30 @@ import py_compile
 # ========================
 
 def is_file(arg):
+   """Detecta si un argumento parece ser un archivo basado en extensión"""
+   return '.' in arg and not arg.startswith('.')
+
+def get_technology_coordinator(file_path):
+   """Detecta tecnología y retorna coordinador apropiado"""
+   try:
+       technology = detect_technology_by_extension(file_path)
+       coordinator_name = get_coordinator_for_technology(technology)
+       
+       # Mapear a coordinadores existentes
+       if coordinator_name == 'typescript_react':
+           from coordinators.typescript_react import TypeScriptReactCoordinator
+           return TypeScriptReactCoordinator(), technology
+       elif coordinator_name == 'python':
+           from coordinators.replace import ReplaceCoordinator
+           return ReplaceCoordinator(), technology
+       else:
+           # Fallback al coordinador estándar
+           from coordinators.replace import ReplaceCoordinator
+           return ReplaceCoordinator(), 'standard'
+   except Exception as e:
+       console.print(f"[yellow]Warning: Error detectando tecnología, usando coordinador estándar: {e}[/yellow]")
+       from coordinators.replace import ReplaceCoordinator
+       return ReplaceCoordinator(), 'standard'
    """Detecta si un argumento parece ser un archivo basado en extensión"""
    return '.' in arg and not arg.startswith('.')
 
@@ -345,8 +370,10 @@ def replace(filepath, pattern, replacement, fuzzy=False, regex=False, threshold=
                console.print("[yellow]ℹ️ No se encontraron coincidencias para reemplazar[/yellow]")
                return 0
 
-       # Usar ReplaceCoordinator para ejecutar replace real
-       coordinator = ReplaceCoordinator()
+       # MEJORA v6.0: Detección automática de tecnología
+       coordinator, detected_tech = get_technology_coordinator(filepath)
+       if verbose:
+           console.print(f"[blue]🔍 Tecnología detectada: {detected_tech}[/blue]")
        result = coordinator.execute(
            file_path=filepath,
            pattern=pattern,

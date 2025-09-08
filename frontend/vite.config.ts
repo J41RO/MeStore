@@ -4,6 +4,10 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  server: {
+    host: true,
+    allowedHosts: ['localhost', '127.0.0.1', '192.168.1.137', 'admin.mestocker.com', 'mestocker.com']
+  },
   define: {
     'process.env': {
       NODE_ENV: JSON.stringify(process.env.NODE_ENV || 'development'),
