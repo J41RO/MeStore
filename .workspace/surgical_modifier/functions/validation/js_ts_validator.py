@@ -7,6 +7,8 @@ import re
 import json
 from typing import Dict, List, Tuple, Optional
 
+from functions.react.jsx_parser import JSXParser
+
 
 class JsTsValidator:
     """
@@ -126,7 +128,7 @@ class JsTsValidator:
         
         # Validar JSX básico
         if '<' in content and '>' in content:
-            jsx_errors = self._validate_jsx_syntax(content)
+            jsx_errors = self._validate_jsx_syntax_advanced(content)
             errors.extend(jsx_errors)
         
         return {
@@ -197,6 +199,25 @@ class JsTsValidator:
                 errors.append("React.memo con sintaxis de arrow function malformada")
         
         return errors
+
+
+    def _validate_jsx_syntax_advanced(self, content: str) -> List[str]:
+        """Valida sintaxis JSX usando parser avanzado."""
+        try:
+            # Usar JSXParser mejorado para validación avanzada
+            jsx_parser = JSXParser()
+            result = jsx_parser.validate_jsx_advanced(content)
+            
+            # Si hay errores específicos, usarlos
+            if not result['valid']:
+                return result['errors']
+            
+            # Si no hay errores específicos, todo está bien
+            return []
+            
+        except Exception as e:
+            # En caso de error, usar validación básica como fallback
+            return [f"Error en validación JSX avanzada: {str(e)}"]
 
     def _extract_balanced_parens(self, content: str, start_pos: int) -> Optional[str]:
         """Extrae contenido con paréntesis balanceados desde posición inicial."""
