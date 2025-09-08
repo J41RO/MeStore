@@ -764,8 +764,7 @@ async def admin_login(
         # Intentar autenticación
         result = await auth_service.authenticate_user(
             email=request.email,
-            password=request.password,
-            db=db
+            password=request.password
         )
         
         if not result["success"]:
