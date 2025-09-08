@@ -176,7 +176,7 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({
                         {isLoadingMetrics ? (
                           <div className="metrics-loading w-20 h-4"></div>
                         ) : (
-                          dashboardMetrics?.totalStock > 0 ? `+${Math.floor(dashboardMetrics.totalStock * 0.12)}% este mes` : 'Sin movimiento'
+                          dashboardMetrics?.totalStock && dashboardMetrics.totalStock > 0 ? `+${Math.floor(dashboardMetrics.totalStock * 0.12)}% este mes` : 'Sin movimiento'
                         )}
                       </div>
                     </div>
@@ -199,7 +199,7 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({
                         {isLoadingMetrics ? (
                           <div className="metrics-loading w-24 h-4"></div>
                         ) : (
-                          dashboardMetrics?.totalProducts > 0 ? 
+                          dashboardMetrics?.totalProducts && dashboardMetrics.totalProducts > 0 ?
                             `${Math.round((dashboardMetrics.activeProducts / dashboardMetrics.totalProducts) * 100)}% disponibles` :
                             'Sin productos'
                         )}
@@ -224,7 +224,7 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({
                         {isLoadingMetrics ? (
                           <div className="metrics-loading w-20 h-4"></div>
                         ) : (
-                          dashboardMetrics?.lowStockItems > 0 ? 'Requiere restock' : 'Stock OK'
+                          dashboardMetrics?.lowStockItems && dashboardMetrics.lowStockItems > 0 ? 'Requiere restock' : 'Stock OK'
                         )}
                       </div>
                     </div>
@@ -296,8 +296,7 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({
                             <div key={idx} className='flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg'>
                               <span className='font-medium text-gray-900 dark:text-white'>{order}</span>
                               <span className='px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-sm'>
-                                {dashboardMetrics?.ordersToday > 0 ? 'Procesando' : 'Simulado'}
-                              </span>
+                                {dashboardMetrics?.ordersToday && dashboardMetrics.ordersToday > 0 ? 'Procesando' : 'Simulado'}                              </span>
                             </div>
                           ))
                         )}
@@ -322,8 +321,7 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({
                         {isLoadingMetrics ? (
                           <div className="metrics-loading w-20 h-4"></div>
                         ) : (
-                          dashboardMetrics?.monthlySales > 0 ? '↗ Datos reales del endpoint' : 'Sin datos de ventas'
-                        )}
+                          dashboardMetrics?.monthlySales && dashboardMetrics.monthlySales > 0 ? '↗ Datos reales del endpoint' : 'Sin datos de ventas'                        )}
                       </div>
                       <div className='mt-4 space-y-2'>
                         <div className='flex justify-between text-sm'>
@@ -363,7 +361,7 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({
                             </div>
                           ))
                         ) : (
-                          dashboardMetrics?.topCategories.length > 0 ? (
+                          dashboardMetrics?.topCategories && dashboardMetrics.topCategories.length > 0 ? (
                             dashboardMetrics.topCategories.map((category, idx) => (
                               <div key={idx} className='flex items-center justify-between'>
                                 <div>
@@ -416,7 +414,7 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({
                         {isLoadingMetrics ? (
                           <div className="metrics-loading w-20 h-4"></div>
                         ) : (
-                          dashboardMetrics?.deliverySuccessRate > 90 ? 'Excelente performance' : 'Endpoint configurado'
+                          dashboardMetrics?.deliverySuccessRate && dashboardMetrics.deliverySuccessRate > 90 ? 'Excelente performance' : 'Endpoint configurado'
                         )}
                       </div>
                     </div>
@@ -514,7 +512,7 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({
           <p className='text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto'>
             {isLoadingMetrics ? (
               'Conectando con endpoints reales de MeStocker...'
-            ) : dashboardMetrics?.activeVendors > 0 ? (
+            ) : dashboardMetrics?.activeVendors && dashboardMetrics.activeVendors > 0 ? (
               `Dashboard conectado con ${dashboardMetrics.activeVendors.toLocaleString()} vendedores reales`
             ) : (
               'Dashboard configurado con endpoints de tu API backend'
@@ -524,7 +522,8 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({
             onClick={() => navigate('/register')}
             className='bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-xl'
           >
-            {dashboardMetrics?.activeVendors > 0 ? 'Acceder a Dashboard Real' : 'Comenzar Ahora'}
+            {dashboardMetrics?.activeVendors && dashboardMetrics.activeVendors > 0 ? 'Acceder a Dashboard Real' : 'Comenzar Ahora'
+}
           </button>
         </div>
       </div>

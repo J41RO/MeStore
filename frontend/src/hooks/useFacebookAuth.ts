@@ -42,7 +42,7 @@ export const useFacebookAuth = (): UseFacebookAuthReturn => {
   useEffect(() => {
     const initializeFacebookSDK = () => {
       // TODO: Cargar Facebook SDK dinámicamente
-      if (typeof window !== 'undefined' && !window.FB) {
+      if (typeof window !== 'undefined' && !(window as any).FB) {
         // Simulación de inicialización del SDK
         console.log('🔧 Inicializando Facebook SDK (simulado)');
         
@@ -59,7 +59,7 @@ export const useFacebookAuth = (): UseFacebookAuthReturn => {
         */
         
         setIsInitialized(true);
-      } else if (window.FB) {
+      } else if ((window as any).FB) {
         setIsInitialized(true);
       }
     };

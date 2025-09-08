@@ -57,9 +57,9 @@ const LandingPage: React.FC = () => {
       const current = typewriterTexts[currentIndex];
       
       if (!isDeleting && currentText !== current) {
-        setCurrentText(current.substring(0, currentText.length + 1));
+        setCurrentText(current?.substring(0, currentText.length + 1) || '');
       } else if (isDeleting && currentText !== '') {
-        setCurrentText(current.substring(0, currentText.length - 1));
+        setCurrentText(current?.substring(0, currentText.length - 1) || '');
       } else if (!isDeleting && currentText === current) {
         setTimeout(() => setIsDeleting(true), 2000);
       } else if (isDeleting && currentText === '') {
@@ -127,7 +127,7 @@ const LandingPage: React.FC = () => {
   };
 
   // FUNCIÓN INTELIGENTE: Ver Demo Live con loading state
-  const handleDemoWithAnimation = async (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleDemoWithAnimation = async (_e: React.MouseEvent<HTMLButtonElement>) => {
     setIsLoadingDemo(true);
     
     setTimeout(() => {
@@ -149,7 +149,7 @@ const LandingPage: React.FC = () => {
   return (
     <div className='min-h-screen bg-white dark:bg-gray-900'>
       {/* Estilos CSS completos - se mantienen igual */}
-      <style jsx>{`
+      <style>{`
         @keyframes float-slow {
           0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.3; }
           50% { transform: translate3d(10px, -20px, 0) scale(1.2); opacity: 0.7; }
@@ -484,7 +484,7 @@ const LandingPage: React.FC = () => {
                 {isLoadingMetrics ? (
                   <div className="metrics-loading w-16 h-12 mx-auto"></div>
                 ) : (
-                  dashboardMetrics?.totalProducts > 0 ? `${Math.floor(dashboardMetrics.totalProducts / 1000)}K+` : '1K+'
+                  dashboardMetrics?.totalProducts && dashboardMetrics.totalProducts > 0 ? `${Math.floor(dashboardMetrics.totalProducts / 1000)}K+` : '1K+'
                 )}
               </div>
               <div className='text-gray-600 dark:text-gray-300 font-medium'>Productos Listados</div>

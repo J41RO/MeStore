@@ -59,12 +59,6 @@ interface RegisterFormProps {
   showValidationFeedback?: boolean;
 }
 
-interface ApiResponse {
-  success: boolean;
-  message: string;
-  data?: any;
-}
-
 const RegisterForm: React.FC<RegisterFormProps> = ({ 
   onSuccess, 
   onValidationChange,
@@ -168,7 +162,6 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
       });
 
       if (response.ok) {
-        const result = await response.json();
         setMessage('¡Registro exitoso! Redirigiendo...');
         setMessageType('success');
         reset();

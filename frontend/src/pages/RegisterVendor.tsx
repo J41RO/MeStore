@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
-import { useAuthStore, UserType } from '../stores/authStore';
+import { UserType } from '../stores/authStore';
 import { GoogleLogin } from '@react-oauth/google';
-import { FaFacebook, FaGoogle } from 'react-icons/fa';
+import { FaFacebook } from 'react-icons/fa';
 
 // Schema de validación para datos básicos (Paso 1)
 const basicDataSchema = yup.object({
@@ -29,6 +29,23 @@ const basicDataSchema = yup.object({
     .required('Teléfono es requerido')
     .matches(/^\d{3}\s\d{3}\s\d{4}$/, 'Formato: 300 123 4567'),
 });
+
+// Tipo unificado para formulario Paso 3 (compradores y vendedores)
+interface Step3FormData {
+  // Campos para COMPRADOR
+  cedula?: string;
+  direccion?: string;
+  ciudad?: string;
+  departamento?: string;
+  
+  // Campos para VENDEDOR
+  tipo_vendedor?: 'persona_juridica' | 'persona_natural';
+  nombre_empresa?: string;
+  nit?: string;
+  direccion_fiscal?: string;
+  ciudad_fiscal?: string;
+  departamento_fiscal?: string;
+}
 
 // Schema de validación para COMPRADOR (Paso 3)
 const compradorSchema = yup.object({
@@ -120,8 +137,10 @@ const RegisterVendor: React.FC = () => {
     formState: { errors: errorsStep3, isValid: isValidStep3 },
     watch: watchStep3,
     setValue: setValueStep3,
-  } = useForm({
-    resolver: yupResolver(selectedRole === UserType.COMPRADOR ? compradorSchema : vendedorSchema),
+  } = useForm<Step3FormData>({
+    resolver: yupResolver(
+      yup.lazy(() => selectedRole === UserType.COMPRADOR ? compradorSchema : vendedorSchema) as any
+    ),
     mode: 'onChange',
   });
 
