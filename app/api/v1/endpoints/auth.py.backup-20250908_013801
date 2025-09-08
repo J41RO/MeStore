@@ -10,7 +10,6 @@ Proporciona endpoints para:
 
 from typing import Any, Dict
 from fastapi import APIRouter, Depends, HTTPException, status, Header, Query
-from fastapi import Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.core.auth import AuthService, get_auth_service
@@ -18,7 +17,6 @@ from app.core.auth import get_current_user
 from app.database import get_db
 from sqlalchemy.orm import Session
 from app.models.user import User
-from app.services.audit_service import AuditService
 from fastapi import HTTPException
 from app.core.security import decode_access_token, decode_refresh_token
 from app.schemas.auth import (
@@ -742,101 +740,4 @@ async def get_current_user_info(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error al obtener información del usuario"
-        )
-
-
-
-@router.post("/admin-login", response_model=TokenResponse, status_code=status.HTTP_200_OK)
-async def admin_login(
-    request: LoginRequest,
-    request_info: Request,
-    db: Session = Depends(get_db),
-    auth_service: AuthService = Depends(get_auth_service)
-) -> TokenResponse:
-    """
-    Endpoint específico para autenticación administrativa.
-    Incluye verificación de rol y auditoría completa.
-    """
-    ip_address = request_info.client.host if request_info.client else None
-    user_agent = request_info.headers.get("User-Agent")
-    
-    try:
-        # Intentar autenticación
-        result = await auth_service.authenticate_user(
-            email=request.email,
-            password=request.password,
-            db=db
-        )
-        
-        if not result["success"]:
-            # Log intento fallido
-            AuditService.log_admin_login_attempt(
-                email=request.email,
-                success=False,
-                ip_address=ip_address,
-                user_agent=user_agent,
-                error_message=result["message"]
-            )
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=result["message"],
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-        
-        user = result["user"]
-        
-        # Verificación específica de rol admin
-        if user.user_type not in ["ADMIN", "SUPERUSER"]:
-            AuditService.log_admin_access_denied(
-                email=request.email,
-                reason=f"Usuario {user.user_type} intentó acceso admin",
-                ip_address=ip_address,
-                user_agent=user_agent
-            )
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Acceso denegado: Se requieren privilegios administrativos"
-            )
-        
-        # Generar tokens
-        tokens = await auth_service.create_tokens_for_user(user, db)
-        
-        # Log login exitoso
-        AuditService.log_admin_login_success(
-            user=user,
-            ip_address=ip_address,
-            user_agent=user_agent,
-            portal_type="admin-secure-portal"
-        )
-        
-        return TokenResponse(
-            access_token=tokens["access_token"],
-            refresh_token=tokens["refresh_token"],
-            token_type="bearer",
-            expires_in=tokens["expires_in"],
-            user=UserResponse(
-                id=str(user.id),
-                email=user.email,
-                nombre=user.nombre,
-                apellido=user.apellido,
-                user_type=user.user_type,
-                is_active=user.is_active,
-                is_verified=user.is_verified
-            )
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        # Log error inesperado
-        AuditService.log_admin_login_attempt(
-            email=request.email,
-            success=False,
-            ip_address=ip_address,
-            user_agent=user_agent,
-            error_message=f"Error inesperado: {str(e)}"
-        )
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error interno del servidor"
         )

@@ -151,15 +151,6 @@ function App() {
           }
         />
 
-        {/* Ruta específica para login admin en subdominio */}
-        <Route
-          path="/admin-login"
-          element={
-            <Suspense fallback={<PageLoader />}>
-              <AdminLogin />
-            </Suspense>
-          }
-        />
         {/* Portal Admin Oculto - FUTURO SUBDOMAIN admin.mestocker.com */}
         {/* MIGRATION NOTE: Esta ruta será migrada a admin.mestocker.com en producción */}
         {/* Ver MIGRATION_TO_SUBDOMAIN.md para pasos completos de migración */}
