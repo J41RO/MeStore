@@ -22,6 +22,7 @@ const CommissionReport = lazy(
   () => import('./components/reports/CommissionReport')
 );
 const Login = lazy(() => import('./pages/Login'));
+const AdminLogin = lazy(() => import('./pages/AdminLogin'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const RegisterVendor = lazy(() => import('./pages/RegisterVendor'));
 const OTPVerification = lazy(() => import('./components/OTPVerification'));

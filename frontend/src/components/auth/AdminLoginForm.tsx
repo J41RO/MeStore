@@ -10,8 +10,7 @@ interface AdminLoginFormProps {
 const AdminLoginForm: React.FC<AdminLoginFormProps> = ({ onLoginSuccess }) => {
   const [credentials, setCredentials] = useState({
     email: '',
-    password: '',
-    adminCode: ''
+    password: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -29,12 +28,32 @@ const AdminLoginForm: React.FC<AdminLoginFormProps> = ({ onLoginSuccess }) => {
         throw new Error('Credenciales administrativas inválidas');
       }
 
-      // Intentar login con validación de rol admin
-      const result = await login(credentials.email, credentials.password, 'admin-portal');
+      // Llamar al endpoint admin-login directamente
+      const response = await fetch('/api/v1/auth/admin-login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: credentials.email,
+          password: credentials.password
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Error de autenticación administrativa');
+      }
+
+      const result = await response.json();
       
+      // Verificar que el usuario es admin
       if (result.user?.user_type !== 'ADMIN' && result.user?.user_type !== 'SUPERUSER') {
         throw new Error('Acceso denegado: Se requieren privilegios administrativos');
       }
+
+      // Establecer estado de autenticación
+      login(result.access_token, result.user);
 
       // Log de acceso exitoso
       console.log('Admin login successful:', {
