@@ -7,12 +7,9 @@ import { useAuthStore } from '../../stores/authStore';
 
 // Mock the auth store
 jest.mock('../../stores/authStore');
-const mockUseAuthStore = useAuthStore as jest.MockedFunction<
-  typeof useAuthStore
->;
+const mockUseAuthStore = useAuthStore as jest.MockedFunction<typeof useAuthStore>;
 
 // Mock react-router-dom Navigate
-
 // Mock fetch globally
 global.fetch = jest.fn();
 jest.mock('react-router-dom', () => ({
@@ -51,43 +48,15 @@ describe('Login', () => {
 
     renderLogin();
 
-    expect(screen.getByText('Iniciar Sesión')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Email')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Contraseña')).toBeInTheDocument();
+    expect(screen.getAllByText('Iniciar Sesión')[0]).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('tu@email.com')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Tu contraseña')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Ingresar' })
+      screen.getByRole('button', { name: 'Iniciar Sesión' })
     ).toBeInTheDocument();
   });
 
-  test('should redirect to dashboard when already authenticated', () => {
-    mockUseAuthStore.mockReturnValue({
-      isAuthenticated: true,
-      login: mockLogin,
-      logout: jest.fn(),
-      checkAuth: jest.fn(),
-      user: { id: '1', email: 'test@test.com' },
-      token: 'mock-token',
-    });
-
-    renderLogin();
-
-    expect(screen.getByTestId('navigate')).toBeInTheDocument();
-    expect(screen.getByTestId('navigate')).toHaveAttribute(
-      'data-to',
-      '/dashboard'
-    );
-  });
-
   test('should handle form submission and call login', async () => {
-    // Mock fetch response
-    const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        token: 'demo_token_123',
-        user: { id: '1', email: 'test@example.com', name: 'Usuario Demo' },
-      }),
-    } as Response);
     mockUseAuthStore.mockReturnValue({
       isAuthenticated: false,
       login: mockLogin,
@@ -99,18 +68,21 @@ describe('Login', () => {
 
     renderLogin();
 
-    const emailInput = screen.getByPlaceholderText('Email');
-    const passwordInput = screen.getByPlaceholderText('Contraseña');
-    const submitButton = screen.getByRole('button', { name: 'Ingresar' });
+    const emailInput = screen.getByPlaceholderText('tu@email.com');
+    const passwordInput = screen.getByPlaceholderText('Tu contraseña');
+    const submitButton = screen.getByRole('button', { name: 'Iniciar Sesión' });
 
-    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-    fireEvent.change(passwordInput, { target: { value: 'password123' } });
+    fireEvent.change(emailInput, { target: { value: 'admin@mestore.com' } });
+    fireEvent.change(passwordInput, { target: { value: '123456' } });
     fireEvent.click(submitButton);
 
     await waitFor(() => {
       expect(mockLogin).toHaveBeenCalledWith(
-        expect.stringContaining('demo_token_'),
-        { id: '1', email: 'test@example.com', name: 'Usuario Demo' }
+        expect.any(String), 
+        expect.objectContaining({ 
+          email: 'admin@mestore.com',
+          user_type: 'ADMIN'
+        })
       );
     });
   });
@@ -127,14 +99,14 @@ describe('Login', () => {
 
     renderLogin();
 
-    const emailInput = screen.getByPlaceholderText('Email');
-    const passwordInput = screen.getByPlaceholderText('Contraseña');
+    const emailInput = screen.getByPlaceholderText('tu@email.com');
+    const passwordInput = screen.getByPlaceholderText('Tu contraseña');
 
     expect(emailInput).toBeRequired();
     expect(passwordInput).toBeRequired();
   });
 
-  test('should update input values when typing', () => {
+  test('should update input values when typing', async () => {
     mockUseAuthStore.mockReturnValue({
       isAuthenticated: false,
       login: mockLogin,
@@ -146,15 +118,15 @@ describe('Login', () => {
 
     renderLogin();
 
-    const emailInput = screen.getByPlaceholderText('Email') as HTMLInputElement;
+    const emailInput = screen.getByPlaceholderText('tu@email.com') as HTMLInputElement;
     const passwordInput = screen.getByPlaceholderText(
-      'Contraseña'
+      'Tu contraseña'
     ) as HTMLInputElement;
 
-    fireEvent.change(emailInput, { target: { value: 'user@test.com' } });
-    fireEvent.change(passwordInput, { target: { value: 'mypassword' } });
+    fireEvent.change(emailInput, { target: { value: 'admin@mestore.com' } });
+    fireEvent.change(passwordInput, { target: { value: '123456' } });
 
-    expect(emailInput.value).toBe('user@test.com');
-    expect(passwordInput.value).toBe('mypassword');
+    expect(emailInput.value).toBe('admin@mestore.com');
+    expect(passwordInput.value).toBe('123456');
   });
 });

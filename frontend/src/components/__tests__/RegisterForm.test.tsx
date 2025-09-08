@@ -18,13 +18,13 @@ describe('RegisterForm - Validaciones Colombianas', () => {
     render(<RegisterForm />);
 
     expect(
-      screen.getByPlaceholderText(/ejemplo: Juan Carlos Pérez/i)
+      screen.getByPlaceholderText('Juan Carlos Pérez')
     ).toBeInTheDocument();
     expect(
-      screen.getByPlaceholderText(/ejemplo: juan@correo.com/i)
+      screen.getByPlaceholderText('juan@correo.com')
     ).toBeInTheDocument();
     expect(
-      screen.getByPlaceholderText(/ejemplo: \+57 300 123 4567/i)
+      screen.getByPlaceholderText('300 123 4567')
     ).toBeInTheDocument();
     expect(
       screen.getByPlaceholderText(/Mínimo 8 caracteres/i)
@@ -39,12 +39,14 @@ describe('RegisterForm - Validaciones Colombianas', () => {
     const user = userEvent.setup();
     render(<RegisterForm />);
 
-    const nameInput = screen.getByPlaceholderText(
-      /ejemplo: Juan Carlos Pérez/i
-    );
+    const nameInput = screen.getByPlaceholderText('Juan Carlos Pérez');
 
-    await user.type(nameInput, 'María José');
-    expect(nameInput).toHaveValue('María José');
+    await user.type(nameInput, 'Juan Carlos Pérez González');
+    expect(nameInput).toHaveValue('Juan Carlos Pérez González');
+
+    await user.clear(nameInput);
+    await user.type(nameInput, 'Juan');
+    expect(nameInput).toHaveValue('Juan');
   });
 
   // Test 3: Validación de email
@@ -52,18 +54,21 @@ describe('RegisterForm - Validaciones Colombianas', () => {
     const user = userEvent.setup();
     render(<RegisterForm />);
 
-    const emailInput = screen.getByPlaceholderText(/ejemplo: juan@correo.com/i);
+    const emailInput = screen.getByPlaceholderText('juan@correo.com');
 
     await user.type(emailInput, 'test@example.com');
     expect(emailInput).toHaveValue('test@example.com');
+
+    await user.clear(emailInput);
+    await user.type(emailInput, 'invalid-email');
+    expect(emailInput).toHaveValue('invalid-email');
   });
 
-  // Test 4: Test básico de submit
-  test('maneja el submit del formulario', async () => {
-    const user = userEvent.setup();
+  // Test 4: Submit del formulario
+  test('maneja el submit del formulario', () => {
     render(<RegisterForm />);
 
-    const submitButton = screen.getByRole('button', { name: /registrarse/i });
+    const submitButton = screen.getByRole('button', { name: 'Crear Cuenta' });
     expect(submitButton).toBeInTheDocument();
   });
 });
