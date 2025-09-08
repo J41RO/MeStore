@@ -11,6 +11,9 @@ from functions.analysis.file_explorer import FileExplorer
 from functions.analysis.technology_detector import detect_technology_by_extension, get_coordinator_for_technology
 import py_compile
 
+# Agregar import del CoordinatorRouter
+from coordinators.coordinator_router import CoordinatorRouter
+
 # ========================
 # FUNCIONES UX MEJORADAS
 # ========================
@@ -20,26 +23,20 @@ def is_file(arg):
    return '.' in arg and not arg.startswith('.')
 
 def get_technology_coordinator(file_path):
-   """Detecta tecnología y retorna coordinador apropiado"""
+   """Detecta tecnología y retorna coordinador apropiado usando CoordinatorRouter"""
    try:
-       technology = detect_technology_by_extension(file_path)
-       coordinator_name = get_coordinator_for_technology(technology)
+       # Usar el nuevo CoordinatorRouter para detección automática
+       router = CoordinatorRouter()
+       coordinator = router.get_coordinator(file_path)
        
-       # Mapear a coordinadores existentes
-       if coordinator_name == 'typescript_react':
-           from coordinators.typescript_react import TypeScriptReactCoordinator
-           return TypeScriptReactCoordinator(), technology
-       elif coordinator_name == 'python':
-           from coordinators.replace import ReplaceCoordinator
-           return ReplaceCoordinator(), technology
-       else:
-           # Fallback al coordinador estándar
-           from coordinators.replace import ReplaceCoordinator
-           return ReplaceCoordinator(), 'standard'
+       # Detectar tecnología específica para logging
+       technology = router._detect_file_technology(file_path, router._find_project_root(file_path))
+       
+       return coordinator, technology
    except Exception as e:
-       console.print(f"[yellow]Warning: Error detectando tecnología, usando coordinador estándar: {e}[/yellow]")
+       console.print(f"[yellow]Warning: Error en CoordinatorRouter, usando coordinador fallback: {e}[/yellow]")
        from coordinators.replace import ReplaceCoordinator
-       return ReplaceCoordinator(), 'standard'
+       return ReplaceCoordinator(), 'fallback'
    """Detecta si un argumento parece ser un archivo basado en extensión"""
    return '.' in arg and not arg.startswith('.')
 
