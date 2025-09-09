@@ -6,6 +6,7 @@ from functions.debugging.pattern_suggester import PatternSuggester
 from functions.response.response_builder import ResponseBuilder
 from functions.validation.js_ts_validator import JsTsValidator
 from functions.analysis.structural_analyzer import StructuralAnalyzer
+from functions.typescript.syntax_validator import TypeScriptSyntaxValidator
 
 class ReplaceWorkflow:
     """Workflow handler para operaciones REPLACE - maneja secuencia y lógica de negocio"""
@@ -14,6 +15,7 @@ class ReplaceWorkflow:
         self.logger = logging.getLogger(__name__)
         self.js_ts_validator = JsTsValidator()
         self.structural_analyzer = StructuralAnalyzer()
+        self.typescript_validator = TypeScriptSyntaxValidator()
         self.context_extractor = ContextExtractor()
         self.pattern_suggester = PatternSuggester()
         self.response_builder = ResponseBuilder()
@@ -219,6 +221,38 @@ class ReplaceWorkflow:
             # FASE 6.5: Validación de sintaxis JS/TS (si aplica) - ANTES de escribir
             if self._is_js_ts_file(file_path) and not kwargs.get('force', False):
                 validation_result = self._validate_js_ts_syntax(new_content, file_path)
+
+                # Validar compatibilidad de tipos TypeScript si es archivo TS
+                if file_path.endswith('.ts') or file_path.endswith('.tsx'):
+                    ts_validation = self._validate_typescript_types(original_content, new_content, file_path)
+                    
+                    # Si hay warnings de tipos, agregarlos al resultado
+                    if ts_validation['warnings']:
+                        validation_warnings = ts_validation['warnings']
+                        self.logger.warning('TypeScript type compatibility warnings detected')
+                        for warning in validation_warnings:
+                            self.logger.warning('  - ' + warning)
+                    
+                    # Si hay errores críticos de tipos, detener el proceso
+                    if ts_validation['errors']:
+                        validation_errors = ts_validation['errors'] 
+                        error_message = 'TypeScript type incompatibilities detected: ' + str(len(validation_errors)) + ' errors'
+                        self.logger.error(error_message)
+                        for error in validation_errors:
+                            self.logger.error('  - ' + error)
+                        
+                        # Mostrar sugerencias si están disponibles
+                        if ts_validation['suggestions']:
+                            self.logger.warning('Suggested fixes:')
+                            for suggestion in ts_validation['suggestions']:
+                                self.logger.warning('  + ' + suggestion)
+                        
+                        return self._build_error_response(
+                            error_message,
+                            validation_errors,
+                            phases_completed,
+                            backup_path
+                        )
                 if not validation_result['valid']:
                     self.logger.error(f"Sintaxis JS/TS inválida después del reemplazo: {validation_result['errors']}")
                     # No necesitamos rollback aquí porque aún no hemos escrito el archivo
@@ -331,6 +365,30 @@ class ReplaceWorkflow:
                 'valid': True,  # En caso de error del validador, no bloquear
                 'errors': []
             }
+
+
+    def _validate_typescript_types(self, original_content: str, new_content: str, file_path: str) -> Dict[str, Any]:
+        """Validar compatibilidad de tipos TypeScript entre contenido original y nuevo"""
+        try:
+            # Solo validar archivos TypeScript
+            if not (file_path.endswith('.ts') or file_path.endswith('.tsx')):
+                return {'valid': True, 'warnings': [], 'errors': [], 'suggestions': []}
+            
+            # Usar TypeScriptSyntaxValidator para validar compatibilidad
+            validation_result = self.typescript_validator.validate_type_compatibility(original_content, new_content)
+            
+            # Formatear resultado para el workflow
+            return {
+                'valid': validation_result['compatible'],
+                'warnings': validation_result['warnings'],
+                'errors': validation_result['errors'],
+                'suggestions': validation_result['suggestions']
+            }
+            
+        except Exception as e:
+            self.logger.warning('Error en validacion TypeScript: ' + str(e))
+            # En caso de error, no bloquear el workflow
+            return {'valid': True, 'warnings': [], 'errors': [], 'suggestions': []}
 
 
     def _build_structural_warning_response(self, critical_issues, warnings, phases_completed, backup_path):

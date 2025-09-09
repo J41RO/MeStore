@@ -209,6 +209,185 @@ class TypeScriptSyntaxValidator:
             return True
             
         return False
+
+    def detect_type_change(self, old_content: str, new_content: str) -> Dict[str, Any]:
+        """Detectar cambios de tipos básicos entre versiones"""
+        changes = {
+            'detected': False,
+            'changes': [],
+            'incompatibilities': []
+        }
+        
+        # Patrones para detectar cambios de tipos básicos
+        type_patterns = [
+            (r'(\w+):\s*string', r'(\w+):\s*number', 'string', 'number'),
+            (r'(\w+):\s*number', r'(\w+):\s*string', 'number', 'string'),
+            (r'(\w+):\s*boolean', r'(\w+):\s*(string|number)', 'boolean', 'primitive'),
+            (r'(\w+):\s*(string|number)', r'(\w+):\s*boolean', 'primitive', 'boolean'),
+            (r'(\w+):\s*(\w+)\[\]', r'(\w+):\s*(\w+)', 'array', 'single'),
+            (r'(\w+):\s*(\w+)', r'(\w+):\s*(\w+)\[\]', 'single', 'array')
+        ]
+        
+        for old_pattern, new_pattern, old_type, new_type in type_patterns:
+            old_matches = re.finditer(old_pattern, old_content)
+            new_matches = re.finditer(new_pattern, new_content)
+            
+            old_props = {match.group(1): (old_type, match.group(0)) for match in old_matches}
+            new_props = {match.group(1): (new_type, match.group(0)) for match in new_matches}
+            
+            # Detectar cambios
+            for prop_name in old_props:
+                if prop_name in new_props and old_props[prop_name][0] != new_props[prop_name][0]:
+                    changes['detected'] = True
+                    change_info = {
+                        'property': prop_name,
+                        'old_type': old_props[prop_name][0],
+                        'new_type': new_props[prop_name][0],
+                        'old_declaration': old_props[prop_name][1],
+                        'new_declaration': new_props[prop_name][1]
+                    }
+                    changes['changes'].append(change_info)
+                    
+                    # Detectar incompatibilidades potenciales
+                    incompatibility = self._analyze_type_incompatibility(old_content, new_content, prop_name, old_props[prop_name][0], new_props[prop_name][0])
+                    if incompatibility:
+                        changes['incompatibilities'].append(incompatibility)
+        
+        return changes
+
+    def detect_prop_compatibility(self, old_content: str, new_content: str) -> Dict[str, Any]:
+        """Detectar cambios en propiedades opcionales vs requeridas"""
+        compatibility = {
+            'detected': False,
+            'optional_to_required': [],
+            'required_to_optional': []
+        }
+        
+        # Detectar cambios de propiedades opcionales
+        prop_pattern = r'(\w+)(\?)?:\s*(\w+)'
+        
+        old_props = {}
+        for match in re.finditer(prop_pattern, old_content):
+            prop_name = match.group(1)
+            is_optional = match.group(2) == '?'
+            prop_type = match.group(3)
+            old_props[prop_name] = {'optional': is_optional, 'type': prop_type}
+        
+        new_props = {}
+        for match in re.finditer(prop_pattern, new_content):
+            prop_name = match.group(1)
+            is_optional = match.group(2) == '?'
+            prop_type = match.group(3)
+            new_props[prop_name] = {'optional': is_optional, 'type': prop_type}
+        
+        # Detectar cambios en opcionalidad
+        for prop_name in old_props:
+            if prop_name in new_props:
+                old_optional = old_props[prop_name]['optional']
+                new_optional = new_props[prop_name]['optional']
+                
+                if old_optional and not new_optional:
+                    compatibility['detected'] = True
+                    warning_msg = 'Property ' + prop_name + ' changed from optional to required - may break existing code'
+                    compatibility['optional_to_required'].append({
+                        'property': prop_name,
+                        'type': old_props[prop_name]['type'],
+                        'warning': warning_msg
+                    })
+                elif not old_optional and new_optional:
+                    compatibility['detected'] = True
+                    info_msg = 'Property ' + prop_name + ' changed from required to optional - generally safe'
+                    compatibility['required_to_optional'].append({
+                        'property': prop_name,
+                        'type': old_props[prop_name]['type'],
+                        'info': info_msg
+                    })
+        
+        return compatibility
+
+    def validate_type_compatibility(self, old_content: str, new_content: str) -> Dict[str, Any]:
+        """Validación completa de compatibilidad de tipos"""
+        result = {
+            'compatible': True,
+            'warnings': [],
+            'errors': [],
+            'suggestions': []
+        }
+        
+        # Detectar cambios de tipos
+        type_changes = self.detect_type_change(old_content, new_content)
+        if type_changes['detected']:
+            result['compatible'] = False
+            
+            for change in type_changes['changes']:
+                warning_msg = 'Type change detected: ' + change['property'] + ' from ' + change['old_type'] + ' to ' + change['new_type']
+                result['warnings'].append(warning_msg)
+            
+            for incompatibility in type_changes['incompatibilities']:
+                result['errors'].append(incompatibility['error'])
+                if 'suggestion' in incompatibility:
+                    result['suggestions'].append(incompatibility['suggestion'])
+        
+        # Detectar cambios de propiedades opcionales
+        prop_changes = self.detect_prop_compatibility(old_content, new_content)
+        if prop_changes['detected']:
+            for change in prop_changes['optional_to_required']:
+                result['warnings'].append(change['warning'])
+            
+            for change in prop_changes['required_to_optional']:
+                result['warnings'].append(change['info'])
+        
+        return result
+
+    def _analyze_type_incompatibility(self, old_content: str, new_content: str, prop_name: str, old_type: str, new_type: str) -> Optional[Dict[str, str]]:
+        """Analizar incompatibilidades específicas entre tipos"""
+        
+        # Buscar valores asignados a la propiedad
+        assignment_pattern = prop_name + r':\s*(.+?)(?=[,}}\n])'
+        
+        assignments = re.finditer(assignment_pattern, old_content)
+        
+        for assignment in assignments:
+            value = assignment.group(1).strip()
+            
+            # Detectar incompatibilidades comunes
+            if old_type == 'number' and new_type == 'string':
+                if value.isdigit() or '.' in value:
+                    error_msg = 'Value ' + value + ' for ' + prop_name + ' is numeric but new type is string'
+                    suggestion_msg = 'Consider changing ' + value + ' to "' + value + '" to match string type'
+                    return {
+                        'error': error_msg,
+                        'suggestion': suggestion_msg
+                    }
+            
+            elif old_type == 'string' and new_type == 'number':
+                if value.startswith('"') or value.startswith("'"):
+                    clean_value = value.strip('"').strip("'")
+                    error_msg = 'Value ' + value + ' for ' + prop_name + ' is string but new type is number'
+                    suggestion_msg = 'Consider changing ' + value + ' to numeric value like ' + clean_value
+                    return {
+                        'error': error_msg,
+                        'suggestion': suggestion_msg
+                    }
+            
+            elif old_type == 'single' and new_type == 'array':
+                error_msg = 'Value ' + value + ' for ' + prop_name + ' is single value but new type expects array'
+                suggestion_msg = 'Consider changing ' + value + ' to [' + value + '] to match array type'
+                return {
+                    'error': error_msg,
+                    'suggestion': suggestion_msg
+                }
+            
+            elif old_type == 'array' and new_type == 'single':
+                if '[' in value and ']' in value:
+                    error_msg = 'Value ' + value + ' for ' + prop_name + ' is array but new type expects single value'
+                    suggestion_msg = 'Consider extracting single element from array or changing type back to array'
+                    return {
+                        'error': error_msg,
+                        'suggestion': suggestion_msg
+                    }
+        
+        return None
         
     def validate_file(self, file_path: str) -> Dict[str, Any]:
         """Validar archivo TypeScript completo"""
