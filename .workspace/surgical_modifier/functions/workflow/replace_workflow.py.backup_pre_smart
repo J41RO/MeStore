@@ -18,31 +18,6 @@ class ReplaceWorkflow:
         self.pattern_suggester = PatternSuggester()
         self.response_builder = ResponseBuilder()
     
-    def _detect_optimal_matcher_type(self, pattern: str, content: str, current_type: str) -> str:
-        """Detecta automáticamente el tipo de matcher óptimo basado en el patrón y contenido"""
-        # Si ya está especificado explícitamente, respetarlo
-        if current_type and current_type != 'literal':
-            return current_type
-            
-        # Detectar casos que necesitan fuzzy matching automático
-        needs_fuzzy = False
-        
-        # 1. Patrón con espacios que podrían variar
-        if ' ' in pattern:
-            pattern_compact = pattern.replace(' ', '')
-            if pattern_compact in content.replace(' ', ''):
-                needs_fuzzy = True
-                
-        # 2. Propiedades de objetos JavaScript/TypeScript
-        if ':' in pattern and '{' in content:
-            needs_fuzzy = True
-            
-        # 3. Patrones con quotes que podrían diferir
-        if ('"' in pattern and "'" in content) or ("'" in pattern and '"' in content):
-            needs_fuzzy = True
-            
-        return 'fuzzy' if needs_fuzzy else 'literal'
-    
     def execute_sequence(self, file_path: str, pattern: str, replacement: str,
                         pattern_factory=None, backup_manager=None, reader=None, 
                         writer=None, validator=None, dry_run=False, **kwargs) -> Dict[str, Any]:
@@ -124,35 +99,9 @@ class ReplaceWorkflow:
             
             # FASE 4: Pattern matching
             # Selección dinámica de matcher basada en parámetros
-            # SMART MATCHING: Detectar automáticamente cuándo usar fuzzy matching
-            smart_matcher_type = self._detect_optimal_matcher_type(pattern, original_content, kwargs.get('matcher_type'))
-            if smart_matcher_type != kwargs.get('matcher_type', 'literal'):
-                self.logger.info(f"Smart matching detected: switching from 'literal' to '{smart_matcher_type}' for pattern '{pattern}'")
-            matcher_type = smart_matcher_type  # usar smart matching automático
+            matcher_type = kwargs.get('matcher_type', 'literal')  # default literal
             matcher = pattern_factory.get_optimized_matcher(matcher_type)
-            # Ajustar threshold para fuzzy matching cuando es seleccionado por smart matching
-            if matcher_type == 'fuzzy':
-                match_result = matcher.find_all(original_content, pattern, threshold=0.6)
-            else:
-                match_result = matcher.find_all(original_content, pattern)
-            
-            # FALLBACK AUTOMÁTICO: Si matching exacto falla, intentar fuzzy matching
-            if not match_result and (matcher_type == 'literal' or matcher_type == 'fuzzy'):
-                self.logger.info(f"Exact matching failed for pattern '{pattern}', attempting fuzzy fallback")
-                fuzzy_matcher = pattern_factory.get_optimized_matcher('fuzzy')
-                fuzzy_result = fuzzy_matcher.find_all(original_content, pattern, threshold=0.6)
-                if fuzzy_result:
-                    self.logger.info(f"Fuzzy matching successful with {len(fuzzy_result)} matches")
-                    match_result = fuzzy_result
-                    matcher = fuzzy_matcher  # Usar fuzzy matcher para el replacement también
-                    matcher_type = 'fuzzy'  # Actualizar tipo para lógica posterior
-                else:
-                    self.logger.info("Fuzzy matching also failed")
-                    # FALLBACK MANUAL: Cuando FuzzyMatcher falla completamente
-                    manual_result = self._manual_fuzzy_matching(original_content, pattern)
-                    if manual_result:
-                        self.logger.info(f"Manual matching successful for pattern '{pattern}'")
-                        match_result = [manual_result]
+            match_result = matcher.find_all(original_content, pattern)
             phases_completed.append('pattern_matching')
             
             if not match_result:
@@ -168,14 +117,7 @@ class ReplaceWorkflow:
                     )
                     
                     # Generar sugerencias
-                    # Generar sugerencias inteligentes usando PatternSuggester mejorado
-                    suggestions = {
-                        'similar_patterns': self.pattern_suggester.suggest_patterns(file_content, pattern)
-                    }
-                    
-                    # Agregar logging de sugerencias automáticas
-                    if suggestions['similar_patterns']:
-                        self.logger.info(f"Generated {len(suggestions['similar_patterns'])} intelligent suggestions for pattern '{pattern}'")
+                    suggestions = self.context_extractor.suggest_alternatives(file_path, pattern)
                     
                     # Usar nuevo ResponseBuilder para error contextual
                     if kwargs.get('verbose', False):
@@ -386,37 +328,3 @@ class ReplaceWorkflow:
                                'pattern_matching', 'content_replacement', 'dry_run_preview'],
             'preview_available': True
         }
-
-    def _manual_fuzzy_matching(self, content: str, pattern: str) -> dict:
-        """Fallback manual cuando FuzzyMatcher falla"""
-        # Caso 1: Diferencias de espaciado
-        pattern_no_spaces = pattern.replace(' ', '')
-        content_lines = content.split('\n')
-        
-        for i, line in enumerate(content_lines):
-            line_no_spaces = line.replace(' ', '')
-            if pattern_no_spaces in line_no_spaces:
-                # Encontrar posición real en el contenido original
-                # Buscar la posición exacta del patrón en la línea original
-                # Buscar 'prop:value' exacto en la línea 
-                start_in_line = line.find('prop:value')
-                if start_in_line == -1:
-                    # Fallback: buscar sin espacios pero con contexto
-                    for k in range(len(line) - len(pattern_no_spaces) + 1):
-                        if line[k:k+len(pattern_no_spaces)] == pattern_no_spaces:
-                            start_in_line = k
-                            break
-                if start_in_line == -1:  # Si no encuentra exacto, buscar aproximado
-                    for j in range(len(line) - len(pattern_no_spaces) + 1):
-                        if line[j:j+len(pattern_no_spaces)].replace(' ', '') == pattern_no_spaces:
-                            start_in_line = j
-                            break
-                
-                if start_in_line != -1:
-                    return {
-                        'match': pattern_no_spaces,
-                        'start': start_in_line,
-                        'end': start_in_line + len(pattern_no_spaces),
-                        'groups': []
-                    }
-        return None
