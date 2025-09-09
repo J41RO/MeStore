@@ -274,8 +274,9 @@ class ReplaceWorkflow:
                 # Modo dry-run: No escribir archivo, solo retornar preview info
                 self.logger.info(f'DRY-RUN MODE: Skipping file write for {file_path}')
                 phases_completed.append('dry_run_preview')
+                # CORRECCIÓN DEL BUG: Usar len(match_result) en lugar de matches_found (variable indefinida)
                 return self._build_dry_run_response(
-                    file_path, original_content, new_content, matches_found
+                    file_path, original_content, new_content, len(match_result)
                 )
             
             write_result = writer.write_file(file_path, new_content)
@@ -366,7 +367,6 @@ class ReplaceWorkflow:
                 'errors': []
             }
 
-
     def _validate_typescript_types(self, original_content: str, new_content: str, file_path: str) -> Dict[str, Any]:
         """Validar compatibilidad de tipos TypeScript entre contenido original y nuevo"""
         try:
@@ -389,7 +389,6 @@ class ReplaceWorkflow:
             self.logger.warning('Error en validacion TypeScript: ' + str(e))
             # En caso de error, no bloquear el workflow
             return {'valid': True, 'warnings': [], 'errors': [], 'suggestions': []}
-
 
     def _build_structural_warning_response(self, critical_issues, warnings, phases_completed, backup_path):
         """Construye respuesta cuando se detectan problemas estructurales"""
@@ -428,16 +427,19 @@ class ReplaceWorkflow:
         
         return response_data
 
-
     def _build_dry_run_response(self, file_path: str, original_content: str, 
-                               new_content: str, matches_found: int) -> Dict[str, Any]:
-        """Construir respuesta para modo dry-run con información de preview"""
+                               new_content: str, matches_count: int) -> Dict[str, Any]:
+        """Construir respuesta para modo dry-run con información de preview
+        
+        CORRECCIÓN APLICADA: Parámetro cambiado de matches_found a matches_count
+        para reflejar correctamente la variable que se pasa desde execute_sequence()
+        """
         return {
             'success': True,
             'dry_run': True,
             'message': f'DRY-RUN: Preview generated for {file_path}',
             'file_path': file_path,
-            'matches_count': matches_found,
+            'matches_count': matches_count,
             'original_content': original_content,
             'new_content': new_content,
             'phases_completed': ['file_validation', 'backup_creation', 'content_reading', 
