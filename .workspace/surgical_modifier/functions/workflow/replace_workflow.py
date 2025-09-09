@@ -65,7 +65,7 @@ class ReplaceWorkflow:
             
             # FASE 2: Crear backup antes del cambio
             try:
-                backup_path = backup_manager.create_snapshot(file_path, "replace")
+                backup_path = backup_manager.create_valid_state_backup(file_path, "replace")
                 backup_created = True
                 phases_completed.append('backup_creation')
                 self.logger.info(f"Backup created: {backup_path}")
@@ -125,13 +125,12 @@ class ReplaceWorkflow:
                 self.logger.info('Análisis estructural omitido (--skip-structural-analysis)')
             
             # FASE 4: Pattern matching
-            # Selección dinámica de matcher basada en parámetros
-            # SMART MATCHING: Detectar automáticamente cuándo usar fuzzy matching
             smart_matcher_type = self._detect_optimal_matcher_type(pattern, original_content, kwargs.get('matcher_type'))
             if smart_matcher_type != kwargs.get('matcher_type', 'literal'):
                 self.logger.info(f"Smart matching detected: switching from 'literal' to '{smart_matcher_type}' for pattern '{pattern}'")
-            matcher_type = smart_matcher_type  # usar smart matching automático
+            matcher_type = smart_matcher_type
             matcher = pattern_factory.get_optimized_matcher(matcher_type)
+            
             # Ajustar threshold para fuzzy matching cuando es seleccionado por smart matching
             if matcher_type == 'fuzzy':
                 match_result = matcher.find_all(original_content, pattern, threshold=0.6)
@@ -146,8 +145,8 @@ class ReplaceWorkflow:
                 if fuzzy_result:
                     self.logger.info(f"Fuzzy matching successful with {len(fuzzy_result)} matches")
                     match_result = fuzzy_result
-                    matcher = fuzzy_matcher  # Usar fuzzy matcher para el replacement también
-                    matcher_type = 'fuzzy'  # Actualizar tipo para lógica posterior
+                    matcher = fuzzy_matcher
+                    matcher_type = 'fuzzy'
                 else:
                     self.logger.info("Fuzzy matching also failed")
                     # FALLBACK MANUAL: Cuando FuzzyMatcher falla completamente
@@ -169,7 +168,6 @@ class ReplaceWorkflow:
                         file_path, pattern, kwargs.get('regex', False)
                     )
                     
-                    # Generar sugerencias
                     # Generar sugerencias inteligentes usando PatternSuggester mejorado
                     suggestions = {
                         'similar_patterns': self.pattern_suggester.suggest_patterns(file_content, pattern)
@@ -210,7 +208,6 @@ class ReplaceWorkflow:
                     }
             
             # FASE 5: Realizar replacement
-            # Usar método apropiado según el tipo de matcher
             if matcher_type == 'regex':
                 replace_result = matcher.replace_pattern(pattern, replacement, original_content)
             else:
@@ -255,7 +252,6 @@ class ReplaceWorkflow:
                         )
                 if not validation_result['valid']:
                     self.logger.error(f"Sintaxis JS/TS inválida después del reemplazo: {validation_result['errors']}")
-                    # No necesitamos rollback aquí porque aún no hemos escrito el archivo
                     return {
                         'success': False,
                         'error': f"Sintaxis JS/TS inválida: {'; '.join(validation_result['errors'])}",
@@ -271,18 +267,59 @@ class ReplaceWorkflow:
             
             # FASE 6: Escribir nuevo contenido (solo si validación pasó)
             if dry_run:
-                # Modo dry-run: No escribir archivo, solo retornar preview info
                 self.logger.info(f'DRY-RUN MODE: Skipping file write for {file_path}')
                 phases_completed.append('dry_run_preview')
-                # CORRECCIÓN DEL BUG: Usar len(match_result) en lugar de matches_found (variable indefinida)
                 return self._build_dry_run_response(
                     file_path, original_content, new_content, len(match_result)
                 )
             
             write_result = writer.write_file(file_path, new_content)
+            
+            # ROLLBACK AUTOMÁTICO: Validación sintáctica post-modificación
+            if write_result and not dry_run:
+                syntax_issues = self.structural_analyzer._analyze_syntax_with_ast(file_path, new_content)
+                if syntax_issues:
+                    self.logger.warning(f'Errores sintácticos detectados en {file_path}: {len(syntax_issues)} errores')
+                    
+                    # Ejecutar rollback automático usando método correcto del backup manager
+                    if backup_path:
+                        try:
+                            rollback_success = backup_manager.rollback_to_valid_state(file_path)
+                            if rollback_success:
+                                self.logger.info(f'ROLLBACK AUTOMÁTICO: {file_path} restaurado desde backup por errores sintácticos')
+                                return self.response_builder.build_error_response(
+                                    f'Operación revertida automáticamente por errores sintácticos: {getattr(syntax_issues[0], "message", "Error desconocido")}',
+                                    [getattr(issue, 'message', 'Error sintáctico') for issue in syntax_issues[:3]],
+                                    'syntax_validation_failed',
+                                    {'rollback_applied': True, 'backup_restored': True}
+                                )
+                            else:
+                                self.logger.error('ROLLBACK FALLÓ: No se pudo restaurar estado válido')
+                                return self.response_builder.build_error_response(
+                                    'Error sintáctico Y rollback falló: No se pudo restaurar archivo',
+                                    ['Rollback a estado válido falló'],
+                                    'rollback_failed',
+                                    {'rollback_applied': False, 'syntax_errors': len(syntax_issues)}
+                                )
+                        except Exception as rollback_error:
+                            self.logger.error(f'ROLLBACK FALLÓ: {str(rollback_error)}')
+                            return self.response_builder.build_error_response(
+                                f'Error sintáctico Y rollback falló: {str(rollback_error)}',
+                                [str(rollback_error)],
+                                'rollback_failed',
+                                {'rollback_applied': False, 'syntax_errors': len(syntax_issues)}
+                            )
+                    else:
+                        self.logger.error('ROLLBACK IMPOSIBLE: No hay backup disponible')
+                        return self.response_builder.build_error_response(
+                            'Error sintáctico detectado pero no hay backup para rollback',
+                            [getattr(issue, 'message', 'Error sintáctico') for issue in syntax_issues[:3]],
+                            'syntax_validation_failed_no_backup',
+                            {'rollback_applied': False, 'syntax_errors': len(syntax_issues)}
+                        )
+                        
             phases_completed.append('content_writing')
             if not write_result.get('success', False):
-                # Si falla la escritura, el archivo original sigue intacto
                 return self._build_error_response(
                     'File writing failed',
                     write_result.get('errors', []),
@@ -303,7 +340,7 @@ class ReplaceWorkflow:
                 'pattern': pattern,
                 'replacement': replacement,
                 'matches_found': matches_count,
-                'matches_count': matches_count,  # Alias para compatibilidad
+                'matches_count': matches_count,
                 'backup_created': backup_path,
                 'backup_path': backup_path,
                 'phases_completed': phases_completed,
@@ -316,9 +353,13 @@ class ReplaceWorkflow:
             # Rollback automático si algo falló después de escribir
             if backup_path and 'content_writing' in phases_completed:
                 try:
-                    backup_manager.restore_backup(file_path, backup_path)
-                    self.logger.info(f"Emergency rollback applied: {file_path} restored from backup")
-                    rollback_applied = True
+                    rollback_success = backup_manager.rollback_to_valid_state(file_path)
+                    if rollback_success:
+                        self.logger.info(f"Emergency rollback applied: {file_path} restored from backup")
+                        rollback_applied = True
+                    else:
+                        self.logger.error("Emergency rollback failed: Could not restore to valid state")
+                        rollback_applied = False
                 except Exception as rollback_error:
                     self.logger.error(f"Emergency rollback failed: {str(rollback_error)}")
                     rollback_applied = False
@@ -363,21 +404,18 @@ class ReplaceWorkflow:
         except Exception as e:
             self.logger.error(f"Error en validación JS/TS: {e}")
             return {
-                'valid': True,  # En caso de error del validador, no bloquear
+                'valid': True,
                 'errors': []
             }
 
     def _validate_typescript_types(self, original_content: str, new_content: str, file_path: str) -> Dict[str, Any]:
         """Validar compatibilidad de tipos TypeScript entre contenido original y nuevo"""
         try:
-            # Solo validar archivos TypeScript
             if not (file_path.endswith('.ts') or file_path.endswith('.tsx')):
                 return {'valid': True, 'warnings': [], 'errors': [], 'suggestions': []}
             
-            # Usar TypeScriptSyntaxValidator para validar compatibilidad
             validation_result = self.typescript_validator.validate_type_compatibility(original_content, new_content)
             
-            # Formatear resultado para el workflow
             return {
                 'valid': validation_result['compatible'],
                 'warnings': validation_result['warnings'],
@@ -387,7 +425,6 @@ class ReplaceWorkflow:
             
         except Exception as e:
             self.logger.warning('Error en validacion TypeScript: ' + str(e))
-            # En caso de error, no bloquear el workflow
             return {'valid': True, 'warnings': [], 'errors': [], 'suggestions': []}
 
     def _build_structural_warning_response(self, critical_issues, warnings, phases_completed, backup_path):
@@ -429,11 +466,7 @@ class ReplaceWorkflow:
 
     def _build_dry_run_response(self, file_path: str, original_content: str, 
                                new_content: str, matches_count: int) -> Dict[str, Any]:
-        """Construir respuesta para modo dry-run con información de preview
-        
-        CORRECCIÓN APLICADA: Parámetro cambiado de matches_found a matches_count
-        para reflejar correctamente la variable que se pasa desde execute_sequence()
-        """
+        """Construir respuesta para modo dry-run con información de preview"""
         return {
             'success': True,
             'dry_run': True,
@@ -449,24 +482,19 @@ class ReplaceWorkflow:
 
     def _manual_fuzzy_matching(self, content: str, pattern: str) -> dict:
         """Fallback manual cuando FuzzyMatcher falla"""
-        # Caso 1: Diferencias de espaciado
         pattern_no_spaces = pattern.replace(' ', '')
         content_lines = content.split('\n')
         
         for i, line in enumerate(content_lines):
             line_no_spaces = line.replace(' ', '')
             if pattern_no_spaces in line_no_spaces:
-                # Encontrar posición real en el contenido original
-                # Buscar la posición exacta del patrón en la línea original
-                # Buscar 'prop:value' exacto en la línea 
                 start_in_line = line.find('prop:value')
                 if start_in_line == -1:
-                    # Fallback: buscar sin espacios pero con contexto
                     for k in range(len(line) - len(pattern_no_spaces) + 1):
                         if line[k:k+len(pattern_no_spaces)] == pattern_no_spaces:
                             start_in_line = k
                             break
-                if start_in_line == -1:  # Si no encuentra exacto, buscar aproximado
+                if start_in_line == -1:
                     for j in range(len(line) - len(pattern_no_spaces) + 1):
                         if line[j:j+len(pattern_no_spaces)].replace(' ', '') == pattern_no_spaces:
                             start_in_line = j

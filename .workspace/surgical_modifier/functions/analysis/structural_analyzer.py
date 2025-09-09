@@ -166,7 +166,7 @@ class StructuralAnalyzer:
             if file_ext == '.py':
                 issues.extend(self._analyze_python_syntax(file_path, content))
             
-            # Para archivos JS/TS, usar AST Engine
+            # Para archivos JS/TS, usar AST Engine mejorado
             elif file_ext in ['.js', '.jsx', '.ts', '.tsx']:
                 issues.extend(self._analyze_js_syntax(file_path, content))
             
@@ -216,26 +216,60 @@ class StructuralAnalyzer:
         return issues
     
     def _analyze_js_syntax(self, file_path: str, content: str) -> List[StructuralIssue]:
-        """Análisis de sintaxis JavaScript/TypeScript usando AST Engine"""
+        """Análisis de sintaxis JavaScript/TypeScript usando AST Engine mejorado"""
         issues = []
         
         try:
-            # Usar AST Engine para análisis JS/TS
-            if hasattr(self.ast_engine, 'parse_javascript'):
-                result = self.ast_engine.parse_javascript(content)
-                if not result.get('success', False):
+            # Usar el AstEngine mejorado que tiene soporte nativo JS/TS
+            # El nuevo AstEngine detecta automáticamente archivos JS/TS y usa el parser nativo
+            from ..engines.base_engine import EngineStatus
+            
+            # Usar el método _use_native_js_parser si está disponible
+            if hasattr(self.ast_engine, '_use_native_js_parser'):
+                result = self.ast_engine._use_native_js_parser(content, 'analyze', file_path=file_path)
+                
+                if result.status == EngineStatus.SUCCESS:
+                    self.logger.debug(f'Sintaxis JS/TS OK (parser nativo): {file_path}')
+                    # AST análisis exitoso con parser nativo
+                elif result.status == EngineStatus.FAILURE:
                     issues.append(StructuralIssue(
                         type='js_syntax_error',
                         severity='error',
                         file_path=file_path,
-                        line_number=result.get('line'),
-                        message=f'Error de sintaxis JS/TS: {result.get("error", "Error desconocido")}',
-                        details=result
+                        line_number=None,
+                        message=f'Error de sintaxis JS/TS: {result.error_message}',
+                        details={'engine': 'native-js-parser', 'error': result.error_message}
                     ))
                 else:
-                    self.logger.debug(f'Sintaxis JS/TS OK: {file_path}')
+                    self.logger.info(f'AST Engine procesó {file_path} con parser nativo JavaScript/TypeScript')
             else:
-                self.logger.warning('AST Engine no tiene soporte para JavaScript')
+                # Fallback: usar análisis básico si el método no está disponible
+                try:
+                    # Verificar sintaxis básica con Node.js si está disponible
+                    import subprocess
+                    result = subprocess.run(
+                        ['node', '-c', content],
+                        input=content,
+                        text=True,
+                        capture_output=True,
+                        timeout=10
+                    )
+                    
+                    if result.returncode == 0:
+                        self.logger.debug(f'Sintaxis JS básica OK: {file_path}')
+                    else:
+                        issues.append(StructuralIssue(
+                            type='js_syntax_error',
+                            severity='error',
+                            file_path=file_path,
+                            line_number=None,
+                            message=f'Error de sintaxis JS: {result.stderr}',
+                            details={'engine': 'node-basic-check', 'stderr': result.stderr}
+                        ))
+                        
+                except (subprocess.SubprocessError, FileNotFoundError, subprocess.TimeoutExpired):
+                    # Si no hay Node.js disponible, solo registrar que se procesó
+                    self.logger.info(f'Archivo JavaScript/TypeScript procesado: {file_path} (análisis básico)')
                 
         except Exception as e:
             issues.append(StructuralIssue(
