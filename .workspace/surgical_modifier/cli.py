@@ -208,9 +208,15 @@ def main(verbose, dry_run):
 @click.argument("filepath")
 @click.argument("content", required=False, default="")
 @click.option("--template", help="Tipo de template a usar")
-@click.option("--from-stdin", is_flag=True, help="Leer contenido desde stdin")
+@click.option("--from-stdin", is_flag=True, help="Leer contenido complejo desde stdin (ideal para código con f-strings, comillas anidadas, o contenido multilínea)")
 def create(filepath, content, template, from_stdin):
-   """Crear nuevos archivos con contenido directo o templates."""
+   """Crear archivos con contenido directo, templates o stdin (--from-stdin para código complejo).
+    
+    EJEMPLOS:
+    • Básico: python3 cli.py create file.py "print('hello')"  
+    • Complejo: echo "código multilínea" | python3 cli.py create file.py --from-stdin
+    • Template: python3 cli.py create --template class.py User.py
+    """
    try:
        if content and from_stdin:
            click.echo("Error: No se puede usar contenido directo y --from-stdin simultáneamente", err=True)
