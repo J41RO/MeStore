@@ -7,6 +7,14 @@ export default defineConfig({
   server: {
     host: true,
     allowedHosts: ['localhost', '127.0.0.1', '192.168.1.137', 'admin.mestocker.com', 'mestocker.com']
+    ,
+    proxy: {
+      "/api": {
+        target: "http://192.168.1.137:8000",
+        changeOrigin: true,
+        secure: false
+      }
+    }
   },
   define: {
     'process.env': {

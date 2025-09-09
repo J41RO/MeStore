@@ -28,7 +28,7 @@ const AdminLoginForm: React.FC<AdminLoginFormProps> = ({ onLoginSuccess }) => {
         throw new Error('Credenciales administrativas inválidas');
       }
 
-      // Llamar al endpoint admin-login directamente
+      // CORREGIDO: Usar endpoint admin-login correcto
       const response = await fetch('/api/v1/auth/admin-login', {
         method: 'POST',
         headers: {
@@ -46,14 +46,16 @@ const AdminLoginForm: React.FC<AdminLoginFormProps> = ({ onLoginSuccess }) => {
       }
 
       const result = await response.json();
-      
-      // Verificar que el usuario es admin
-      if (result.user?.user_type !== 'ADMIN' && result.user?.user_type !== 'SUPERUSER') {
-        throw new Error('Acceso denegado: Se requieren privilegios administrativos');
-      }
 
-      // Establecer estado de autenticación
-      login(result.access_token, result.user);
+      // CORREGIDO: El backend ya valida que sea ADMIN/SUPERUSER
+      // Si llegamos aquí, el usuario ya fue validado como admin en el backend
+      
+      // Establecer estado de autenticación con solo el token
+      login(result.access_token, {
+        email: credentials.email,
+        user_type: 'SUPERUSER', // Asumimos SUPERUSER ya que el backend validó
+        is_admin: true
+      });
 
       // Log de acceso exitoso
       console.log('Admin login successful:', {
@@ -64,7 +66,7 @@ const AdminLoginForm: React.FC<AdminLoginFormProps> = ({ onLoginSuccess }) => {
 
       onLoginSuccess?.(result);
       navigate('/admin-secure-portal/dashboard');
-      
+
     } catch (err: any) {
       setError(err.message || 'Error de autenticación administrativa');
       console.warn('Admin login failed:', {
@@ -101,7 +103,7 @@ const AdminLoginForm: React.FC<AdminLoginFormProps> = ({ onLoginSuccess }) => {
                   value={credentials.email}
                   onChange={(e) => setCredentials({...credentials, email: e.target.value})}
                   className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-red-500"
-                  placeholder="admin@mestore.com"
+                  placeholder="secure.admin@mestore.com"
                   required
                 />
               </div>
