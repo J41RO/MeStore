@@ -123,6 +123,24 @@ class ReplaceWorkflow:
                     # No detener el flujo por errores de análisis
             else:
                 self.logger.info('Análisis estructural omitido (--skip-structural-analysis)')
+
+            
+            # CORRECCIÓN BUG: Verificar errores críticos antes de continuar con Pattern Matching
+            # Este es el punto donde el flujo debe detenerse si hay errores críticos
+            if not skip_structural:
+                try:
+                    # Verificar si se detectaron errores críticos en el análisis estructural
+                    if 'analysis_result' in locals() and hasattr(analysis_result, 'has_issues'):
+                        if analysis_result.has_issues:
+                            critical_issues = analysis_result.get_critical_issues()
+                            if critical_issues:
+                                self.logger.error('FLUJO DETENIDO: Errores críticos detectados - operación cancelada')
+                                return self._build_structural_warning_response(
+                                    critical_issues, analysis_result.get_warnings(), phases_completed, backup_path
+                                )
+                except (NameError, AttributeError):
+                    # Si analysis_result no está disponible, continuar (análisis omitido o falló)
+                    pass
             
             # FASE 4: Pattern matching
             smart_matcher_type = self._detect_optimal_matcher_type(pattern, original_content, kwargs.get('matcher_type'))
