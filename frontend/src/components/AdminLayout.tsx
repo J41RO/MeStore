@@ -11,12 +11,12 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
 
   const navigationItems = [
-    { name: 'Panel Admin', href: '/admin/dashboard' },
-    { name: 'Gestión de Usuarios', href: '/admin/users' },
-    { name: 'Configuración del Sistema', href: '/admin/system-config' },
-    { name: 'Reportes Administrativos', href: '/admin/reports' },
-    { name: 'Logs y Auditoría', href: '/admin/logs' },
-    { name: 'Configuración de Roles', href: '/admin/roles' },
+    { name: 'Panel Admin', href: '/admin-secure-portal/dashboard' },
+    { name: 'Gestión de Usuarios', href: '/admin-secure-portal/users' },
+    { name: 'Configuración del Sistema', href: '/admin-secure-portal/system-config' },
+    { name: 'Reportes Administrativos', href: '/admin-secure-portal/reports' },
+    { name: 'Logs y Auditoría', href: '/admin-secure-portal/logs' },
+    { name: 'Configuración de Roles', href: '/admin-secure-portal/roles' },
   ];
 
   const NavigationItems = ({ onItemClick }: { onItemClick?: () => void }) => (
