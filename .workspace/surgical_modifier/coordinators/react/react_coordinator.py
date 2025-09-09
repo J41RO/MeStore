@@ -27,7 +27,7 @@ class ReactCoordinator(TypeScriptReactCoordinator):
             self.logger.warning(f"File {file_path} may not be a React file")
         
         # Ejecutar operación usando capacidades heredadas de TypeScriptReactCoordinator
-        result = super().execute(operation, **kwargs)
+        result = super().execute(file_path, operation, **kwargs)
         
         # Agregar análisis React específico al resultado
         if result.get('success', False):

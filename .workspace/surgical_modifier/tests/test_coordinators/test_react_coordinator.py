@@ -19,7 +19,7 @@ class TestReactCoordinator(unittest.TestCase):
         file_path = os.path.join(self.temp_dir, 'TestComponent.tsx')
         content = "const TestComponent = () => <div>Test</div>;"
         
-        result = self.coordinator.execute('create', file_path, content=content)
+        result = self.coordinator.execute(file_path, 'create', content=content)
         
         self.assertTrue(result.get('success', False))
         self.assertTrue(os.path.exists(file_path))
