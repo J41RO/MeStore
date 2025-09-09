@@ -1,14 +1,34 @@
 import re
 from typing import List, Dict, Any, Optional, Union, Pattern
 from .base_matcher import BaseMatcher
+import string
 
 class RegexMatcher(BaseMatcher):
-    """Matcher robusto para patrones regex con manejo de errores"""
+    """Matcher robusto para patrones regex con manejo de errores y auto-escape"""
     
     def __init__(self, engine_type: Optional[str] = None):
         self._compiled_patterns = {}  # Cache de patrones compilados
         self._last_error = None
         super().__init__(engine_type)  # Pasar engine_type al BaseMatcher
+    
+    def _detect_literal_pattern(self, pattern: str) -> bool:
+        """Detectar si un pattern es texto literal (no regex)"""
+        # Caracteres especiales de regex que indican pattern complejo
+        regex_chars = set('[]()|*+?{}^$\\.')
+        
+        # Si contiene caracteres especiales comunes de regex, es regex
+        special_count = sum(1 for char in pattern if char in regex_chars)
+        
+        # Si tiene más de 2 caracteres especiales o contiene anchors, es regex
+        if special_count > 2 or pattern.startswith('^') or pattern.endswith('$'):
+            return False
+            
+        # Si solo tiene curly braces aislados, probablemente es JSX literal
+        if '{' in pattern and '}' in pattern and special_count <= 2:
+            return True
+            
+        # Si no tiene caracteres especiales, es literal
+        return special_count == 0
     
     # Métodos estándar requeridos por BaseMatcher
     def find(self, text: str, pattern: str, **kwargs) -> Optional[Dict[str, Any]]:
@@ -23,6 +43,7 @@ class RegexMatcher(BaseMatcher):
                 list(result.get('groups', []))
             )
         return None
+    
     def match(self, text: str, pattern: str, **kwargs) -> bool:
         """Implementación estándar del método match()"""
         flags = kwargs.get('flags', 0)
@@ -46,14 +67,20 @@ class RegexMatcher(BaseMatcher):
         return []
     
     def compile_pattern(self, pattern: str, flags: int = 0) -> Optional[Pattern]:
-        """Compilar patron regex con cache"""
+        """Compilar patron con auto-escape para texto literal"""
         cache_key = f"{pattern}:{flags}"
         
         if cache_key in self._compiled_patterns:
             return self._compiled_patterns[cache_key]
         
+        # Detectar si es literal y aplicar escape automático
+        if self._detect_literal_pattern(pattern):
+            escaped_pattern = re.escape(pattern)
+        else:
+            escaped_pattern = pattern
+            
         try:
-            compiled = re.compile(pattern, flags)
+            compiled = re.compile(escaped_pattern, flags)
             self._compiled_patterns[cache_key] = compiled
             return compiled
         except re.error as e:
@@ -414,6 +441,3 @@ class CodePatterns:
         'number': r'-?\d+(?:\.\d+)?',
         'word': r'\b\w+\b'
     }
-    
-    
-    
