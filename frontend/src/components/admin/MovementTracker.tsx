@@ -63,7 +63,7 @@ const MovementTracker: React.FC<MovementTrackerProps> = ({
     end_date: format(new Date(), 'yyyy-MM-dd')
   });
   const [movementTypeFilter, setMovementTypeFilter] = useState('');
-  const [userFilter, setUserFilter] = useState('');
+  const [userFilter] = useState('');
 
   useEffect(() => {
     if (movementId) {
@@ -162,7 +162,7 @@ const MovementTracker: React.FC<MovementTrackerProps> = ({
       let filename = `movimientos_export_${Date.now()}.${format}`;
       if (contentDisposition) {
         const filenameMatch = contentDisposition.match(/filename=(.+)/);
-        if (filenameMatch) {
+        if (filenameMatch && filenameMatch[1]) {
           filename = filenameMatch[1].replace(/"/g, '');
         }
       }

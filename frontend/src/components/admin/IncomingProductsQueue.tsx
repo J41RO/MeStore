@@ -3,10 +3,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Clock, Package, AlertTriangle, CheckCircle, 
-  User, Calendar, TrendingUp, Filter, 
+  User, TrendingUp, Filter, 
   RefreshCw, Plus, Edit, Eye, Truck,
-  BarChart3, PieChart, Activity, Users,
-  MapPin, Star, AlertCircle
+  BarChart3, Activity
 } from 'lucide-react';
 
 // Tipos TypeScript para la cola de productos

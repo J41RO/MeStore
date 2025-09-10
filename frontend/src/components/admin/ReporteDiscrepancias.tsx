@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { format, subDays, subMonths } from 'date-fns';
+import { format, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 // Interfaces para tipos de datos
@@ -65,8 +65,7 @@ interface ReporteDiscrepanciasProps {
 }
 
 const ReporteDiscrepancias: React.FC<ReporteDiscrepanciasProps> = ({
-  auditId,
-  dateRange
+  auditId
 }) => {
   const [reports, setReports] = useState<DiscrepancyReport[]>([]);
   const [audits, setAudits] = useState<Audit[]>([]);
@@ -219,7 +218,7 @@ const ReporteDiscrepancias: React.FC<ReporteDiscrepanciasProps> = ({
         throw new Error('Error al generar reporte');
       }
 
-      const newReport = await response.json();
+      await response.json();
       
       // Actualizar estadísticas y cambiar a pestaña de reportes
       await fetchReportStats();

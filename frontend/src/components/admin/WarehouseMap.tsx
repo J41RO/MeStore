@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Stage, Layer, Rect, Text, Group } from 'react-konva';
-import { Home, Building, Factory, Settings, ZoomIn, ZoomOut, RotateCcw, Save } from 'lucide-react';
+import { Home, Building, Factory, Settings, ZoomIn, ZoomOut, RotateCcw, Save, MapPin } from 'lucide-react';
 import WarehouseEditor from './WarehouseEditor';
+import LocationManager from './LocationManager';
 
 // Interfaces para el sistema escalable
 interface WarehouseTemplate {
@@ -183,7 +184,9 @@ const WarehouseMap: React.FC = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<string>('room');
   const [scale, setScale] = useState(1);
   const [editMode, setEditMode] = useState(false);
-  const [activeTab, setActiveTab] = useState<'templates' | 'custom'>('templates');
+  const [activeTab, setActiveTab] = useState<'templates' | 'custom' | 'locations'>('templates');
+  // Removed unused selectedInventoryForLocation state
+  const [showLocationManager, setShowLocationManager] = useState(false);
   const [config, setConfig] = useState<WarehouseConfig>({
     currentTemplate: 'room',
     customZones: [],
@@ -292,6 +295,17 @@ const WarehouseMap: React.FC = () => {
             }`}
           >
             Editor Personalizado
+          </button>
+          <button
+            onClick={() => setActiveTab('locations')}
+            className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+              activeTab === 'locations'
+                ? 'border-purple-500 text-purple-600 bg-purple-50'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <MapPin size={16} className="inline mr-1" />
+            Gestión de Ubicaciones
           </button>
         </div>
       </div>
@@ -574,7 +588,7 @@ const WarehouseMap: React.FC = () => {
             </div>
           </div>
         </>
-      ) : (
+      ) : activeTab === 'custom' ? (
         /* Editor Personalizado */
         <WarehouseEditor
           canvasWidth={800}
@@ -587,6 +601,97 @@ const WarehouseMap: React.FC = () => {
             }));
           }}
         />
+      ) : (
+        /* Gestión de Ubicaciones */
+        <div className="locations-management">
+          <div className="mb-6 p-4 bg-white rounded-lg shadow">
+            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <MapPin size={20} />
+              Gestión de Ubicaciones de Inventario
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Asigna y reasigna ubicaciones específicas de productos en el almacén. 
+              Selecciona un producto del inventario para cambiar su ubicación.
+            </p>
+            
+            {!showLocationManager ? (
+              <div className="text-center py-8">
+                <MapPin size={48} className="mx-auto text-gray-400 mb-4" />
+                <p className="text-gray-500 mb-4">
+                  Selecciona un producto del inventario para gestionar su ubicación
+                </p>
+                <button 
+                  onClick={() => setShowLocationManager(true)}
+                  className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 flex items-center gap-2 mx-auto"
+                >
+                  <MapPin size={16} />
+                  Abrir Selector de Inventario
+                </button>
+              </div>
+            ) : (
+              <LocationManager
+                inventoryItem={{
+                  id: '1',
+                  productId: '1',
+                  productName: 'Producto de Ejemplo',
+                  sku: 'SKU-001',
+                  quantity: 10,
+                  minStock: 5,
+                  maxStock: 50,
+                  status: 'IN_STOCK' as any,
+                  location: {
+                    zone: 'WAREHOUSE_A' as any,
+                    aisle: 'A1',
+                    shelf: '01',
+                    position: '01'
+                  },
+                  lastUpdated: new Date(),
+                  cost: 100
+                }}
+                availableLocations={[]}
+                onLocationUpdate={async (itemId: string, newLocation: any, observaciones?: string) => {
+                  console.log('Ubicación actualizada:', itemId, newLocation, observaciones);
+                  setShowLocationManager(false);
+                  return true;
+                }}
+                onClose={() => setShowLocationManager(false)}
+              />
+            )}
+          </div>
+          
+          {/* Mapa Visual de Ubicaciones */}
+          <div className="location-visual-map bg-white rounded-lg shadow p-4">
+            <h4 className="text-md font-semibold mb-4">Mapa Visual de Ubicaciones</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {currentTemplate?.zones
+                .filter(zone => zone.type === 'storage')
+                .map(zone => (
+                  <div key={zone.id} className="zone-location-card p-4 border rounded-lg hover:shadow-md">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div 
+                        className="w-4 h-4 rounded" 
+                        style={{ backgroundColor: zone.color }}
+                      ></div>
+                      <h5 className="font-medium">{zone.name}</h5>
+                    </div>
+                    <div className="text-sm text-gray-600 space-y-1">
+                      <div>Capacidad: {zone.capacity} productos</div>
+                      <div>Ocupación: 0 productos (0%)</div>
+                      <div>Ubicaciones disponibles: {zone.capacity}</div>
+                    </div>
+                    <div className="mt-3">
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-green-500 h-2 rounded-full" 
+                          style={{ width: '0%' }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
