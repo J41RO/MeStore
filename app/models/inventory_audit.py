@@ -33,6 +33,9 @@ class InventoryAudit(Base):
     # Usuario que realiza la auditoría
     auditor_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
     auditor = relationship("User", back_populates="auditorias_realizadas")
+    # Tipo de auditoría y métricas
+    audit_type = Column(String(50), default="physical")  # physical, system, cycle_count
+    discrepancies_found = Column(Integer, default=0)  # Contador de discrepancias
     
     # Estadísticas de la auditoría
     total_items_auditados = Column(Integer, default=0)
