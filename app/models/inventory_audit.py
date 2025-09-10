@@ -49,6 +49,7 @@ class InventoryAudit(Base):
     
     # Relaciones
     audit_items = relationship("InventoryAuditItem", back_populates="audit", cascade="all, delete-orphan")
+    discrepancy_reports = relationship("DiscrepancyReport", back_populates="audit", cascade="all, delete-orphan")
     
     def calcular_estadisticas(self):
         """Calcular estadísticas de la auditoría"""

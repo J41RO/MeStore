@@ -91,3 +91,128 @@ class ReconciliarDiscrepancia(BaseModel):
     audit_item_id: UUID
     accion: str = Field(..., pattern="^(ajustar_sistema|mantener_fisico|investigar)$")
     notas_reconciliacion: Optional[str] = None
+
+
+# ============================================================================
+# SCHEMAS PARA REPORTES DE DISCREPANCIAS
+# ============================================================================
+
+from typing import Dict, Any
+
+class ReportTypeEnum(str, Enum):
+    DISCREPANCIES = "DISCREPANCIES"
+    ADJUSTMENTS = "ADJUSTMENTS"
+    ACCURACY = "ACCURACY"
+    FINANCIAL_IMPACT = "FINANCIAL_IMPACT"
+    LOCATION_ANALYSIS = "LOCATION_ANALYSIS"
+    CATEGORY_ANALYSIS = "CATEGORY_ANALYSIS"
+    TREND_ANALYSIS = "TREND_ANALYSIS"
+    COMPREHENSIVE = "COMPREHENSIVE"
+
+class ExportFormatEnum(str, Enum):
+    PDF = "PDF"
+    EXCEL = "EXCEL"
+    CSV = "CSV"
+    JSON = "JSON"
+
+class ReportStatusEnum(str, Enum):
+    GENERATING = "GENERATING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+    EXPIRED = "EXPIRED"
+
+# Schema para crear reporte de discrepancias
+class DiscrepancyReportCreate(BaseModel):
+    audit_id: UUID
+    report_type: ReportTypeEnum
+    report_name: Optional[str] = None
+    description: Optional[str] = None
+    file_format: ExportFormatEnum = ExportFormatEnum.PDF
+    date_range_start: Optional[datetime] = None
+    date_range_end: Optional[datetime] = None
+    include_charts: bool = True
+    include_recommendations: bool = True
+    group_by_location: bool = False
+    group_by_category: bool = False
+    
+    class Config:
+        from_attributes = True
+
+# Schema para configuración de reporte
+class ReportConfig(BaseModel):
+    include_charts: bool = True
+    include_recommendations: bool = True
+    group_by_location: bool = False
+    group_by_category: bool = False
+    chart_types: List[str] = Field(default=["bar", "pie", "trend"])
+    export_options: Dict[str, Any] = Field(default_factory=dict)
+
+# Schema de respuesta para reporte de discrepancias
+class DiscrepancyReportResponse(BaseModel):
+    id: UUID
+    audit_id: UUID
+    report_type: ReportTypeEnum
+    report_name: str
+    description: Optional[str] = None
+    generated_by_id: UUID
+    generated_by_name: str
+    date_range_start: datetime
+    date_range_end: datetime
+    total_discrepancies: int
+    total_adjustments: int
+    financial_impact: float
+    accuracy_percentage: float
+    items_analyzed: int
+    file_path: Optional[str] = None
+    file_format: ExportFormatEnum
+    file_size: Optional[int] = None
+    status: ReportStatusEnum
+    generation_time_seconds: Optional[float] = None
+    expiry_date: Optional[datetime] = None
+    download_count: int
+    notes: Optional[str] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    is_completed: bool
+    is_expired: bool
+    file_exists: bool
+    days_since_generation: int
+    
+    class Config:
+        from_attributes = True
+
+# Schema para análisis detallado
+class DiscrepancyAnalysis(BaseModel):
+    total_discrepancies: int
+    discrepancies_by_type: Dict[str, int]
+    discrepancies_by_location: Dict[str, int] 
+    discrepancies_by_category: Dict[str, int]
+    financial_impact_by_type: Dict[str, float]
+    accuracy_metrics: Dict[str, float]
+    trend_analysis: Optional[Dict[str, Any]] = None
+    recommendations: List[str] = Field(default_factory=list)
+
+# Schema para respuesta con análisis completo
+class DiscrepancyReportWithAnalysis(DiscrepancyReportResponse):
+    analysis_data: Optional[DiscrepancyAnalysis] = None
+    report_config: Optional[Dict[str, Any]] = None
+    
+# Schema para listado de reportes
+class DiscrepancyReportListResponse(BaseModel):
+    reports: List[DiscrepancyReportResponse]
+    total_count: int
+    page: int
+    page_size: int
+    has_next: bool
+    has_previous: bool
+
+# Schema para estadísticas de reportes
+class ReportStatsResponse(BaseModel):
+    total_reports: int
+    reports_by_type: Dict[str, int]
+    reports_by_status: Dict[str, int]
+    avg_generation_time: float
+    total_downloads: int
+    disk_space_used: int  # en bytes
+    reports_this_month: int

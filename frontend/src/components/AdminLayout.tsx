@@ -13,6 +13,9 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const navigationItems = [
     { name: 'Panel Admin', href: '/admin-secure-portal/dashboard' },
     { name: 'Gestión de Usuarios', href: '/admin-secure-portal/users' },
+    { name: 'Alertas e Incidentes', href: '/admin-secure-portal/alertas-incidentes' },
+    { name: 'Movement Tracker', href: '/admin-secure-portal/movement-tracker' },
+    { name: 'Reportes de Discrepancias', href: '/admin-secure-portal/reportes-discrepancias' },
     { name: 'Configuración del Sistema', href: '/admin-secure-portal/system-config' },
     { name: 'Reportes Administrativos', href: '/admin-secure-portal/reports' },
     { name: 'Logs y Auditoría', href: '/admin-secure-portal/auditoria' },

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ClipboardCheck, Package, AlertTriangle, CheckCircle } from 'lucide-react';
+
 interface AuditItem {
   id: string;
   inventory_id: string;
@@ -30,22 +31,137 @@ const InventoryAuditPanel: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [newAuditName, setNewAuditName] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [authToken, setAuthToken] = useState<string | null>(null);
+  const [rateLimitCooldown, setRateLimitCooldown] = useState(false);
 
+  // 🛡️ CONTROL ANTI-RATE LIMITING
+  const handleRateLimit = async (retryAfter: number = 60) => {
+    setRateLimitCooldown(true);
+    setError(`Rate limit alcanzado. Esperando ${retryAfter} segundos...`);
+    
+    // Esperar el tiempo especificado por el servidor
+    setTimeout(() => {
+      setRateLimitCooldown(false);
+      setError(null);
+    }, retryAfter * 1000);
+  };
+
+  // Función para obtener token con manejo de rate limiting
+  const getAuthToken = async (): Promise<string | null> => {
+    if (rateLimitCooldown) {
+      console.log('Rate limit activo, omitiendo request de auth');
+      return null;
+    }
+
+    try {
+      const response = await fetch('http://192.168.1.137:8000/api/v1/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (compatible; API-Client/1.0)'
+        },
+        body: JSON.stringify({
+          email: 'dev@mestore.com',
+          password: 'dev123456'
+        })
+      });
+      
+      if (response.status === 429) {
+        const retryAfter = parseInt(response.headers.get('Retry-After') || '60');
+        await handleRateLimit(retryAfter);
+        return null;
+      }
+      
+      if (response.ok) {
+        const data = await response.json();
+        const token = data.access_token;
+        setAuthToken(token);
+        return token;
+      } else {
+        console.error('Auth failed:', response.status, response.statusText);
+      }
+    } catch (error) {
+      console.error('Error getting auth token:', error);
+    }
+    return null;
+  };
+
+  // Función auxiliar para crear headers con autenticación
+  const getAuthHeaders = async () => {
+    let token = authToken;
+    if (!token && !rateLimitCooldown) {
+      token = await getAuthToken();
+    }
+    
+    const headers: any = {
+      'User-Agent': 'Mozilla/5.0 (compatible; API-Client/1.0)'
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    return headers;
+  };
+
+  // 🛡️ FUNCIÓN MEJORADA CON RATE LIMITING
+  const makeRequestWithRateLimit = async (url: string, options: RequestInit = {}) => {
+    if (rateLimitCooldown) {
+      throw new Error('Rate limit activo, no se pueden hacer requests');
+    }
+
+    const response = await fetch(url, options);
+    
+    if (response.status === 429) {
+      const retryAfter = parseInt(response.headers.get('Retry-After') || '60');
+      await handleRateLimit(retryAfter);
+      throw new Error(`Rate limit excedido. Reintentando en ${retryAfter} segundos.`);
+    }
+    
+    return response;
+  };
+
+  // ✅ CARGA MANUAL - SIN POLLING AUTOMÁTICO
   const loadAudits = async () => {
+    if (rateLimitCooldown) {
+      setError('Rate limit activo. Espera antes de recargar.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
+    
     try {
-      const response = await fetch('http://192.168.1.137:8000/api/v1/inventory/audits', {
-        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; API-Client/1.0)' }
+      const headers = await getAuthHeaders();
+      const response = await makeRequestWithRateLimit('http://192.168.1.137:8000/api/v1/inventory/audits', {
+        headers
       });
       
       if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          // Solo un reintento, sin bucles
+          const newToken = await getAuthToken();
+          if (newToken && !rateLimitCooldown) {
+            const retryHeaders = {
+              ...headers,
+              'Authorization': `Bearer ${newToken}`
+            };
+            const retryResponse = await makeRequestWithRateLimit('http://192.168.1.137:8000/api/v1/inventory/audits', {
+              headers: retryHeaders
+            });
+            
+            if (retryResponse.ok) {
+              const data = await retryResponse.json();
+              setAudits(Array.isArray(data) ? data : []);
+              return;
+            }
+          }
+        }
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
       
       const data = await response.json();
       
-      // Validación crítica: asegurar que data es un array
       if (Array.isArray(data)) {
         setAudits(data);
       } else if (data && data.error) {
@@ -65,15 +181,16 @@ const InventoryAuditPanel: React.FC = () => {
   };
 
   const createAudit = async () => {
-    if (!newAuditName.trim()) return;
+    if (!newAuditName.trim() || rateLimitCooldown) return;
     
     setError(null);
     try {
-      const response = await fetch('http://192.168.1.137:8000/api/v1/inventory/audits', {
+      const headers = await getAuthHeaders();
+      const response = await makeRequestWithRateLimit('http://192.168.1.137:8000/api/v1/inventory/audits', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (compatible; API-Client/1.0)'
+          ...headers,
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           nombre: newAuditName,
@@ -83,26 +200,75 @@ const InventoryAuditPanel: React.FC = () => {
       });
       
       if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          const newToken = await getAuthToken();
+          if (newToken && !rateLimitCooldown) {
+            const retryResponse = await makeRequestWithRateLimit('http://192.168.1.137:8000/api/v1/inventory/audits', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${newToken}`,
+                'Content-Type': 'application/json',
+                'User-Agent': 'Mozilla/5.0 (compatible; API-Client/1.0)'
+              },
+              body: JSON.stringify({
+                nombre: newAuditName,
+                descripcion: `Auditoría física creada el ${new Date().toLocaleDateString()}`,
+                audit_type: 'physical'
+              })
+            });
+            
+            if (retryResponse.ok) {
+              setNewAuditName('');
+              setShowCreateForm(false);
+              // NO auto-reload, usuario debe recargar manualmente
+              return;
+            }
+          }
+        }
+        
         const errorData = await response.json();
         throw new Error(errorData.detail || `Error ${response.status}`);
       }
       
       setNewAuditName('');
       setShowCreateForm(false);
-      await loadAudits();
+      // Usuario debe recargar manualmente
     } catch (error) {
       console.error('Error creating audit:', error);
       setError(error instanceof Error ? error.message : 'Error creando auditoría');
     }
   };
 
+  // ✅ CARGA MANUAL DE ITEMS - SIN POLLING
   const loadAuditItems = async (auditId: string) => {
+    if (rateLimitCooldown) {
+      setError('Rate limit activo. Espera antes de cargar items.');
+      return;
+    }
+
     try {
-      const response = await fetch(`http://192.168.1.137:8000/api/v1/inventory/audits/${auditId}/items`, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; API-Client/1.0)' }
+      const headers = await getAuthHeaders();
+      const response = await makeRequestWithRateLimit(`http://192.168.1.137:8000/api/v1/inventory/audits/${auditId}/items`, {
+        headers
       });
       
       if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          const newToken = await getAuthToken();
+          if (newToken && !rateLimitCooldown) {
+            const retryResponse = await makeRequestWithRateLimit(`http://192.168.1.137:8000/api/v1/inventory/audits/${auditId}/items`, {
+              headers: {
+                'Authorization': `Bearer ${newToken}`,
+                'User-Agent': 'Mozilla/5.0 (compatible; API-Client/1.0)'
+              }
+            });
+            if (retryResponse.ok) {
+              const data = await retryResponse.json();
+              setAuditItems(Array.isArray(data) ? data : []);
+              return;
+            }
+          }
+        }
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
       
@@ -111,16 +277,23 @@ const InventoryAuditPanel: React.FC = () => {
     } catch (error) {
       console.error('Error loading audit items:', error);
       setAuditItems([]);
+      setError(error instanceof Error ? error.message : 'Error cargando items');
     }
   };
 
   const updatePhysicalCount = async (itemId: string, cantidadFisica: number, ubicacion?: string) => {
+    if (rateLimitCooldown) {
+      setError('Rate limit activo. Espera antes de actualizar.');
+      return;
+    }
+
     try {
-      const response = await fetch(`http://192.168.1.137:8000/api/v1/inventory/audit-items/${itemId}/count`, {
+      const headers = await getAuthHeaders();
+      const response = await makeRequestWithRateLimit(`http://192.168.1.137:8000/api/v1/inventory/audit-items/${itemId}/count`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (compatible; API-Client/1.0)'
+          ...headers,
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           cantidad_fisica: cantidadFisica,
@@ -128,29 +301,56 @@ const InventoryAuditPanel: React.FC = () => {
         })
       });
       
-      if (response.ok && selectedAudit) {
-        await loadAuditItems(selectedAudit.id);
+      if (!response.ok && (response.status === 401 || response.status === 403)) {
+        const newToken = await getAuthToken();
+        if (newToken && !rateLimitCooldown) {
+          const retryResponse = await makeRequestWithRateLimit(`http://192.168.1.137:8000/api/v1/inventory/audit-items/${itemId}/count`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${newToken}`,
+              'Content-Type': 'application/json',
+              'User-Agent': 'Mozilla/5.0 (compatible; API-Client/1.0)'
+            },
+            body: JSON.stringify({
+              cantidad_fisica: cantidadFisica,
+              ubicacion_fisica: ubicacion
+            })
+          });
+          
+          if (retryResponse.ok && selectedAudit) {
+            // NO auto-reload, usuario debe refrescar manualmente
+            return;
+          }
+        }
       }
+      
+      // NO auto-reload automático
     } catch (error) {
       console.error('Error updating count:', error);
+      setError(error instanceof Error ? error.message : 'Error actualizando conteo');
     }
   };
 
+  // ✅ USEEFFECT CONTROLADO - SOLO CARGA INICIAL
   useEffect(() => {
+    // Solo carga inicial, NO polling continuo
     loadAudits();
-  }, []);
+  }, []); // Dependencias vacías - solo ejecuta una vez
 
-  useEffect(() => {
-    if (selectedAudit) {
-      loadAuditItems(selectedAudit.id);
-    }
-  }, [selectedAudit]);
+  // ✅ ELIMINADO: useEffect problemático de selectedAudit
+  // Los items se cargan manualmente cuando usuario clickea
 
   const handleCountInput = (itemId: string, value: string) => {
     const cantidadFisica = parseInt(value);
     if (!isNaN(cantidadFisica) && cantidadFisica >= 0) {
       updatePhysicalCount(itemId, cantidadFisica);
     }
+  };
+
+  // ✅ MANEJO MANUAL DE AUDIT SELECTION
+  const handleAuditSelect = async (audit: Audit) => {
+    setSelectedAudit(audit);
+    // Usuario debe cargar items manualmente
   };
 
   // Vista de detalle de auditoría
@@ -175,8 +375,40 @@ const InventoryAuditPanel: React.FC = () => {
                 Discrepancias: {selectedAudit.discrepancies_found}
               </p>
             </div>
+            <div className="flex space-x-3">
+              {/* ✅ BOTÓN MANUAL PARA CARGAR ITEMS */}
+              <button
+                onClick={() => loadAuditItems(selectedAudit.id)}
+                disabled={rateLimitCooldown}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
+              >
+                {rateLimitCooldown ? 'Rate Limit...' : 'Cargar Items'}
+              </button>
+              
+              {/* ✅ BOTÓN GENERAR REPORTE - Solo si audit está completada */}
+              {(selectedAudit.status === 'COMPLETADA' || selectedAudit.status === 'RECONCILIADA') && (
+                <button
+                  onClick={() => {
+                    // Navegar al componente de reportes con el audit preseleccionado
+                    window.location.href = `/admin-secure-portal/reportes-discrepancias?audit=${selectedAudit.id}`;
+                  }}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  📊 Generar Reporte
+                </button>
+              )}
+            </div>
           </div>
         </div>
+
+        {error && (
+          <div className="mb-6 p-4 border border-red-200 rounded-lg bg-red-50">
+            <div className="flex items-center">
+              <AlertTriangle size={16} className="text-red-600 mr-2" />
+              <span className="text-red-700">{error}</span>
+            </div>
+          </div>
+        )}
 
         <div className="audit-items">
           <h3 className="text-lg font-semibold mb-4">Conteo Físico vs Sistema</h3>
@@ -185,6 +417,7 @@ const InventoryAuditPanel: React.FC = () => {
             <div className="text-center py-8">
               <Package size={48} className="mx-auto text-gray-400 mb-4" />
               <p className="text-gray-600">No hay items para auditar</p>
+              <p className="text-sm text-gray-500 mt-2">Haz clic en "Cargar Items" para ver los datos</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -217,6 +450,7 @@ const InventoryAuditPanel: React.FC = () => {
                           defaultValue={item.cantidad_fisica || ''}
                           onBlur={(e) => handleCountInput(item.id, e.target.value)}
                           onKeyPress={(e) => e.key === 'Enter' && handleCountInput(item.id, (e.target as HTMLInputElement).value)}
+                          disabled={rateLimitCooldown}
                         />
                       </td>
                       <td className="border border-gray-200 p-3 text-center">
@@ -268,13 +502,24 @@ const InventoryAuditPanel: React.FC = () => {
             <ClipboardCheck className="text-blue-600" />
             Auditorías de Inventario
           </h2>
-          <button
-            onClick={() => setShowCreateForm(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-          >
-            <Package size={16} />
-            Nueva Auditoría
-          </button>
+          <div className="flex gap-2">
+            {/* ✅ BOTÓN MANUAL PARA RECARGAR */}
+            <button
+              onClick={loadAudits}
+              disabled={rateLimitCooldown}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition-colors"
+            >
+              {rateLimitCooldown ? 'Rate Limit...' : 'Recargar'}
+            </button>
+            <button
+              onClick={() => setShowCreateForm(true)}
+              disabled={rateLimitCooldown}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors flex items-center gap-2"
+            >
+              <Package size={16} />
+              Nueva Auditoría
+            </button>
+          </div>
         </div>
       </div>
       
@@ -284,12 +529,14 @@ const InventoryAuditPanel: React.FC = () => {
             <AlertTriangle size={16} className="text-red-600 mr-2" />
             <span className="text-red-700">{error}</span>
           </div>
-          <button
-            onClick={() => {setError(null); loadAudits();}}
-            className="mt-2 text-sm text-red-600 hover:text-red-800"
-          >
-            Reintentar
-          </button>
+          {!rateLimitCooldown && (
+            <button
+              onClick={() => {setError(null); loadAudits();}}
+              className="mt-2 text-sm text-red-600 hover:text-red-800"
+            >
+              Reintentar
+            </button>
+          )}
         </div>
       )}
       
@@ -304,14 +551,15 @@ const InventoryAuditPanel: React.FC = () => {
             className="w-full p-2 border rounded mb-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             onKeyPress={(e) => e.key === 'Enter' && createAudit()}
             maxLength={200}
+            disabled={rateLimitCooldown}
           />
           <div className="flex gap-2">
             <button 
               onClick={createAudit}
-              disabled={!newAuditName.trim()}
+              disabled={!newAuditName.trim() || rateLimitCooldown}
               className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
-              Crear
+              {rateLimitCooldown ? 'Rate Limit...' : 'Crear'}
             </button>
             <button 
               onClick={() => {
@@ -347,7 +595,7 @@ const InventoryAuditPanel: React.FC = () => {
               <div
                 key={audit.id}
                 className="border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer hover:border-blue-300"
-                onClick={() => setSelectedAudit(audit)}
+                onClick={() => handleAuditSelect(audit)}
               >
                 <div className="flex justify-between items-start">
                   <div>
