@@ -20,6 +20,16 @@ interface FilterState {
   userType: 'todos' | 'VENDEDOR' | 'ADMIN' | 'SUPERUSER' | 'COMPRADOR';
 }
 
+interface BulkActionModal {
+  type: 'approve' | 'suspend' | 'email' | null;
+  isOpen: boolean;
+}
+
+interface BulkEmailData {
+  subject: string;
+  message: string;
+}
+
 // Datos mock de vendedores para testing
 const mockVendors: Vendor[] = [
   {
@@ -88,6 +98,16 @@ const VendorList: React.FC<VendorListProps> = ({ onVendorSelect }) => {
     userType: 'todos'
   });
 
+  // Estado para selección múltiple de vendedores
+  const [selectedVendors, setSelectedVendors] = useState<Set<number>>(new Set());
+  const [selectAll, setSelectAll] = useState(false);
+
+  // Estados para modales de acciones bulk
+  const [bulkModal, setBulkModal] = useState<BulkActionModal>({ type: null, isOpen: false });
+  const [suspendReason, setSuspendReason] = useState('');
+  const [emailData, setEmailData] = useState<BulkEmailData>({ subject: '', message: '' });
+  const [bulkLoading, setBulkLoading] = useState(false);
+
   // Estados de paginación
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -97,6 +117,82 @@ const VendorList: React.FC<VendorListProps> = ({ onVendorSelect }) => {
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentVendors = filteredVendors.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredVendors.length / itemsPerPage);
+
+  // Funciones para manejo de selección múltiple
+  const handleSelectVendor = (vendorId: number) => {
+    const newSelected = new Set(selectedVendors);
+    if (newSelected.has(vendorId)) {
+      newSelected.delete(vendorId);
+    } else {
+      newSelected.add(vendorId);
+    }
+    setSelectedVendors(newSelected);
+    setSelectAll(newSelected.size === filteredVendors.length && filteredVendors.length > 0);
+  };
+
+  const handleSelectAll = () => {
+    if (selectAll) {
+      setSelectedVendors(new Set());
+      setSelectAll(false);
+    } else {
+      const allIds = new Set(filteredVendors.map(vendor => vendor.id));
+      setSelectedVendors(allIds);
+      setSelectAll(true);
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedVendors(new Set());
+    setSelectAll(false);
+  };
+
+  // Funciones para acciones bulk
+  const openBulkModal = (type: 'approve' | 'suspend' | 'email') => {
+    setBulkModal({ type, isOpen: true });
+  };
+
+  const closeBulkModal = () => {
+    setBulkModal({ type: null, isOpen: false });
+    setSuspendReason('');
+    setEmailData({ subject: '', message: '' });
+  };
+
+  const executeBulkAction = async () => {
+    setBulkLoading(true);
+    const selectedIds = Array.from(selectedVendors);
+    
+    try {
+      // Simular llamadas API
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      if (bulkModal.type === 'approve') {
+        // Actualizar vendors aprobados
+        setVendors(prev => prev.map(vendor => 
+          selectedIds.includes(vendor.id) 
+            ? { ...vendor, is_verified: true }
+            : vendor
+        ));
+        alert(`✅ ${selectedIds.length} vendedores aprobados exitosamente`);
+      } else if (bulkModal.type === 'suspend') {
+        // Actualizar vendors suspendidos
+        setVendors(prev => prev.map(vendor => 
+          selectedIds.includes(vendor.id) 
+            ? { ...vendor, is_active: false }
+            : vendor
+        ));
+        alert(`✅ ${selectedIds.length} vendedores suspendidos exitosamente`);
+      } else if (bulkModal.type === 'email') {
+        alert(`✅ Email enviado a ${selectedIds.length} vendedores exitosamente`);
+      }
+      
+      clearSelection();
+      closeBulkModal();
+    } catch (error) {
+      alert('❌ Error en la operación bulk');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
 
   // useEffect para inicialización
   useEffect(() => {
@@ -191,6 +287,45 @@ const VendorList: React.FC<VendorListProps> = ({ onVendorSelect }) => {
         </p>
       </div>
 
+      {/* Barra de acciones bulk */}
+      {selectedVendors.size > 0 && (
+        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <span className="text-sm font-medium text-blue-800">
+                {selectedVendors.size} vendedor{selectedVendors.size !== 1 ? 'es' : ''} seleccionado{selectedVendors.size !== 1 ? 's' : ''}
+              </span>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => openBulkModal('approve')}
+                  className="px-3 py-1 text-sm font-medium text-green-700 bg-green-100 border border-green-300 rounded-md hover:bg-green-200 transition-colors"
+                >
+                  Aprobar Seleccionados
+                </button>
+                <button
+                  onClick={() => openBulkModal('suspend')}
+                  className="px-3 py-1 text-sm font-medium text-red-700 bg-red-100 border border-red-300 rounded-md hover:bg-red-200 transition-colors"
+                >
+                  Suspender
+                </button>
+                <button
+                  onClick={() => openBulkModal('email')}
+                  className="px-3 py-1 text-sm font-medium text-blue-700 bg-blue-100 border border-blue-300 rounded-md hover:bg-blue-200 transition-colors"
+                >
+                  Enviar Email
+                </button>
+              </div>
+            </div>
+            <button
+              onClick={clearSelection}
+              className="px-3 py-1 text-sm font-medium text-gray-600 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 transition-colors"
+            >
+              Limpiar Selección
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Panel de filtros */}
       <div className="mb-6 p-4 bg-gray-50 rounded-lg border">
         <div className="flex flex-col sm:flex-row gap-4">
@@ -265,6 +400,14 @@ const VendorList: React.FC<VendorListProps> = ({ onVendorSelect }) => {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <input
+                    type="checkbox"
+                    checked={selectAll}
+                    onChange={handleSelectAll}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Vendedor
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -288,8 +431,22 @@ const VendorList: React.FC<VendorListProps> = ({ onVendorSelect }) => {
               {currentVendors.map((vendor, index) => (
                 <tr 
                   key={vendor.id} 
-                  className={index % 2 === 0 ? 'bg-white hover:bg-gray-50' : 'bg-gray-50 hover:bg-gray-100'}
+                  className={`${
+                    selectedVendors.has(vendor.id) 
+                      ? 'bg-blue-50 border-l-4 border-blue-500' 
+                      : index % 2 === 0 
+                        ? 'bg-white hover:bg-gray-50' 
+                        : 'bg-gray-50 hover:bg-gray-100'
+                  } transition-colors`}
                 >
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <input
+                      type="checkbox"
+                      checked={selectedVendors.has(vendor.id)}
+                      onChange={() => handleSelectVendor(vendor.id)}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">{vendor.name}</div>
                     <div className="text-sm text-gray-500">ID: {vendor.id}</div>
@@ -398,6 +555,148 @@ const VendorList: React.FC<VendorListProps> = ({ onVendorSelect }) => {
                   Siguiente
                 </button>
               </nav>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmación para Aprobar */}
+      {bulkModal.type === 'approve' && bulkModal.isOpen && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+                <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+              </div>
+              <div className="mt-3 text-center">
+                <h3 className="text-lg leading-6 font-medium text-gray-900">Aprobar Vendedores</h3>
+                <div className="mt-2 px-7 py-3">
+                  <p className="text-sm text-gray-500">
+                    ¿Estás seguro de que deseas aprobar {selectedVendors.size} vendedor{selectedVendors.size !== 1 ? 'es' : ''}?
+                    Esta acción los marcará como verificados.
+                  </p>
+                </div>
+                <div className="items-center px-4 py-3">
+                  <button
+                    onClick={executeBulkAction}
+                    disabled={bulkLoading}
+                    className="px-4 py-2 bg-green-500 text-white text-base font-medium rounded-md w-24 mr-2 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-300 disabled:opacity-50"
+                  >
+                    {bulkLoading ? '...' : 'Aprobar'}
+                  </button>
+                  <button
+                    onClick={closeBulkModal}
+                    disabled={bulkLoading}
+                    className="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-24 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmación para Suspender */}
+      {bulkModal.type === 'suspend' && bulkModal.isOpen && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                </svg>
+              </div>
+              <div className="mt-3 text-center">
+                <h3 className="text-lg leading-6 font-medium text-gray-900">Suspender Vendedores</h3>
+                <div className="mt-2 px-7 py-3">
+                  <p className="text-sm text-gray-500 mb-4">
+                    ¿Estás seguro de que deseas suspender {selectedVendors.size} vendedor{selectedVendors.size !== 1 ? 'es' : ''}?
+                  </p>
+                  <textarea
+                    value={suspendReason}
+                    onChange={(e) => setSuspendReason(e.target.value)}
+                    placeholder="Razón de la suspensión (obligatorio)"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                    rows={3}
+                    required
+                  />
+                </div>
+                <div className="items-center px-4 py-3">
+                  <button
+                    onClick={executeBulkAction}
+                    disabled={bulkLoading || !suspendReason.trim()}
+                    className="px-4 py-2 bg-red-500 text-white text-base font-medium rounded-md w-24 mr-2 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-300 disabled:opacity-50"
+                  >
+                    {bulkLoading ? '...' : 'Suspender'}
+                  </button>
+                  <button
+                    onClick={closeBulkModal}
+                    disabled={bulkLoading}
+                    className="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-24 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Email Bulk */}
+      {bulkModal.type === 'email' && bulkModal.isOpen && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100">
+                <svg className="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                </svg>
+              </div>
+              <div className="mt-3 text-center">
+                <h3 className="text-lg leading-6 font-medium text-gray-900">Enviar Email Masivo</h3>
+                <div className="mt-2 px-7 py-3">
+                  <p className="text-sm text-gray-500 mb-4">
+                    Enviar email a {selectedVendors.size} vendedor{selectedVendors.size !== 1 ? 'es' : ''}
+                  </p>
+                  <input
+                    type="text"
+                    value={emailData.subject}
+                    onChange={(e) => setEmailData(prev => ({ ...prev, subject: e.target.value }))}
+                    placeholder="Asunto del email"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"
+                    required
+                  />
+                  <textarea
+                    value={emailData.message}
+                    onChange={(e) => setEmailData(prev => ({ ...prev, message: e.target.value }))}
+                    placeholder="Mensaje del email"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    rows={4}
+                    required
+                  />
+                </div>
+                <div className="items-center px-4 py-3">
+                  <button
+                    onClick={executeBulkAction}
+                    disabled={bulkLoading || !emailData.subject.trim() || !emailData.message.trim()}
+                    className="px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md w-24 mr-2 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:opacity-50"
+                  >
+                    {bulkLoading ? '...' : 'Enviar'}
+                  </button>
+                  <button
+                    onClick={closeBulkModal}
+                    disabled={bulkLoading}
+                    className="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-24 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

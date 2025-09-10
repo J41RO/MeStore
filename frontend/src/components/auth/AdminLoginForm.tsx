@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Shield, Lock, User, AlertTriangle } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import { useNavigate } from 'react-router-dom';
+import { UserType } from '../../stores/authStore';
 
 interface AdminLoginFormProps {
   onLoginSuccess?: (data: any) => void;
@@ -52,9 +53,10 @@ const AdminLoginForm: React.FC<AdminLoginFormProps> = ({ onLoginSuccess }) => {
       
       // Establecer estado de autenticación con solo el token
       login(result.access_token, {
+        id: result.user_id || 'admin-temp-id', // Añadir ID requerido
+        name: credentials.email?.split('@')[0] || 'Admin Usuario', // Nombre temporal del email
         email: credentials.email,
-        user_type: 'SUPERUSER', // Asumimos SUPERUSER ya que el backend validó
-        is_admin: true
+        user_type: UserType.SUPERUSER
       });
 
       // Log de acceso exitoso
