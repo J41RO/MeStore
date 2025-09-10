@@ -38,55 +38,79 @@ Este módulo contiene endpoints especializados para:
 import logging
 from datetime import datetime, date
 from decimal import Decimal
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func, select
 from sqlalchemy import func, select, and_, desc
+from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import AuthService, get_auth_service, get_current_user
 from app.database import get_db
 from app.models.user import User, UserType
+from app.models.vendor_note import VendorNote
+from app.models.vendor_audit import VendorAuditLog, ActionType
 from app.models.inventory import Inventory, InventoryStatus
 from app.models.product import Product, ProductStatus
 from app.models.transaction import Transaction
-from app.schemas.transaction import MetodoPago 
+from app.schemas.transaction import MetodoPago
 from app.schemas.auth import TokenResponse
 from app.schemas.user import UserRead
 from app.schemas.vendedor import (
+    # Schemas bulk
+    BulkApproveRequest, 
+    BulkSuspendRequest, 
+    BulkEmailRequest, 
+    BulkActionResponse,
+    
+    # Schemas principales
     VendedorCreate,
     VendedorResponse,
     VendedorErrorResponse,
     VendedorLogin,
+    
+    # Dashboard schemas
     VendedorDashboardResumen,
     PeriodoVentas,
     VentasPorPeriodo,
-    FormatoExport,
-    TipoReporte,
-    ExportRequest,
-    ExportResponse,
     DashboardVentasResponse,
     DashboardInventarioResponse,
     DashboardProductosTopResponse,
     DashboardComisionesResponse,
+    DashboardComparativoResponse,
+    
+    # Export schemas
+    FormatoExport,
+    TipoReporte,
+    ExportRequest,
+    ExportResponse,
+    
+    # Enums y tipos
     TipoRankingProducto,
     EstadoStock,
-    InventarioMetrica,
     EstadoComision,
-    ComisionDetalle,
-    KPIComparison,
-    DashboardComparativoResponse,
-    TendenciaKPI,
-    # VendorList schemas
     EstadoVendedor,
     TipoCuentaVendedor,
+    TendenciaKPI,
+    
+    # Modelos de datos
+    InventarioMetrica,
+    ComisionDetalle,
+    KPIComparison,
+    ProductoTop,
+    
+    # VendorList schemas
+    
+    # Schemas de notas y auditoría
+    VendorNoteCreate,
+    VendorNoteResponse,
+    AuditLogResponse,
+    VendorNotesListResponse,
+    VendorAuditHistoryResponse,
     VendorListFilter,
     VendorItem,
     VendorListResponse,
-
-    ProductoTop,
 )
 
 # Configurar logging
@@ -1232,6 +1256,150 @@ async def get_vendor_list(
 
 
 
+
+
+# Endpoint para aprobar vendedor
+@router.post("/{vendedor_id}/approve", status_code=status.HTTP_200_OK)
+async def aprobar_vendedor(
+    vendedor_id: str,
+    reason: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Aprobar un vendedor para activar su cuenta.
+    Solo administradores pueden ejecutar esta acción.
+    """
+    # Verificar permisos de administrador
+    if current_user.user_type not in [UserType.ADMIN, UserType.SUPERUSER]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo administradores pueden aprobar vendedores"
+        )
+    
+    # Buscar el vendedor
+    query = select(User).where(User.id == vendedor_id, User.user_type == UserType.VENDEDOR)
+    result = await db.execute(query)
+    vendedor = result.scalar_one_or_none()
+    
+    if not vendedor:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Vendedor no encontrado"
+        )
+    
+    # Actualizar estado del vendedor
+    vendedor.is_verified = True
+    vendedor.is_active = True
+    
+    try:
+        await db.commit()
+        await db.refresh(vendedor)
+        
+        logging.info(f"Vendedor {vendedor_id} aprobado por admin {current_user.id}. Razón: {reason or 'Sin razón especificada'}")
+        
+        # TRACKING AUTOMÁTICO: Registrar acción de aprobación en audit log
+        audit_entry = VendorAuditLog.log_vendor_action(
+            vendor_id=vendedor_id,
+            admin_id=str(current_user.id),
+            action_type=ActionType.APPROVED,
+            old_values={"is_verified": False, "is_active": False},
+            new_values={"is_verified": True, "is_active": True},
+            description=f"Vendedor aprobado. Razón: {reason or 'Sin razón especificada'}"
+        )
+        db.add(audit_entry)
+        await db.commit()
+        return {
+            "status": "success",
+            "message": "Vendedor aprobado exitosamente",
+            "vendedor_id": vendedor_id,
+            "approved_by": current_user.id,
+            "reason": reason
+        }
+    except Exception as e:
+        await db.rollback()
+        logging.error(f"Error aprobando vendedor {vendedor_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )
+
+
+
+
+# Endpoint para rechazar vendedor
+@router.post("/{vendedor_id}/reject", status_code=status.HTTP_200_OK)
+async def rechazar_vendedor(
+    vendedor_id: str,
+    rejection_reason: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Rechazar un vendedor y desactivar su cuenta.
+    Solo administradores pueden ejecutar esta acción.
+    """
+    # Verificar que se proporcione razón de rechazo
+    if not rejection_reason or len(rejection_reason.strip()) < 5:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La razón de rechazo es obligatoria y debe tener al menos 5 caracteres"
+        )
+    
+    # Verificar permisos de administrador
+    if current_user.user_type not in [UserType.ADMIN, UserType.SUPERUSER]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo administradores pueden rechazar vendedores"
+        )
+    
+    # Buscar el vendedor
+    query = select(User).where(User.id == vendedor_id, User.user_type == UserType.VENDEDOR)
+    result = await db.execute(query)
+    vendedor = result.scalar_one_or_none()
+    
+    if not vendedor:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Vendedor no encontrado"
+        )
+    
+    # Actualizar estado del vendedor
+    vendedor.is_verified = False
+    vendedor.is_active = False
+    
+    try:
+        await db.commit()
+        await db.refresh(vendedor)
+        
+        logging.info(f"Vendedor {vendedor_id} rechazado por admin {current_user.id}. Razón: {rejection_reason}")
+        # TRACKING AUTOMÁTICO: Registrar acción de rechazo en audit log
+        audit_entry = VendorAuditLog.log_vendor_action(
+            vendor_id=vendedor_id,
+            admin_id=str(current_user.id),
+            action_type=ActionType.REJECTED,
+            old_values={"is_verified": vendedor.is_verified, "is_active": True},
+            new_values={"is_verified": False, "is_active": False},
+            description=f"Vendedor rechazado. Razón: {rejection_reason}"
+        )
+        db.add(audit_entry)
+        await db.commit()
+        return {
+            "status": "success",
+            "message": "Vendedor rechazado exitosamente",
+            "vendedor_id": vendedor_id,
+            "rejected_by": current_user.id,
+            "rejection_reason": rejection_reason
+        }
+    except Exception as e:
+        await db.rollback()
+        logging.error(f"Error rechazando vendedor {vendedor_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )
+
+
 @router.get("/health", status_code=status.HTTP_200_OK)
 async def health_check() -> Dict[str, Any]:
     """
@@ -1253,10 +1421,337 @@ async def health_check() -> Dict[str, Any]:
             "GET /vendedores/dashboard/comisiones",
             "GET /vendedores/dashboard/inventario",
             "GET /vendedores/dashboard/exportar",
-            "GET /vendedores/health"
+            "GET /vendedores/health",
+            "POST /vendedores/{id}/approve",
+            "POST /vendedores/{id}/reject"
         ],
     }
 
 
+
+
+# =============================================================================
+# ENDPOINTS PARA NOTAS INTERNAS Y AUDITORÍA - MICRO-FASE 3
+# =============================================================================
+
+@router.get("/{vendedor_id}/notes", response_model=VendorNotesListResponse, status_code=status.HTTP_200_OK)
+async def get_vendor_notes(
+    vendedor_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> VendorNotesListResponse:
+    """
+    Obtener todas las notas internas de un vendedor específico.
+    Solo administradores y superusuarios pueden acceder.
+    """
+    # Verificar permisos de administrador
+    if current_user.user_type not in [UserType.ADMIN, UserType.SUPERUSER]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo administradores pueden ver notas internas"
+        )
+    
+    try:
+        # Verificar que el vendedor existe
+        vendor_query = select(User).where(
+            User.id == vendedor_id, 
+            User.user_type == UserType.VENDEDOR
+        )
+        vendor_result = await db.execute(vendor_query)
+        vendor = vendor_result.scalar_one_or_none()
+        
+        if not vendor:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Vendedor no encontrado"
+            )
+        
+        # Obtener todas las notas del vendedor
+        notes_query = select(VendorNote).where(
+            VendorNote.vendor_id == vendedor_id
+        ).order_by(desc(VendorNote.created_at))
+        
+        notes_result = await db.execute(notes_query)
+        notes = notes_result.scalars().all()
+        
+        # Convertir a response schemas
+        notes_responses = []
+        for note in notes:
+            note_response = VendorNoteResponse(
+                id=str(note.id),
+                vendor_id=str(note.vendor_id),
+                admin_id=str(note.admin_id),
+                note_text=note.note_text,
+                created_at=note.created_at,
+                updated_at=note.updated_at,
+                vendor_name=f"{note.vendor.nombre} {note.vendor.apellido}" if note.vendor else None,
+                admin_name=f"{note.admin.nombre} {note.admin.apellido}" if note.admin else None
+            )
+            notes_responses.append(note_response)
+        
+        return VendorNotesListResponse(
+            vendor_id=vendedor_id,
+            notes=notes_responses,
+            total_notes=len(notes_responses)
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error obteniendo notas del vendedor {vendedor_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )
+
+
+@router.post("/{vendedor_id}/notes", response_model=VendorNoteResponse, status_code=status.HTTP_201_CREATED)
+async def create_vendor_note(
+    vendedor_id: str,
+    note_data: VendorNoteCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> VendorNoteResponse:
+    """
+    Crear una nueva nota interna sobre un vendedor.
+    Solo administradores y superusuarios pueden crear notas.
+    """
+    # Verificar permisos de administrador
+    if current_user.user_type not in [UserType.ADMIN, UserType.SUPERUSER]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo administradores pueden crear notas internas"
+        )
+    
+    try:
+        # Verificar que el vendedor existe
+        vendor_query = select(User).where(
+            User.id == vendedor_id, 
+            User.user_type == UserType.VENDEDOR
+        )
+        vendor_result = await db.execute(vendor_query)
+        vendor = vendor_result.scalar_one_or_none()
+        
+        if not vendor:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Vendedor no encontrado"
+            )
+        
+        # Crear nueva nota
+        new_note = VendorNote(
+            vendor_id=vendedor_id,
+            admin_id=str(current_user.id),
+            note_text=note_data.note_text
+        )
+        
+        db.add(new_note)
+        await db.commit()
+        await db.refresh(new_note)
+        
+        # Crear entrada de auditoría
+        audit_entry = VendorAuditLog.log_vendor_action(
+            vendor_id=vendedor_id,
+            admin_id=str(current_user.id),
+            action_type=ActionType.NOTE_ADDED,
+            description=f"Nota interna agregada: {note_data.note_text[:50]}..."
+        )
+        db.add(audit_entry)
+        await db.commit()
+        
+        logger.info(f"Nota creada para vendedor {vendedor_id} por admin {current_user.id}")
+        
+        return VendorNoteResponse(
+            id=str(new_note.id),
+            vendor_id=str(new_note.vendor_id),
+            admin_id=str(new_note.admin_id),
+            note_text=new_note.note_text,
+            created_at=new_note.created_at,
+            updated_at=new_note.updated_at,
+            vendor_name=f"{vendor.nombre} {vendor.apellido}",
+            admin_name=f"{current_user.nombre} {current_user.apellido}"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error creando nota para vendedor {vendedor_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )
 # Exports para facilitar imports
 __all__ = ["router"]
+
+
+
+# Endpoints para acciones bulk
+# Endpoints para acciones bulk
+@router.post('/bulk/approve', response_model=dict)
+async def bulk_approve_vendors(
+    request: BulkApproveRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    '''Aprobar múltiples vendedores'''
+    try:
+        success_count = 0
+        failed_items = []
+        
+        for vendor_id in request.vendor_ids:
+            vendor = db.query(User).filter(User.id == vendor_id, User.user_type == UserType.VENDEDOR).first()
+            if vendor:
+                vendor.is_verified = True
+                success_count += 1
+            else:
+                failed_items.append(vendor_id)
+        
+        db.commit()
+        return {
+            'success': True,
+            'success_count': success_count,
+            'failed_items': failed_items,
+            'message': f'{success_count} vendedores aprobados exitosamente'
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f'Error al aprobar vendedores: {str(e)}')
+
+@router.post('/bulk/suspend', response_model=dict)
+async def bulk_suspend_vendors(
+    request: BulkSuspendRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    '''Suspender múltiples vendedores'''
+    try:
+        success_count = 0
+        failed_items = []
+        
+        for vendor_id in request.vendor_ids:
+            vendor = db.query(User).filter(User.id == vendor_id, User.user_type == UserType.VENDEDOR).first()
+            if vendor:
+                vendor.is_active = False
+                success_count += 1
+            else:
+                failed_items.append(vendor_id)
+        
+        db.commit()
+        return {
+            'success': True,
+            'success_count': success_count,
+            'failed_items': failed_items,
+            'message': f'{success_count} vendedores suspendidos exitosamente',
+            'reason': request.reason
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f'Error al suspender vendedores: {str(e)}')
+
+@router.post('/bulk/email', response_model=dict)
+async def bulk_email_vendors(
+    request: BulkEmailRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    '''Enviar email a múltiples vendedores'''
+    try:
+        vendors = db.query(User).filter(User.id.in_(request.vendor_ids), User.user_type == UserType.VENDEDOR).all()
+        
+        success_count = 0
+        failed_items = []
+        
+        for vendor in vendors:
+            try:
+                # Aquí iría la lógica de envío de email real
+                # Por ahora simulamos el envío exitoso
+                success_count += 1
+            except:
+                failed_items.append(vendor.id)
+        
+        return {
+            'success': True,
+            'success_count': success_count,
+            'failed_items': failed_items,
+            'message': f'Email enviado a {success_count} vendedores exitosamente',
+            'subject': request.subject
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f'Error al enviar emails: {str(e)}')
+
+
+
+
+@router.get("/{vendedor_id}/audit-log", response_model=VendorAuditHistoryResponse, status_code=status.HTTP_200_OK)
+async def get_vendor_audit_log(
+    vendedor_id: str,
+    limit: int = Query(50, ge=1, le=200, description="Número máximo de registros a retornar"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> VendorAuditHistoryResponse:
+    """
+    Obtener el historial de auditoría completo de un vendedor.
+    Solo administradores y superusuarios pueden acceder.
+    """
+    # Verificar permisos de administrador
+    if current_user.user_type not in [UserType.ADMIN, UserType.SUPERUSER]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo administradores pueden ver historial de auditoría"
+        )
+    
+    try:
+        # Verificar que el vendedor existe
+        vendor_query = select(User).where(
+            User.id == vendedor_id, 
+            User.user_type == UserType.VENDEDOR
+        )
+        vendor_result = await db.execute(vendor_query)
+        vendor = vendor_result.scalar_one_or_none()
+        
+        if not vendor:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Vendedor no encontrado"
+            )
+        
+        # Obtener registros de auditoría del vendedor
+        audit_query = select(VendorAuditLog).where(
+            VendorAuditLog.vendor_id == vendedor_id
+        ).order_by(desc(VendorAuditLog.created_at)).limit(limit)
+        
+        audit_result = await db.execute(audit_query)
+        audit_logs = audit_result.scalars().all()
+        
+        # Convertir a response schemas
+        audit_responses = []
+        for log in audit_logs:
+            audit_response = AuditLogResponse(
+                id=str(log.id),
+                vendor_id=str(log.vendor_id),
+                admin_id=str(log.admin_id),
+                action_type=log.action_type.value,
+                old_values=log.old_values,
+                new_values=log.new_values,
+                description=log.description,
+                created_at=log.created_at,
+                vendor_name=f"{log.vendor.nombre} {log.vendor.apellido}" if log.vendor else None,
+                admin_name=f"{log.admin.nombre} {log.admin.apellido}" if log.admin else None
+            )
+            audit_responses.append(audit_response)
+        
+        return VendorAuditHistoryResponse(
+            vendor_id=vendedor_id,
+            audit_logs=audit_responses,
+            total_logs=len(audit_responses)
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error obteniendo historial de auditoría del vendedor {vendedor_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )

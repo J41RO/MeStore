@@ -464,7 +464,43 @@ class VendorListResponse(BaseModel):
         }
 
 
+
+# Schemas para workflow de aprobación
+class ApproveVendorRequest(BaseModel):
+    """Schema para solicitud de aprobación de vendedor"""
+    reason: Optional[str] = Field(
+        None,
+        description="Razón opcional para la aprobación",
+        max_length=500
+    )
+
+class RejectVendorRequest(BaseModel):
+    """Schema para solicitud de rechazo de vendedor"""
+    rejection_reason: str = Field(
+        ...,
+        description="Razón obligatoria para el rechazo",
+        min_length=5,
+        max_length=500
+    )
+
+class ApprovalResponse(BaseModel):
+    """Schema para respuesta de acciones de aprobación/rechazo"""
+    status: str = Field(..., description="Estado de la operación")
+    message: str = Field(..., description="Mensaje descriptivo")
+    vendedor_id: str = Field(..., description="ID del vendedor procesado")
+    approved_by: Optional[str] = Field(None, description="ID del admin que aprobó")
+    rejected_by: Optional[str] = Field(None, description="ID del admin que rechazó")
+    reason: Optional[str] = Field(None, description="Razón de aprobación")
+    rejection_reason: Optional[str] = Field(None, description="Razón de rechazo")
+
+
 __all__ = [
+    # Notas internas y auditoría
+    "VendorNoteCreate",
+    "VendorNoteResponse",
+    "AuditLogResponse",
+    "VendorNotesListResponse",
+    "VendorAuditHistoryResponse",
     # Registro y autenticación
     "VendedorCreate",
     "VendedorResponse", 
@@ -488,4 +524,96 @@ __all__ = [
     "EstadoStock",
     "InventarioMetrica",
     "DashboardInventarioResponse",
+    # Workflow de aprobación
+    "ApproveVendorRequest",
+    "RejectVendorRequest", 
+    "ApprovalResponse",
 ]
+
+
+
+# Schemas para acciones bulk
+from typing import List
+from pydantic import BaseModel, Field
+
+class BulkActionRequest(BaseModel):
+    vendor_ids: List[int] = Field(..., min_items=1, max_items=50, description='Lista de IDs de vendedores (máximo 50)')
+
+class BulkApproveRequest(BulkActionRequest):
+    pass
+
+class BulkSuspendRequest(BulkActionRequest):
+    reason: str = Field(..., min_length=5, max_length=500, description='Razón de la suspensión')
+
+class BulkEmailRequest(BulkActionRequest):
+    subject: str = Field(..., min_length=1, max_length=200, description='Asunto del email')
+    message: str = Field(..., min_length=1, max_length=2000, description='Contenido del email')
+
+class BulkActionResponse(BaseModel):
+    success: bool
+    success_count: int
+    failed_items: List[int] = []
+    message: str
+    details: dict = {}
+
+
+# =============================================================================
+# SCHEMAS PARA NOTAS INTERNAS Y AUDITORÍA - MICRO-FASE 3
+# =============================================================================
+
+class VendorNoteCreate(BaseModel):
+    """Schema para crear una nueva nota interna sobre un vendedor."""
+    note_text: str = Field(
+        ..., 
+        min_length=5, 
+        max_length=2000, 
+        description="Contenido de la nota interna"
+    )
+
+class VendorNoteResponse(BaseModel):
+    """Schema para respuesta de nota de vendedor."""
+    id: str = Field(..., description="ID único de la nota")
+    vendor_id: str = Field(..., description="ID del vendedor")
+    admin_id: str = Field(..., description="ID del administrador que creó la nota")
+    note_text: str = Field(..., description="Contenido de la nota")
+    created_at: datetime = Field(..., description="Fecha de creación")
+    updated_at: Optional[datetime] = Field(None, description="Fecha de última actualización")
+    vendor_name: Optional[str] = Field(None, description="Nombre del vendedor")
+    admin_name: Optional[str] = Field(None, description="Nombre del administrador")
+    
+    class Config:
+        from_attributes = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
+
+class AuditLogResponse(BaseModel):
+    """Schema para respuesta de log de auditoría."""
+    id: str = Field(..., description="ID único del log")
+    vendor_id: str = Field(..., description="ID del vendedor afectado")
+    admin_id: str = Field(..., description="ID del administrador que realizó la acción")
+    action_type: str = Field(..., description="Tipo de acción realizada")
+    old_values: Optional[dict] = Field(None, description="Valores anteriores")
+    new_values: Optional[dict] = Field(None, description="Valores nuevos")
+    description: Optional[str] = Field(None, description="Descripción adicional")
+    created_at: datetime = Field(..., description="Fecha de la acción")
+    vendor_name: Optional[str] = Field(None, description="Nombre del vendedor")
+    admin_name: Optional[str] = Field(None, description="Nombre del administrador")
+    
+    class Config:
+        from_attributes = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
+
+class VendorNotesListResponse(BaseModel):
+    """Schema para lista de notas de un vendedor."""
+    vendor_id: str = Field(..., description="ID del vendedor")
+    notes: List[VendorNoteResponse] = Field(default_factory=list, description="Lista de notas")
+    total_notes: int = Field(0, description="Total de notas del vendedor")
+
+class VendorAuditHistoryResponse(BaseModel):
+    """Schema para historial de auditoría de un vendedor."""
+    vendor_id: str = Field(..., description="ID del vendedor")
+    audit_logs: List[AuditLogResponse] = Field(default_factory=list, description="Lista de logs de auditoría")
+    total_logs: int = Field(0, description="Total de logs del vendedor")

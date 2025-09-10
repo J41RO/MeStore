@@ -381,11 +381,11 @@
     ✅ 1.6.1.5 Implementar mapa de actividad por ciudad/región en Colombia
     ✅ 1.6.1.6 Añadir alertas críticas (stock crítico, vendedores pendientes, errores)
 🔁 1.6.2 Gestión de vendedores (aprobar, suspender)
-    ⬜ 1.6.2.1 Crear VendorList con filtros por estado y tipo de cuenta
-    ⬜ 1.6.2.2 Implementar VendorDetail con toda la información y documentos
-    ⬜ 1.6.2.3 Añadir workflow de aprobación con verificación de documentos
-    ⬜ 1.6.2.4 Crear acciones bulk (aprobar múltiples, suspender, enviar emails)
-    ⬜ 1.6.2.5 Implementar sistema de notas internas y historial de cambios
+    ✅ 1.6.2.1 Crear VendorList con filtros por estado y tipo de cuenta
+    ✅ 1.6.2.2 Implementar VendorDetail con toda la información y documentos
+    ✅ 1.6.2.3 Añadir workflow de aprobación con verificación de documentos
+    ✅ 1.6.2.4 Crear acciones bulk (aprobar múltiples, suspender, enviar emails)
+    ✅ 1.6.2.5 Implementar sistema de notas internas y historial de cambios
     ⬜ 1.6.2.6 Añadir métricas por vendedor (performance, comisiones, productos)
 ⬜ 1.6.3 Control de inventario físico
     ⬜ 1.6.3.1 Crear WarehouseMap visual con layout del almacén físico

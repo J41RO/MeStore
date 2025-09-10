@@ -10,13 +10,14 @@ Nombre del Archivo: auth_service.py
 Ruta: ~/app/services/auth_service.py  
 Autor: Jairo
 Fecha de Creación: 2025-07-31
-Última Actualización: 2025-07-31
-Versión: 1.0.0
+Última Actualización: 2025-09-09
+Versión: 1.1.0
 Propósito: Servicio centralizado de autenticación con manejo async/sync correcto
            para prevenir RuntimeError: Event loop is closed
 
 Modificaciones:
 2025-07-31 - Creación con corrección async/sync para bcrypt
+2025-09-09 - Agregado método authenticate_user y corrección de campo password_hash
 
 -------------------------------------------------------------------------------------
 """
@@ -24,7 +25,7 @@ Modificaciones:
 import asyncio
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from typing import Optional
+from typing import Optional, Tuple
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from app.models.user import User
@@ -34,7 +35,6 @@ from app.services.sms_service import SMSService
 
 # Configurar logger
 logger = logging.getLogger(__name__)
-from typing import Tuple
 
 
 class AuthService:
@@ -46,15 +46,12 @@ class AuthService:
     """
     
     def __init__(self):
-        # Servicios OTP integrados
-        self.otp_service = OTPService()
-        self.email_service = EmailService()
-        self.sms_service = SMSService()
-        # Servicios OTP integrados
-        self.otp_service = OTPService()
-        self.email_service = EmailService()
-        self.sms_service = SMSService()
         """Inicializar servicio con contexto bcrypt y thread pool."""
+        # Servicios OTP integrados
+        self.otp_service = OTPService()
+        self.email_service = EmailService()
+        self.sms_service = SMSService()
+        
         self.pwd_context = CryptContext(
             schemes=["bcrypt"], 
             deprecated="auto"
@@ -134,6 +131,37 @@ class AuthService:
         """
         return self.pwd_context.verify(plain_password, hashed_password)
 
+    async def authenticate_user(self, db: Session, email: str, password: str) -> Optional[User]:
+        """
+        Autenticar usuario con email y password.
+        
+        Args:
+            db: Sesión de base de datos
+            email: Email del usuario
+            password: Password en texto plano
+            
+        Returns:
+            Usuario si las credenciales son válidas, None si no
+        """
+        try:
+            # Buscar usuario por email
+            user = db.query(User).filter(User.email == email).first()
+            if not user:
+                logging.info(f"Usuario no encontrado: {email}")
+                return None
+            
+            # Verificar password - CORREGIDO: usar password_hash en lugar de hashed_password
+            is_valid = await self.verify_password(password, user.password_hash)
+            if not is_valid:
+                logging.info(f"Password inválido para usuario: {email}")
+                return None
+                
+            logging.info(f"Usuario autenticado exitosamente: {email}")
+            return user
+            
+        except Exception as e:
+            logging.error(f"Error en authenticate_user: {str(e)}")
+            return None
 
     async def create_user(
         self,
@@ -194,7 +222,6 @@ class AuthService:
         except Exception as e:
             await db.rollback()
             raise ValueError(f"Error al crear usuario: {str(e)}")
-    
 
     # === MÉTODOS OTP PARA VERIFICACIÓN EMAIL/SMS ===
 
@@ -345,7 +372,6 @@ class AuthService:
             return self.otp_service.cleanup_expired_otps(db)
         except Exception as e:
             return 0
-
 
     # === MÉTODOS PARA RECUPERACIÓN DE CONTRASEÑA ===
 
@@ -503,6 +529,7 @@ class AuthService:
         except Exception as e:
             logger.error(f"Error en cleanup_expired_reset_tokens: {str(e)}")
             return 0
+
     def __del__(self):
         """Cleanup del ThreadPoolExecutor al destruir el objeto."""
         if hasattr(self, 'executor'):

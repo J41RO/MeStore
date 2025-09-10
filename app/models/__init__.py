@@ -67,5 +67,18 @@ except ImportError:
 
 from .storage import Storage, StorageType
 
+# Import vendor note and audit models explicitly
+try:
+    from .vendor_note import VendorNote
+    __all__.append("VendorNote")
+except ImportError:
+    pass
+
+try:
+    from .vendor_audit import VendorAuditLog, ActionType
+    __all__.extend(["VendorAuditLog", "ActionType"])
+except ImportError:
+    pass
+
 # Agregar a __all__
 "StorageType"
