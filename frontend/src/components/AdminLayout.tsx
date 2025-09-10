@@ -17,6 +17,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { name: 'Reportes Administrativos', href: '/admin-secure-portal/reports' },
     { name: 'Logs y Auditoría', href: '/admin-secure-portal/logs' },
     { name: 'Configuración de Roles', href: '/admin-secure-portal/roles' },
+    { name: 'Mapa del Almacén', href: '/admin-secure-portal/warehouse-map' },
   ];
 
   const NavigationItems = ({ onItemClick }: { onItemClick?: () => void }) => (

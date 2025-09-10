@@ -7,403 +7,276 @@
   /* Colores primarios */
   --color-primary: 59 130 246;
   --color-primary-foreground: 255 255 255;
-
+  
   /* Colores secundarios */
   --color-secondary: 16 185 129;
   --color-secondary-foreground: 255 255 255;
-
+  
   /* Colores de acento */
   --color-accent: 249 115 22;
   --color-accent-foreground: 255 255 255;
-
+  
   /* Colores neutrales - Light */
   --color-background: 255 255 255;
-  --color-foreground: 23 23 23;
-  --color-muted: 245 245 245;
-  --color-muted-foreground: 115 115 115;
-
-  /* Bordes y separadores - Light */
-  --color-border: 229 229 229;
-  --color-input: 229 229 229;
-
+  --color-foreground: 15 23 42;
+  --color-card: 255 255 255;
+  --color-card-foreground: 15 23 42;
+  --color-popover: 255 255 255;
+  --color-popover-foreground: 15 23 42;
+  --color-muted: 248 250 252;
+  --color-muted-foreground: 100 116 139;
+  --color-border: 226 232 240;
+  --color-input: 226 232 240;
+  --color-ring: 59 130 246;
+  
+  /* Variables de tipografía mejorada */
+  --text-primary: 31 41 55;        /* text-gray-800 mejorado */
+  --text-secondary: 75 85 99;      /* text-gray-600 mejorado */
+  --text-muted: 107 114 128;       /* text-gray-500 mejorado */
+  --text-contrast: 17 24 39;       /* text-gray-900 para máximo contraste */
+  
   /* Estados */
+  --color-destructive: 239 68 68;
+  --color-destructive-foreground: 255 255 255;
   --color-success: 34 197 94;
-  --color-error: 239 68 68;
-  --color-warning: 234 179 8;
-
-  /* Sombras MeStocker */
-  --shadow-mestocker:
-    0 4px 6px -1px rgba(59, 130, 246, 0.1),
-    0 2px 4px -1px rgba(59, 130, 246, 0.06);
-
-  /* Typography */
-  --font-sans: 'Inter', system-ui, sans-serif;
-  --font-heading: 'Poppins', 'Inter', sans-serif;
-  --font-mono: 'JetBrains Mono', 'Consolas', monospace;
+  --color-success-foreground: 255 255 255;
+  --color-warning: 245 158 11;
+  --color-warning-foreground: 255 255 255;
+  --color-info: 59 130 246;
+  --color-info-foreground: 255 255 255;
 }
 
-/* Dark Mode - Class Based */
-.dark {
-  /* Colores neutrales - Dark */
-  --color-background: 23 23 23;
-  --color-foreground: 245 245 245;
-  --color-muted: 38 38 38;
-  --color-muted-foreground: 163 163 163;
-
-  /* Bordes y separadores - Dark */
-  --color-border: 64 64 64;
-  --color-input: 64 64 64;
-
-  /* Sombras adaptadas para dark mode */
-  --shadow-mestocker:
-    0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+/* Dark Mode Variables */
+[data-theme="dark"] {
+  --color-background: 15 23 42;
+  --color-foreground: 248 250 252;
+  --color-card: 30 41 59;
+  --color-card-foreground: 248 250 252;
+  --color-popover: 30 41 59;
+  --color-popover-foreground: 248 250 252;
+  --color-muted: 51 65 85;
+  --color-muted-foreground: 148 163 184;
+  --color-border: 51 65 85;
+  --color-input: 51 65 85;
+  
+  /* Tipografía en modo oscuro */
+  --text-primary: 248 250 252;
+  --text-secondary: 203 213 225;
+  --text-muted: 148 163 184;
+  --text-contrast: 255 255 255;
 }
 
-/* Fallback: Auto Dark Mode (System Preference) */
-@media (prefers-color-scheme: dark) {
-  :root:not(.light) {
-    --color-background: 23 23 23;
-    --color-foreground: 245 245 245;
-    --color-muted: 38 38 38;
-    --color-muted-foreground: 163 163 163;
-    --color-border: 64 64 64;
-    --color-input: 64 64 64;
-    --shadow-mestocker:
-      0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-  }
-}
+/* === MEJORAS TIPOGRÁFICAS GLOBALES MESTOCKER === */
 
-/* Base styles with MeStocker branding */
+/* Base font improvements */
 body {
-  margin: 0;
-  font-family: var(--font-sans);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: rgb(var(--color-background));
-  color: rgb(var(--color-foreground));
-  transition:
-    background-color 0.3s ease,
-    color 0.3s ease;
+  color: rgb(var(--text-primary));
 }
 
-/* MeStocker utility classes using CSS directo */
-@layer components {
-  .btn-primary {
-    background-color: #3b82f6;
-    color: white;
-    font-weight: 500;
-    padding: 0.5rem 1rem;
-    border-radius: 0.375rem;
-    transition: background-color 0.2s ease-in-out;
-  }
-  .btn-primary:hover {
-    background-color: #2563eb;
-  }
-
-  .btn-secondary {
-    background-color: #10b981;
-    color: white;
-    font-weight: 500;
-    padding: 0.5rem 1rem;
-    border-radius: 0.375rem;
-    transition: background-color 0.2s ease-in-out;
-  }
-  .btn-secondary:hover {
-    background-color: #059669;
-  }
-
-  .card-mestocker {
-    background-color: rgb(var(--color-background));
-    border: 1px solid rgb(var(--color-border));
-    border-radius: 0.5rem;
-    box-shadow: var(--shadow-mestocker);
-    padding: 1.5rem;
-    transition:
-      background-color 0.3s ease,
-      border-color 0.3s ease;
-  }
-
-  .input-mestocker {
-    border: 1px solid rgb(var(--color-input));
-    border-radius: 0.375rem;
-    padding: 0.5rem 0.75rem;
-    outline: none;
-    background-color: rgb(var(--color-background));
-    color: rgb(var(--color-foreground));
-    transition:
-      border-color 0.2s ease-in-out,
-      box-shadow 0.2s ease-in-out;
-  }
-  .input-mestocker:focus {
-    border-color: transparent;
-    box-shadow: 0 0 0 2px #3b82f6;
-  }
-
-  /* Utility classes adicionales MeStocker */
-  .badge-mestocker {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.25rem 0.625rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    background-color: rgba(59, 130, 246, 0.1);
-    color: #1d4ed8;
-  }
-
-  .badge-secondary {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.25rem 0.625rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    background-color: rgba(16, 185, 129, 0.1);
-    color: #047857;
-  }
-
-  .badge-success {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.25rem 0.625rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    background-color: rgba(34, 197, 94, 0.1);
-    color: #15803d;
-  }
-
-  .badge-error {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.25rem 0.625rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    background-color: rgba(239, 68, 68, 0.1);
-    color: #dc2626;
-  }
-
-  .badge-warning {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.25rem 0.625rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    background-color: rgba(234, 179, 8, 0.1);
-    color: #ca8a04;
-  }
-
-  .alert-mestocker {
-    padding: 1rem;
-    border-radius: 0.375rem;
-    border-left: 4px solid #3b82f6;
-    background-color: rgba(59, 130, 246, 0.05);
-    color: #1d4ed8;
-  }
-
-  .alert-success {
-    padding: 1rem;
-    border-radius: 0.375rem;
-    border-left: 4px solid #10b981;
-    background-color: rgba(16, 185, 129, 0.05);
-    color: #047857;
-  }
-
-  .alert-error {
-    padding: 1rem;
-    border-radius: 0.375rem;
-    border-left: 4px solid #ef4444;
-    background-color: rgba(239, 68, 68, 0.05);
-    color: #dc2626;
-  }
-
-  .alert-warning {
-    padding: 1rem;
-    border-radius: 0.375rem;
-    border-left: 4px solid #eab308;
-    background-color: rgba(234, 179, 8, 0.05);
-    color: #ca8a04;
-  }
-
-  .container-mestocker {
-    max-width: 80rem;
-    margin-left: auto;
-    margin-right: auto;
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
-
-  .section-mestocker {
-    padding-top: 3rem;
-    padding-bottom: 3rem;
-  }
-
-  .grid-mestocker {
-    display: grid;
-    gap: 1.5rem;
-  }
-
-  .loading-mestocker {
-    position: relative;
-    overflow: hidden;
-  }
-
-  .loading-mestocker::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(255, 255, 255, 0.6),
-      transparent
-    );
-    animation: shimmer 2s infinite;
-  }
-
-  .btn-outline-primary {
-    border: 2px solid #3b82f6;
-    color: #3b82f6;
-    background-color: transparent;
-    font-weight: 500;
-    padding: 0.375rem 0.875rem;
-    border-radius: 0.375rem;
-    transition: all 0.2s ease-in-out;
-  }
-  .btn-outline-primary:hover {
-    background-color: #3b82f6;
-    color: white;
-  }
-
-  .btn-outline-secondary {
-    border: 2px solid #10b981;
-    color: #10b981;
-    background-color: transparent;
-    font-weight: 500;
-    padding: 0.375rem 0.875rem;
-    border-radius: 0.375rem;
-    transition: all 0.2s ease-in-out;
-  }
-  .btn-outline-secondary:hover {
-    background-color: #10b981;
-    color: white;
-  }
-
-  .btn-ghost {
-    color: #525252;
-    background-color: transparent;
-    font-weight: 500;
-    padding: 0.5rem 1rem;
-    border-radius: 0.375rem;
-    transition: all 0.2s ease-in-out;
-  }
-  .btn-ghost:hover {
-    color: #3b82f6;
-    background-color: rgba(59, 130, 246, 0.05);
-  }
-
-  .btn-disabled {
-    background-color: #d4d4d4;
-    color: #a3a3a3;
-    cursor: not-allowed;
-    font-weight: 500;
-    padding: 0.5rem 1rem;
-    border-radius: 0.375rem;
-  }
-
-  .textarea-mestocker {
-    border: 1px solid rgb(var(--color-input));
-    border-radius: 0.375rem;
-    padding: 0.75rem;
-    outline: none;
-    background-color: rgb(var(--color-background));
-    color: rgb(var(--color-foreground));
-    resize: vertical;
-    min-height: 6rem;
-    transition:
-      border-color 0.2s ease-in-out,
-      box-shadow 0.2s ease-in-out;
-  }
-  .textarea-mestocker:focus {
-    border-color: transparent;
-    box-shadow: 0 0 0 2px #3b82f6;
-  }
-
-  .select-mestocker {
-    border: 1px solid rgb(var(--color-input));
-    border-radius: 0.375rem;
-    padding: 0.5rem 0.75rem;
-    outline: none;
-    background-color: rgb(var(--color-background));
-    color: rgb(var(--color-foreground));
-    transition:
-      border-color 0.2s ease-in-out,
-      box-shadow 0.2s ease-in-out;
-  }
-  .select-mestocker:focus {
-    border-color: transparent;
-    box-shadow: 0 0 0 2px #3b82f6;
-  }
-
-  .checkbox-mestocker {
-    width: 1rem;
-    height: 1rem;
-    color: #3b82f6;
-    background-color: rgb(var(--color-background));
-    border: 1px solid rgb(var(--color-input));
-    border-radius: 0.25rem;
-  }
-  .checkbox-mestocker:focus {
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
-  }
-
-  .text-mestocker-primary {
-    color: #3b82f6;
-    font-weight: 500;
-  }
-
-  .text-mestocker-secondary {
-    color: #10b981;
-    font-weight: 500;
-  }
-
-  .heading-mestocker {
-    font-family: var(--font-heading);
-    font-weight: 700;
-    color: rgb(var(--color-foreground));
-  }
-
-  .subheading-mestocker {
-    font-family: var(--font-heading);
-    font-weight: 600;
-    color: rgb(var(--color-foreground));
-  }
+/* Headings with better contrast */
+h1, h2, h3, h4, h5, h6 {
+  color: rgb(var(--text-contrast)) !important;
+  font-weight: 600;
+  letter-spacing: -0.025em;
 }
 
-/* Animations */
-@keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
+/* Improved text classes */
+.text-improved {
+  color: rgb(var(--text-primary));
+  font-weight: 500;
 }
 
-/* Responsive utilities */
-@media (max-width: 640px) {
-  .container-mestocker {
-    padding-left: 0.75rem;
-    padding-right: 0.75rem;
-  }
+.text-contrast {
+  color: rgb(var(--text-contrast));
+  font-weight: 600;
+}
 
-  .section-mestocker {
-    padding-top: 2rem;
-    padding-bottom: 2rem;
-  }
+/* WarehouseMap specific improvements */
+.warehouse-map-container .text-gray-600 {
+  color: rgb(var(--text-secondary)) !important;
+  font-weight: 500;
+}
+
+.warehouse-map-container .text-gray-500 {
+  color: rgb(var(--text-muted)) !important;
+  font-weight: 500;
+}
+
+.warehouse-map-container .text-xs {
+  color: rgb(var(--text-secondary)) !important;
+  font-weight: 500;
+  font-size: 0.75rem;
+}
+
+.warehouse-map-container .text-sm {
+  color: rgb(var(--text-primary)) !important;
+  font-weight: 500;
+}
+
+.warehouse-map-container h2,
+.warehouse-map-container h3,
+.warehouse-map-container h4 {
+  color: rgb(var(--text-contrast)) !important;
+  font-weight: 700;
+}
+
+/* Canvas container improvements */
+.canvas-container .text-sm {
+  color: rgb(var(--text-primary)) !important;
+  font-weight: 500;
+}
+
+.canvas-container .text-gray-500 {
+  color: rgb(var(--text-muted)) !important;
+  font-weight: 500;
+}
+
+/* Form elements improvements */
+label {
+  color: rgb(var(--text-primary)) !important;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+input, select, textarea {
+  color: rgb(var(--text-primary)) !important;
+  font-weight: 400;
+}
+
+input::placeholder, 
+select option, 
+textarea::placeholder {
+  color: rgb(var(--text-muted)) !important;
+  font-weight: 400;
+}
+
+/* Button text improvements */
+button {
+  font-weight: 500;
+}
+
+.btn {
+  font-weight: 500;
+  letter-spacing: 0.025em;
+}
+
+/* Navigation improvements */
+.admin-nav a, 
+.admin-nav button {
+  color: rgb(var(--text-primary)) !important;
+  font-weight: 500;
+}
+
+/* Statistics cards improvements */
+.stat-card h4 {
+  color: rgb(var(--text-secondary)) !important;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.stat-card p {
+  font-weight: 700;
+}
+
+/* Zone cards improvements */
+.zone-card h5 {
+  color: rgb(var(--text-contrast)) !important;
+  font-weight: 600;
+}
+
+.zone-card .text-sm {
+  color: rgb(var(--text-primary)) !important;
+  font-weight: 500;
+}
+
+.zone-card .text-gray-600 {
+  color: rgb(var(--text-secondary)) !important;
+  font-weight: 500;
+}
+
+/* Template selector improvements */
+.template-selector button {
+  transition: all 0.2s ease;
+}
+
+.template-selector .font-medium {
+  color: rgb(var(--text-contrast)) !important;
+  font-weight: 600;
+}
+
+.template-selector .text-gray-600 {
+  color: rgb(var(--text-secondary)) !important;
+  font-weight: 500;
+}
+
+.template-selector .text-blue-600 {
+  color: rgb(59 130 246) !important;
+  font-weight: 600;
+}
+
+/* Roadmap improvements */
+.roadmap-step .font-medium {
+  color: rgb(var(--text-contrast)) !important;
+  font-weight: 600;
+}
+
+.roadmap-step .text-gray-600 {
+  color: rgb(var(--text-secondary)) !important;
+  font-weight: 500;
+}
+
+.roadmap-step .text-gray-500 {
+  color: rgb(var(--text-muted)) !important;
+  font-weight: 500;
+}
+
+/* Controls improvements */
+.controls button {
+  font-weight: 500;
+  letter-spacing: 0.025em;
+}
+
+/* General text improvements for better contrast */
+.text-gray-800 {
+  color: rgb(var(--text-contrast)) !important;
+}
+
+.text-gray-700 {
+  color: rgb(var(--text-primary)) !important;
+}
+
+.text-gray-600 {
+  color: rgb(var(--text-secondary)) !important;
+}
+
+.text-gray-500 {
+  color: rgb(var(--text-muted)) !important;
+}
+
+/* Ensure all small text is readable */
+.text-xs {
+  font-weight: 500;
+  color: rgb(var(--text-secondary)) !important;
+}
+
+/* Business config section */
+.business-config label {
+  color: rgb(var(--text-primary)) !important;
+  font-weight: 600;
+}
+
+.business-config input,
+.business-config select {
+  color: rgb(var(--text-primary)) !important;
+  font-weight: 500;
+}
+
+/* Override any very light text */
+.text-gray-400,
+.text-gray-300 {
+  color: rgb(var(--text-muted)) !important;
+  font-weight: 500;
 }

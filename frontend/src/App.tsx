@@ -17,6 +17,7 @@ const AdminLayout = lazy(() => import('./components/AdminLayout'));
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
 const UserManagement = lazy(() => import('./pages/admin/UserManagement'));
 const SystemConfig = lazy(() => import('./pages/admin/SystemConfig'));
+const WarehouseMap = lazy(() => import('./components/admin/WarehouseMap'));
 const Productos = lazy(() => import('./pages/Productos'));
 const CommissionReport = lazy(
   () => import('./components/reports/CommissionReport')
@@ -185,6 +186,7 @@ function App() {
                     <Route path='dashboard' element={<AdminDashboard />} />
                     <Route path='users' element={<UserManagement />} />
                     <Route path='system-config' element={<SystemConfig />} />
+                    <Route path='warehouse-map' element={<WarehouseMap />} />
                     <Route
                       index
                       element={<Navigate to='dashboard' replace />}

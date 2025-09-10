@@ -99,12 +99,12 @@ const AdminPortal: React.FC = () => {
             {/* Información de seguridad */}
             <div className="mt-8 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
               <div className="flex items-start space-x-3">
-                <svg className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-orange-300 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
                 <div>
-                  <p className="text-amber-300 text-sm font-medium">Acceso Restringido</p>
-                  <p className="text-amber-200/80 text-xs mt-1">
+                  <p className="text-white text-base font-semibold">Acceso Restringido</p>
+                  <p className="text-white text-sm mt-2 leading-relaxed opacity-90">
                     Este portal está destinado exclusivamente para personal autorizado. 
                     Todos los accesos son monitoreados y auditados.
                   </p>
