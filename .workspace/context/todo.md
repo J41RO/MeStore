@@ -388,7 +388,7 @@
     ✅ 1.6.2.5 Implementar sistema de notas internas y historial de cambios
     ✅ 1.6.2.6 Añadir métricas por vendedor (performance, comisiones, productos)
 🔁 1.6.3 Control de inventario físico
-    ⬜ 1.6.3.1 Crear WarehouseMap visual con layout del almacén físico
+    ✅ 1.6.3.1 Crear WarehouseMap visual con layout del almacén físico
     ⬜ 1.6.3.2 Implementar InventoryAudit para conteos físicos vs sistema
     ⬜ 1.6.3.3 Añadir LocationManager para asignar/reasignar ubicaciones
     ⬜ 1.6.3.4 Crear AlertSystem para productos perdidos o dañados
