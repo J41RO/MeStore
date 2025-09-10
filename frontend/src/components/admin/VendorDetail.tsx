@@ -188,6 +188,12 @@ const VendorDetail: React.FC<VendorDetailProps> = ({ vendor, onClose }) => {
             >
               Aprobación
             </button>
+            <button
+              onClick={() => setActiveTab('notas')}
+              className={getTabClasses('notas')}
+            >
+              Notas e Historial
+            </button>
           </nav>
         </div>
       </div>
@@ -665,6 +671,119 @@ const VendorDetail: React.FC<VendorDetailProps> = ({ vendor, onClose }) => {
                   <li>• El proceso de verificación puede tomar entre 24-48 horas hábiles</li>
                   <li>• Una vez aprobado, el vendedor puede comenzar a publicar productos</li>
                   <li>• En caso de rechazo, se debe contactar al vendedor con la razón específica</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+        {activeTab === 'notas' && (
+          <div className="space-y-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-6">Notas Internas y Historial</h3>
+            
+            {/* Sección de Nueva Nota */}
+            <div className="bg-gray-50 rounded-lg p-6">
+              <h4 className="text-md font-medium text-gray-800 mb-4">Agregar Nueva Nota Interna</h4>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nota (Solo visible para administradores)
+                  </label>
+                  <textarea
+                    rows={4}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Escribir observación sobre el vendedor..."
+                  />
+                </div>
+                <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                  Guardar Nota
+                </button>
+              </div>
+            </div>
+
+            {/* Sección de Notas Existentes */}
+            <div className="bg-gray-50 rounded-lg p-6">
+              <h4 className="text-md font-medium text-gray-800 mb-4">Notas Existentes</h4>
+              <div className="space-y-4">
+                {/* Nota de ejemplo */}
+                <div className="bg-white border rounded-lg p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm font-medium text-gray-900">Admin Usuario</span>
+                      <span className="text-xs text-gray-500">•</span>
+                      <span className="text-xs text-gray-500">09/09/2025 19:30</span>
+                    </div>
+                  </div>
+                  <p className="text-gray-700 text-sm">
+                    Vendedor requiere seguimiento adicional en proceso de verificación de documentos.
+                  </p>
+                </div>
+                
+                {/* Más notas aparecerían aquí */}
+                <div className="text-center py-4">
+                  <p className="text-gray-500 text-sm">No hay más notas para mostrar</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Sección de Historial de Cambios */}
+            <div className="bg-gray-50 rounded-lg p-6">
+              <h4 className="text-md font-medium text-gray-800 mb-4">Historial de Cambios</h4>
+              <div className="flow-root">
+                <ul className="-mb-8">
+                  {/* Timeline de cambios */}
+                  <li>
+                    <div className="relative pb-8">
+                      <span className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true" />
+                      <div className="relative flex space-x-3">
+                        <div>
+                          <span className="h-8 w-8 rounded-full bg-green-500 flex items-center justify-center ring-8 ring-white">
+                            <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          </span>
+                        </div>
+                        <div className="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">Cuenta aprobada</p>
+                            <p className="text-sm text-gray-500">Vendedor aprobado por administrador</p>
+                            <p className="text-xs text-gray-400 mt-1">Por: Admin Usuario</p>
+                          </div>
+                          <div className="text-right text-sm whitespace-nowrap text-gray-500">
+                            09/09/2025
+                            <br />
+                            19:25
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </li>
+                  
+                  <li>
+                    <div className="relative pb-8">
+                      <span className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true" />
+                      <div className="relative flex space-x-3">
+                        <div>
+                          <span className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center ring-8 ring-white">
+                            <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                            </svg>
+                          </span>
+                        </div>
+                        <div className="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">Nota interna agregada</p>
+                            <p className="text-sm text-gray-500">Se agregó observación sobre documentos</p>
+                            <p className="text-xs text-gray-400 mt-1">Por: Admin Usuario</p>
+                          </div>
+                          <div className="text-right text-sm whitespace-nowrap text-gray-500">
+                            09/09/2025
+                            <br />
+                            19:20
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </li>
                 </ul>
               </div>
             </div>
