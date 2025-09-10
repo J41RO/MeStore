@@ -15,7 +15,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { name: 'Gestión de Usuarios', href: '/admin-secure-portal/users' },
     { name: 'Configuración del Sistema', href: '/admin-secure-portal/system-config' },
     { name: 'Reportes Administrativos', href: '/admin-secure-portal/reports' },
-    { name: 'Logs y Auditoría', href: '/admin-secure-portal/logs' },
+    { name: 'Logs y Auditoría', href: '/admin-secure-portal/auditoria' },
     { name: 'Configuración de Roles', href: '/admin-secure-portal/roles' },
     { name: 'Mapa del Almacén', href: '/admin-secure-portal/warehouse-map' },
   ];

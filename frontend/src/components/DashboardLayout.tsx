@@ -15,6 +15,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     { name: 'Productos', href: '/productos' },
     { name: 'Órdenes', href: '/ordenes' },
     { name: 'Configuración', href: '/configuracion' },
+    { name: 'Auditoría', href: '/auditoria' },
   ];
 
   const NavigationItems = ({ onItemClick }: { onItemClick?: () => void }) => (

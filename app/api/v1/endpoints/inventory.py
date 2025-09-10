@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
 from app.database import get_db
+from app.core.auth import get_current_user
 from sqlalchemy import or_, and_
 from enum import Enum
 
@@ -17,6 +18,11 @@ class TipoAlerta(str, Enum):
     CRITICO = "CRITICO"  # Combinación de stock bajo + sin movimiento
 from app.models.inventory import Inventory
 from app.schemas.inventory import InventoryResponse, MovimientoStockCreate, TipoMovimiento, MovimientoResponse, InventoryUpdate, AlertasResponse, ReservaStockCreate, ReservaResponse
+from app.models.inventory_audit import InventoryAudit, InventoryAuditItem, AuditStatus
+from app.schemas.inventory_audit import (
+    InventoryAuditCreate, InventoryAuditResponse, InventoryAuditDetailResponse,
+    ConteoFisicoData, ProcesarConteo, ReconciliarDiscrepancia, AuditStatsResponse
+)
 from app.utils.crud import DatabaseUtils
 
 import logging
@@ -543,3 +549,186 @@ async def get_alertas_inventario(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error interno consultando alertas de inventario"
         )
+
+
+
+# ===== ENDPOINTS DE AUDITORÍA =====
+
+@router.post("/audits", response_model=InventoryAuditResponse)
+async def crear_auditoria(
+    audit_data: InventoryAuditCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Crear nueva auditoría de inventario"""
+    try:
+        # Crear auditoría
+        new_audit = InventoryAudit(
+            nombre=audit_data.nombre,
+            descripcion=audit_data.descripcion,
+            auditor_id=current_user.id,
+            status=AuditStatus.INICIADA
+        )
+        db.add(new_audit)
+        await db.flush()
+        
+        # Crear items de auditoría para inventarios seleccionados
+        for inventory_id in audit_data.inventarios_ids:
+            # Obtener datos del inventory
+            inventory_result = await db.execute(
+                select(Inventory).where(Inventory.id == inventory_id)
+            )
+            inventory = inventory_result.scalar_one_or_none()
+            
+            if inventory:
+                audit_item = InventoryAuditItem(
+                    audit_id=new_audit.id,
+                    inventory_id=inventory_id,
+                    cantidad_sistema=inventory.cantidad,
+                    ubicacion_sistema=inventory.get_ubicacion_completa(),
+                    condicion_sistema=inventory.condicion_producto
+                )
+                db.add(audit_item)
+        
+        # Cambiar status a EN_PROCESO
+        new_audit.status = AuditStatus.EN_PROCESO
+        await db.commit()
+        await db.refresh(new_audit)
+        
+        return InventoryAuditResponse(
+            id=new_audit.id,
+            nombre=new_audit.nombre,
+            descripcion=new_audit.descripcion,
+            status=new_audit.status,
+            fecha_inicio=new_audit.fecha_inicio,
+            fecha_fin=new_audit.fecha_fin,
+            total_items_auditados=new_audit.total_items_auditados,
+            discrepancias_encontradas=new_audit.discrepancias_encontradas,
+            valor_discrepancias=new_audit.valor_discrepancias,
+            auditor_nombre=current_user.nombre
+        )
+        
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error creando auditoría: {str(e)}"
+        )
+
+
+
+@router.get("/audits", response_model=List[InventoryAuditResponse])
+async def listar_auditorias(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
+    status_filter: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Listar auditorías con filtros"""
+    from sqlalchemy import func
+    
+    query = select(InventoryAudit).order_by(InventoryAudit.fecha_inicio.desc())
+    
+    if status_filter:
+        query = query.where(InventoryAudit.status == status_filter)
+    
+    query = query.offset(skip).limit(limit)
+    result = await db.execute(query)
+    audits = result.scalars().all()
+    
+    return [
+        InventoryAuditResponse(
+            id=audit.id,
+            nombre=audit.nombre,
+            descripcion=audit.descripcion,
+            status=audit.status,
+            fecha_inicio=audit.fecha_inicio,
+            fecha_fin=audit.fecha_fin,
+            total_items_auditados=audit.total_items_auditados,
+            discrepancias_encontradas=audit.discrepancias_encontradas,
+            valor_discrepancias=audit.valor_discrepancias,
+            auditor_nombre=audit.auditor.nombre if audit.auditor else "Unknown"
+        )
+        for audit in audits
+    ]
+
+@router.post("/audits/{audit_id}/conteo", response_model=dict)
+async def procesar_conteo_fisico(
+    audit_id: UUID,
+    conteo_data: ProcesarConteo,
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Procesar conteo físico de un item"""
+    # Obtener audit item
+    result = await db.execute(
+        select(InventoryAuditItem)
+        .where(
+            and_(
+                InventoryAuditItem.audit_id == audit_id,
+                InventoryAuditItem.id == conteo_data.audit_item_id
+            )
+        )
+    )
+    audit_item = result.scalar_one_or_none()
+    
+    if not audit_item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Item de auditoría no encontrado"
+        )
+    
+    # Procesar conteo
+    audit_item.procesar_conteo(
+        cantidad_fisica=conteo_data.conteo_data.cantidad_fisica,
+        ubicacion_fisica=conteo_data.conteo_data.ubicacion_fisica,
+        condicion_fisica=conteo_data.conteo_data.condicion_fisica,
+        notas=conteo_data.conteo_data.notas_conteo
+    )
+    
+    await db.commit()
+    
+    return {
+        "success": True,
+        "message": "Conteo procesado exitosamente",
+        "tiene_discrepancia": audit_item.tiene_discrepancia,
+        "tipo_discrepancia": audit_item.tipo_discrepancia
+    }
+
+
+
+@router.get("/audits/stats", response_model=AuditStatsResponse)
+async def obtener_estadisticas_auditorias(
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Obtener estadísticas generales de auditorías"""
+    from sqlalchemy import func
+    
+    # Total de auditorías
+    total_result = await db.execute(select(func.count(InventoryAudit.id)))
+    total_auditorias = total_result.scalar()
+    
+    # Auditorías pendientes
+    pendientes_result = await db.execute(
+        select(func.count(InventoryAudit.id))
+        .where(InventoryAudit.status.in_(['INICIADA', 'EN_PROCESO']))
+    )
+    auditorias_pendientes = pendientes_result.scalar()
+    
+    # Última auditoría
+    ultima_result = await db.execute(
+        select(InventoryAudit.fecha_inicio)
+        .order_by(InventoryAudit.fecha_inicio.desc())
+        .limit(1)
+    )
+    ultima_auditoria = ultima_result.scalar()
+    
+    return AuditStatsResponse(
+        total_auditorias=total_auditorias or 0,
+        auditorias_pendientes=auditorias_pendientes or 0,
+        discrepancias_sin_reconciliar=0,  # TODO: Implementar consulta específica
+        valor_total_discrepancias=0.0,    # TODO: Implementar consulta específica
+        ultima_auditoria=ultima_auditoria
+    )

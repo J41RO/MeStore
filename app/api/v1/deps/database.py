@@ -7,10 +7,9 @@ for all API endpoints, consolidating session management in a single location.
 
 from typing import AsyncGenerator
 
-from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db as core_get_db
+from app.core.database import AsyncSessionLocal
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
@@ -30,8 +29,14 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             # Use db session here
             pass
     """
-    async for session in core_get_db():
-        yield session
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
 
 
 async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
@@ -40,8 +45,14 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
 
     Note: Prefer using get_db() directly for new code.
     """
-    async for session in get_db():
-        yield session
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
 
 
 # Export the main dependency for easy import

@@ -34,6 +34,7 @@ const OTPDemo = lazy(() => import('./components/OTPDemo'));
 const VendorTest = lazy(() => import('./pages/VendorTest'));
 const Marketplace = lazy(() => import('./pages/Marketplace'));
 const AdminRestricted = lazy(() => import('./pages/AdminRestricted'));
+const InventoryAuditPanel = lazy(() => import('./components/admin/InventoryAuditPanel'));
 
 function App() {
   return (
@@ -187,6 +188,7 @@ function App() {
                     <Route path='users' element={<UserManagement />} />
                     <Route path='system-config' element={<SystemConfig />} />
                     <Route path='warehouse-map' element={<WarehouseMap />} />
+                    <Route path='auditoria' element={<InventoryAuditPanel />} />
                     <Route
                       index
                       element={<Navigate to='dashboard' replace />}

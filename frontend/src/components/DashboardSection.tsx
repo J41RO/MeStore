@@ -50,13 +50,13 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({
 
   const dashboardViews = getDashboardViews();
 
-  // Auto-scroll demo para dashboard
+  // Auto-scroll demo para dashboard (SOLO VISUAL - NO HACE API CALLS)
   useEffect(() => {
     if (!isPlaying || !dashboardMetrics || dashboardViews.length === 0) return;
     
     const interval = setInterval(() => {
       setCurrentDashboardView((prev) => (prev + 1) % dashboardViews.length);
-    }, 4000);
+    }, 4000); // Mantener 4s - es solo para UI
     
     return () => clearInterval(interval);
   }, [isPlaying, dashboardMetrics, dashboardViews.length]);

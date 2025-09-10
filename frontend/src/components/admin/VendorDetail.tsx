@@ -58,88 +58,83 @@ const VendorDetail: React.FC<VendorDetailProps> = ({ vendor, onClose }) => {
   const [rejectionReason, setRejectionReason] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
-  // Función para cargar métricas desde API
-  const fetchMetrics = async () => {
-    if (!vendor?.id) return;
-    
-    setMetricsLoading(true);
-    setMetricsError(null);
-    
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://192.168.1.137:8000/api/v1/vendedores/${vendor.id}/dashboard/resumen`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setMetricsData(data);
-      } else {
-        setMetricsError('Error al cargar métricas');
-      }
-    } catch (error) {
-      setMetricsError('Error de conexión');
-      console.error('Error fetching metrics:', error);
-    } finally {
-      setMetricsLoading(false);
-    }
-  };
-
-  // useEffect para cargar métricas cuando cambia el vendedor o tab
-  useEffect(() => {
-    if (vendor?.id && activeTab === 'metricas') {
-      fetchMetrics();
-    }
-  }, [vendor?.id, activeTab]);
+// Función para cargar métricas desde API
+const fetchMetrics = async () => {
+  if (!vendor?.id) return;
   
-  // useEffect para refresh automático cada 30 segundos
-  useEffect(() => {
-    if (vendor?.id && activeTab === 'metricas') {
-      const interval = setInterval(fetchMetrics, 30000);
-      return () => clearInterval(interval);
-    }
-    // Agregamos return undefined explícito para satisfacer TypeScript
-    return undefined;
-  }, [vendor?.id, activeTab]);
-
-  if (vendor === null) {
-    return (
-      <div className="bg-white shadow rounded-lg p-6">
-        <p className="text-gray-500 text-center">Selecciona un vendedor para ver los detalles</p>
-      </div>
-    );
-  }
-
-  // Funciones para manejo de modales y API calls
-  const handleApprovalSubmit = async () => {
-    setIsProcessing(true);
-    try {
-      const response = await fetch(`/api/v1/vendedores/${vendor.id}/approve`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ reason: approvalReason })
-      });
-      
-      if (response.ok) {
-        alert('Vendedor aprobado exitosamente');
-        setShowApprovalModal(false);
-        setApprovalReason('');
-      } else {
-        alert('Error al aprobar vendedor');
+  setMetricsLoading(true);
+  setMetricsError(null);
+  
+  try {
+    const token = localStorage.getItem('token') || localStorage.getItem('access_token');
+    const response = await fetch(`http://192.168.1.137:8000/api/v1/vendedores/${vendor.id}/dashboard/resumen`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
       }
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Error de conexión');
-    } finally {
-      setIsProcessing(false);
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      setMetricsData(data);
+    } else if (response.status === 429) {
+      setMetricsError('Rate limit alcanzado - espera un momento antes de actualizar');
+      console.warn('Rate limit hit for vendor metrics');
+    } else {
+      setMetricsError('Error al cargar métricas');
     }
-  };
+  } catch (error) {
+    setMetricsError('Error de conexión');
+    console.error('Error fetching metrics:', error);
+  } finally {
+    setMetricsLoading(false);
+  }
+};
+
+// useEffect para cargar métricas cuando cambia el vendedor o tab
+useEffect(() => {
+  if (vendor?.id && activeTab === 'metricas') {
+    fetchMetrics();
+  }
+}, [vendor?.id, activeTab]);
+
+// CORREGIDO: Polling cada 5 minutos en lugar de 30 segundos
+useEffect(() => {
+  if (vendor?.id && activeTab === 'metricas') {
+    const interval = setInterval(fetchMetrics, 300000); // 5 minutos
+    return () => clearInterval(interval);
+  }
+  return undefined;
+}, [vendor?.id, activeTab]);
+
+// Funciones para manejo de modales y API calls
+const handleApprovalSubmit = async () => {
+  setIsProcessing(true);
+  try {
+    const token = localStorage.getItem('token') || localStorage.getItem('access_token');
+    const response = await fetch(`/api/v1/vendedores/${vendor.id}/approve`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ reason: approvalReason })
+    });
+    
+    if (response.ok) {
+      alert('Vendedor aprobado exitosamente');
+      setShowApprovalModal(false);
+      setApprovalReason('');
+    } else {
+      alert('Error al aprobar vendedor');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error de conexión');
+  } finally {
+    setIsProcessing(false);
+  }
+};
 
   const handleRejectionSubmit = async () => {
     if (rejectionReason.trim().length < 5) {
