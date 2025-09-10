@@ -55,6 +55,7 @@ class TipoMovimiento(str, Enum):
     PICKING = "PICKING"
     CAMBIO_STATUS = "CAMBIO_STATUS"
     CAMBIO_CONDICION = "CAMBIO_CONDICION"
+    CAMBIO_UBICACION = "CAMBIO_UBICACION"
 
 
 class InventoryBase(BaseModel):
@@ -501,6 +502,8 @@ class AlertasMetadata(BaseModel):
     sin_movimiento: int = Field(..., description="Cantidad de alertas por sin movimiento")
     stock_agotado: int = Field(..., description="Cantidad de alertas por stock agotado")
     criticos: int = Field(..., description="Productos críticos (ambas condiciones)")
+    perdidos: int = Field(default=0, description="Cantidad de productos perdidos")
+    danados: int = Field(default=0, description="Cantidad de productos dañados")
 
 class AlertasResponse(BaseModel):
     """Response completa para alertas de inventario"""
@@ -509,3 +512,308 @@ class AlertasResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class LocationUpdateRequest(BaseModel):
+    """Schema para actualización de ubicación de inventario"""
+    zona: str = Field(..., min_length=1, max_length=10, description="Nueva zona del almacén")
+    estante: str = Field(..., min_length=1, max_length=20, description="Nuevo estante dentro de la zona")
+    posicion: str = Field(..., min_length=1, max_length=20, description="Nueva posición en el estante")
+    observaciones: Optional[str] = Field(None, max_length=500, description="Observaciones del cambio de ubicación")
+
+    @field_validator("zona")
+    @classmethod
+    def validate_zona(cls, v: str) -> str:
+        """Validar formato zona almacén"""
+        if not v.isalnum():
+            raise ValueError("Zona debe ser alfanumérica")
+        return v.upper()
+
+    @field_validator("estante")
+    @classmethod
+    def validate_estante(cls, v: str) -> str:
+        """Validar formato estante"""
+        import re
+        if not re.match(r'^[0-9A-Z\-]{1,20}$', v):
+            raise ValueError("Estante debe contener solo números, letras y guiones")
+        return v.upper()
+
+    @field_validator("posicion")
+    @classmethod
+    def validate_posicion(cls, v: str) -> str:
+        """Validar formato posición"""
+        import re
+        if not re.match(r'^[0-9A-Z\-]{1,20}$', v):
+            raise ValueError("Posición debe contener solo números, letras y guiones")
+        return v.upper()
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "zona": "A",
+                "estante": "A1",
+                "posicion": "A1-01",
+                "observaciones": "Reubicación por reorganización de almacén"
+            }
+        }
+
+
+# Schemas para Incidentes de Inventario
+from app.models.incidente_inventario import TipoIncidente, EstadoIncidente
+
+class IncidenteCreate(BaseModel):
+    """Schema para reportar un nuevo incidente"""
+    inventory_id: UUID4 = Field(..., description="ID del inventario afectado")
+    tipo_incidente: TipoIncidente = Field(..., description="Tipo de incidente")
+    descripcion: str = Field(..., min_length=10, max_length=1000, description="Descripción detallada del incidente")
+    fecha_incidente: Optional[datetime] = Field(None, description="Fecha estimada cuando ocurrió el incidente")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "inventory_id": "123e4567-e89b-12d3-a456-426614174000",
+                "tipo_incidente": "PERDIDO",
+                "descripcion": "Producto no encontrado durante inventario físico",
+                "fecha_incidente": "2025-01-15T10:30:00Z"
+            }
+        }
+
+class IncidenteResponse(BaseModel):
+    """Schema para respuesta de incidentes"""
+    id: UUID4 = Field(..., description="ID del incidente")
+    inventory_id: UUID4 = Field(..., description="ID del inventario afectado")
+    tipo_incidente: TipoIncidente = Field(..., description="Tipo de incidente")
+    estado: EstadoIncidente = Field(..., description="Estado actual del incidente")
+    descripcion: str = Field(..., description="Descripción del incidente")
+    reportado_por: str = Field(..., description="Usuario que reportó el incidente")
+    fecha_incidente: Optional[datetime] = Field(None, description="Fecha del incidente")
+    created_at: datetime = Field(..., description="Fecha de creación del reporte")
+    updated_at: datetime = Field(..., description="Fecha de última actualización")
+    
+    class Config:
+        from_attributes = True
+        json_schema_extra = {
+            "example": {
+                "id": "123e4567-e89b-12d3-a456-426614174004",
+                "inventory_id": "123e4567-e89b-12d3-a456-426614174000",
+                "tipo_incidente": "PERDIDO",
+                "estado": "REPORTADO",
+                "descripcion": "Producto no encontrado durante inventario físico",
+                "reportado_por": "admin@mestore.com",
+                "fecha_incidente": "2025-01-15T10:30:00Z",
+                "created_at": "2025-01-15T14:30:00Z",
+                "updated_at": "2025-01-15T14:30:00Z"
+            }
+        }
+
+
+# Schemas para MovementTracker
+class MovementTrackerBase(BaseModel):
+    """Schema base para tracking de movimientos"""
+    
+    movement_id: UUID4 = Field(..., description="ID del movimiento trackeado")
+    user_id: UUID4 = Field(..., description="ID del usuario que realizó la acción")
+    user_name: str = Field(..., max_length=100, description="Nombre del usuario")
+    action_type: str = Field(..., max_length=20, description="Tipo de acción realizada")
+    new_data: dict = Field(..., description="Estado nuevo del movimiento")
+    previous_data: Optional[dict] = Field(None, description="Estado anterior del movimiento")
+    notes: Optional[str] = Field(None, description="Notas adicionales")
+
+
+class MovementTrackerCreate(MovementTrackerBase):
+    """Schema para crear registro de tracking"""
+    
+    ip_address: Optional[str] = Field(None, max_length=45, description="Dirección IP")
+    user_agent: Optional[str] = Field(None, description="User Agent del navegador")
+    session_id: Optional[str] = Field(None, max_length=100, description="ID de sesión")
+    location_from: Optional[dict] = Field(None, description="Ubicación origen")
+    location_to: Optional[dict] = Field(None, description="Ubicación destino")
+    batch_id: Optional[UUID4] = Field(None, description="ID de lote")
+
+    class Config:
+        from_attributes = True
+
+
+class MovementTrackerResponse(MovementTrackerBase):
+    """Schema para respuesta de tracking"""
+    
+    id: UUID4
+    ip_address: Optional[str]
+    user_agent: Optional[str] 
+    session_id: Optional[str]
+    location_from: Optional[dict]
+    location_to: Optional[dict]
+    batch_id: Optional[UUID4]
+    action_timestamp: datetime = Field(..., description="Timestamp de la acción")
+    created_at: datetime
+    updated_at: datetime
+    
+    # Campos calculados
+    changes: dict = Field(default_factory=dict, description="Cambios realizados")
+    is_create_action: bool = Field(default=False, description="Es acción de creación")
+    is_update_action: bool = Field(default=False, description="Es acción de actualización")
+    has_location_change: bool = Field(default=False, description="Hubo cambio de ubicación")
+    
+    class Config:
+        from_attributes = True
+
+
+# Schemas para Analytics
+class DateRange(BaseModel):
+    """Schema para rango de fechas"""
+    
+    start_date: datetime = Field(..., description="Fecha de inicio")
+    end_date: datetime = Field(..., description="Fecha de fin")
+
+
+class MovementAnalytics(BaseModel):
+    """Schema para analytics de movimientos"""
+    
+    total_movements: int = Field(..., description="Total de movimientos")
+    movements_by_type: dict = Field(..., description="Movimientos por tipo")
+    movements_by_user: dict = Field(..., description="Movimientos por usuario")
+    movements_by_date: dict = Field(..., description="Movimientos por fecha")
+    top_products: list = Field(..., description="Productos más movidos")
+    average_movements_per_day: float = Field(..., description="Promedio de movimientos por día")
+
+
+class MovementAnalyticsResponse(BaseModel):
+    """Schema para respuesta de analytics"""
+    
+    date_range: DateRange
+    analytics: MovementAnalytics
+    metadata: dict = Field(default_factory=dict, description="Metadata adicional")
+    
+    class Config:
+        from_attributes = True
+
+
+# Schemas para IncomingProductQueue
+from app.models.incoming_product_queue import QueuePriority, VerificationStatus, DelayReason
+
+
+class IncomingProductQueueBase(BaseModel):
+    """Schema base para cola de productos entrantes"""
+    
+    product_id: UUID4 = Field(..., description="ID del producto en tránsito")
+    vendor_id: UUID4 = Field(..., description="ID del vendor responsable")
+    expected_arrival: Optional[datetime] = Field(None, description="Fecha esperada de llegada")
+    priority: QueuePriority = Field(default=QueuePriority.NORMAL, description="Prioridad en la cola")
+    tracking_number: Optional[str] = Field(None, max_length=100, description="Número de tracking")
+    carrier: Optional[str] = Field(None, max_length=50, description="Empresa transportadora")
+    notes: Optional[str] = Field(None, description="Notas generales")
+
+
+class IncomingProductQueueCreate(IncomingProductQueueBase):
+    """Schema para crear entrada en cola"""
+    
+    deadline: Optional[datetime] = Field(None, description="Fecha límite para verificación")
+    
+    @field_validator('expected_arrival')
+    @classmethod
+    def validate_expected_arrival(cls, v):
+        if v and v < datetime.now():
+            raise ValueError('La fecha esperada debe ser futura')
+        return v
+
+
+class IncomingProductQueueUpdate(BaseModel):
+    """Schema para actualizar entrada en cola"""
+    
+    actual_arrival: Optional[datetime] = Field(None, description="Fecha real de llegada")
+    verification_status: Optional[VerificationStatus] = Field(None, description="Estado de verificación")
+    priority: Optional[QueuePriority] = Field(None, description="Prioridad en la cola")
+    assigned_to: Optional[UUID4] = Field(None, description="Usuario asignado para verificación")
+    tracking_number: Optional[str] = Field(None, max_length=100, description="Número de tracking")
+    carrier: Optional[str] = Field(None, max_length=50, description="Empresa transportadora")
+    notes: Optional[str] = Field(None, description="Notas generales")
+    verification_notes: Optional[str] = Field(None, description="Notas de verificación")
+    quality_score: Optional[int] = Field(None, ge=1, le=10, description="Puntuación de calidad (1-10)")
+    quality_issues: Optional[str] = Field(None, description="Problemas de calidad identificados")
+    is_delayed: Optional[bool] = Field(None, description="Indica si está retrasado")
+    delay_reason: Optional[DelayReason] = Field(None, description="Razón del retraso")
+
+
+class IncomingProductQueueResponse(IncomingProductQueueBase):
+    """Schema para respuesta de cola"""
+    
+    id: UUID4
+    actual_arrival: Optional[datetime]
+    verification_status: VerificationStatus
+    assigned_to: Optional[UUID4]
+    assigned_at: Optional[datetime]
+    deadline: Optional[datetime]
+    is_delayed: bool
+    delay_reason: Optional[DelayReason]
+    verification_notes: Optional[str]
+    quality_score: Optional[int]
+    quality_issues: Optional[str]
+    processing_started_at: Optional[datetime]
+    processing_completed_at: Optional[datetime]
+    verification_attempts: int
+    created_at: datetime
+    updated_at: datetime
+    
+    # Campos calculados
+    is_overdue: bool = Field(default=False, description="Está vencido")
+    days_in_queue: int = Field(default=0, description="Días en la cola")
+    processing_time_hours: Optional[float] = Field(None, description="Tiempo de procesamiento en horas")
+    is_high_priority: bool = Field(default=False, description="Es alta prioridad")
+    status_display: str = Field(default="", description="Texto legible del estado")
+    priority_display: str = Field(default="", description="Texto legible de la prioridad")
+    
+    class Config:
+        from_attributes = True
+
+
+class QueueAssignmentRequest(BaseModel):
+    """Schema para asignación de tarea en cola"""
+    
+    assigned_to: UUID4 = Field(..., description="Usuario a asignar")
+    notes: Optional[str] = Field(None, description="Notas de asignación")
+
+
+class QueueProcessingRequest(BaseModel):
+    """Schema para iniciar procesamiento"""
+    
+    notes: Optional[str] = Field(None, description="Notas al iniciar procesamiento")
+
+
+class QueueCompletionRequest(BaseModel):
+    """Schema para completar verificación"""
+    
+    approved: bool = Field(..., description="Aprobado o rechazado")
+    quality_score: Optional[int] = Field(None, ge=1, le=10, description="Puntuación de calidad")
+    notes: Optional[str] = Field(None, description="Notas de finalización")
+
+
+class QueueDelayRequest(BaseModel):
+    """Schema para marcar como retrasado"""
+    
+    delay_reason: DelayReason = Field(..., description="Razón del retraso")
+    notes: Optional[str] = Field(None, description="Notas del retraso")
+
+
+class QueueStatsResponse(BaseModel):
+    """Schema para estadísticas de cola"""
+    
+    total_items: int = Field(..., description="Total de elementos en cola")
+    pending: int = Field(..., description="Elementos pendientes")
+    assigned: int = Field(..., description="Elementos asignados")
+    in_progress: int = Field(..., description="Elementos en proceso")
+    completed: int = Field(..., description="Elementos completados")
+    overdue: int = Field(..., description="Elementos vencidos")
+    delayed: int = Field(..., description="Elementos retrasados")
+    average_processing_time: float = Field(..., description="Tiempo promedio de procesamiento")
+    queue_efficiency: float = Field(..., description="Eficiencia de la cola (%)")
+
+
+class QueueAnalyticsResponse(BaseModel):
+    """Schema para analytics de cola"""
+    
+    stats: QueueStatsResponse
+    priority_distribution: dict = Field(..., description="Distribución por prioridad")
+    status_distribution: dict = Field(..., description="Distribución por estado")
+    vendor_performance: dict = Field(..., description="Performance por vendor")
+    processing_trends: dict = Field(..., description="Tendencias de procesamiento")
+    top_delays: list = Field(..., description="Principales causas de retraso")

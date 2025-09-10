@@ -19,6 +19,7 @@ const UserManagement = lazy(() => import('./pages/admin/UserManagement'));
 const AlertasIncidentes = lazy(() => import('./pages/admin/AlertasIncidentes'));
 const MovementTrackerPage = lazy(() => import('./pages/admin/MovementTracker'));
 const ReportesDiscrepanciasPage = lazy(() => import('./pages/admin/ReportesDiscrepancias'));
+const IncomingProductsQueuePage = lazy(() => import('./pages/admin/IncomingProductsQueuePage'));
 const SystemConfig = lazy(() => import('./pages/admin/SystemConfig'));
 const WarehouseMap = lazy(() => import('./components/admin/WarehouseMap'));
 const Productos = lazy(() => import('./pages/Productos'));
@@ -192,6 +193,7 @@ function App() {
                     <Route path='alertas-incidentes' element={<AlertasIncidentes />} />
                     <Route path='movement-tracker' element={<MovementTrackerPage />} />
                     <Route path='reportes-discrepancias' element={<ReportesDiscrepanciasPage />} />
+                    <Route path='cola-productos-entrantes' element={<IncomingProductsQueuePage />} />
                     <Route path='system-config' element={<SystemConfig />} />
                     <Route path='warehouse-map' element={<WarehouseMap />} />
                     <Route path='auditoria' element={<InventoryAuditPanel />} />

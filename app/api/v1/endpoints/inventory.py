@@ -24,7 +24,8 @@ from app.models.incidente_inventario import IncidenteInventario, TipoIncidente a
 from app.models.movimiento_stock import MovimientoStock, TipoMovimiento as TipoMovimientoModel
 from app.models.movement_tracker import MovementTracker
 from app.models.discrepancy_report import DiscrepancyReport, ReportType, ExportFormat, ReportStatus
-from app.schemas.inventory import InventoryResponse, MovimientoStockCreate, TipoMovimiento, MovimientoResponse, InventoryUpdate, AlertasResponse, ReservaStockCreate, ReservaResponse, LocationUpdateRequest, IncidenteCreate, IncidenteResponse, MovementTrackerResponse, DateRange, MovementAnalyticsResponse
+from app.models.incoming_product_queue import IncomingProductQueue, QueuePriority, VerificationStatus, DelayReason
+from app.schemas.inventory import InventoryResponse, MovimientoStockCreate, TipoMovimiento, MovimientoResponse, InventoryUpdate, AlertasResponse, ReservaStockCreate, ReservaResponse, LocationUpdateRequest, IncidenteCreate, IncidenteResponse, MovementTrackerResponse, DateRange, MovementAnalyticsResponse, IncomingProductQueueCreate, IncomingProductQueueUpdate, IncomingProductQueueResponse, QueueAssignmentRequest, QueueProcessingRequest, QueueCompletionRequest, QueueDelayRequest, QueueStatsResponse, QueueAnalyticsResponse
 from app.models.inventory_audit import InventoryAudit, InventoryAuditItem, AuditStatus
 from app.schemas.inventory_audit import (
     InventoryAuditCreate, InventoryAuditResponse, InventoryAuditDetailResponse,
@@ -2065,3 +2066,812 @@ async def _generate_json_content(report: DiscrepancyReport, db: AsyncSession) ->
     }
     
     return json.dumps(report_data, indent=2, ensure_ascii=False).encode('utf-8')
+
+
+# ================================================================================================
+# INCOMING PRODUCT QUEUE ENDPOINTS - Sistema de Gestión de Cola de Productos Entrantes
+# ================================================================================================
+
+@router.get(
+    "/queue/incoming-products",
+    response_model=List[IncomingProductQueueResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Listar productos en cola de entrada",
+    description="Obtener lista de productos en tránsito pendientes de verificación con filtros avanzados"
+)
+async def get_incoming_products_queue(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+    # Filtros de estado y prioridad
+    verification_status: Optional[VerificationStatus] = Query(None, description="Filtrar por estado de verificación"),
+    priority: Optional[QueuePriority] = Query(None, description="Filtrar por prioridad"),
+    assigned_to: Optional[UUID] = Query(None, description="Filtrar por usuario asignado"),
+    # Filtros de vendor y fechas
+    vendor_id: Optional[UUID] = Query(None, description="Filtrar por vendor"),
+    overdue_only: bool = Query(False, description="Solo productos vencidos"),
+    delayed_only: bool = Query(False, description="Solo productos retrasados"),
+    # Paginación
+    skip: int = Query(0, ge=0, description="Elementos a omitir"),
+    limit: int = Query(100, ge=1, le=1000, description="Límite de elementos")
+):
+    """
+    Obtener lista de productos en cola de entrada con filtros avanzados.
+    
+    Permite filtrar por estado, prioridad, asignación y fechas.
+    Incluye información calculada como días en cola y tiempo de procesamiento.
+    """
+    try:
+        logger.info(f"Consultando cola de productos entrantes - Usuario: {current_user.get('email')}")
+        
+        # Construir query base
+        query = select(IncomingProductQueue)
+        
+        # Aplicar filtros
+        if verification_status:
+            query = query.filter(IncomingProductQueue.verification_status == verification_status)
+        
+        if priority:
+            query = query.filter(IncomingProductQueue.priority == priority)
+            
+        if assigned_to:
+            query = query.filter(IncomingProductQueue.assigned_to == assigned_to)
+            
+        if vendor_id:
+            query = query.filter(IncomingProductQueue.vendor_id == vendor_id)
+            
+        if overdue_only:
+            query = query.filter(IncomingProductQueue.deadline < func.now())
+            
+        if delayed_only:
+            query = query.filter(IncomingProductQueue.is_delayed == True)
+        
+        # Ordenar por prioridad y fecha de creación
+        query = query.order_by(
+            IncomingProductQueue.priority.desc(),
+            IncomingProductQueue.created_at.desc()
+        )
+        
+        # Aplicar paginación
+        query = query.offset(skip).limit(limit)
+        
+        # Ejecutar query
+        result = await db.execute(query)
+        queue_items = result.scalars().all()
+        
+        # Convertir a response models con datos calculados
+        response_items = []
+        for item in queue_items:
+            item_dict = item.to_dict()
+            response_items.append(IncomingProductQueueResponse(**item_dict))
+        
+        logger.info(f"Cola consultada exitosamente - {len(response_items)} elementos encontrados")
+        return response_items
+        
+    except Exception as e:
+        logger.error(f"Error consultando cola de productos: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )
+
+
+@router.post(
+    "/queue/incoming-products",
+    response_model=IncomingProductQueueResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Crear entrada en cola de productos",
+    description="Agregar producto en tránsito a la cola de verificación"
+)
+async def create_queue_entry(
+    queue_data: IncomingProductQueueCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Crear nueva entrada en la cola de productos entrantes.
+    
+    Registra un producto en tránsito para seguimiento y verificación.
+    Calcula automáticamente deadline si no se proporciona.
+    """
+    try:
+        logger.info(f"Creando entrada en cola - Producto: {queue_data.product_id}")
+        
+        # Verificar que el producto existe y está en estado TRANSITO
+        from app.models.product import Product, ProductStatus
+        
+        product_query = select(Product).filter(Product.id == queue_data.product_id)
+        product_result = await db.execute(product_query)
+        product = product_result.scalar_one_or_none()
+        
+        if not product:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Producto no encontrado"
+            )
+        
+        if product.status != ProductStatus.TRANSITO:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Solo productos en tránsito pueden ser agregados a la cola"
+            )
+        
+        # Verificar que el vendor existe
+        from app.models.user import User, UserType
+        
+        vendor_query = select(User).filter(
+            User.id == queue_data.vendor_id,
+            User.user_type == UserType.VENDOR
+        )
+        vendor_result = await db.execute(vendor_query)
+        vendor = vendor_result.scalar_one_or_none()
+        
+        if not vendor:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Vendor no encontrado"
+            )
+        
+        # Verificar que no existe ya una entrada para este producto
+        existing_query = select(IncomingProductQueue).filter(
+            IncomingProductQueue.product_id == queue_data.product_id,
+            IncomingProductQueue.verification_status.in_([
+                VerificationStatus.PENDING,
+                VerificationStatus.ASSIGNED, 
+                VerificationStatus.IN_PROGRESS,
+                VerificationStatus.QUALITY_CHECK,
+                VerificationStatus.APPROVED
+            ])
+        )
+        existing_result = await db.execute(existing_query)
+        existing_entry = existing_result.scalar_one_or_none()
+        
+        if existing_entry:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Ya existe una entrada activa para este producto en la cola"
+            )
+        
+        # Crear entrada en cola
+        queue_entry = IncomingProductQueue(**queue_data.model_dump())
+        db.add(queue_entry)
+        
+        await db.commit()
+        await db.refresh(queue_entry)
+        
+        # Convertir a response
+        entry_dict = queue_entry.to_dict()
+        response = IncomingProductQueueResponse(**entry_dict)
+        
+        logger.info(f"Entrada en cola creada exitosamente - ID: {queue_entry.id}")
+        return response
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error creando entrada en cola: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )
+
+
+@router.get(
+    "/queue/incoming-products/{entry_id}",
+    response_model=IncomingProductQueueResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Obtener entrada específica de cola",
+    description="Obtener detalles completos de una entrada en la cola de productos"
+)
+async def get_queue_entry(
+    entry_id: UUID = Path(..., description="ID de la entrada en cola"),
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Obtener detalles completos de una entrada específica en la cola."""
+    try:
+        query = select(IncomingProductQueue).filter(IncomingProductQueue.id == entry_id)
+        result = await db.execute(query)
+        entry = result.scalar_one_or_none()
+        
+        if not entry:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Entrada en cola no encontrada"
+            )
+        
+        entry_dict = entry.to_dict()
+        return IncomingProductQueueResponse(**entry_dict)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error obteniendo entrada de cola: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )
+
+
+@router.put(
+    "/queue/incoming-products/{entry_id}",
+    response_model=IncomingProductQueueResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Actualizar entrada de cola",
+    description="Actualizar información de una entrada en la cola de productos"
+)
+async def update_queue_entry(
+    entry_id: UUID = Path(..., description="ID de la entrada en cola"),
+    update_data: IncomingProductQueueUpdate = Body(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Actualizar información de una entrada en la cola."""
+    try:
+        query = select(IncomingProductQueue).filter(IncomingProductQueue.id == entry_id)
+        result = await db.execute(query)
+        entry = result.scalar_one_or_none()
+        
+        if not entry:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Entrada en cola no encontrada"
+            )
+        
+        # Actualizar campos proporcionados
+        update_dict = update_data.model_dump(exclude_unset=True)
+        for field, value in update_dict.items():
+            setattr(entry, field, value)
+        
+        # Actualizar timestamp de modificación
+        entry.updated_at = datetime.utcnow()
+        
+        await db.commit()
+        await db.refresh(entry)
+        
+        entry_dict = entry.to_dict()
+        return IncomingProductQueueResponse(**entry_dict)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error actualizando entrada de cola: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )
+
+
+@router.post(
+    "/queue/incoming-products/{entry_id}/assign",
+    response_model=IncomingProductQueueResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Asignar producto a verificador",
+    description="Asignar una entrada de cola a un usuario para verificación"
+)
+async def assign_queue_entry(
+    entry_id: UUID = Path(..., description="ID de la entrada en cola"),
+    assignment_data: QueueAssignmentRequest = Body(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Asignar producto en cola a un verificador."""
+    try:
+        query = select(IncomingProductQueue).filter(IncomingProductQueue.id == entry_id)
+        result = await db.execute(query)
+        entry = result.scalar_one_or_none()
+        
+        if not entry:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Entrada en cola no encontrada"
+            )
+        
+        # Verificar que el usuario asignado existe
+        from app.models.user import User
+        
+        user_query = select(User).filter(User.id == assignment_data.assigned_to)
+        user_result = await db.execute(user_query)
+        assigned_user = user_result.scalar_one_or_none()
+        
+        if not assigned_user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Usuario asignado no encontrado"
+            )
+        
+        # Asignar usando método del modelo
+        entry.assign_to_user(assignment_data.assigned_to, assignment_data.notes)
+        
+        await db.commit()
+        await db.refresh(entry)
+        
+        entry_dict = entry.to_dict()
+        return IncomingProductQueueResponse(**entry_dict)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error asignando entrada de cola: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )
+
+
+@router.post(
+    "/queue/incoming-products/{entry_id}/start-processing",
+    response_model=IncomingProductQueueResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Iniciar procesamiento de verificación",
+    description="Marcar una entrada como en procesamiento de verificación"
+)
+async def start_queue_processing(
+    entry_id: UUID = Path(..., description="ID de la entrada en cola"),
+    processing_data: QueueProcessingRequest = Body(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Iniciar procesamiento de verificación de un producto en cola."""
+    try:
+        query = select(IncomingProductQueue).filter(IncomingProductQueue.id == entry_id)
+        result = await db.execute(query)
+        entry = result.scalar_one_or_none()
+        
+        if not entry:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Entrada en cola no encontrada"
+            )
+        
+        if entry.verification_status not in [VerificationStatus.ASSIGNED, VerificationStatus.PENDING]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Solo se pueden procesar entradas asignadas o pendientes"
+            )
+        
+        # Iniciar procesamiento usando método del modelo
+        entry.start_processing(processing_data.notes)
+        
+        await db.commit()
+        await db.refresh(entry)
+        
+        entry_dict = entry.to_dict()
+        return IncomingProductQueueResponse(**entry_dict)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error iniciando procesamiento: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )
+
+
+@router.post(
+    "/queue/incoming-products/{entry_id}/complete",
+    response_model=IncomingProductQueueResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Completar verificación de producto",
+    description="Completar la verificación de un producto (aprobado o rechazado)"
+)
+async def complete_queue_verification(
+    entry_id: UUID = Path(..., description="ID de la entrada en cola"),
+    completion_data: QueueCompletionRequest = Body(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Completar verificación de un producto en cola."""
+    try:
+        query = select(IncomingProductQueue).filter(IncomingProductQueue.id == entry_id)
+        result = await db.execute(query)
+        entry = result.scalar_one_or_none()
+        
+        if not entry:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Entrada en cola no encontrada"
+            )
+        
+        if entry.verification_status not in [VerificationStatus.IN_PROGRESS, VerificationStatus.QUALITY_CHECK]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Solo se pueden completar entradas en proceso"
+            )
+        
+        # Completar verificación usando método del modelo
+        entry.complete_verification(
+            completion_data.approved,
+            completion_data.quality_score,
+            completion_data.notes
+        )
+        
+        # Si fue aprobado, actualizar el estado del producto a VERIFICADO
+        if completion_data.approved:
+            from app.models.product import Product, ProductStatus
+            
+            product_query = select(Product).filter(Product.id == entry.product_id)
+            product_result = await db.execute(product_query)
+            product = product_result.scalar_one_or_none()
+            
+            if product:
+                product.status = ProductStatus.VERIFICADO
+                product.updated_at = datetime.utcnow()
+                
+                # Marcar entrada como completada
+                entry.verification_status = VerificationStatus.COMPLETED
+        
+        await db.commit()
+        await db.refresh(entry)
+        
+        entry_dict = entry.to_dict()
+        return IncomingProductQueueResponse(**entry_dict)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error completando verificación: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )
+
+
+@router.post(
+    "/queue/incoming-products/{entry_id}/mark-delayed",
+    response_model=IncomingProductQueueResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Marcar producto como retrasado",
+    description="Marcar una entrada como retrasada con razón específica"
+)
+async def mark_queue_delayed(
+    entry_id: UUID = Path(..., description="ID de la entrada en cola"),
+    delay_data: QueueDelayRequest = Body(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Marcar un producto en cola como retrasado."""
+    try:
+        query = select(IncomingProductQueue).filter(IncomingProductQueue.id == entry_id)
+        result = await db.execute(query)
+        entry = result.scalar_one_or_none()
+        
+        if not entry:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Entrada en cola no encontrada"
+            )
+        
+        # Marcar como retrasado usando método del modelo
+        entry.mark_as_delayed(delay_data.delay_reason, delay_data.notes)
+        
+        await db.commit()
+        await db.refresh(entry)
+        
+        entry_dict = entry.to_dict()
+        return IncomingProductQueueResponse(**entry_dict)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error marcando como retrasado: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )
+
+
+@router.get(
+    "/queue/stats",
+    response_model=QueueStatsResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Obtener estadísticas de cola",
+    description="Obtener métricas y estadísticas de la cola de productos entrantes"
+)
+async def get_queue_stats(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+    vendor_id: Optional[UUID] = Query(None, description="Filtrar por vendor")
+):
+    """Obtener estadísticas completas de la cola de productos entrantes."""
+    try:
+        logger.info("Generando estadísticas de cola de productos")
+        
+        # Query base
+        base_query = select(IncomingProductQueue)
+        if vendor_id:
+            base_query = base_query.filter(IncomingProductQueue.vendor_id == vendor_id)
+        
+        # Total de elementos
+        total_query = select(func.count(IncomingProductQueue.id))
+        if vendor_id:
+            total_query = total_query.filter(IncomingProductQueue.vendor_id == vendor_id)
+        
+        total_result = await db.execute(total_query)
+        total_items = total_result.scalar()
+        
+        # Contar por estados
+        stats_queries = {
+            'pending': base_query.filter(IncomingProductQueue.verification_status == VerificationStatus.PENDING),
+            'assigned': base_query.filter(IncomingProductQueue.verification_status == VerificationStatus.ASSIGNED),
+            'in_progress': base_query.filter(IncomingProductQueue.verification_status == VerificationStatus.IN_PROGRESS),
+            'completed': base_query.filter(IncomingProductQueue.verification_status == VerificationStatus.COMPLETED),
+            'overdue': base_query.filter(IncomingProductQueue.deadline < func.now()),
+            'delayed': base_query.filter(IncomingProductQueue.is_delayed == True)
+        }
+        
+        stats = {}
+        for stat_name, query in stats_queries.items():
+            count_query = select(func.count()).select_from(query.subquery())
+            result = await db.execute(count_query)
+            stats[stat_name] = result.scalar()
+        
+        # Calcular tiempo promedio de procesamiento
+        processing_time_query = select(
+            func.avg(
+                func.extract('epoch', IncomingProductQueue.processing_completed_at - IncomingProductQueue.processing_started_at) / 3600
+            )
+        ).filter(
+            IncomingProductQueue.processing_completed_at.isnot(None),
+            IncomingProductQueue.processing_started_at.isnot(None)
+        )
+        
+        if vendor_id:
+            processing_time_query = processing_time_query.filter(IncomingProductQueue.vendor_id == vendor_id)
+        
+        avg_processing_result = await db.execute(processing_time_query)
+        average_processing_time = avg_processing_result.scalar() or 0.0
+        
+        # Calcular eficiencia de la cola (completados vs totales activos)
+        active_items = total_items - stats['completed']
+        queue_efficiency = (stats['completed'] / total_items * 100) if total_items > 0 else 100.0
+        
+        return QueueStatsResponse(
+            total_items=total_items,
+            pending=stats['pending'],
+            assigned=stats['assigned'],
+            in_progress=stats['in_progress'],
+            completed=stats['completed'],
+            overdue=stats['overdue'],
+            delayed=stats['delayed'],
+            average_processing_time=round(average_processing_time, 2),
+            queue_efficiency=round(queue_efficiency, 2)
+        )
+        
+    except Exception as e:
+        logger.error(f"Error generando estadísticas de cola: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )
+
+
+@router.get(
+    "/queue/analytics",
+    response_model=QueueAnalyticsResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Obtener analytics completo de cola",
+    description="Obtener análisis completo de tendencias y performance de la cola"
+)
+async def get_queue_analytics(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+    days: int = Query(30, ge=1, le=365, description="Días de análisis"),
+    vendor_id: Optional[UUID] = Query(None, description="Filtrar por vendor")
+):
+    """Obtener analytics completo de la cola de productos entrantes."""
+    try:
+        logger.info(f"Generando analytics de cola - Últimos {days} días")
+        
+        # Fecha de inicio para análisis
+        start_date = datetime.utcnow() - timedelta(days=days)
+        
+        # Query base con filtro de fechas
+        base_query = select(IncomingProductQueue).filter(
+            IncomingProductQueue.created_at >= start_date
+        )
+        
+        if vendor_id:
+            base_query = base_query.filter(IncomingProductQueue.vendor_id == vendor_id)
+        
+        # Obtener estadísticas básicas
+        stats_response = await get_queue_stats(db, current_user, vendor_id)
+        
+        # Distribución por prioridad
+        priority_query = select(
+            IncomingProductQueue.priority,
+            func.count(IncomingProductQueue.id).label('count')
+        ).filter(
+            IncomingProductQueue.created_at >= start_date
+        ).group_by(IncomingProductQueue.priority)
+        
+        if vendor_id:
+            priority_query = priority_query.filter(IncomingProductQueue.vendor_id == vendor_id)
+        
+        priority_result = await db.execute(priority_query)
+        priority_distribution = {str(row.priority): row.count for row in priority_result}
+        
+        # Distribución por estado
+        status_query = select(
+            IncomingProductQueue.verification_status,
+            func.count(IncomingProductQueue.id).label('count')
+        ).filter(
+            IncomingProductQueue.created_at >= start_date
+        ).group_by(IncomingProductQueue.verification_status)
+        
+        if vendor_id:
+            status_query = status_query.filter(IncomingProductQueue.vendor_id == vendor_id)
+        
+        status_result = await db.execute(status_query)
+        status_distribution = {str(row.verification_status): row.count for row in status_result}
+        
+        # Performance por vendor (si no se filtra por vendor específico)
+        vendor_performance = {}
+        if not vendor_id:
+            from app.models.user import User
+            
+            vendor_query = select(
+                User.nombre.label('vendor_name'),
+                func.count(IncomingProductQueue.id).label('total_items'),
+                func.avg(
+                    func.extract('epoch', IncomingProductQueue.processing_completed_at - IncomingProductQueue.processing_started_at) / 3600
+                ).label('avg_processing_time'),
+                func.count(
+                    func.case((IncomingProductQueue.verification_status == VerificationStatus.COMPLETED, 1))
+                ).label('completed_items')
+            ).select_from(
+                IncomingProductQueue.__table__.join(User.__table__, IncomingProductQueue.vendor_id == User.id)
+            ).filter(
+                IncomingProductQueue.created_at >= start_date
+            ).group_by(User.nombre)
+            
+            vendor_result = await db.execute(vendor_query)
+            for row in vendor_result:
+                completion_rate = (row.completed_items / row.total_items * 100) if row.total_items > 0 else 0
+                vendor_performance[row.vendor_name] = {
+                    'total_items': row.total_items,
+                    'completed_items': row.completed_items,
+                    'avg_processing_time': round(row.avg_processing_time or 0, 2),
+                    'completion_rate': round(completion_rate, 2)
+                }
+        
+        # Tendencias de procesamiento por día
+        processing_trends_query = select(
+            func.date(IncomingProductQueue.created_at).label('date'),
+            func.count(IncomingProductQueue.id).label('created'),
+            func.count(
+                func.case((IncomingProductQueue.verification_status == VerificationStatus.COMPLETED, 1))
+            ).label('completed')
+        ).filter(
+            IncomingProductQueue.created_at >= start_date
+        ).group_by(func.date(IncomingProductQueue.created_at))
+        
+        if vendor_id:
+            processing_trends_query = processing_trends_query.filter(IncomingProductQueue.vendor_id == vendor_id)
+        
+        trends_result = await db.execute(processing_trends_query)
+        processing_trends = {}
+        for row in trends_result:
+            date_str = row.date.strftime('%Y-%m-%d')
+            processing_trends[date_str] = {
+                'created': row.created,
+                'completed': row.completed
+            }
+        
+        # Top causas de retraso
+        delay_query = select(
+            IncomingProductQueue.delay_reason,
+            func.count(IncomingProductQueue.id).label('count')
+        ).filter(
+            IncomingProductQueue.is_delayed == True,
+            IncomingProductQueue.delay_reason.isnot(None),
+            IncomingProductQueue.created_at >= start_date
+        ).group_by(IncomingProductQueue.delay_reason).order_by(func.count(IncomingProductQueue.id).desc())
+        
+        if vendor_id:
+            delay_query = delay_query.filter(IncomingProductQueue.vendor_id == vendor_id)
+        
+        delay_result = await db.execute(delay_query)
+        top_delays = [
+            {'reason': str(row.delay_reason), 'count': row.count}
+            for row in delay_result
+        ]
+        
+        return QueueAnalyticsResponse(
+            stats=stats_response,
+            priority_distribution=priority_distribution,
+            status_distribution=status_distribution,
+            vendor_performance=vendor_performance,
+            processing_trends=processing_trends,
+            top_delays=top_delays
+        )
+        
+    except Exception as e:
+        logger.error(f"Error generando analytics de cola: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )
+
+
+@router.post(
+    "/queue/notifications/check",
+    status_code=status.HTTP_200_OK,
+    summary="Verificar notificaciones manualmente",
+    description="Forzar verificación inmediata de notificaciones de cola"
+)
+async def force_notification_check(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Forzar verificación inmediata de notificaciones."""
+    try:
+        # Solo administradores pueden forzar verificación
+        if current_user.get('user_type') != 'ADMIN':
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Solo administradores pueden ejecutar verificaciones manuales"
+            )
+        
+        from app.services.queue_notification_service import queue_notification_service
+        
+        logger.info(f"Verificación manual de notificaciones iniciada por: {current_user.get('email')}")
+        
+        notifications_sent = await queue_notification_service.check_and_send_notifications(db)
+        
+        return {
+            "message": "Verificación de notificaciones completada",
+            "notifications_sent": notifications_sent,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error en verificación manual de notificaciones: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )
+
+
+@router.get(
+    "/queue/scheduler/status",
+    status_code=status.HTTP_200_OK,
+    summary="Estado del programador de tareas",
+    description="Obtener estado del programador de tareas automáticas"
+)
+async def get_scheduler_status(
+    current_user: dict = Depends(get_current_user)
+):
+    """Obtener estado del programador de tareas."""
+    try:
+        # Solo administradores pueden ver el estado del programador
+        if current_user.get('user_type') != 'ADMIN':
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Solo administradores pueden ver el estado del programador"
+            )
+        
+        from app.tasks.queue_scheduler import queue_scheduler
+        
+        status_info = queue_scheduler.get_status()
+        
+        return {
+            "scheduler_status": status_info,
+            "timestamp": datetime.utcnow().isoformat(),
+            "uptime": "Sistema funcionando correctamente" if status_info["running"] else "Sistema detenido"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error obteniendo estado del programador: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )
