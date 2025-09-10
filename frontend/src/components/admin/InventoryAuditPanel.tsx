@@ -1,110 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  ClipboardCheck, Search, AlertTriangle, CheckCircle, 
-  Clock, Package, MapPin, FileText, Save 
-} from 'lucide-react';
-
-interface AuditItem {
-  id: string;
-  inventory_id: string;
-  product_name: string;
-  sku: string;
-  cantidad_sistema: number;
-  cantidad_fisica: number | null;
-  ubicacion_sistema: string;
-  ubicacion_fisica: string | null;
-  tiene_discrepancia: boolean;
-  tipo_discrepancia: string | null;
-  diferencia_cantidad: number;
-  conteo_completado: boolean;
-  notas_conteo: string | null;
-}
-
-interface Audit {
-  id: string;
-  nombre: string;
-  status: 'INICIADA' | 'EN_PROCESO' | 'COMPLETADA' | 'RECONCILIADA';
-  total_items_auditados: number;
-  discrepancias_encontradas: number;
-  fecha_inicio: string;
-}
+import React, { useState } from 'react';
+import { ClipboardCheck, Package } from 'lucide-react';
 
 const InventoryAuditPanel: React.FC = () => {
-  const [audits, setAudits] = useState<Audit[]>([]);
-  const [selectedAudit, setSelectedAudit] = useState<string | null>(null);
-  const [auditItems, setAuditItems] = useState<AuditItem[]>([]);
-  const [loading, setLoading] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
-
-  // Estados para conteo físico
-  const [countingItem, setCountingItem] = useState<string | null>(null);
-  const [countForm, setCountForm] = useState({
-    cantidad_fisica: '',
-    ubicacion_fisica: '',
-    condicion_fisica: '',
-    notas_conteo: ''
-  });
 
   const loadAudits = async () => {
     try {
-      setLoading(true);
       const response = await fetch('http://192.168.1.137:8000/api/v1/inventory/audits');
       const data = await response.json();
-      setAudits(data);
+      console.log('Audits loaded:', data);
     } catch (error) {
       console.error('Error loading audits:', error);
-    } finally {
-      setLoading(false);
     }
   };
-
-  const startCounting = (item: AuditItem) => {
-    setCountingItem(item.id);
-    setCountForm({
-      cantidad_fisica: '',
-      ubicacion_fisica: item.ubicacion_sistema || '',
-      condicion_fisica: 'BUENA',
-      notas_conteo: ''
-    });
-  };
-
-  const submitCount = async () => {
-    if (!countingItem || !selectedAudit) return;
-
-    try {
-      const response = await fetch(`http://192.168.1.137:8000/api/v1/inventory/audits/${selectedAudit}/conteo`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          audit_item_id: countingItem,
-          conteo_data: {
-            cantidad_fisica: parseInt(countForm.cantidad_fisica),
-            ubicacion_fisica: countForm.ubicacion_fisica,
-            condicion_fisica: countForm.condicion_fisica,
-            notas_conteo: countForm.notas_conteo
-          }
-        })
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        setCountingItem(null);
-        
-        if (result.tiene_discrepancia) {
-          alert(`⚠️ Discrepancia detectada: ${result.tipo_discrepancia}`);
-        } else {
-          alert('✅ Conteo registrado sin discrepancias');
-        }
-      }
-    } catch (error) {
-      console.error('Error submitting count:', error);
-      alert('Error al registrar el conteo');
-    }
-  };
-
-  useEffect(() => {
-    loadAudits();
-  }, []);
 
   return (
     <div className="inventory-audit-panel p-6 bg-white rounded-lg shadow">
@@ -129,8 +37,18 @@ const InventoryAuditPanel: React.FC = () => {
           <h3 className="text-lg font-semibold mb-4">Crear Nueva Auditoría</h3>
           <input type="text" placeholder="Nombre de auditoría" className="w-full p-2 border rounded mb-2" />
           <div className="flex gap-2">
-            <button className="px-4 py-2 bg-green-600 text-white rounded">Crear</button>
-            <button onClick={() => setShowCreateForm(false)} className="px-4 py-2 bg-gray-600 text-white rounded">Cancelar</button>
+            <button 
+              onClick={() => {
+                loadAudits();
+                setShowCreateForm(false);
+              }}
+              className="px-4 py-2 bg-green-600 text-white rounded"
+            >
+              Crear
+            </button>
+            <button onClick={() => setShowCreateForm(false)} className="px-4 py-2 bg-gray-600 text-white rounded">
+              Cancelar
+            </button>
           </div>
         </div>
       )}
