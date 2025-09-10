@@ -101,6 +101,8 @@ const VendorDetail: React.FC<VendorDetailProps> = ({ vendor, onClose }) => {
       const interval = setInterval(fetchMetrics, 30000);
       return () => clearInterval(interval);
     }
+    // Agregamos return undefined explícito para satisfacer TypeScript
+    return undefined;
   }, [vendor?.id, activeTab]);
 
   if (vendor === null) {
@@ -623,7 +625,7 @@ const VendorDetail: React.FC<VendorDetailProps> = ({ vendor, onClose }) => {
                     { fecha: '2024-09-01', monto: 850, estado: 'pagado', descripcion: 'Comisiones agosto' },
                     { fecha: '2024-08-01', monto: 720, estado: 'pagado', descripcion: 'Comisiones julio' },
                     { fecha: '2024-07-01', monto: 950, estado: 'pagado', descripcion: 'Comisiones junio' }
-                  ]).map((pago, index) => (
+                  ]).map((pago: { fecha: string; monto: number; estado: string; descripcion: string }, index: number) => (
                     <div key={index} className="flex items-center justify-between bg-white rounded p-3 border">
                       <div>
                         <p className="text-sm font-medium text-gray-900">{pago.descripcion}</p>
@@ -637,7 +639,7 @@ const VendorDetail: React.FC<VendorDetailProps> = ({ vendor, onClose }) => {
                           'bg-red-100 text-red-800'
                         }`}>
                           {pago.estado === 'pagado' ? 'Pagado' :
-                           pago.estado === 'pendiente' ? 'Pendiente' : 'Retenido'}
+                          pago.estado === 'pendiente' ? 'Pendiente' : 'Retenido'}
                         </span>
                       </div>
                     </div>
@@ -724,7 +726,7 @@ const VendorDetail: React.FC<VendorDetailProps> = ({ vendor, onClose }) => {
                         { nombre: 'Laptop Dell Inspiron', ventas: 8, stock: 5, rotacion: '15 días', performance: 'medio' },
                         { nombre: 'Auriculares Sony', ventas: 25, stock: 20, rotacion: '5 días', performance: 'alto' },
                         { nombre: 'Tablet Samsung', ventas: 3, stock: 8, rotacion: '25 días', performance: 'bajo' }
-                      ]).map((producto, index) => (
+                      ]).map((producto: { nombre: string; ventas: number; stock: number; rotacion: string; performance: string }, index: number) => (
                         <tr key={index} className="hover:bg-gray-50">
                           <td className="px-4 py-2 text-sm font-medium text-gray-900">{producto.nombre}</td>
                           <td className="px-4 py-2 text-sm text-gray-500">{producto.ventas}</td>
@@ -737,7 +739,7 @@ const VendorDetail: React.FC<VendorDetailProps> = ({ vendor, onClose }) => {
                               'bg-red-100 text-red-800'
                             }`}>
                               {producto.performance === 'alto' ? 'Alto' :
-                               producto.performance === 'medio' ? 'Medio' : 'Bajo'}
+                              producto.performance === 'medio' ? 'Medio' : 'Bajo'}
                             </span>
                           </td>
                         </tr>

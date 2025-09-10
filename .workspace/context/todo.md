@@ -380,14 +380,14 @@
     ✅ 1.6.1.4 Crear widget de ingresos por comisiones y projecciones
     ✅ 1.6.1.5 Implementar mapa de actividad por ciudad/región en Colombia
     ✅ 1.6.1.6 Añadir alertas críticas (stock crítico, vendedores pendientes, errores)
-🔁 1.6.2 Gestión de vendedores (aprobar, suspender)
+✅ 1.6.2 Gestión de vendedores (aprobar, suspender)
     ✅ 1.6.2.1 Crear VendorList con filtros por estado y tipo de cuenta
     ✅ 1.6.2.2 Implementar VendorDetail con toda la información y documentos
     ✅ 1.6.2.3 Añadir workflow de aprobación con verificación de documentos
     ✅ 1.6.2.4 Crear acciones bulk (aprobar múltiples, suspender, enviar emails)
     ✅ 1.6.2.5 Implementar sistema de notas internas y historial de cambios
-    ⬜ 1.6.2.6 Añadir métricas por vendedor (performance, comisiones, productos)
-⬜ 1.6.3 Control de inventario físico
+    ✅ 1.6.2.6 Añadir métricas por vendedor (performance, comisiones, productos)
+🔁 1.6.3 Control de inventario físico
     ⬜ 1.6.3.1 Crear WarehouseMap visual con layout del almacén físico
     ⬜ 1.6.3.2 Implementar InventoryAudit para conteos físicos vs sistema
     ⬜ 1.6.3.3 Añadir LocationManager para asignar/reasignar ubicaciones
@@ -415,6 +415,212 @@
     ⬜ 1.6.6.4 Crear PromotionManager para campañas especiales
     ⬜ 1.6.6.5 Implementar A/B testing para diferentes estructuras de pricing
     ⬜ 1.6.6.6 Añadir simulador de impacto financiero por cambios de tarifas
+# PLAN MAESTRO DEL PROYECTO - MeStocker.com
+# AMPLIACIÓN: SISTEMA DE ROLES Y ADMINISTRADORES
+
+## 1.6.7 Sistema de Administradores y Roles Granulares
+⬜ 1.6.7.1 Crear arquitectura de permisos granulares con SUPERUSER omnipotente
+    ⬜ 1.6.7.1.1 Diseñar modelo Permission con enum de acciones específicas + god_mode
+    ⬜ 1.6.7.1.2 Crear modelo Role con relationship a Permission (many-to-many) + SUPERUSER bypass
+    ⬜ 1.6.7.1.3 Implementar UserRole model con validación especial para SUPERUSER
+    ⬜ 1.6.7.1.4 Crear RolePermission tabla con override automático para SUPERUSER
+    ⬜ 1.6.7.1.5 Implementar middleware de autorización con bypass total para SUPERUSER
+    ⬜ 1.6.7.1.6 Crear decorators @require_permission con excepción automática para SUPERUSER
+
+⬜ 1.6.7.2 Implementar roles predefinidos especializados
+    ⬜ 1.6.7.2.1 Crear ADMIN_VENTAS con permisos de gestión de vendedores
+    ⬜ 1.6.7.2.2 Implementar ADMIN_ALMACEN con control de inventario físico
+    ⬜ 1.6.7.2.3 Crear ADMIN_CLIENTES con gestión de órdenes y atención
+    ⬜ 1.6.7.2.4 Implementar ADMIN_FINANCIERO con acceso a reportes financieros
+    ⬜ 1.6.7.2.5 Crear ADMIN_OPERACIONES con control de logística y couriers
+    ⬜ 1.6.7.2.6 Implementar ADMIN_MARKETING con gestión de campañas y métricas
+
+⬜ 1.6.7.3 Panel de gestión de administradores para SUPERUSER
+    ⬜ 1.6.7.3.1 Crear AdminManagement component con lista de administradores
+    ⬜ 1.6.7.3.2 Implementar CreateAdmin form con selección de rol y permisos
+    ⬜ 1.6.7.3.3 Añadir AdminDetail modal con edición de permisos granulares
+    ⬜ 1.6.7.3.4 Crear system de invitación por email para nuevos admins
+    ⬜ 1.6.7.3.5 Implementar AdminActivity log con auditoría de acciones
+    ⬜ 1.6.7.3.6 Añadir BulkAdminActions para gestión masiva de administradores
+
+⬜ 1.6.7.4 Control de acceso dinámico en frontend
+    ⬜ 1.6.7.4.1 Crear PermissionProvider context para gestión de permisos
+    ⬜ 1.6.7.4.2 Implementar hasPermission hook para componentes condicionales
+    ⬜ 1.6.7.4.3 Crear ProtectedRoute component con validación de permisos
+    ⬜ 1.6.7.4.4 Añadir ConditionalComponent wrapper para mostrar/ocultar elementos
+    ⬜ 1.6.7.4.5 Implementar NavigationMenu dinámico según permisos de usuario
+    ⬜ 1.6.7.4.6 Crear PermissionDenied page para accesos no autorizados
+
+⬜ 1.6.7.5 Dashboard especializado por rol
+    ⬜ 1.6.7.5.1 Crear VentasDashboard específico para ADMIN_VENTAS
+    ⬜ 1.6.7.5.2 Implementar AlmacenDashboard con métricas de inventario
+    ⬜ 1.6.7.5.3 Crear ClientesDashboard con tickets y satisfacción
+    ⬜ 1.6.7.5.4 Implementar FinancieroDashboard con KPIs financieros
+    ⬜ 1.6.7.5.5 Crear OperacionesDashboard con métricas logísticas
+    ⬜ 1.6.7.5.6 Implementar redirección automática según rol del usuario
+
+⬜ 1.6.7.6 Sistema de auditoría y monitoreo de acciones
+    ⬜ 1.6.7.6.1 Crear AdminActionLog model para tracking de acciones
+    ⬜ 1.6.7.6.2 Implementar logging automático en todos los endpoints críticos
+    ⬜ 1.6.7.6.3 Crear AuditTrail component para visualizar historial de acciones
+    ⬜ 1.6.7.6.4 Añadir SecurityAlerts para acciones sospechosas o no autorizadas
+    ⬜ 1.6.7.6.5 Implementar SessionManagement con control de sesiones activas
+    ⬜ 1.6.7.6.6 Crear ComplianceReports para auditorías externas
+
+## DEFINICIÓN DE PERMISOS GRANULARES
+
+### VENDEDORES
+- `vendor.list` - Ver lista de vendedores
+- `vendor.view` - Ver detalles de vendedor específico
+- `vendor.approve` - Aprobar nuevos vendedores
+- `vendor.reject` - Rechazar vendedores
+- `vendor.suspend` - Suspender vendedores activos
+- `vendor.edit` - Editar información de vendedores
+- `vendor.delete` - Eliminar vendedores del sistema
+- `vendor.notes` - Gestionar notas internas de vendedores
+
+### INVENTARIO
+- `inventory.list` - Ver inventario general
+- `inventory.view` - Ver detalles de productos específicos
+- `inventory.manage` - Gestionar ubicaciones y movimientos
+- `inventory.audit` - Realizar auditorías de inventario
+- `inventory.optimize` - Optimizar espacios y ubicaciones
+- `inventory.alerts` - Gestionar alertas de stock
+
+### FINANZAS
+- `financial.view` - Ver reportes financieros
+- `financial.commissions` - Gestionar comisiones
+- `financial.payouts` - Procesar pagos a vendedores
+- `financial.taxes` - Generar reportes de impuestos
+- `financial.pricing` - Configurar tarifas y precios
+- `financial.compliance` - Acceder a reportes de compliance
+
+### CLIENTES
+- `customer.list` - Ver lista de compradores
+- `customer.support` - Gestionar tickets de soporte
+- `customer.orders` - Gestionar órdenes y envíos
+- `customer.refunds` - Procesar devoluciones
+- `customer.analytics` - Ver métricas de satisfacción
+- `customer.communications` - Enviar comunicaciones masivas
+
+### OPERACIONES
+- `operations.logistics` - Gestionar couriers y envíos
+- `operations.warehouse` - Gestionar operaciones de almacén
+- `operations.optimization` - Optimizar procesos operacionales
+- `operations.reports` - Generar reportes operacionales
+- `operations.integrations` - Gestionar integraciones externas
+- `operations.monitoring` - Monitorear performance operacional
+
+### MARKETING
+- `marketing.campaigns` - Crear y gestionar campañas
+- `marketing.analytics` - Ver métricas de marketing
+- `marketing.content` - Gestionar contenido del marketplace
+- `marketing.promotions` - Crear promociones y descuentos
+- `marketing.social` - Gestionar redes sociales
+- `marketing.seo` - Optimizar SEO del marketplace
+
+### SISTEMA
+- `system.admin_create` - Crear nuevos administradores (solo SUPERUSER)
+- `system.admin_edit` - Editar administradores existentes (solo SUPERUSER)
+- `system.roles_manage` - Gestionar roles y permisos (solo SUPERUSER)
+- `system.audit_view` - Ver logs de auditoría completos
+- `system.settings` - Modificar configuraciones del sistema
+- `system.backup` - Gestionar backups del sistema
+
+## ROLES PREDEFINIDOS
+
+### SUPERUSER (TÚ)
+**Permisos:** TODOS los permisos del sistema
+**Capacidades únicas:**
+- Crear, editar y eliminar administradores
+- Asignar y modificar roles
+- Acceso completo a auditoría del sistema
+- Configurar sistema y políticas globales
+
+### ADMIN_VENTAS
+**Permisos:**
+- vendor.* (todos los permisos de vendedores)
+- financial.view, financial.commissions
+- customer.analytics
+- marketing.analytics
+
+### ADMIN_ALMACEN
+**Permisos:**
+- inventory.* (todos los permisos de inventario)
+- operations.warehouse, operations.monitoring
+- vendor.view (solo para consulta)
+
+### ADMIN_CLIENTES
+**Permisos:**
+- customer.* (todos los permisos de clientes)
+- vendor.view (para resolver disputas)
+- operations.logistics (para tracking de envíos)
+
+### ADMIN_FINANCIERO
+**Permisos:**
+- financial.* (todos los permisos financieros)
+- system.audit_view
+- vendor.view, customer.view (solo consulta)
+
+### ADMIN_OPERACIONES
+**Permisos:**
+- operations.* (todos los permisos operacionales)
+- inventory.view, inventory.manage
+- customer.orders (para gestión de envíos)
+
+### ADMIN_MARKETING
+**Permisos:**
+- marketing.* (todos los permisos de marketing)
+- customer.analytics, customer.communications
+- vendor.view (para entender vendedores)
+
+## FLUJO DE IMPLEMENTACIÓN
+
+### FASE 1: Backend (Modelos y Permisos)
+1. Crear modelos Permission, Role, UserRole
+2. Implementar enums de permisos
+3. Crear middleware de autorización
+4. Añadir decorators para endpoints
+
+### FASE 2: Seeding y Configuración
+1. Crear migration con roles predefinidos
+2. Asignar permisos a cada rol
+3. Crear tu usuario SUPERUSER
+4. Testing de permisos básicos
+
+### FASE 3: Frontend (Interfaces de Gestión)
+1. Panel de gestión de administradores
+2. Sistema de permisos dinámicos
+3. Dashboards especializados por rol
+4. Control de acceso en componentes
+
+### FASE 4: Auditoría y Monitoreo
+1. Sistema de logging automático
+2. Auditoría de acciones administrativas
+3. Alertas de seguridad
+4. Reportes de compliance
+
+## ESTIMACIÓN DE TIEMPO
+
+- **1.6.7.1-1.6.7.2:** 2-3 días (Backend core + roles)
+- **1.6.7.3-1.6.7.4:** 2-3 días (Frontend gestión + control acceso)
+- **1.6.7.5:** 1-2 días (Dashboards especializados)
+- **1.6.7.6:** 1-2 días (Auditoría y monitoreo)
+
+**Total estimado:** 6-10 días de desarrollo intensivo
+
+## BENEFICIOS IMPLEMENTADOS
+
+1. **Control granular:** Cada admin solo puede hacer lo que necesita
+2. **Seguridad:** Principio de menor privilegio aplicado
+3. **Escalabilidad:** Fácil añadir nuevos roles según crezca el equipo
+4. **Auditoría:** Trazabilidad completa de todas las acciones
+5. **Flexibilidad:** Permisos configurables por SUPERUSER
+6. **Compliance:** Sistema preparado para auditorías externas
+
+---
+
+**NOTA ESTRATÉGICA:** Este sistema te da control total sobre tu plataforma y prepara MeStocker para escalar profesionalmente cuando contrates tu primer equipo administrativo.
 
 ## 🎨 FASE 1.7: DISEÑO PROFESIONAL ULTRA-MODERNO
 1.7.1 Hero Section de Impacto (Estilo Shopify + Linear)
