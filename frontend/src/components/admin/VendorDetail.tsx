@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 // Interfaces TypeScript
 interface VendorDetailProps {
@@ -46,12 +46,62 @@ const VendorDetail: React.FC<VendorDetailProps> = ({ vendor, onClose }) => {
   // Estado para manejar tab activo
   const [activeTab, setActiveTab] = useState<string>('general');
 
+  // Estados para métricas dinámicas
+  const [metricsData, setMetricsData] = useState<any>(null);
+  const [metricsLoading, setMetricsLoading] = useState<boolean>(false);
+  const [metricsError, setMetricsError] = useState<string | null>(null);
+
   // Estados para modales de confirmación
   const [showApprovalModal, setShowApprovalModal] = useState<boolean>(false);
   const [showRejectionModal, setShowRejectionModal] = useState<boolean>(false);
   const [approvalReason, setApprovalReason] = useState<string>('');
   const [rejectionReason, setRejectionReason] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+
+  // Función para cargar métricas desde API
+  const fetchMetrics = async () => {
+    if (!vendor?.id) return;
+    
+    setMetricsLoading(true);
+    setMetricsError(null);
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://192.168.1.137:8000/api/v1/vendedores/${vendor.id}/dashboard/resumen`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setMetricsData(data);
+      } else {
+        setMetricsError('Error al cargar métricas');
+      }
+    } catch (error) {
+      setMetricsError('Error de conexión');
+      console.error('Error fetching metrics:', error);
+    } finally {
+      setMetricsLoading(false);
+    }
+  };
+
+  // useEffect para cargar métricas cuando cambia el vendedor o tab
+  useEffect(() => {
+    if (vendor?.id && activeTab === 'metricas') {
+      fetchMetrics();
+    }
+  }, [vendor?.id, activeTab]);
+  
+  // useEffect para refresh automático cada 30 segundos
+  useEffect(() => {
+    if (vendor?.id && activeTab === 'metricas') {
+      const interval = setInterval(fetchMetrics, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [vendor?.id, activeTab]);
 
   if (vendor === null) {
     return (
@@ -78,7 +128,6 @@ const VendorDetail: React.FC<VendorDetailProps> = ({ vendor, onClose }) => {
         alert('Vendedor aprobado exitosamente');
         setShowApprovalModal(false);
         setApprovalReason('');
-        // Aquí podrías recargar los datos del vendedor
       } else {
         alert('Error al aprobar vendedor');
       }
@@ -111,7 +160,6 @@ const VendorDetail: React.FC<VendorDetailProps> = ({ vendor, onClose }) => {
         alert('Vendedor rechazado exitosamente');
         setShowRejectionModal(false);
         setRejectionReason('');
-        // Aquí podrías recargar los datos del vendedor
       } else {
         alert('Error al rechazar vendedor');
       }
@@ -394,37 +442,443 @@ const VendorDetail: React.FC<VendorDetailProps> = ({ vendor, onClose }) => {
             <h3 className="text-lg font-medium text-gray-900 mb-6">Métricas y KPIs</h3>
             
             {/* KPIs Principales */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="bg-white border rounded-lg p-6 text-center">
-                <div className="text-3xl font-bold text-blue-600 mb-2">
-                  {vendor.productos_activos || 12}
+            {metricsLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[1,2,3,4].map(i => (
+                  <div key={i} className="bg-white border rounded-lg p-6 text-center animate-pulse">
+                    <div className="h-8 bg-gray-200 rounded mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded mb-1"></div>
+                    <div className="h-3 bg-gray-200 rounded"></div>
+                  </div>
+                ))}
+              </div>
+            ) : metricsError ? (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+                <p className="text-red-600 mb-2">{metricsError}</p>
+                <button onClick={fetchMetrics} className="text-red-700 underline text-sm">
+                  Reintentar
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="bg-white border rounded-lg p-6 text-center">
+                  <div className="text-3xl font-bold text-blue-600 mb-2">
+                    {metricsData?.productos_activos || vendor.productos_activos || 0}
+                  </div>
+                  <div className="text-sm text-gray-600 mb-1">Productos Activos</div>
+                  <div className="text-xs text-green-600">
+                    {metricsData?.cambio_productos || '+2 este mes'}
+                  </div>
                 </div>
-                <div className="text-sm text-gray-600 mb-1">Productos Activos</div>
-                <div className="text-xs text-green-600">+2 este mes</div>
+                
+                <div className="bg-white border rounded-lg p-6 text-center">
+                  <div className="text-3xl font-bold text-green-600 mb-2">
+                    ${(metricsData?.ventas_totales || vendor.ventas_totales || 0).toLocaleString()}
+                  </div>
+                  <div className="text-sm text-gray-600 mb-1">Ventas Totales</div>
+                  <div className="text-xs text-green-600">
+                    {metricsData?.cambio_ventas || '+15% vs mes anterior'}
+                  </div>
+                </div>
+                
+                <div className="bg-white border rounded-lg p-6 text-center">
+                  <div className="text-3xl font-bold text-purple-600 mb-2">
+                    {metricsData?.comision_rate || vendor.comision_rate || 8}%
+                  </div>
+                  <div className="text-sm text-gray-600 mb-1">Comisión Actual</div>
+                  <div className="text-xs text-gray-500">
+                    {metricsData?.tipo_comision || 'Fijo'}
+                  </div>
+                </div>
+                
+                <div className="bg-white border rounded-lg p-6 text-center">
+                  <div className="text-3xl font-bold text-orange-600 mb-2">
+                    {metricsData?.calificacion || '4.8'}
+                  </div>
+                  <div className="text-sm text-gray-600 mb-1">Calificación</div>
+                  <div className="text-xs text-green-600">
+                    {metricsData?.status_calificacion || 'Excelente'}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Performance del Vendedor */}
+            <div className="bg-white border rounded-lg p-6">
+              <h4 className="font-medium text-gray-900 mb-6">Performance del Vendedor</h4>
+              
+              {/* Métricas de Performance */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-blue-700">Tasa de Conversión</p>
+                      <p className="text-2xl font-bold text-blue-900">
+                        {metricsData?.tasa_conversion || '15.2'}%
+                      </p>
+                    </div>
+                    <div className="text-blue-600">
+                      <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </div>
+                  <p className="text-xs text-blue-600 mt-1">
+                    {metricsData?.cambio_conversion || '+2.1% vs mes anterior'}
+                  </p>
+                </div>
+                
+                <div className="bg-gradient-to-r from-green-50 to-green-100 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-green-700">Crecimiento Mensual</p>
+                      <p className="text-2xl font-bold text-green-900">
+                        +{metricsData?.crecimiento_mensual || '24.5'}%
+                      </p>
+                    </div>
+                    <div className="text-green-600">
+                      <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </div>
+                  <p className="text-xs text-green-600 mt-1">
+                    {metricsData?.periodo_crecimiento || 'Últimos 3 meses'}
+                  </p>
+                </div>
+                
+                <div className="bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-purple-700">Productos Top</p>
+                      <p className="text-2xl font-bold text-purple-900">
+                        {metricsData?.productos_top_count || '8'}
+                      </p>
+                    </div>
+                    <div className="text-purple-600">
+                      <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </div>
+                  <p className="text-xs text-purple-600 mt-1">
+                    {metricsData?.performance_productos || 'Alto rendimiento'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Análisis de Comisiones */}
+            <div className="bg-white border rounded-lg p-6">
+              <h4 className="font-medium text-gray-900 mb-6">Análisis de Comisiones</h4>
+              
+              {/* Resumen de Comisiones */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+                  <p className="text-sm font-medium text-yellow-700 mb-1">Pendientes</p>
+                  <p className="text-xl font-bold text-yellow-900">
+                    ${(metricsData?.comisiones_pendientes || 1250).toLocaleString()}
+                  </p>
+                  <p className="text-xs text-yellow-600">
+                    {metricsData?.count_pendientes || '3'} pagos
+                  </p>
+                </div>
+                
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                  <p className="text-sm font-medium text-green-700 mb-1">Pagadas</p>
+                  <p className="text-xl font-bold text-green-900">
+                    ${(metricsData?.comisiones_pagadas || 8450).toLocaleString()}
+                  </p>
+                  <p className="text-xs text-green-600">
+                    {metricsData?.count_pagadas || '12'} pagos
+                  </p>
+                </div>
+                
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+                  <p className="text-sm font-medium text-red-700 mb-1">Retenidas</p>
+                  <p className="text-xl font-bold text-red-900">
+                    ${(metricsData?.comisiones_retenidas || 350).toLocaleString()}
+                  </p>
+                  <p className="text-xs text-red-600">
+                    {metricsData?.count_retenidas || '1'} retención
+                  </p>
+                </div>
+                
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                  <p className="text-sm font-medium text-blue-700 mb-1">Total Mes</p>
+                  <p className="text-xl font-bold text-blue-900">
+                    ${(metricsData?.comisiones_mes || 2100).toLocaleString()}
+                  </p>
+                  <p className="text-xs text-blue-600">
+                    {metricsData?.cambio_mes || '+15%'} vs anterior
+                  </p>
+                </div>
               </div>
               
-              <div className="bg-white border rounded-lg p-6 text-center">
-                <div className="text-3xl font-bold text-green-600 mb-2">
-                  ${(vendor.ventas_totales || 45680).toLocaleString()}
+              {/* Histórico de Pagos */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h5 className="font-medium text-gray-800 mb-3">Histórico de Pagos Recientes</h5>
+                <div className="space-y-2">
+                  {(metricsData?.historico_pagos || [
+                    { fecha: '2024-09-01', monto: 850, estado: 'pagado', descripcion: 'Comisiones agosto' },
+                    { fecha: '2024-08-01', monto: 720, estado: 'pagado', descripcion: 'Comisiones julio' },
+                    { fecha: '2024-07-01', monto: 950, estado: 'pagado', descripcion: 'Comisiones junio' }
+                  ]).map((pago, index) => (
+                    <div key={index} className="flex items-center justify-between bg-white rounded p-3 border">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{pago.descripcion}</p>
+                        <p className="text-xs text-gray-500">{new Date(pago.fecha).toLocaleDateString('es-ES')}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-gray-900">${pago.monto.toLocaleString()}</p>
+                        <span className={`px-2 py-1 text-xs rounded-full ${
+                          pago.estado === 'pagado' ? 'bg-green-100 text-green-800' :
+                          pago.estado === 'pendiente' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {pago.estado === 'pagado' ? 'Pagado' :
+                           pago.estado === 'pendiente' ? 'Pendiente' : 'Retenido'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="text-sm text-gray-600 mb-1">Ventas Totales</div>
-                <div className="text-xs text-green-600">+15% vs mes anterior</div>
+              </div>
+            </div>
+
+            {/* Análisis de Productos */}
+            <div className="bg-white border rounded-lg p-6">
+              <h4 className="font-medium text-gray-900 mb-6">Análisis de Productos</h4>
+              
+              {/* Métricas Generales de Productos */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-indigo-700">Rotación Promedio</p>
+                      <p className="text-2xl font-bold text-indigo-900">
+                        {metricsData?.rotacion_promedio || '12.5'} días
+                      </p>
+                    </div>
+                    <div className="text-indigo-600">
+                      <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </div>
+                  <p className="text-xs text-indigo-600 mt-1">Tiempo de venta</p>
+                </div>
+                
+                <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-teal-700">Stock Promedio</p>
+                      <p className="text-2xl font-bold text-teal-900">
+                        {metricsData?.stock_promedio || '85'}%
+                      </p>
+                    </div>
+                    <div className="text-teal-600">
+                      <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </div>
+                  <p className="text-xs text-teal-600 mt-1">Disponibilidad</p>
+                </div>
+                
+                <div className="bg-pink-50 border border-pink-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-pink-700">Margen Promedio</p>
+                      <p className="text-2xl font-bold text-pink-900">
+                        {metricsData?.margen_promedio || '28.5'}%
+                      </p>
+                    </div>
+                    <div className="text-pink-600">
+                      <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </div>
+                  <p className="text-xs text-pink-600 mt-1">Rentabilidad</p>
+                </div>
               </div>
               
-              <div className="bg-white border rounded-lg p-6 text-center">
-                <div className="text-3xl font-bold text-purple-600 mb-2">
-                  {vendor.comision_rate || 8}%
+              {/* Tabla de Productos Top/Flop */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h5 className="font-medium text-gray-800 mb-4">Performance Individual por Producto</h5>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-100">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Ventas</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Stock</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Rotación</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Performance</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {(metricsData?.productos_performance || [
+                        { nombre: 'Smartphone Galaxy S24', ventas: 15, stock: 12, rotacion: '8 días', performance: 'alto' },
+                        { nombre: 'Laptop Dell Inspiron', ventas: 8, stock: 5, rotacion: '15 días', performance: 'medio' },
+                        { nombre: 'Auriculares Sony', ventas: 25, stock: 20, rotacion: '5 días', performance: 'alto' },
+                        { nombre: 'Tablet Samsung', ventas: 3, stock: 8, rotacion: '25 días', performance: 'bajo' }
+                      ]).map((producto, index) => (
+                        <tr key={index} className="hover:bg-gray-50">
+                          <td className="px-4 py-2 text-sm font-medium text-gray-900">{producto.nombre}</td>
+                          <td className="px-4 py-2 text-sm text-gray-500">{producto.ventas}</td>
+                          <td className="px-4 py-2 text-sm text-gray-500">{producto.stock}</td>
+                          <td className="px-4 py-2 text-sm text-gray-500">{producto.rotacion}</td>
+                          <td className="px-4 py-2 text-sm">
+                            <span className={`px-2 py-1 text-xs rounded-full ${
+                              producto.performance === 'alto' ? 'bg-green-100 text-green-800' :
+                              producto.performance === 'medio' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-red-100 text-red-800'
+                            }`}>
+                              {producto.performance === 'alto' ? 'Alto' :
+                               producto.performance === 'medio' ? 'Medio' : 'Bajo'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-                <div className="text-sm text-gray-600 mb-1">Comisión Actual</div>
-                <div className="text-xs text-gray-500">Fijo</div>
+              </div>
+            </div>
+
+            {/* Comparativas y Tendencias */}
+            <div className="bg-white border rounded-lg p-6">
+              <h4 className="font-medium text-gray-900 mb-6">Comparativas y Tendencias</h4>
+              
+              {/* Comparación con Promedio de Plataforma */}
+              <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg p-6 mb-6">
+                <h5 className="font-medium text-gray-800 mb-4">Rendimiento vs Promedio de la Plataforma</h5>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600 mb-2">Ventas Mensuales</p>
+                    <p className="text-2xl font-bold text-blue-600 mb-1">
+                      {metricsData?.vs_promedio_ventas || '+18%'}
+                    </p>
+                    <div className="flex items-center justify-center">
+                      <svg className="w-4 h-4 text-green-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-xs text-green-600">Arriba del promedio</span>
+                    </div>
+                  </div>
+                  
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600 mb-2">Tasa Conversión</p>
+                    <p className="text-2xl font-bold text-green-600 mb-1">
+                      {metricsData?.vs_promedio_conversion || '+12%'}
+                    </p>
+                    <div className="flex items-center justify-center">
+                      <svg className="w-4 h-4 text-green-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-xs text-green-600">Superior</span>
+                    </div>
+                  </div>
+                  
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600 mb-2">Productos Activos</p>
+                    <p className="text-2xl font-bold text-orange-600 mb-1">
+                      {metricsData?.vs_promedio_productos || '-5%'}
+                    </p>
+                    <div className="flex items-center justify-center">
+                      <svg className="w-4 h-4 text-orange-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M14.707 12.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 14.586V3a1 1 0 112 0v11.586l2.293-2.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-xs text-orange-600">Bajo promedio</span>
+                    </div>
+                  </div>
+                  
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600 mb-2">Calificación</p>
+                    <p className="text-2xl font-bold text-purple-600 mb-1">
+                      {metricsData?.vs_promedio_calificacion || '+0.3'}
+                    </p>
+                    <div className="flex items-center justify-center">
+                      <svg className="w-4 h-4 text-green-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                      </svg>
+                      <span className="text-xs text-green-600">Excelente</span>
+                    </div>
+                  </div>
+                </div>
               </div>
               
-              <div className="bg-white border rounded-lg p-6 text-center">
-                <div className="text-3xl font-bold text-orange-600 mb-2">
-                  4.8
+              {/* Indicadores de Tendencia */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h6 className="font-medium text-gray-800 mb-3">Tendencias de Performance</h6>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Ventas</span>
+                      <div className="flex items-center">
+                        <svg className="w-4 h-4 text-green-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-sm font-medium text-green-600">Subiendo</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Nuevos Productos</span>
+                      <div className="flex items-center">
+                        <svg className="w-4 h-4 text-green-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-sm font-medium text-green-600">Creciendo</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Satisfacción Cliente</span>
+                      <div className="flex items-center">
+                        <svg className="w-4 h-4 text-blue-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-sm font-medium text-blue-600">Estable</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="text-sm text-gray-600 mb-1">Calificación</div>
-                <div className="text-xs text-green-600">Excelente</div>
+                
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h6 className="font-medium text-gray-800 mb-3">Proyecciones Próximo Mes</h6>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Ventas Estimadas</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        ${(metricsData?.proyeccion_ventas || 52000).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Productos Nuevos</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        +{metricsData?.proyeccion_productos || 3} productos
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Comisiones Estimadas</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        ${(metricsData?.proyeccion_comisiones || 2600).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Recomendaciones */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h6 className="font-medium text-blue-900 mb-3">Recomendaciones de Optimización</h6>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>• {metricsData?.recomendacion_1 || 'Aumentar variedad de productos para mejorar diversificación'}</li>
+                  <li>• {metricsData?.recomendacion_2 || 'Optimizar precios de productos con baja rotación'}</li>
+                  <li>• {metricsData?.recomendacion_3 || 'Implementar promociones para incrementar conversión'}</li>
+                  <li>• {metricsData?.recomendacion_4 || 'Mejorar descripción de productos con bajo rendimiento'}</li>
+                </ul>
               </div>
             </div>
 
@@ -541,16 +995,6 @@ const VendorDetail: React.FC<VendorDetailProps> = ({ vendor, onClose }) => {
                 <h4 className="font-medium text-gray-800 mb-3">Estado Actual de Verificación</h4>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                      vendor.is_verified 
-                        ? 'bg-green-100 text-green-800 border border-green-200' 
-                        : 'bg-yellow-100 text-yellow-800 border border-yellow-200'
-                    }`}>
-                      <span className={`w-2 h-2 rounded-full mr-2 ${
-                        vendor.is_verified ? 'bg-green-400' : 'bg-yellow-400'
-                      }`}></span>
-                      {vendor.is_verified ? 'Verificado' : 'Pendiente de Verificación'}
-                    </span>
                     <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
                       vendor.is_active 
                         ? 'bg-green-100 text-green-800 border border-green-200' 
@@ -676,6 +1120,7 @@ const VendorDetail: React.FC<VendorDetailProps> = ({ vendor, onClose }) => {
             </div>
           </div>
         )}
+        
         {activeTab === 'notas' && (
           <div className="space-y-6">
             <h3 className="text-lg font-medium text-gray-900 mb-6">Notas Internas y Historial</h3>
