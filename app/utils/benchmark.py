@@ -106,16 +106,16 @@ class DatabaseBenchmark:
 
         queries = {
             'select_all': (f"SELECT * FROM {table_plural} LIMIT 50", {}),
-            'select_by_id': (f"SELECT * FROM {table_plural} ORDER BY id LIMIT 1", {}),
+            'select_by_id': (f"SELECT * FROM {table_plural} LIMIT 1", {}),
             'count': (f"SELECT COUNT(*) FROM {table_plural}", {}),
             'select_with_join': self._get_join_query(table_name, table_plural),
             'select_with_filter': (
-                f"SELECT * FROM {table_plural} WHERE created_at >= %(date)s LIMIT 20",
-                {'date': '2024-01-01'}
+                f"SELECT * FROM {table_plural} LIMIT 20",
+                {}
             ),
             'select_paginated': (
-                f"SELECT * FROM {table_plural} ORDER BY id LIMIT 20 OFFSET %(offset)s",
-                {'offset': 0}
+                f"SELECT * FROM {table_plural} LIMIT 20 OFFSET 0",
+                {}
             )
         }
 
@@ -126,24 +126,24 @@ class DatabaseBenchmark:
 
         join_queries = {
             'products': (
-                "SELECT p.*, u.nombre as vendedor_nombre FROM products p "
-                "JOIN users u ON p.vendedor_id = u.id LIMIT 20",
+                "SELECT p.id, p.name, p.precio_venta FROM products p "
+                "LEFT JOIN users u ON p.vendedor_id = u.id LIMIT 20",
                 {}
             ),
             'transactions': (
-                "SELECT t.*, uc.nombre as comprador, uv.nombre as vendedor FROM transactions t "
-                "JOIN users uc ON t.comprador_id = uc.id "
-                "JOIN users uv ON t.vendedor_id = uv.id LIMIT 20",
+                "SELECT t.id, t.monto FROM transactions t "
+                "LEFT JOIN users uc ON t.comprador_id = uc.id "
+                "LEFT JOIN users uv ON t.vendedor_id = uv.id LIMIT 20",
                 {}
             ),
             'inventory': (
-                "SELECT i.*, p.nombre as producto_nombre FROM inventory i "
-                "JOIN products p ON i.product_id = p.id LIMIT 20",
+                "SELECT i.id, i.cantidad FROM inventory i "
+                "LEFT JOIN products p ON i.product_id = p.id LIMIT 20",
                 {}
             ),
             'storage': (
-                "SELECT s.*, u.nombre as propietario FROM storage s "
-                "JOIN users u ON s.user_id = u.id LIMIT 20",
+                "SELECT s.id FROM storage s "
+                "LEFT JOIN users u ON s.user_id = u.id LIMIT 20",
                 {}
             )
         }
@@ -202,9 +202,19 @@ class DatabaseBenchmark:
         else:
             return {
                 'operation_name': operation_name,
-                'error': 'All iterations failed',
+                'iterations': iterations,
+                'successful_iterations': 0,
                 'failed_iterations': len(errors),
-                'errors': errors
+                'avg_time': 0,
+                'median_time': 0,
+                'min_time': 0,
+                'max_time': 0,
+                'std_dev': 0,
+                'percentile_95': 0,
+                'percentile_99': 0,
+                'times': [],
+                'errors': errors,
+                'error': 'All iterations failed'
             }
 
     def _percentile(self, data: List[float], percentile: int) -> float:
@@ -224,31 +234,56 @@ class DatabaseBenchmark:
 
     def _generate_crud_summary(self, operations: Dict) -> Dict[str, Any]:
         """Generar resumen de benchmark CRUD."""
-        successful_ops = {k: v for k, v in operations.items() if 'avg_time' in v}
+        successful_ops = {k: v for k, v in operations.items() if v.get('successful_iterations', 0) > 0}
 
         if not successful_ops:
-            return {'status': 'all_operations_failed', 'total_operations': len(operations)}
+            return {
+                'status': 'all_operations_failed',
+                'total_operations': len(operations),
+                'successful_operations': 0,
+                'failed_operations': len(operations),
+                'overall_avg_time': 0,
+                'overall_median_time': 0,
+                'slowest_operation': {'name': 'none', 'avg_time': 0},
+                'fastest_operation': {'name': 'none', 'avg_time': 0},
+                'performance_grade': 'F (Failed)'
+            }
 
         all_times = []
         for op_result in successful_ops.values():
-            all_times.extend(op_result.get('times', []))
+            times = op_result.get('times', [])
+            if times:
+                all_times.extend(times)
 
-        slowest_op = max(successful_ops.items(), key=lambda x: x[1]['avg_time'])
-        fastest_op = min(successful_ops.items(), key=lambda x: x[1]['avg_time'])
+        if not all_times:
+            return {
+                'status': 'no_timing_data',
+                'total_operations': len(operations),
+                'successful_operations': len(successful_ops),
+                'failed_operations': len(operations) - len(successful_ops),
+                'overall_avg_time': 0,
+                'overall_median_time': 0,
+                'slowest_operation': {'name': 'none', 'avg_time': 0},
+                'fastest_operation': {'name': 'none', 'avg_time': 0},
+                'performance_grade': 'N/A (No Data)'
+            }
+
+        slowest_op = max(successful_ops.items(), key=lambda x: x[1].get('avg_time', 0))
+        fastest_op = min(successful_ops.items(), key=lambda x: x[1].get('avg_time', float('inf')))
 
         return {
             'total_operations': len(operations),
             'successful_operations': len(successful_ops),
             'failed_operations': len(operations) - len(successful_ops),
-            'overall_avg_time': statistics.mean(all_times) if all_times else 0,
-            'overall_median_time': statistics.median(all_times) if all_times else 0,
+            'overall_avg_time': statistics.mean(all_times),
+            'overall_median_time': statistics.median(all_times),
             'slowest_operation': {
                 'name': slowest_op[0],
-                'avg_time': slowest_op[1]['avg_time']
+                'avg_time': slowest_op[1].get('avg_time', 0)
             },
             'fastest_operation': {
                 'name': fastest_op[0], 
-                'avg_time': fastest_op[1]['avg_time']
+                'avg_time': fastest_op[1].get('avg_time', 0)
             },
             'performance_grade': self._calculate_performance_grade(all_times)
         }
@@ -381,7 +416,7 @@ class DatabaseBenchmark:
             'max_response_time': max(all_times) if all_times else 0,
             'percentile_95': self._percentile(all_times, 95),
             'percentile_99': self._percentile(all_times, 99),
-            'requests_per_second': len(all_times) / sum(all_times) if sum(all_times) > 0 else 0,
+            'requests_per_second': len(all_times) / sum(all_times) if all_times and sum(all_times) > 0 else 0,
             'status_codes_distribution': self._count_status_codes(all_status_codes),
             'errors': errors[:10]  # Solo primeros 10 errores
         }

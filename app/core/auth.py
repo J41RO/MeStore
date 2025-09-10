@@ -45,12 +45,12 @@ class AuthService:
         Returns:
             Usuario si credenciales son válidas, None si son inválidas
         """
-        from app.database import get_db
+        from app.database import AsyncSessionLocal
         from app.models.user import User
         from sqlalchemy import select
 
         # Obtener sesión de base de datos
-        async for db in get_db():
+        async with AsyncSessionLocal() as db:
             try:
                 # Buscar usuario por email
                 stmt = select(User).where(User.email == email)
@@ -68,10 +68,9 @@ class AuthService:
 
             except Exception as e:
                 # Log error pero no revelar detalles por seguridad
+                import logging
+                logging.error(f"Error en authenticate_user: {str(e)}")
                 return None
-            finally:
-                await db.close()
-                break
 
     def create_access_token(self, user_id: str, expires_delta: Optional[timedelta] = None):
         """Crear access token JWT para usuario"""
@@ -96,7 +95,7 @@ class AuthService:
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security)
-) -> dict:
+):
     """
     Dependency para obtener usuario actual desde JWT token.
 
@@ -104,7 +103,7 @@ async def get_current_user(
         credentials: Token Bearer del header Authorization
 
     Returns:
-        Dict con información del usuario
+        User object del usuario actual
 
     Raises:
         HTTPException: 401 si token es inválido
@@ -121,14 +120,30 @@ async def get_current_user(
                 headers={"WWW-Authenticate": "Bearer"}
             )
 
-        # Aquí podrías agregar verificación adicional como:
-        # - Verificar que el usuario existe en BD
-        # - Verificar que el token no está en blacklist
-        # - Verificar roles/permisos
+        # Buscar usuario en base de datos
+        from app.database import AsyncSessionLocal
+        from app.models.user import User
+        from sqlalchemy import select
 
-        return {"user_id": user_id, "email": payload.get("email")}
+        async with AsyncSessionLocal() as db:
+            stmt = select(User).where(User.id == user_id)
+            result = await db.execute(stmt)
+            user = result.scalar_one_or_none()
 
-    except Exception:
+            if not user:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Usuario no encontrado",
+                    headers={"WWW-Authenticate": "Bearer"}
+                )
+
+            return user
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        import logging
+        logging.error(f"Error en get_current_user: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token inválido",
