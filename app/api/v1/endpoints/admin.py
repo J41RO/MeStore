@@ -1,15 +1,22 @@
 from typing import List, Optional
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, status
+import uuid
+import os
+import aiofiles
+from pathlib import Path
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func, and_, select
 from datetime import datetime, timedelta
+from PIL import Image
+import io
 
 from app.core.auth import get_current_user
 from app.database import get_async_db as get_db
 from app.models import User, Product, Transaction
 from app.models.incoming_product_queue import IncomingProductQueue
 from app.schemas.admin import AdminDashboardResponse, GlobalKPIs, PeriodMetrics
+from app.schemas.product_verification import QualityPhoto, PhotoUploadResponse, QualityChecklist, QualityChecklistRequest
 from app.services.product_verification_workflow import ProductVerificationWorkflow, VerificationStep, StepResult
 from app.core.config import settings
 
@@ -426,4 +433,273 @@ async def get_verification_history(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al obtener historial de verificación: {str(e)}"
+        )
+
+
+# =============================================================================
+# ENDPOINTS PARA UPLOAD DE FOTOS Y CHECKLIST DE CALIDAD
+# =============================================================================
+
+@router.post("/incoming-products/{queue_id}/verification/upload-photos", response_model=PhotoUploadResponse)
+async def upload_verification_photos(
+    queue_id: UUID,
+    files: List[UploadFile] = File(...),
+    photo_types: List[str] = Form(...),
+    descriptions: List[str] = Form(default=[]),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Upload de fotos para verificación de calidad"""
+    
+    # Verificar permisos de administrador
+    if not (current_user.is_superuser or 
+            (hasattr(current_user, 'user_type') and current_user.user_type in ['ADMIN', 'SUPERUSER'])):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos para subir fotos"
+        )
+    
+    # Verificar que el producto existe
+    query = select(IncomingProductQueue).filter(IncomingProductQueue.id == queue_id)
+    result = await db.execute(query)
+    queue_item = result.scalar_one_or_none()
+    if not queue_item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Producto no encontrado en la cola"
+        )
+    
+    # Validar tipos de archivo permitidos
+    allowed_types = ["image/jpeg", "image/png", "image/webp", "image/jpg"]
+    max_file_size = 10 * 1024 * 1024  # 10MB máximo
+    
+    uploaded_photos = []
+    failed_uploads = []
+    
+    # Crear directorio si no existe
+    upload_dir = Path("uploads/verification_photos")
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    
+    try:
+        for i, file in enumerate(files):
+            try:
+                # Validar tipo de archivo
+                if file.content_type not in allowed_types:
+                    failed_uploads.append(f"{file.filename}: Tipo de archivo no permitido")
+                    continue
+                
+                # Leer contenido del archivo
+                content = await file.read()
+                
+                # Validar tamaño
+                if len(content) > max_file_size:
+                    failed_uploads.append(f"{file.filename}: Archivo demasiado grande (máximo 10MB)")
+                    continue
+                
+                # Generar nombre único
+                file_extension = file.filename.split('.')[-1] if '.' in file.filename else 'jpg'
+                unique_filename = f"verification_{queue_id}_{uuid.uuid4().hex}.{file_extension}"
+                file_path = upload_dir / unique_filename
+                
+                # Procesar y comprimir imagen
+                try:
+                    with Image.open(io.BytesIO(content)) as img:
+                        # Convertir a RGB si es necesario
+                        if img.mode in ('RGBA', 'LA', 'P'):
+                            img = img.convert('RGB')
+                        
+                        # Redimensionar si es muy grande
+                        img.thumbnail((1200, 1200), Image.Resampling.LANCZOS)
+                        
+                        # Guardar archivo comprimido
+                        img.save(file_path, optimize=True, quality=85)
+                    
+                    # Crear objeto QualityPhoto
+                    photo_type = photo_types[i] if i < len(photo_types) else "general"
+                    description = descriptions[i] if i < len(descriptions) else None
+                    
+                    quality_photo = QualityPhoto(
+                        photo_type=photo_type,
+                        filename=unique_filename,
+                        url=f"/uploads/verification_photos/{unique_filename}",
+                        description=description,
+                        is_required=photo_type in ["general", "damage", "label"],
+                        uploaded_at=datetime.now()
+                    )
+                    
+                    uploaded_photos.append(quality_photo)
+                    
+                except Exception as img_error:
+                    failed_uploads.append(f"{file.filename}: Error procesando imagen - {str(img_error)}")
+                    # Limpiar archivo si se creó
+                    if file_path.exists():
+                        file_path.unlink()
+                    continue
+                    
+            except Exception as file_error:
+                failed_uploads.append(f"{file.filename}: Error procesando archivo - {str(file_error)}")
+                continue
+        
+        return PhotoUploadResponse(
+            uploaded_photos=uploaded_photos,
+            total_uploaded=len(uploaded_photos),
+            failed_uploads=failed_uploads
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error subiendo fotos: {str(e)}"
+        )
+
+
+@router.delete("/verification-photos/{filename}")
+async def delete_verification_photo(
+    filename: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Eliminar foto de verificación"""
+    
+    # Verificar permisos de administrador
+    if not (current_user.is_superuser or 
+            (hasattr(current_user, 'user_type') and current_user.user_type in ['ADMIN', 'SUPERUSER'])):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos para eliminar fotos"
+        )
+    
+    try:
+        # Validar nombre de archivo (seguridad)
+        if not filename.startswith("verification_") or ".." in filename:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Nombre de archivo inválido"
+            )
+        
+        file_path = Path("uploads/verification_photos") / filename
+        
+        if file_path.exists():
+            file_path.unlink()
+            return {"message": "Foto eliminada exitosamente", "filename": filename}
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Foto no encontrada"
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error eliminando foto: {str(e)}"
+        )
+
+
+@router.post("/incoming-products/{queue_id}/verification/quality-checklist")
+async def submit_quality_checklist(
+    queue_id: UUID,
+    checklist_request: QualityChecklistRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Enviar checklist de calidad completado"""
+    
+    # Verificar permisos de administrador
+    if not (current_user.is_superuser or 
+            (hasattr(current_user, 'user_type') and current_user.user_type in ['ADMIN', 'SUPERUSER'])):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos para enviar checklists"
+        )
+    
+    # Verificar que el queue_id coincida
+    if checklist_request.queue_id != queue_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="ID de cola no coincide"
+        )
+    
+    # Obtener item de la cola
+    query = select(IncomingProductQueue).filter(IncomingProductQueue.id == queue_id)
+    result = await db.execute(query)
+    queue_item = result.scalar_one_or_none()
+    if not queue_item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Producto no encontrado en la cola"
+        )
+    
+    try:
+        checklist = checklist_request.checklist
+        
+        # Actualizar campos de calidad en el queue_item
+        queue_item.quality_score = checklist.quality_score
+        queue_item.verification_notes = checklist.inspector_notes
+        queue_item.quality_issues = f"Daños: {checklist.has_damage}, Faltantes: {checklist.has_missing_parts}, Defectos: {checklist.has_defects}"
+        
+        # Añadir metadatos del inspector
+        if checklist.inspector_id:
+            queue_item.assigned_to = UUID(checklist.inspector_id) if isinstance(checklist.inspector_id, str) else checklist.inspector_id
+        
+        # Ejecutar paso de quality_assessment con los resultados del checklist
+        step_data = {
+            "step": "quality_assessment",
+            "passed": checklist.approved,
+            "notes": checklist.inspector_notes,
+            "metadata": {
+                "quality_checklist": checklist.dict(),
+                "quality_score": checklist.quality_score,
+                "inspector_id": checklist.inspector_id or str(current_user.id),
+                "inspection_duration_minutes": checklist.inspection_duration_minutes,
+                "overall_condition": checklist.overall_condition,
+                "approved": checklist.approved
+            }
+        }
+        
+        # Crear objetos para el workflow
+        step = VerificationStep(step_data['step'])
+        step_result = StepResult(
+            passed=step_data['passed'],
+            notes=step_data['notes'],
+            issues=[],
+            metadata=step_data.get('metadata', {})
+        )
+        
+        # Ejecutar paso en el workflow
+        workflow = ProductVerificationWorkflow(db, queue_item)
+        success = workflow.execute_step(step, step_result)
+        
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No se pudo procesar el checklist de calidad"
+            )
+        
+        # Commitear cambios
+        await db.commit()
+        
+        # Obtener estado actualizado del workflow
+        updated_progress = workflow.get_workflow_progress()
+        
+        return {
+            "status": "success",
+            "message": "Checklist de calidad procesado exitosamente",
+            "data": {
+                "checklist": checklist.dict(),
+                "workflow_progress": updated_progress
+            }
+        }
+        
+    except ValueError as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Valor inválido en checklist: {str(e)}"
+        )
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error procesando checklist de calidad: {str(e)}"
         )
