@@ -14,6 +14,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { name: 'Panel Admin', href: '/admin-secure-portal/dashboard' },
     { name: 'Gestión de Usuarios', href: '/admin-secure-portal/users' },
     { name: 'Cola de Productos Entrantes', href: '/admin-secure-portal/cola-productos-entrantes' },
+    { name: 'Storage Manager', href: '/admin-secure-portal/storage-manager' },
     { name: 'Alertas e Incidentes', href: '/admin-secure-portal/alertas-incidentes' },
     { name: 'Movement Tracker', href: '/admin-secure-portal/movement-tracker' },
     { name: 'Reportes de Discrepancias', href: '/admin-secure-portal/reportes-discrepancias' },

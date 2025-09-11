@@ -39,6 +39,7 @@ const VendorTest = lazy(() => import('./pages/VendorTest'));
 const Marketplace = lazy(() => import('./pages/Marketplace'));
 const AdminRestricted = lazy(() => import('./pages/AdminRestricted'));
 const InventoryAuditPanel = lazy(() => import('./components/admin/InventoryAuditPanel'));
+const StorageManagerDashboard = lazy(() => import('./components/admin/StorageManagerDashboard'));
 
 function App() {
   return (
@@ -197,6 +198,7 @@ function App() {
                     <Route path='system-config' element={<SystemConfig />} />
                     <Route path='warehouse-map' element={<WarehouseMap />} />
                     <Route path='auditoria' element={<InventoryAuditPanel />} />
+                    <Route path='storage-manager' element={<StorageManagerDashboard />} />
                     <Route
                       index
                       element={<Navigate to='dashboard' replace />}

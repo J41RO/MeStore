@@ -341,10 +341,11 @@ class TestRejectionSystemSecurity:
     def test_admin_permission_allowed(self):
         """Test que usuarios admin pueden acceder"""
         from app.api.v1.endpoints.admin import get_current_admin_user
+        from app.models.user import UserType
         
         # Usuario con permisos
         mock_user = Mock()
-        mock_user.is_superuser = True
+        mock_user.user_type = UserType.SUPERUSER
         
         result = get_current_admin_user(mock_user)
         assert result == mock_user
