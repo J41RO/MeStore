@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID as SQLAlchemyUUID
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.models.base import BaseModel
@@ -12,20 +13,20 @@ class PayoutHistory(BaseModel):
     __tablename__ = "payout_history"
     
     id = Column(Integer, primary_key=True, index=True)
-    payout_request_id = Column(Integer, ForeignKey("payout_requests.id"), nullable=False, index=True)
+    payout_request_id = Column(SQLAlchemyUUID(as_uuid=True), ForeignKey("payout_requests.id"), nullable=False, index=True)
     estado_anterior = Column(String(50), nullable=True)  # None para el primer estado
     estado_nuevo = Column(String(50), nullable=False)
     fecha_cambio = Column(DateTime, default=datetime.utcnow, nullable=False)
     observaciones = Column(Text, nullable=True)
-    usuario_responsable = Column(Integer, ForeignKey("users.id"), nullable=True)
+    usuario_responsable = Column(SQLAlchemyUUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     
     # Relationships
     payout_request = relationship("PayoutRequest", back_populates="history")
     usuario = relationship("User")
     
     @classmethod
-    def registrar_cambio(cls, db_session, payout_request_id: int, estado_anterior: str, 
-                        estado_nuevo: str, observaciones: str = None, usuario_id: int = None):
+    def registrar_cambio(cls, db_session, payout_request_id, estado_anterior: str, 
+                        estado_nuevo: str, observaciones: str = None, usuario_id = None):
         """
         Método para registrar automáticamente cambios de estado.
         

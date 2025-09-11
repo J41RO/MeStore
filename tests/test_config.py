@@ -75,7 +75,7 @@ class TestDatabaseURLConfiguration:
        settings = Settings()
 
        # Verificar que es un Field de Pydantic
-       field_info = settings.model_fields['DATABASE_URL']
+       field_info = Settings.model_fields['DATABASE_URL']
        assert field_info.description is not None
        assert 'PostgreSQL' in field_info.description
 
@@ -83,6 +83,6 @@ class TestDatabaseURLConfiguration:
        """Test que verifica que DB_ECHO tiene Field con descripción."""
        settings = Settings()
 
-       field_info = settings.model_fields['DB_ECHO']
+       field_info = Settings.model_fields['DB_ECHO']
        assert field_info.description is not None
        assert 'debugging' in field_info.description.lower()

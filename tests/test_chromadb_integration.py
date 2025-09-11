@@ -4,6 +4,7 @@ Script de prueba realista para ChromaDB y embeddings.
 Valida todo el pipeline con productos del marketplace colombiano.
 """
 
+import pytest
 import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
@@ -50,10 +51,10 @@ def test_marketplace_products():
         stats = get_collection_stats("products")
         print(f"📊 Total items en colección: {stats['count']}")
         
-        return True
+        assert True
     else:
         print("❌ Error agregando productos")
-        return False
+        assert False, "Failed to add products to ChromaDB"
 
 def test_semantic_queries():
     """Probar consultas semánticas realistas."""
@@ -77,13 +78,17 @@ def test_semantic_queries():
         try:
             resultados = query_similar("products", consulta, n_results=3)
             
-            if resultados and resultados['ids'][0]:
-                print(f"   📋 Encontrados {len(resultados['ids'][0])} resultados:")
+            if resultados and resultados['ids']:
+                ids = resultados['ids'] if isinstance(resultados['ids'], list) else [resultados['ids']]
+                docs = resultados['documents'] if isinstance(resultados['documents'], list) else [resultados['documents']]
+                distances = resultados['distances'] if isinstance(resultados['distances'], list) else [resultados['distances']]
+                
+                print(f"   📋 Encontrados {len(ids)} resultados:")
                 
                 for i, (doc_id, documento, distancia) in enumerate(zip(
-                    resultados['ids'][0][:2],  # Solo primeros 2
-                    resultados['documents'][0][:2],
-                    resultados['distances'][0][:2]
+                    ids[:2],  # Solo primeros 2
+                    docs[:2],
+                    distances[:2]
                 )):
                     similitud = 1.0 - distancia
                     print(f"   {i+1}. {documento[:60]}... (similitud: {similitud:.3f})")
@@ -96,7 +101,7 @@ def test_semantic_queries():
             print(f"   ❌ Error en consulta: {e}")
     
     print(f"\n📊 Consultas exitosas: {resultados_exitosos}/{len(consultas_prueba)}")
-    return resultados_exitosos == len(consultas_prueba)
+    assert resultados_exitosos == len(consultas_prueba), f"Only {resultados_exitosos}/{len(consultas_prueba)} queries were successful"
 
 def test_filtered_search():
     """Probar búsquedas con filtros."""
@@ -136,11 +141,11 @@ def test_filtered_search():
         
         print(f"   📋 Productos económicos: {len(resultados_economicos['ids'][0])}")
         
-        return True
+        assert True
         
     except Exception as e:
         print(f"❌ Error en búsquedas filtradas: {e}")
-        return False
+        assert False, f"Filtered search failed: {e}"
 
 def main():
     """Ejecutar todas las pruebas."""

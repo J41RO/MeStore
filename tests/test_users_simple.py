@@ -136,7 +136,9 @@ class TestUsersSimpleMigration:
             # Campos Password Reset agregados
             'reset_token', 'reset_token_expires_at', 'reset_attempts', 'last_reset_request',
             # Campos bancarios agregados
-            'banco', 'tipo_cuenta', 'numero_cuenta'}
+            'banco', 'tipo_cuenta', 'numero_cuenta',
+            # Campo vendor status agregado
+            'vendor_status'}
         model_fields = {col.name for col in User.__table__.columns}
         
         assert expected_fields == model_fields, f"Campos del modelo no coinciden: esperados={expected_fields}, modelo={model_fields}"
