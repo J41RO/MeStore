@@ -19,6 +19,7 @@ from app.models.incoming_product_queue import IncomingProductQueue
 from app.schemas.admin import AdminDashboardResponse, GlobalKPIs, PeriodMetrics
 from app.schemas.product_verification import QualityPhoto, PhotoUploadResponse, QualityChecklist, QualityChecklistRequest
 from app.services.product_verification_workflow import ProductVerificationWorkflow, VerificationStep, StepResult, ProductRejection, RejectionReason
+from app.services.location_assignment_service import LocationAssignmentService, AssignmentStrategy
 from app.core.config import settings
 
 router = APIRouter()
@@ -942,4 +943,406 @@ async def approve_product(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error procesando aprobación: {str(e)}"
+        )
+
+
+# ENDPOINTS PARA SISTEMA DE ASIGNACIÓN DE UBICACIÓN
+
+@router.post("/incoming-products/{queue_id}/location/auto-assign")
+async def auto_assign_location(
+    queue_id: int,
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Asignar automáticamente ubicación óptima al producto"""
+    
+    # Obtener producto de la cola
+    queue_item = db.query(IncomingProductQueue).filter(
+        IncomingProductQueue.id == queue_id
+    ).first()
+    
+    if not queue_item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Producto no encontrado en cola"
+        )
+    
+    # Verificar que el producto esté en el estado correcto para asignación
+    if queue_item.verification_status not in ["QUALITY_CHECK", "IN_PROGRESS"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"El producto debe estar en estado QUALITY_CHECK o IN_PROGRESS para asignar ubicación. Estado actual: {queue_item.verification_status}"
+        )
+    
+    try:
+        # Crear workflow y asignar ubicación
+        workflow = ProductVerificationWorkflow(db, queue_item)
+        result = await workflow.auto_assign_location(str(current_user.id))
+        
+        if result["success"]:
+            return {
+                "status": "success",
+                "message": result["message"],
+                "data": {
+                    "queue_id": queue_id,
+                    "tracking_number": queue_item.tracking_number,
+                    "assigned_location": result["location"],
+                    "assignment_strategy": "automatic",
+                    "assigned_by": current_user.id,
+                    "assigned_at": datetime.utcnow().isoformat()
+                }
+            }
+        else:
+            return {
+                "status": "error",
+                "message": result["message"],
+                "data": {
+                    "queue_id": queue_id,
+                    "suggestion": result.get("suggestion"),
+                    "manual_assignment_required": True
+                }
+            }
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error en asignación automática: {str(e)}"
+        )
+
+
+@router.get("/incoming-products/{queue_id}/location/suggestions")
+async def get_location_suggestions(
+    queue_id: int,
+    limit: int = 5,
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Obtener sugerencias de ubicaciones para asignación manual"""
+    
+    # Obtener producto de la cola
+    queue_item = db.query(IncomingProductQueue).filter(
+        IncomingProductQueue.id == queue_id
+    ).first()
+    
+    if not queue_item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Producto no encontrado en cola"
+        )
+    
+    try:
+        # Crear workflow y obtener sugerencias
+        workflow = ProductVerificationWorkflow(db, queue_item)
+        suggestions = await workflow.suggest_manual_locations(limit)
+        
+        return {
+            "status": "success",
+            "data": {
+                "queue_id": queue_id,
+                "tracking_number": queue_item.tracking_number,
+                "product_info": {
+                    "name": queue_item.product.nombre if queue_item.product else None,
+                    "category": queue_item.product.categoria if queue_item.product else None,
+                    "dimensions": queue_item.product.dimensiones if queue_item.product else None,
+                    "weight": getattr(queue_item.product, 'peso', None) if queue_item.product else None
+                },
+                "location_suggestions": suggestions,
+                "suggestion_count": len(suggestions),
+                "manual_assignment_instructions": "Seleccione una ubicación y confirme la asignación manual"
+            }
+        }
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error obteniendo sugerencias: {str(e)}"
+        )
+
+
+@router.post("/incoming-products/{queue_id}/location/manual-assign")
+async def manual_assign_location(
+    queue_id: int,
+    zona: str,
+    estante: str,
+    posicion: str = "01",
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Asignar manualmente ubicación específica al producto"""
+    
+    # Obtener producto de la cola
+    queue_item = db.query(IncomingProductQueue).filter(
+        IncomingProductQueue.id == queue_id
+    ).first()
+    
+    if not queue_item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Producto no encontrado en cola"
+        )
+    
+    # Verificar que el producto esté en el estado correcto para asignación
+    if queue_item.verification_status not in ["QUALITY_CHECK", "IN_PROGRESS"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"El producto debe estar en estado QUALITY_CHECK o IN_PROGRESS para asignar ubicación. Estado actual: {queue_item.verification_status}"
+        )
+    
+    try:
+        # Crear servicio de asignación
+        location_service = LocationAssignmentService(db)
+        
+        # Verificar que la ubicación existe y está disponible
+        available_locations = await location_service._get_available_locations()
+        target_location = None
+        
+        for location in available_locations:
+            if (location["zona"] == zona and 
+                location["estante"] == estante and 
+                location.get("posicion", "01") == posicion):
+                target_location = location
+                break
+        
+        if not target_location:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"La ubicación {zona}-{estante}-{posicion} no está disponible"
+            )
+        
+        # Crear ubicación mock para reservar
+        from app.services.location_assignment_service import LocationScore
+        location_score = LocationScore(
+            zona=zona,
+            estante=estante,
+            posicion=posicion,
+            score=10.0,  # Asignación manual tiene score máximo
+            reasons=["Asignación manual por inspector"],
+            capacity_available=target_location["available_capacity"]
+        )
+        
+        # Reservar la ubicación
+        product = queue_item.product
+        if not product:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Producto no encontrado"
+            )
+        
+        success = await location_service._reserve_location(location_score, product)
+        
+        if success:
+            # Actualizar el estado del workflow
+            queue_item.verification_status = "APPROVED"
+            
+            # Guardar información de ubicación en metadata
+            if not queue_item.metadata:
+                queue_item.metadata = {}
+            
+            queue_item.metadata['assigned_location'] = {
+                "zona": zona,
+                "estante": estante,
+                "posicion": posicion,
+                "score": 10.0,
+                "reasons": ["Asignación manual por inspector"]
+            }
+            queue_item.metadata['assigned_by'] = str(current_user.id)
+            queue_item.metadata['assignment_date'] = datetime.utcnow().isoformat()
+            queue_item.metadata['assignment_type'] = 'manual'
+            
+            # Actualizar notas de verificación
+            location_info = f"Ubicación asignada manualmente: {zona}-{estante}-{posicion}"
+            if queue_item.verification_notes:
+                queue_item.verification_notes += f"\n{location_info}"
+            else:
+                queue_item.verification_notes = location_info
+            
+            db.commit()
+            
+            return {
+                "status": "success",
+                "message": "Ubicación asignada manualmente",
+                "data": {
+                    "queue_id": queue_id,
+                    "tracking_number": queue_item.tracking_number,
+                    "assigned_location": {
+                        "zona": zona,
+                        "estante": estante,
+                        "posicion": posicion,
+                        "full_location": f"{zona}-{estante}-{posicion}"
+                    },
+                    "assignment_strategy": "manual",
+                    "assigned_by": current_user.id,
+                    "assigned_at": datetime.utcnow().isoformat(),
+                    "new_status": "APPROVED"
+                }
+            }
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error reservando la ubicación"
+            )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error en asignación manual: {str(e)}"
+        )
+
+
+@router.get("/warehouse/availability")
+async def get_warehouse_availability(
+    zone: Optional[str] = None,
+    include_occupancy: bool = True,
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Obtener disponibilidad actual del almacén con análisis de ocupación"""
+    
+    try:
+        # Crear servicio de asignación
+        location_service = LocationAssignmentService(db)
+        
+        # Obtener analytics del almacén
+        analytics = await location_service.get_assignment_analytics()
+        
+        # Obtener ubicaciones disponibles
+        available_locations = await location_service._get_available_locations()
+        
+        # Filtrar por zona si se especifica
+        if zone:
+            available_locations = [loc for loc in available_locations if loc["zona"].upper() == zone.upper()]
+            zone_analytics = analytics["zones_statistics"].get(zone.upper(), {})
+        else:
+            zone_analytics = analytics["zones_statistics"]
+        
+        # Preparar datos de respuesta
+        warehouse_data = {
+            "availability_summary": {
+                "total_locations": analytics["total_locations"],
+                "total_capacity": analytics["total_capacity"],
+                "total_available": analytics["total_available"],
+                "utilization_rate": round(((analytics["total_capacity"] - analytics["total_available"]) / max(1, analytics["total_capacity"])) * 100, 2),
+                "zones_count": len(analytics["zones_statistics"])
+            },
+            "zones_detail": zone_analytics,
+            "available_locations": available_locations,
+            "assignment_strategies": analytics["assignment_strategies"]
+        }
+        
+        if include_occupancy:
+            # Agregar información de ocupación por categoría
+            from sqlalchemy import text
+            
+            occupancy_query = text("""
+                SELECT 
+                    i.zona,
+                    p.categoria,
+                    COUNT(*) as product_count,
+                    SUM(i.cantidad_disponible) as available_space
+                FROM inventory i
+                LEFT JOIN products p ON p.id = i.product_id  
+                WHERE i.is_active = true
+                GROUP BY i.zona, p.categoria
+                ORDER BY i.zona, p.categoria
+            """)
+            
+            occupancy_result = db.execute(occupancy_query)
+            occupancy_data = []
+            
+            for row in occupancy_result:
+                occupancy_data.append({
+                    "zona": row.zona,
+                    "categoria": row.categoria or "Sin categoría",
+                    "product_count": row.product_count,
+                    "available_space": row.available_space
+                })
+            
+            warehouse_data["occupancy_by_category"] = occupancy_data
+        
+        return {
+            "status": "success",
+            "data": warehouse_data,
+            "filtered_by_zone": zone,
+            "last_updated": datetime.utcnow().isoformat()
+        }
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error obteniendo disponibilidad del almacén: {str(e)}"
+        )
+
+
+@router.get("/location-assignment/analytics")
+async def get_assignment_analytics(
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Obtener analytics del sistema de asignación de ubicaciones"""
+    
+    try:
+        # Crear servicio de asignación
+        location_service = LocationAssignmentService(db)
+        
+        # Obtener analytics completos
+        analytics = await location_service.get_assignment_analytics()
+        
+        # Obtener estadísticas de asignaciones recientes
+        from sqlalchemy import text
+        
+        recent_assignments_query = text("""
+            SELECT 
+                DATE(updated_at) as assignment_date,
+                COUNT(*) as assignments_count,
+                AVG(CAST(quality_score AS FLOAT)) as avg_quality_score
+            FROM incoming_product_queue 
+            WHERE verification_status IN ('APPROVED', 'COMPLETED')
+            AND updated_at >= CURRENT_DATE - INTERVAL '30 days'
+            AND metadata::text LIKE '%assigned_location%'
+            GROUP BY DATE(updated_at)
+            ORDER BY assignment_date DESC
+            LIMIT 30
+        """)
+        
+        recent_results = db.execute(recent_assignments_query)
+        recent_assignments = []
+        
+        for row in recent_results:
+            recent_assignments.append({
+                "date": row.assignment_date.isoformat() if row.assignment_date else None,
+                "assignments_count": row.assignments_count,
+                "avg_quality_score": round(float(row.avg_quality_score), 2) if row.avg_quality_score else 0
+            })
+        
+        # Estadísticas de estrategias de asignación
+        strategy_stats = {}
+        for strategy in AssignmentStrategy:
+            strategy_stats[strategy.value] = {
+                "name": strategy.value.replace('_', ' ').title(),
+                "description": f"Estrategia de {strategy.value}",
+                "usage_count": 0  # En producción, esto vendría de logs/analytics
+            }
+        
+        return {
+            "status": "success",
+            "data": {
+                "warehouse_analytics": analytics,
+                "recent_assignments": recent_assignments,
+                "assignment_strategies": strategy_stats,
+                "performance_metrics": {
+                    "total_assignments_last_30_days": len(recent_assignments),
+                    "average_daily_assignments": round(len(recent_assignments) / max(1, 30), 2),
+                    "warehouse_efficiency": analytics.get("utilization_rate", 0)
+                },
+                "last_calculated": datetime.utcnow().isoformat()
+            }
+        }
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error obteniendo analytics de asignación: {str(e)}"
         )

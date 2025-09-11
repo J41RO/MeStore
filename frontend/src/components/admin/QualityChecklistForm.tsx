@@ -1,5 +1,9 @@
-import React, { useState } from 'react';
+import * as React from 'react';
+import { useState } from 'react';
 import { X, Camera, Ruler, CheckCircle, AlertTriangle, Package, FileText } from 'lucide-react';
+
+// Modo producción: fotos requeridas normalmente
+const DEVELOPMENT_MODE = false;
 
 interface QualityChecklistFormProps {
   queueId: string;
@@ -138,7 +142,7 @@ export const QualityChecklistForm: React.FC<QualityChecklistFormProps> = ({
     try {
       const token = localStorage.getItem('access_token');
       const response = await fetch(
-        `http://192.168.1.137:8000/api/v1/admin/incoming-products/${queueId}/verification/upload-photos`,
+        `/api/v1/admin/incoming-products/${queueId}/verification/upload-photos`,
         {
           method: 'POST',
           headers: {
@@ -180,7 +184,7 @@ export const QualityChecklistForm: React.FC<QualityChecklistFormProps> = ({
     try {
       const token = localStorage.getItem('access_token');
       const response = await fetch(
-        `http://192.168.1.137:8000/api/v1/admin/verification-photos/${photo.filename}`,
+        `/api/v1/admin/verification-photos/${photo.filename}`,
         {
           method: 'DELETE',
           headers: {
@@ -244,17 +248,20 @@ export const QualityChecklistForm: React.FC<QualityChecklistFormProps> = ({
       errors.push('Debe seleccionar la condición general del producto');
     }
     
-    if (checklist.photos.length === 0) {
-      errors.push('Debe subir al menos una foto');
-    }
-    
-    // Verificar fotos requeridas
-    const requiredTypes = requiredPhotoTypes.filter(pt => pt.required).map(pt => pt.type);
-    const uploadedTypes = checklist.photos.map(p => p.photo_type);
-    const missingTypes = requiredTypes.filter(type => !uploadedTypes.includes(type));
-    
-    if (missingTypes.length > 0) {
-      errors.push(`Faltan fotos requeridas: ${missingTypes.join(', ')}`);
+    // Solo validar fotos en modo producción
+    if (!DEVELOPMENT_MODE) {
+      if (checklist.photos.length === 0) {
+        errors.push('Debe subir al menos una foto');
+      }
+      
+      // Verificar fotos requeridas
+      const requiredTypes = requiredPhotoTypes.filter(pt => pt.required).map(pt => pt.type);
+      const uploadedTypes = checklist.photos.map(p => p.photo_type);
+      const missingTypes = requiredTypes.filter(type => !uploadedTypes.includes(type));
+      
+      if (missingTypes.length > 0) {
+        errors.push(`Faltan fotos requeridas: ${missingTypes.join(', ')}`);
+      }
     }
     
     if (checklist.dimensions.length_cm <= 0 || 
@@ -324,16 +331,22 @@ export const QualityChecklistForm: React.FC<QualityChecklistFormProps> = ({
         <h4 className="font-semibold flex items-center mb-4 text-gray-900">
           <Camera className="w-5 h-5 mr-2 text-blue-600" />
           Evidencia Fotográfica
+          {DEVELOPMENT_MODE && (
+            <span className="ml-3 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
+              MODO DESARROLLO - OPCIONAL
+            </span>
+          )}
         </h4>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {requiredPhotoTypes.map(photoType => (
             <div key={photoType.type} 
                  className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors
-                           ${photoType.required ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-white'}`}>
+                           ${(photoType.required && !DEVELOPMENT_MODE) ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-white'}`}>
               <label className="block text-sm font-medium mb-2">
                 {photoType.label}
-                {photoType.required && <span className="text-red-500 ml-1">*</span>}
+                {(photoType.required && !DEVELOPMENT_MODE) && <span className="text-red-500 ml-1">*</span>}
+                {DEVELOPMENT_MODE && <span className="text-gray-500 ml-1">(opcional)</span>}
               </label>
               <input
                 type="file"
@@ -356,7 +369,7 @@ export const QualityChecklistForm: React.FC<QualityChecklistFormProps> = ({
               {uploadedFiles.map((photo, index) => (
                 <div key={index} className="relative group">
                   <img 
-                    src={`http://192.168.1.137:8000${photo.url}`} 
+                    src={photo.url} 
                     alt={photo.photo_type}
                     className="w-full h-20 object-cover rounded border"
                   />

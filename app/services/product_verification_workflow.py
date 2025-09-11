@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from app.models.incoming_product_queue import IncomingProductQueue
 from app.services.notification_service import NotificationService, NotificationType, NotificationChannel
+from app.services.location_assignment_service import LocationAssignmentService, AssignmentStrategy
 
 class VerificationStep(str, Enum):
     INITIAL_INSPECTION = "initial_inspection"
@@ -43,6 +44,7 @@ class ProductVerificationWorkflow:
         self.db = db
         self.queue_item = queue_item
         self.notification_service = NotificationService()
+        self.location_service = LocationAssignmentService(db)
         self.steps = list(VerificationStep)
         self.step_order = [
             VerificationStep.INITIAL_INSPECTION,
@@ -324,3 +326,90 @@ class ProductVerificationWorkflow:
             self.db.rollback()
             print(f"Error aprobando producto: {e}")
             return False
+    
+    async def auto_assign_location(self, inspector_user_id: str) -> Dict[str, Any]:
+        """Asignar automáticamente ubicación al producto"""
+        try:
+            # Obtener producto asociado
+            product = self.queue_item.product
+            if not product:
+                raise ValueError("Producto no encontrado")
+            
+            # Asignar ubicación óptima
+            assignment_result = await self.location_service.assign_optimal_location(
+                product, self.queue_item
+            )
+            
+            if assignment_result:
+                # Actualizar estado del workflow
+                self.queue_item.verification_status = "APPROVED"
+                
+                # Guardar información de ubicación en metadata
+                if not self.queue_item.metadata:
+                    self.queue_item.metadata = {}
+                
+                self.queue_item.metadata['assigned_location'] = assignment_result
+                self.queue_item.metadata['assigned_by'] = inspector_user_id
+                self.queue_item.metadata['assignment_date'] = datetime.utcnow().isoformat()
+                
+                # Actualizar notas de verificación
+                location_info = f"Ubicación asignada automáticamente: {assignment_result['zona']}-{assignment_result['estante']}-{assignment_result['posicion']}"
+                if self.queue_item.verification_notes:
+                    self.queue_item.verification_notes += f"\n{location_info}"
+                else:
+                    self.queue_item.verification_notes = location_info
+                
+                self.db.commit()
+                
+                return {
+                    "success": True,
+                    "location": assignment_result,
+                    "message": "Ubicación asignada automáticamente"
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": "No se encontraron ubicaciones disponibles",
+                    "suggestion": "Revisar capacidad del almacén"
+                }
+                
+        except Exception as e:
+            self.db.rollback()
+            return {
+                "success": False,
+                "message": f"Error en asignación automática: {str(e)}"
+            }
+    
+    async def suggest_manual_locations(self, limit: int = 5) -> List[Dict[str, Any]]:
+        """Sugerir ubicaciones para asignación manual"""
+        try:
+            available_locations = await self.location_service._get_available_locations()
+            
+            suggestions = []
+            for location in available_locations[:limit]:
+                suggestions.append({
+                    "zona": location["zona"],
+                    "estante": location["estante"],
+                    "posicion": location.get("posicion", "01"),
+                    "capacity": location["available_capacity"],
+                    "recommendation": self._get_location_recommendation(location)
+                })
+            
+            return suggestions
+        except Exception as e:
+            print(f"Error obteniendo sugerencias: {e}")
+            return []
+    
+    def _get_location_recommendation(self, location: Dict[str, Any]) -> str:
+        """Obtener recomendación textual para una ubicación"""
+        zona = location["zona"]
+        capacity = location["available_capacity"]
+        
+        if zona.startswith('A'):
+            return "Zona de fácil acceso, ideal para productos de alta rotación"
+        elif zona.startswith('B'):
+            return "Zona intermedia, buena para productos de rotación media"
+        elif capacity > 10:
+            return "Amplia capacidad disponible, ideal para productos grandes"
+        else:
+            return "Espacio limitado, apropiado para productos pequeños"

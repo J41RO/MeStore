@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import * as React from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { CheckCircle, Clock, AlertCircle, Play, RefreshCw, FileText, Package, Star, MapPin, Award, X } from 'lucide-react';
 import { QualityChecklistForm } from './QualityChecklistForm';
 import { ProductRejectionForm } from './ProductRejectionForm';
+import { LocationAssignmentForm } from './LocationAssignmentForm';
 
 interface VerificationStep {
   step: string;
@@ -24,6 +26,7 @@ interface WorkflowStatus {
   steps: VerificationStep[];
   can_proceed: boolean;
   verification_attempts: number;
+  tracking_number?: string;
 }
 
 interface ProductVerificationWorkflowProps {
@@ -42,6 +45,8 @@ export const ProductVerificationWorkflow: React.FC<ProductVerificationWorkflowPr
   const [executingStep, setExecutingStep] = useState<string | null>(null);
   const [showQualityChecklist, setShowQualityChecklist] = useState(false);
   const [showRejectionForm, setShowRejectionForm] = useState(false);
+  const [showLocationAssignment, setShowLocationAssignment] = useState(false);
+  const [productInfo, setProductInfo] = useState<any>(null);
   const [stepForm, setStepForm] = useState({
     notes: '',
     passed: true,
@@ -55,37 +60,58 @@ export const ProductVerificationWorkflow: React.FC<ProductVerificationWorkflowPr
       setLoading(true);
       const token = localStorage.getItem('access_token');
       
-      console.log('🔑 Workflow Debug - Token:', token ? `${token.substring(0, 20)}...` : 'NO TOKEN');
-      console.log('🔍 Workflow Debug - Queue ID:', queueId);
-      
       const response = await fetch(`/api/v1/admin/incoming-products/${queueId}/verification/current-step`, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (compatible; AdminWorkflow)'
+          'Content-Type': 'application/json'
         }
       });
 
-      console.log('📡 Workflow Debug - Response Status:', response.status);
+      if (response.ok) {
+        const data = await response.json();
+        setWorkflowStatus(data.data);
+        
+        // Cargar información del producto si no está disponible
+        if (!productInfo) {
+          await loadProductInfo();
+        }
+      } else {
+        const errorText = await response.text();
+        console.error('Error loading workflow status:', response.status, errorText);
+      }
+    } catch (error) {
+      console.error('Error loading workflow status:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [queueId]);
+
+  // Cargar información del producto
+  const loadProductInfo = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`/api/v1/admin/incoming-products/${queueId}/location/suggestions?limit=1`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
 
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ Workflow Debug - Success:', data);
-        setWorkflowStatus(data.data);
-      } else {
-        const errorText = await response.text();
-        console.error('❌ Workflow Debug - Error:', response.status, errorText);
+        if (data.data && data.data.product_info) {
+          setProductInfo(data.data.product_info);
+        }
       }
     } catch (error) {
-      console.error('💥 Workflow Debug - Exception:', error);
-    } finally {
-      setLoading(false);
+      console.error('Error loading product info:', error);
     }
   }, [queueId]);
 
   useEffect(() => {
     loadWorkflowStatus();
   }, [loadWorkflowStatus]);
+
 
   // Ejecutar paso del workflow
   const executeStep = async (step: string) => {
@@ -99,8 +125,7 @@ export const ProductVerificationWorkflow: React.FC<ProductVerificationWorkflowPr
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (compatible; AdminWorkflow)'
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           step: step,
@@ -141,7 +166,7 @@ export const ProductVerificationWorkflow: React.FC<ProductVerificationWorkflowPr
       // Enviar checklist al backend
       const token = localStorage.getItem('access_token');
       const response = await fetch(
-        `http://192.168.1.137:8000/api/v1/admin/incoming-products/${queueId}/verification/quality-checklist`,
+        `/api/v1/admin/incoming-products/${queueId}/verification/quality-checklist`,
         {
           method: 'POST',
           headers: {
@@ -161,13 +186,40 @@ export const ProductVerificationWorkflow: React.FC<ProductVerificationWorkflowPr
         setShowQualityChecklist(false);
         onStepComplete('quality_assessment', data.data);
       } else {
-        const errorData = await response.json();
-        console.error('Error submitting checklist:', errorData);
-        alert('Error enviando checklist: ' + (errorData.detail || 'Error desconocido'));
+        const errorData = await response.json().catch(() => ({ detail: `HTTP ${response.status}` }));
+        console.error('Error submitting checklist:', response.status, errorData);
+        
+        if (response.status === 401) {
+          alert('Error: Token de autenticación inválido o expirado. Por favor, inicia sesión nuevamente.');
+        } else {
+          alert('Error enviando checklist: ' + (errorData.detail || `Error ${response.status}`));
+        }
       }
     } catch (error) {
       console.error('Error:', error);
       alert('Error de conexión al enviar checklist');
+    } finally {
+      setExecutingStep(null);
+    }
+  };
+
+  // Manejar asignación de ubicación completada
+  const handleLocationAssignmentComplete = async (assignmentData: any) => {
+    try {
+      setExecutingStep('location_assignment');
+      
+      // La asignación ya se hizo en el componente LocationAssignmentForm
+      // Solo necesitamos actualizar el workflow status y cerrar el modal
+      
+      console.log('Location assignment completed:', assignmentData);
+      
+      // Recargar el workflow status para reflejar los cambios
+      await loadWorkflowStatus();
+      
+      setShowLocationAssignment(false);
+      onStepComplete('location_assignment', assignmentData);
+    } catch (error) {
+      console.error('Error handling location assignment completion:', error);
     } finally {
       setExecutingStep(null);
     }
@@ -364,6 +416,7 @@ export const ProductVerificationWorkflow: React.FC<ProductVerificationWorkflowPr
         ))}
       </div>
 
+
       {/* Formulario para paso actual */}
       {currentStep && !currentStep.is_completed && (
         <div className="bg-gray-50 rounded-lg p-6">
@@ -377,7 +430,9 @@ export const ProductVerificationWorkflow: React.FC<ProductVerificationWorkflowPr
           ) : currentStep.step === 'quality_assessment' ? (
             /* Botón para abrir Quality Checklist */
             <div className="text-center py-8">
-              <h4 className="text-lg font-semibold mb-4">Evaluación de Calidad</h4>
+              <h4 className="text-lg font-semibold mb-4 flex items-center justify-center">
+                Evaluación de Calidad
+              </h4>
               <p className="text-gray-600 mb-6">
                 Este paso requiere un checklist detallado de calidad con evidencia fotográfica y verificación de dimensiones.
               </p>
@@ -392,6 +447,40 @@ export const ProductVerificationWorkflow: React.FC<ProductVerificationWorkflowPr
                   <Star className="w-5 h-5 mr-2" />
                 )}
                 Iniciar Checklist de Calidad
+              </button>
+            </div>
+          ) : currentStep.step === 'location_assignment' && showLocationAssignment ? (
+            <LocationAssignmentForm
+              queueId={parseInt(queueId)}
+              trackingNumber={workflowStatus?.tracking_number || workflowStatus?.queue_id || queueId}
+              productInfo={productInfo || {}}
+              onAssigned={handleLocationAssignmentComplete}
+              onCancel={() => setShowLocationAssignment(false)}
+            />
+          ) : currentStep.step === 'location_assignment' ? (
+            /* Botón para abrir Location Assignment */
+            <div className="text-center py-8">
+              <h4 className="text-lg font-semibold mb-4 flex items-center justify-center">
+                Asignación de Ubicación
+                <span className="ml-3 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                  NUEVO SISTEMA
+                </span>
+              </h4>
+              <p className="text-gray-600 mb-6">
+                Asigne una ubicación óptima en el almacén usando algoritmos inteligentes 
+                o selección manual basada en tamaño, categoría y proximidad.
+              </p>
+              <button
+                onClick={() => setShowLocationAssignment(true)}
+                disabled={executingStep === currentStep.step}
+                className="flex items-center justify-center mx-auto px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                {executingStep === currentStep.step ? (
+                  <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
+                ) : (
+                  <MapPin className="w-5 h-5 mr-2" />
+                )}
+                Iniciar Asignación de Ubicación
               </button>
             </div>
           ) : (
@@ -517,6 +606,17 @@ export const ProductVerificationWorkflow: React.FC<ProductVerificationWorkflowPr
           trackingNumber={workflowStatus?.tracking_number || queueId}
           onReject={handleProductRejection}
           onCancel={() => setShowRejectionForm(false)}
+        />
+      )}
+
+      {/* Modal de asignación de ubicación */}
+      {showLocationAssignment && (
+        <LocationAssignmentForm
+          queueId={parseInt(queueId)}
+          trackingNumber={workflowStatus?.tracking_number || workflowStatus?.queue_id || queueId}
+          productInfo={productInfo || {}}
+          onAssigned={handleLocationAssignmentComplete}
+          onCancel={() => setShowLocationAssignment(false)}
         />
       )}
     </div>
