@@ -40,17 +40,18 @@ from datetime import datetime, date
 from decimal import Decimal
 from typing import Dict, Any, Optional, List
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, UploadFile, File
 from sqlalchemy import func, select, and_, desc
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import AuthService, get_auth_service, get_current_user
-from app.database import get_db
+from app.database import get_async_db as get_db
 from app.models.user import User, UserType
 from app.models.vendor_note import VendorNote
 from app.models.vendor_audit import VendorAuditLog, ActionType
+from app.models.vendor_document import VendorDocument, DocumentType, DocumentStatus
 from app.models.inventory import Inventory, InventoryStatus
 from app.models.product import Product, ProductStatus
 from app.models.transaction import Transaction
@@ -316,7 +317,7 @@ async def login_vendedor(
             )
 
         # Actualizar last_login
-        from app.database import get_db
+        from app.database import get_async_db as get_db
 
         async for db in get_db():
             try:
@@ -1751,6 +1752,363 @@ async def get_vendor_audit_log(
         raise
     except Exception as e:
         logger.error(f"Error obteniendo historial de auditoría del vendedor {vendedor_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )
+
+# =====================================
+# ENDPOINTS DE DOCUMENTOS DE VENDORS
+# =====================================
+
+@router.post("/documents/upload", 
+    response_model=dict, 
+    summary="Subir documento de vendor",
+    description="Permite a un vendor subir documentos requeridos (cédula, RUT, certificado bancario, etc.)")
+async def upload_vendor_document(
+    document_type: str = Query(..., description="Tipo de documento a subir"),
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Endpoint para subir documentos de vendor.
+    
+    - **document_type**: Tipo de documento (cedula, rut, certificado_bancario, camara_comercio)
+    - **file**: Archivo a subir (JPG, PNG, PDF)
+    
+    Solo vendors pueden subir sus propios documentos.
+    """
+    if current_user.user_type != UserType.VENDEDOR:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo vendedores pueden subir documentos"
+        )
+    
+    try:
+        # Validar tipo de documento
+        try:
+            doc_type = DocumentType(document_type)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Tipo de documento inválido. Tipos válidos: {', '.join([t.value for t in DocumentType])}"
+            )
+        
+        # Validar archivo
+        if not file.filename:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Nombre de archivo requerido"
+            )
+        
+        # Validar tamaño de archivo (5MB máximo)
+        file_content = await file.read()
+        file_size = len(file_content)
+        max_size = 5 * 1024 * 1024  # 5MB
+        
+        if file_size > max_size:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"Archivo muy grande. Tamaño máximo: 5MB"
+            )
+        
+        # Validar tipo MIME
+        allowed_types = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
+        if file.content_type not in allowed_types:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Tipo de archivo no válido. Tipos permitidos: {', '.join(allowed_types)}"
+            )
+        
+        # Crear directorio si no existe
+        upload_dir = f"/uploads/vendor_documents/{current_user.id}"
+        import os
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        # Generar nombre de archivo único
+        import uuid
+        file_extension = file.filename.split('.')[-1] if '.' in file.filename else ''
+        unique_filename = f"{doc_type.value}_{uuid.uuid4()}.{file_extension}"
+        file_path = f"{upload_dir}/{unique_filename}"
+        
+        # Guardar archivo
+        with open(file_path, 'wb') as f:
+            f.write(file_content)
+        
+        # Verificar si ya existe un documento de este tipo para este vendor
+        existing_doc_query = select(VendorDocument).where(
+            and_(
+                VendorDocument.vendor_id == current_user.id,
+                VendorDocument.document_type == doc_type
+            )
+        )
+        existing_doc_result = await db.execute(existing_doc_query)
+        existing_doc = existing_doc_result.scalar_one_or_none()
+        
+        if existing_doc:
+            # Actualizar documento existente
+            existing_doc.file_path = file_path
+            existing_doc.original_filename = file.filename
+            existing_doc.file_size = file_size
+            existing_doc.mime_type = file.content_type
+            existing_doc.status = DocumentStatus.PENDING
+            existing_doc.uploaded_at = datetime.utcnow()
+            existing_doc.verified_at = None
+            existing_doc.verified_by = None
+            existing_doc.verification_notes = None
+            
+            document_record = existing_doc
+        else:
+            # Crear nuevo registro de documento
+            document_record = VendorDocument(
+                vendor_id=current_user.id,
+                document_type=doc_type,
+                file_path=file_path,
+                original_filename=file.filename,
+                file_size=file_size,
+                mime_type=file.content_type,
+                status=DocumentStatus.PENDING
+            )
+            db.add(document_record)
+        
+        await db.commit()
+        await db.refresh(document_record)
+        
+        return {
+            "message": "Documento subido exitosamente",
+            "document_id": str(document_record.id),
+            "document_type": document_record.document_type.value,
+            "status": document_record.status.value,
+            "uploaded_at": document_record.uploaded_at.isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error subiendo documento para vendor {current_user.id}: {str(e)}")
+        # Eliminar archivo si existe
+        try:
+            if 'file_path' in locals() and os.path.exists(file_path):
+                os.remove(file_path)
+        except:
+            pass
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )
+
+@router.get("/{vendor_id}/documents",
+    summary="Listar documentos de vendor",
+    description="Obtener todos los documentos de un vendor específico")
+async def get_vendor_documents(
+    vendor_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Endpoint para listar documentos de un vendor.
+    
+    Los vendors solo pueden ver sus propios documentos.
+    Los admins pueden ver documentos de cualquier vendor.
+    """
+    # Validar permisos
+    if (current_user.user_type == UserType.VENDEDOR and str(current_user.id) != vendor_id) or \
+       (current_user.user_type not in [UserType.VENDEDOR, UserType.ADMIN]):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos para ver estos documentos"
+        )
+    
+    try:
+        # Verificar que el vendor existe
+        vendor_query = select(User).where(
+            User.id == vendor_id,
+            User.user_type == UserType.VENDEDOR
+        )
+        vendor_result = await db.execute(vendor_query)
+        vendor = vendor_result.scalar_one_or_none()
+        
+        if not vendor:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Vendor no encontrado"
+            )
+        
+        # Obtener documentos del vendor
+        documents_query = select(VendorDocument).where(
+            VendorDocument.vendor_id == vendor_id
+        ).order_by(VendorDocument.uploaded_at.desc())
+        
+        documents_result = await db.execute(documents_query)
+        documents = documents_result.scalars().all()
+        
+        # Preparar respuesta
+        documents_data = []
+        for doc in documents:
+            doc_data = {
+                "id": str(doc.id),
+                "document_type": doc.document_type.value,
+                "original_filename": doc.original_filename,
+                "file_size": doc.file_size,
+                "mime_type": doc.mime_type,
+                "status": doc.status.value,
+                "uploaded_at": doc.uploaded_at.isoformat(),
+                "verified_at": doc.verified_at.isoformat() if doc.verified_at else None,
+                "verification_notes": doc.verification_notes
+            }
+            documents_data.append(doc_data)
+        
+        return {
+            "vendor_id": vendor_id,
+            "documents": documents_data,
+            "total": len(documents_data)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error obteniendo documentos del vendor {vendor_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )
+
+@router.put("/documents/{document_id}/verify",
+    summary="Verificar documento de vendor",
+    description="Permite a un admin verificar o rechazar un documento de vendor")
+async def verify_vendor_document(
+    document_id: str,
+    verification_data: dict,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Endpoint para verificar documentos de vendor.
+    
+    Solo admins pueden verificar documentos.
+    
+    - **status**: "verified" o "rejected"
+    - **verification_notes**: Notas de verificación (obligatorio si se rechaza)
+    """
+    if current_user.user_type != UserType.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo administradores pueden verificar documentos"
+        )
+    
+    try:
+        # Obtener el documento
+        document_query = select(VendorDocument).where(VendorDocument.id == document_id)
+        document_result = await db.execute(document_query)
+        document = document_result.scalar_one_or_none()
+        
+        if not document:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Documento no encontrado"
+            )
+        
+        # Validar datos de verificación
+        status_value = verification_data.get('status')
+        verification_notes = verification_data.get('verification_notes')
+        
+        if status_value not in ['verified', 'rejected']:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Status debe ser 'verified' o 'rejected'"
+            )
+        
+        if status_value == 'rejected' and not verification_notes:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Notas de verificación son obligatorias al rechazar un documento"
+            )
+        
+        # Actualizar documento
+        document.status = DocumentStatus(status_value)
+        document.verification_notes = verification_notes
+        document.verified_by = current_user.id
+        document.verified_at = datetime.utcnow()
+        
+        await db.commit()
+        await db.refresh(document)
+        
+        return {
+            "message": f"Documento {status_value} exitosamente",
+            "document_id": str(document.id),
+            "status": document.status.value,
+            "verified_by": str(document.verified_by),
+            "verified_at": document.verified_at.isoformat(),
+            "verification_notes": document.verification_notes
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error verificando documento {document_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )
+
+@router.delete("/documents/{document_id}",
+    summary="Eliminar documento de vendor",
+    description="Permite a un vendor eliminar sus propios documentos")
+async def delete_vendor_document(
+    document_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Endpoint para eliminar documentos de vendor.
+    
+    Solo vendors pueden eliminar sus propios documentos.
+    Admins también pueden eliminar cualquier documento.
+    """
+    try:
+        # Obtener el documento
+        document_query = select(VendorDocument).where(VendorDocument.id == document_id)
+        document_result = await db.execute(document_query)
+        document = document_result.scalar_one_or_none()
+        
+        if not document:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Documento no encontrado"
+            )
+        
+        # Validar permisos
+        if (current_user.user_type == UserType.VENDEDOR and document.vendor_id != current_user.id) or \
+           (current_user.user_type not in [UserType.VENDEDOR, UserType.ADMIN]):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tienes permisos para eliminar este documento"
+            )
+        
+        # Eliminar archivo físico
+        try:
+            if os.path.exists(document.file_path):
+                os.remove(document.file_path)
+        except Exception as e:
+            logger.warning(f"No se pudo eliminar el archivo físico {document.file_path}: {str(e)}")
+        
+        # Eliminar registro de base de datos
+        await db.delete(document)
+        await db.commit()
+        
+        return {
+            "message": "Documento eliminado exitosamente",
+            "document_id": document_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error eliminando documento {document_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error interno del servidor"

@@ -66,6 +66,23 @@ class UserType(PyEnum):
     ADMIN = "ADMIN"
     SUPERUSER = "SUPERUSER"
 
+class VendorStatus(str, PyEnum):
+    """
+    Estados granulares para el proceso de onboarding de vendors.
+    
+    Flujo de estados:
+        DRAFT: Registro iniciado, documentos pendientes
+        PENDING_DOCUMENTS: Documentos subidos, pendientes de verificación  
+        PENDING_APPROVAL: Documentos verificados, pendiente aprobación admin
+        APPROVED: Vendor aprobado y activo
+        REJECTED: Vendor rechazado con motivo
+    """
+    DRAFT = "draft"
+    PENDING_DOCUMENTS = "pending_documents"
+    PENDING_APPROVAL = "pending_approval"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
 
 class User(BaseModel):
     """
@@ -200,6 +217,13 @@ class User(BaseModel):
         nullable=False,
         default=UserType.COMPRADOR,
         comment="Tipo de usuario: comprador o vendedor"
+    )
+
+    vendor_status = Column(
+        Enum(VendorStatus),
+        nullable=True,
+        default=VendorStatus.DRAFT,
+        comment="Estado específico del proceso de onboarding de vendor"
     )
 
     is_active = Column(
@@ -354,6 +378,45 @@ class User(BaseModel):
         "ComissionDispute",
         foreign_keys="ComissionDispute.usuario_id",
         back_populates="usuario"
+    )
+    # Relationship con InventoryAudit
+    auditorias_realizadas = relationship(
+        "InventoryAudit",
+        foreign_keys="InventoryAudit.auditor_id",
+        back_populates="auditor"
+    )
+
+    # Relationships con VendorAuditLog
+    audit_logs_received = relationship(
+        "VendorAuditLog",
+        foreign_keys="VendorAuditLog.vendor_id",
+        back_populates="vendor"
+    )
+
+    audit_logs_created = relationship(
+        "VendorAuditLog",
+        foreign_keys="VendorAuditLog.admin_id",
+        back_populates="admin"
+    )
+
+    # Relationships con VendorNote
+    vendor_notes_received = relationship(
+        "VendorNote",
+        foreign_keys="VendorNote.vendor_id",
+        back_populates="vendor"
+    )
+
+    vendor_notes_created = relationship(
+        "VendorNote",
+        foreign_keys="VendorNote.admin_id",
+        back_populates="admin"
+    )
+
+    # Relación con documentos de vendor
+    vendor_documents = relationship(
+        "VendorDocument",
+        foreign_keys="VendorDocument.vendor_id",
+        back_populates="vendor"
     )
 
     # === ÍNDICES OPTIMIZADOS ===

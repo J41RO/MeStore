@@ -57,6 +57,22 @@ try:
 except ImportError:
     pass
 
+# Import incoming product queue model explicitly
+try:
+    from .incoming_product_queue import IncomingProductQueue, QueuePriority, VerificationStatus, DelayReason
+    
+    __all__.extend(["IncomingProductQueue", "QueuePriority", "VerificationStatus", "DelayReason"])
+except ImportError:
+    pass
+
+# Import incident inventory model explicitly
+try:
+    from .incidente_inventario import IncidenteInventario, TipoIncidente, EstadoIncidente
+    
+    __all__.extend(["IncidenteInventario", "TipoIncidente", "EstadoIncidente"])
+except ImportError:
+    pass
+
 # Import storage model explicitly (if it exists)
 try:
     from .storage import Storage
@@ -77,6 +93,12 @@ except ImportError:
 try:
     from .vendor_audit import VendorAuditLog, ActionType
     __all__.extend(["VendorAuditLog", "ActionType"])
+except ImportError:
+    pass
+
+try:
+    from .vendor_document import VendorDocument, DocumentType, DocumentStatus
+    __all__.extend(["VendorDocument", "DocumentType", "DocumentStatus"])
 except ImportError:
     pass
 
