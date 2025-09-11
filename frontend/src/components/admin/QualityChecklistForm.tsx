@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, X, Camera, Ruler, CheckCircle, AlertTriangle, Package, FileText } from 'lucide-react';
+import { X, Camera, Ruler, CheckCircle, AlertTriangle, Package, FileText } from 'lucide-react';
 
 interface QualityChecklistFormProps {
   queueId: string;

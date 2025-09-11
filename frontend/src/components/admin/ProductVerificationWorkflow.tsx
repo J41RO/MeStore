@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { CheckCircle, Clock, AlertCircle, Play, RefreshCw, FileText, Package, Star, MapPin, Award } from 'lucide-react';
+import { CheckCircle, Clock, AlertCircle, Play, RefreshCw, FileText, Package, Star, MapPin, Award, X } from 'lucide-react';
 import { QualityChecklistForm } from './QualityChecklistForm';
+import { ProductRejectionForm } from './ProductRejectionForm';
 
 interface VerificationStep {
   step: string;
@@ -40,6 +41,7 @@ export const ProductVerificationWorkflow: React.FC<ProductVerificationWorkflowPr
   const [loading, setLoading] = useState(true);
   const [executingStep, setExecutingStep] = useState<string | null>(null);
   const [showQualityChecklist, setShowQualityChecklist] = useState(false);
+  const [showRejectionForm, setShowRejectionForm] = useState(false);
   const [stepForm, setStepForm] = useState({
     notes: '',
     passed: true,
@@ -168,6 +170,25 @@ export const ProductVerificationWorkflow: React.FC<ProductVerificationWorkflowPr
       alert('Error de conexión al enviar checklist');
     } finally {
       setExecutingStep(null);
+    }
+  };
+
+  // Manejar rechazo del producto
+  const handleProductRejection = (rejectionResult: any) => {
+    setShowRejectionForm(false);
+    console.log('Product rejected:', rejectionResult);
+    
+    // Mostrar mensaje de éxito
+    alert(`Producto rechazado exitosamente. Notificación enviada al vendedor.`);
+    
+    // Refrescar el estado del workflow para mostrar el nuevo estado
+    loadWorkflowStatus();
+    
+    // Cerrar el workflow completo después de un rechazo
+    if (onClose) {
+      setTimeout(() => {
+        onClose();
+      }, 2000);
     }
   };
 
@@ -442,26 +463,37 @@ export const ProductVerificationWorkflow: React.FC<ProductVerificationWorkflowPr
                 )}
 
                 {/* Botones de acción */}
-                <div className="flex gap-3 pt-4">
+                <div className="flex justify-between items-center pt-4">
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => executeStep(currentStep.step)}
+                      disabled={!stepForm.notes.trim() || executingStep === currentStep.step}
+                      className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    >
+                      {executingStep === currentStep.step ? (
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Play className="w-4 h-4 mr-2" />
+                      )}
+                      Ejecutar Paso
+                    </button>
+                    
+                    <button
+                      onClick={loadWorkflowStatus}
+                      className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Actualizar
+                    </button>
+                  </div>
+
+                  {/* Botón de rechazo - disponible en cualquier paso */}
                   <button
-                    onClick={() => executeStep(currentStep.step)}
-                    disabled={!stepForm.notes.trim() || executingStep === currentStep.step}
-                    className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    onClick={() => setShowRejectionForm(true)}
+                    className="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
                   >
-                    {executingStep === currentStep.step ? (
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Play className="w-4 h-4 mr-2" />
-                    )}
-                    Ejecutar Paso
-                  </button>
-                  
-                  <button
-                    onClick={loadWorkflowStatus}
-                    className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
-                  >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Actualizar
+                    <X className="w-4 h-4 mr-2" />
+                    Rechazar Producto
                   </button>
                 </div>
               </div>
@@ -477,6 +509,16 @@ export const ProductVerificationWorkflow: React.FC<ProductVerificationWorkflowPr
           <span>Puede proceder: {workflowStatus.can_proceed ? 'Sí' : 'No'}</span>
         </div>
       </div>
+
+      {/* Modal de rechazo */}
+      {showRejectionForm && (
+        <ProductRejectionForm
+          queueId={parseInt(queueId)}
+          trackingNumber={workflowStatus?.tracking_number || queueId}
+          onReject={handleProductRejection}
+          onCancel={() => setShowRejectionForm(false)}
+        />
+      )}
     </div>
   );
 };

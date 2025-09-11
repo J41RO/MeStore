@@ -6,18 +6,19 @@ import aiofiles
 from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, select
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from PIL import Image
 import io
 
 from app.core.auth import get_current_user
-from app.database import get_async_db as get_db
+from app.database import get_async_db as get_db, get_db as get_sync_db
 from app.models import User, Product, Transaction
 from app.models.incoming_product_queue import IncomingProductQueue
 from app.schemas.admin import AdminDashboardResponse, GlobalKPIs, PeriodMetrics
 from app.schemas.product_verification import QualityPhoto, PhotoUploadResponse, QualityChecklist, QualityChecklistRequest
-from app.services.product_verification_workflow import ProductVerificationWorkflow, VerificationStep, StepResult
+from app.services.product_verification_workflow import ProductVerificationWorkflow, VerificationStep, StepResult, ProductRejection, RejectionReason
 from app.core.config import settings
 
 router = APIRouter()
@@ -702,4 +703,243 @@ async def submit_quality_checklist(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error procesando checklist de calidad: {str(e)}"
+        )
+
+
+# ENDPOINTS PARA SISTEMA DE RECHAZO
+def get_current_admin_user(current_user: User = Depends(get_current_user)):
+    """Validar que el usuario tenga permisos de administrador"""
+    if not (current_user.is_superuser or 
+            (hasattr(current_user, 'user_type') and current_user.user_type in ['ADMIN', 'SUPERUSER'])):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos de administrador"
+        )
+    return current_user
+
+
+@router.post("/incoming-products/{queue_id}/verification/reject")
+async def reject_product(
+    queue_id: int,
+    rejection_data: ProductRejection,
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Rechazar producto y enviar notificaciones al vendedor"""
+    
+    # Obtener producto de la cola
+    queue_item = db.query(IncomingProductQueue).filter(
+        IncomingProductQueue.id == queue_id
+    ).first()
+    
+    if not queue_item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Producto no encontrado en cola"
+        )
+    
+    # Verificar que el producto no esté ya procesado
+    if queue_item.verification_status in ["APPROVED", "COMPLETED", "REJECTED"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"El producto ya está en estado: {queue_item.verification_status}"
+        )
+    
+    try:
+        # Crear workflow y rechazar
+        workflow = ProductVerificationWorkflow(db, queue_item)
+        success = await workflow.reject_product(rejection_data, str(current_user.id))
+        
+        if success:
+            return {
+                "status": "success",
+                "message": "Producto rechazado exitosamente",
+                "data": {
+                    "queue_id": queue_id,
+                    "tracking_number": queue_item.tracking_number,
+                    "rejection_reason": rejection_data.reason.value,
+                    "notification_sent": True,
+                    "can_appeal": rejection_data.can_appeal,
+                    "appeal_deadline": rejection_data.appeal_deadline.isoformat() if rejection_data.appeal_deadline else None
+                }
+            }
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error al rechazar producto"
+            )
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error procesando rechazo: {str(e)}"
+        )
+
+
+@router.get("/incoming-products/{queue_id}/rejection-history")
+async def get_rejection_history(
+    queue_id: int,
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Obtener historial de rechazos de un producto"""
+    
+    queue_item = db.query(IncomingProductQueue).filter(
+        IncomingProductQueue.id == queue_id
+    ).first()
+    
+    if not queue_item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Producto no encontrado"
+        )
+    
+    return {
+        "status": "success",
+        "data": {
+            "queue_id": queue_id,
+            "tracking_number": queue_item.tracking_number,
+            "current_status": queue_item.verification_status,
+            "quality_issues": queue_item.quality_issues,
+            "verification_notes": queue_item.verification_notes,
+            "quality_score": queue_item.quality_score,
+            "rejection_count": queue_item.verification_attempts or 0,
+            "vendor_info": {
+                "id": queue_item.vendor_id,
+                "email": queue_item.vendor.email if queue_item.vendor else None,
+                "phone": getattr(queue_item.vendor, 'telefono', None) if queue_item.vendor else None
+            },
+            "timeline": {
+                "created_at": queue_item.created_at.isoformat() if queue_item.created_at else None,
+                "updated_at": queue_item.updated_at.isoformat() if queue_item.updated_at else None,
+                "assigned_at": queue_item.assigned_at.isoformat() if queue_item.assigned_at else None,
+                "processing_started_at": queue_item.processing_started_at.isoformat() if queue_item.processing_started_at else None,
+                "processing_completed_at": queue_item.processing_completed_at.isoformat() if queue_item.processing_completed_at else None
+            }
+        }
+    }
+
+
+@router.get("/rejections/summary")
+async def get_rejections_summary(
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Obtener resumen de rechazos por período"""
+    
+    query = db.query(IncomingProductQueue).filter(
+        IncomingProductQueue.verification_status == "REJECTED"
+    )
+    
+    if start_date:
+        query = query.filter(IncomingProductQueue.created_at >= start_date)
+    if end_date:
+        query = query.filter(IncomingProductQueue.created_at <= end_date)
+    
+    rejected_products = query.all()
+    
+    # Agrupar por razón de rechazo
+    rejection_summary = {}
+    rejection_reasons_count = {}
+    
+    for product in rejected_products:
+        reason = product.quality_issues or "unknown"
+        
+        # Contar por razón
+        if reason not in rejection_reasons_count:
+            rejection_reasons_count[reason] = 0
+        rejection_reasons_count[reason] += 1
+        
+        # Detalles por razón
+        if reason not in rejection_summary:
+            rejection_summary[reason] = []
+        rejection_summary[reason].append({
+            "queue_id": product.id,
+            "tracking_number": product.tracking_number,
+            "rejected_at": product.updated_at.isoformat() if product.updated_at else None,
+            "quality_score": product.quality_score,
+            "vendor_id": product.vendor_id,
+            "verification_attempts": product.verification_attempts
+        })
+    
+    # Estadísticas generales
+    total_rejected = len(rejected_products)
+    average_quality_score = 0
+    if rejected_products:
+        scores = [p.quality_score for p in rejected_products if p.quality_score is not None]
+        if scores:
+            average_quality_score = sum(scores) / len(scores)
+    
+    return {
+        "status": "success",
+        "data": {
+            "summary": {
+                "total_rejected": total_rejected,
+                "period": f"{start_date} to {end_date}" if start_date and end_date else "All time",
+                "average_quality_score": round(average_quality_score, 2),
+                "rejection_rate": round((total_rejected / max(1, total_rejected)) * 100, 2)
+            },
+            "rejection_reasons_count": rejection_reasons_count,
+            "rejection_details": rejection_summary,
+            "available_reasons": [reason.value for reason in RejectionReason]
+        }
+    }
+
+
+@router.post("/incoming-products/{queue_id}/verification/approve")
+async def approve_product(
+    queue_id: int,
+    quality_score: Optional[int] = None,
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Aprobar producto y enviar notificación al vendedor"""
+    
+    # Obtener producto de la cola
+    queue_item = db.query(IncomingProductQueue).filter(
+        IncomingProductQueue.id == queue_id
+    ).first()
+    
+    if not queue_item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Producto no encontrado en cola"
+        )
+    
+    # Verificar que el producto no esté ya procesado
+    if queue_item.verification_status in ["APPROVED", "COMPLETED", "REJECTED"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"El producto ya está en estado: {queue_item.verification_status}"
+        )
+    
+    try:
+        # Crear workflow y aprobar
+        workflow = ProductVerificationWorkflow(db, queue_item)
+        success = await workflow.approve_product(str(current_user.id), quality_score)
+        
+        if success:
+            return {
+                "status": "success",
+                "message": "Producto aprobado exitosamente",
+                "data": {
+                    "queue_id": queue_id,
+                    "tracking_number": queue_item.tracking_number,
+                    "quality_score": quality_score,
+                    "notification_sent": True,
+                    "new_status": "APPROVED"
+                }
+            }
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error al aprobar producto"
+            )
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error procesando aprobación: {str(e)}"
         )
