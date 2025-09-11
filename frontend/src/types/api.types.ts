@@ -47,6 +47,22 @@ export interface UpdateUserData {
 }
 
 // Tipos de productos
+export interface ProductImage {
+  id: string;
+  product_id: string;
+  filename: string;
+  original_filename: string;
+  file_path: string;
+  file_size: number;
+  mime_type: string;
+  width?: number;
+  height?: number;
+  order_index: number;
+  created_at: string;
+  updated_at: string;
+  public_url: string;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -54,7 +70,9 @@ export interface Product {
   price: number;
   stock: number;
   category: string;
-  imageUrl?: string;
+  imageUrl?: string; // Legacy field - keeping for backward compatibility
+  images?: ProductImage[]; // New field for multiple images
+  main_image_url?: string; // First image URL for convenience
   createdAt: string;
   updatedAt: string;
 }

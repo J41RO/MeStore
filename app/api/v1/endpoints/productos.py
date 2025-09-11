@@ -51,7 +51,7 @@ from PIL import Image
 from sqlalchemy import and_, asc, desc, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import get_async_db as get_db
 from app.models.product import Product
 from app.models.product_image import ProductImage
 from app.schemas.product import (
@@ -167,7 +167,7 @@ async def get_productos(
     # Ordenamiento
     sort_by: Optional[str] = Query("created_at", description="Campo para ordenar"),
     sort_order: Optional[str] = Query(
-        "desc", regex="^(asc|desc)$", description="Orden de clasificación"
+        "desc", pattern="^(asc|desc)$", description="Orden de clasificación"
     ),
     # Paginación básica
     skip: int = Query(0, ge=0, description="Elementos a saltar"),
@@ -694,6 +694,68 @@ async def upload_producto_imagenes(
             detail="Error interno del servidor en upload"
         )
 
+
+@router.get(
+    "/{producto_id}/imagenes",
+    response_model=List[ProductImageResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Obtener imágenes de producto",
+    description="Obtener todas las imágenes de un producto ordenadas por order_index",
+    tags=["productos"]
+)
+async def get_producto_imagenes(
+    producto_id: UUID,
+    db: AsyncSession = Depends(get_db)
+) -> List[ProductImageResponse]:
+    """
+    Obtener todas las imágenes de un producto.
+    
+    Args:
+        producto_id: ID del producto
+        db: Sesión de base de datos
+        
+    Returns:
+        List[ProductImageResponse]: Lista de imágenes del producto
+        
+    Raises:
+        HTTPException: Si el producto no existe
+    """
+    try:
+        # 1. Verificar que el producto existe
+        result = await db.execute(
+            select(Product).where(
+                Product.id == producto_id,
+                Product.deleted_at.is_(None)
+            )
+        )
+        producto = result.scalar_one_or_none()
+        
+        if not producto:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Producto con ID {producto_id} no encontrado"
+            )
+        
+        # 2. Obtener imágenes del producto (ordenadas por order_index)
+        result = await db.execute(
+            select(ProductImage).where(
+                ProductImage.product_id == producto_id,
+                ProductImage.deleted_at.is_(None)
+            ).order_by(asc(ProductImage.order_index))
+        )
+        imagenes = result.scalars().all()
+        
+        # 3. Convertir a response objects
+        return [ProductImageResponse.from_orm(imagen) for imagen in imagenes]
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error obteniendo imágenes del producto {producto_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor al obtener imágenes"
+        )
 
 
 @router.delete(

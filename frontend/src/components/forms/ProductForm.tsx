@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
+import { X } from 'lucide-react';
 import {
   createProductSchema,
   ProductFormData,
@@ -9,6 +10,10 @@ import {
 } from '../../schemas/productSchema';
 import { CreateProductData, UpdateProductData } from '../../types/api.types';
 import api from '../../services/api';
+import ImageUpload from '../ui/ImageUpload/ImageUpload';
+import { ImageFile } from '../ui/ImageUpload/ImageUpload.types';
+import { uploadProductImages, validateProductImageFiles, getProductImages, deleteProductImage } from '../../services/productImageService';
+import type { ProductImage } from '../../services/productImageService';
 
 export interface ProductFormProps {
   mode: 'create' | 'edit';
@@ -32,6 +37,11 @@ const ProductForm: React.FC<ProductFormProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<MessageState | null>(null);
+  const [selectedImages, setSelectedImages] = useState<ImageFile[]>([]);
+  const [existingImages, setExistingImages] = useState<ProductImage[]>([]);
+  const [deletedImageIds, setDeletedImageIds] = useState<string[]>([]);
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [loadingExistingImages, setLoadingExistingImages] = useState(false);
 
   const {
     register,
@@ -56,6 +66,26 @@ const ProductForm: React.FC<ProductFormProps> = ({
     }
   }, [mode, initialData, setValue]);
 
+  // Load existing images when in edit mode
+  useEffect(() => {
+    const loadExistingImages = async () => {
+      if (mode === 'edit' && initialData?.id) {
+        setLoadingExistingImages(true);
+        try {
+          const images = await getProductImages(initialData.id as string);
+          setExistingImages(images);
+        } catch (error) {
+          console.error('Error loading existing images:', error);
+          showMessage('Error cargando imágenes existentes', 'error');
+        } finally {
+          setLoadingExistingImages(false);
+        }
+      }
+    };
+
+    loadExistingImages();
+  }, [mode, initialData?.id]);
+
   const clearMessage = () => {
     setMessage(null);
   };
@@ -70,16 +100,43 @@ const ProductForm: React.FC<ProductFormProps> = ({
     clearMessage();
 
     try {
+      let productId: string;
+
       if (mode === 'create') {
-        await api.products.create(data as CreateProductData);
+        const response = await api.products.create(data as CreateProductData);
+        productId = response.data.id;
         showMessage('Producto creado exitosamente', 'success');
       } else {
-        const productId = (initialData as any)?.id;
+        productId = (initialData as any)?.id;
         if (!productId) {
           throw new Error('ID del producto requerido para actualización');
         }
         await api.products.update(productId, data as UpdateProductData);
         showMessage('Producto actualizado exitosamente', 'success');
+      }
+
+      // Handle image operations
+      if (selectedImages.length > 0 || deletedImageIds.length > 0) {
+        setUploadingImages(true);
+        try {
+          // Delete images that were marked for deletion
+          for (const imageId of deletedImageIds) {
+            await deleteProductImage(imageId);
+          }
+
+          // Upload new images if any
+          if (selectedImages.length > 0) {
+            const imageFiles = selectedImages.map(img => img.file);
+            await uploadProductImages(productId, imageFiles);
+          }
+
+          showMessage('Producto e imágenes guardados exitosamente', 'success');
+        } catch (imageError) {
+          console.error('Error uploading images:', imageError);
+          showMessage('Producto guardado pero falló la gestión de imágenes', 'error');
+        } finally {
+          setUploadingImages(false);
+        }
       }
 
       if (onSubmit) {
@@ -116,6 +173,44 @@ const ProductForm: React.FC<ProductFormProps> = ({
     if (onCancel) {
       onCancel();
     }
+  };
+
+  const handleImageUpload = (images: ImageFile[]) => {
+    // Validate files first
+    const files = images.map(img => img.file);
+    const errors = validateProductImageFiles(files, 5, 5 * 1024 * 1024);
+    
+    if (errors.length > 0) {
+      showMessage(`Error en imágenes: ${errors.join(', ')}`, 'error');
+      return;
+    }
+
+    // Add to selected images (avoiding duplicates)
+    setSelectedImages(prevImages => {
+      const newImages = [...prevImages];
+      images.forEach(newImg => {
+        // Check if file already exists
+        const exists = newImages.some(existing => 
+          existing.file.name === newImg.file.name && 
+          existing.file.size === newImg.file.size
+        );
+        if (!exists) {
+          newImages.push(newImg);
+        }
+      });
+      return newImages.slice(0, 5); // Limit to 5 images
+    });
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setSelectedImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleDeleteExistingImage = (imageId: string) => {
+    // Mark for deletion
+    setDeletedImageIds(prev => [...prev, imageId]);
+    // Remove from UI
+    setExistingImages(prev => prev.filter(img => img.id !== imageId));
   };
 
   const categoryOptions = getCategoryOptions();
@@ -244,22 +339,108 @@ const ProductForm: React.FC<ProductFormProps> = ({
           )}
         </div>
 
-        <div>
-          <label htmlFor='imageUrl' className='block text-sm font-medium mb-2'>
-            URL de Imagen (Opcional)
-          </label>
-          <input
-            id='imageUrl'
-            type='url'
-            {...register('imageUrl')}
-            className='w-full px-3 py-2 border rounded-lg'
-            placeholder='https://ejemplo.com/imagen.jpg'
-          />
-          {errors.imageUrl && (
-            <p className='mt-1 text-sm text-red-600'>
-              {errors.imageUrl?.message as string}
-            </p>
+        {/* Image Upload Section */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium text-gray-900">Imágenes del Producto</h3>
+
+          {/* Show existing images in edit mode */}
+          {mode === 'edit' && (
+            <div>
+              {loadingExistingImages ? (
+                <div className="flex items-center justify-center py-8 border rounded-lg">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                  <span className="ml-2 text-gray-600">Cargando imágenes existentes...</span>
+                </div>
+              ) : existingImages.length > 0 ? (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">
+                    Imágenes actuales ({existingImages.length})
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                    {existingImages.map((image) => (
+                      <div key={image.id} className="relative group">
+                        <img
+                          src={image.public_url}
+                          alt={image.original_filename}
+                          className="w-full h-32 object-cover rounded-lg border border-gray-200"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteExistingImage(image.id)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                          disabled={loading || uploadingImages}
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                        <div className="absolute bottom-1 left-1 bg-black bg-opacity-50 text-white text-xs px-1 rounded">
+                          {Math.round(image.file_size / 1024)}KB
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 mb-4">No hay imágenes existentes</p>
+              )}
+            </div>
           )}
+
+          {/* Upload new images */}
+          <div>
+            <h4 className="text-sm font-medium text-gray-700 mb-3">
+              {mode === 'edit' ? 'Agregar nuevas imágenes' : 'Imágenes del producto'}
+            </h4>
+            <ImageUpload
+              onImageUpload={handleImageUpload}
+              maxFiles={5 - existingImages.length}
+              maxSize={5 * 1024 * 1024} // 5MB
+              acceptedTypes={['image/jpeg', 'image/png', 'image/webp', 'image/gif']}
+              className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-gray-400 transition-colors"
+              showPreview={false}
+              disabled={loading || uploadingImages || (existingImages.length >= 5)}
+            />
+          </div>
+
+          {/* Preview of selected new images */}
+          {selectedImages.length > 0 && (
+            <div className="mt-4">
+              <h4 className="text-sm font-medium text-gray-700 mb-3">
+                Nuevas imágenes seleccionadas ({selectedImages.length})
+              </h4>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {selectedImages.map((imageFile, index) => (
+                  <div key={`${imageFile.file.name}-${index}`} className="relative group">
+                    <img
+                      src={imageFile.preview}
+                      alt={`Preview ${index + 1}`}
+                      className="w-full h-32 object-cover rounded-lg border border-gray-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(index)}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors"
+                      disabled={loading || uploadingImages}
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                    <div className="absolute bottom-1 left-1 bg-black bg-opacity-50 text-white text-xs px-1 rounded">
+                      {Math.round(imageFile.file.size / 1024)}KB
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <p className="text-sm text-gray-500">
+            Máximo 5 imágenes total (JPG, PNG, WebP, GIF). Máximo 5MB por imagen.
+            {existingImages.length > 0 && (
+              <span className="block">
+                Tienes {existingImages.length} imagen(es) existente(s). 
+                Puedes agregar {5 - existingImages.length} más.
+              </span>
+            )}
+          </p>
         </div>
 
         {/* SKU Field */}
@@ -343,21 +524,28 @@ const ProductForm: React.FC<ProductFormProps> = ({
         <div className='flex gap-3 pt-6'>
           <button
             type='submit'
-            disabled={loading || !isValid}
-            className='flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg disabled:bg-gray-300'
+            disabled={loading || uploadingImages || !isValid}
+            className='flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg disabled:bg-gray-300 flex items-center justify-center'
           >
-            {loading
-              ? 'Procesando...'
-              : mode === 'create'
-                ? 'Crear Producto'
-                : 'Actualizar Producto'}
+            {uploadingImages ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Subiendo imágenes...
+              </>
+            ) : loading ? (
+              'Procesando...'
+            ) : mode === 'create' ? (
+              'Crear Producto'
+            ) : (
+              'Actualizar Producto'
+            )}
           </button>
 
           <button
             type='button'
             onClick={handleCancel}
-            disabled={loading}
-            className='px-6 py-3 border text-gray-700 rounded-lg'
+            disabled={loading || uploadingImages}
+            className='px-6 py-3 border text-gray-700 rounded-lg disabled:opacity-50'
           >
             Cancelar
           </button>

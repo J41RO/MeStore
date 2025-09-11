@@ -32,6 +32,7 @@
  */
 
 import React from 'react';
+import { Image as ImageIcon } from 'lucide-react';
 import { Product } from '../../types/api.types';
 
 interface ProductTableProps {
@@ -259,25 +260,37 @@ const ProductTable: React.FC<ProductTableProps> = ({
                 <td className='px-6 py-4 whitespace-nowrap'>
                   <div className='flex items-center'>
                     <div className='flex-shrink-0 h-12 w-12'>
-                      {product.imageUrl ? (
-                        <img
-                          className='h-12 w-12 rounded-lg object-cover'
-                          src={product.imageUrl}
-                          alt={product.name}
-                          onError={e => {
-                            (e.target as HTMLImageElement).src =
-                              'https://via.placeholder.com/48?text=📦';
-                          }}
-                        />
-                      ) : (
-                        <div className='h-12 w-12 rounded-lg bg-gray-200 flex items-center justify-center text-gray-400 text-xl'>
-                          📦
-                        </div>
-                      )}
+                      {(() => {
+                        // Priority order: main_image_url, first image from images array, legacy imageUrl
+                        const imageUrl = product.main_image_url || 
+                                        (product.images && product.images.length > 0 ? product.images[0].public_url : null) || 
+                                        product.imageUrl;
+                        
+                        return imageUrl ? (
+                          <img
+                            className='h-12 w-12 rounded-lg object-cover border border-gray-200'
+                            src={imageUrl}
+                            alt={product.name}
+                            onError={e => {
+                              (e.target as HTMLImageElement).src =
+                                'https://via.placeholder.com/48x48/e5e7eb/6b7280?text=📦';
+                            }}
+                          />
+                        ) : (
+                          <div className='h-12 w-12 rounded-lg bg-gray-200 flex items-center justify-center text-gray-400 border border-gray-300'>
+                            <ImageIcon className="w-6 h-6" />
+                          </div>
+                        );
+                      })()}
                     </div>
                     <div className='ml-4'>
                       <div className='text-sm font-medium text-gray-900'>
                         {product.name}
+                        {product.images && product.images.length > 1 && (
+                          <span className='ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800'>
+                            {product.images.length} fotos
+                          </span>
+                        )}
                       </div>
                       <div className='text-sm text-gray-500 truncate max-w-xs'>
                         {product.description}
