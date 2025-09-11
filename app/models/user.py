@@ -35,7 +35,7 @@ Este módulo contiene el modelo principal para gestión de usuarios:
 
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text, JSON
 from sqlalchemy import Index
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
@@ -333,6 +333,89 @@ class User(BaseModel):
         onupdate=func.now(),
         nullable=False,
         comment="Timestamp de última actualización del registro"
+    )
+
+    # === CAMPOS DE PERFIL DE VENDOR ===
+    # Avatar/Logo del vendor
+    avatar_url = Column(
+        String(500), 
+        nullable=True, 
+        comment="URL del avatar/logo del vendor"
+    )
+    
+    # Información del negocio
+    business_name = Column(
+        String(200), 
+        nullable=True, 
+        comment="Nombre comercial del negocio"
+    )
+    
+    business_description = Column(
+        Text, 
+        nullable=True, 
+        comment="Descripción del negocio"
+    )
+    
+    website_url = Column(
+        String(500), 
+        nullable=True, 
+        comment="Sitio web del vendor"
+    )
+    
+    social_media_links = Column(
+        JSON, 
+        nullable=True, 
+        comment="Enlaces de redes sociales"
+    )
+    
+    business_hours = Column(
+        JSON, 
+        nullable=True, 
+        comment="Horarios de atención"
+    )
+    
+    shipping_policy = Column(
+        Text, 
+        nullable=True, 
+        comment="Política de envíos"
+    )
+    
+    return_policy = Column(
+        Text, 
+        nullable=True, 
+        comment="Política de devoluciones"
+    )
+    
+    # === CONFIGURACIONES DE NOTIFICACIONES VENDOR ===
+    notification_preferences = Column(
+        JSON, 
+        nullable=True,
+        default={
+            "email_new_orders": True,
+            "email_low_stock": True,
+            "sms_urgent_orders": False,
+            "push_daily_summary": True
+        },
+        comment="Preferencias de notificaciones del vendor"
+    )
+    
+    # === INFORMACIÓN BANCARIA EXPANDIDA ===
+    bank_name = Column(
+        String(100), 
+        nullable=True, 
+        comment="Nombre del banco"
+    )
+    
+    account_holder_name = Column(
+        String(200), 
+        nullable=True, 
+        comment="Titular de la cuenta"
+    )
+    
+    account_number = Column(
+        String(50), 
+        nullable=True, 
+        comment="Número de cuenta"
     )
 
     # === RELATIONSHIPS ===

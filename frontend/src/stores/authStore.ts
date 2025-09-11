@@ -64,11 +64,12 @@ export const useAuthStore = create<AuthState>()(
       },
       checkAuth: () => {
         const token = localStorage.getItem('auth_token');
-        if (token) {
+        const state = get();
+        if (token && state.user) {
           set({ token, isAuthenticated: true });
           return true;
         }
-        set({ token: null, isAuthenticated: false });
+        set({ token: null, user: null, isAuthenticated: false });
         return false;
       },
       getUserType: () => {
@@ -78,7 +79,11 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'auth-storage',
-      partialize: (state: AuthState) => ({ user: state.user, token: state.token }),
+      partialize: (state: AuthState) => ({ 
+        user: state.user, 
+        token: state.token, 
+        isAuthenticated: state.isAuthenticated 
+      }),
     }
   )
 );

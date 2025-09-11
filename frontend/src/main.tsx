@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './contexts/AuthContext';
 import { UserProvider } from './contexts/UserContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 import './index.css';
 import 'leaflet/dist/leaflet.css';
 import App from './App.tsx';
@@ -14,7 +15,9 @@ createRoot(document.getElementById('root')!).render(
       <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || 'your_google_client_id_here'}>
         <AuthProvider>
           <UserProvider>
-            <App />
+            <NotificationProvider>
+              <App />
+            </NotificationProvider>
           </UserProvider>
         </AuthProvider>
       </GoogleOAuthProvider>

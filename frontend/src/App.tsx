@@ -5,6 +5,8 @@ import TestStockMovements from './pages/TestStockMovements';
 import { lazy, Suspense } from 'react';
 import Layout from './components/Layout';
 import AuthGuard from './components/AuthGuard';
+import RoleGuard from './components/RoleGuard';
+import { UserType } from './stores/authStore';
 import ErrorBoundary from './components/ErrorBoundary';
 import PageLoader from './components/ui/Loading/PageLoader';
 import LandingPage from './pages/LandingPage';
@@ -23,6 +25,8 @@ const IncomingProductsQueuePage = lazy(() => import('./pages/admin/IncomingProdu
 const SystemConfig = lazy(() => import('./pages/admin/SystemConfig'));
 const WarehouseMap = lazy(() => import('./components/admin/WarehouseMap'));
 const Productos = lazy(() => import('./pages/Productos'));
+const ProductosSimple = lazy(() => import('./pages/ProductosSimple'));
+const VendorProfile = lazy(() => import('./pages/VendorProfile'));
 const CommissionReport = lazy(
   () => import('./components/reports/CommissionReport')
 );
@@ -38,8 +42,10 @@ const OTPDemo = lazy(() => import('./components/OTPDemo'));
 const VendorTest = lazy(() => import('./pages/VendorTest'));
 const Marketplace = lazy(() => import('./pages/Marketplace'));
 const AdminRestricted = lazy(() => import('./pages/AdminRestricted'));
+const Unauthorized = lazy(() => import('./pages/Unauthorized'));
 const InventoryAuditPanel = lazy(() => import('./components/admin/InventoryAuditPanel'));
 const StorageManagerDashboard = lazy(() => import('./components/admin/StorageManagerDashboard'));
+const SpaceOptimizerDashboard = lazy(() => import('./components/admin/SpaceOptimizerDashboard'));
 
 function App() {
   return (
@@ -47,6 +53,9 @@ function App() {
       <Routes>
         {/* Ruta principal pública - Nueva Landing Page */}
         <Route path='/' element={<LandingPage />} />
+        
+        {/* Redirección de compatibilidad para dashboard directo */}
+        <Route path='/dashboard' element={<Navigate to='/app/dashboard' replace />} />
         <Route path='/test-imageupload' element={<TestImageUpload />} />
         <Route path='/test-inventory' element={<TestInventory />} />
         <Route path='/test-stock-movements' element={<TestStockMovements />} />
@@ -70,7 +79,7 @@ function App() {
         <Route
           path='/marketplace'
           element={
-            <AuthGuard>
+            <AuthGuard requiredRoles={[UserType.COMPRADOR, UserType.VENDEDOR, UserType.ADMIN, UserType.SUPERUSER]}>
               <Suspense fallback={<PageLoader />}>
                 <Marketplace />
               </Suspense>
@@ -101,19 +110,96 @@ function App() {
           <Route
             path='productos'
             element={
-              <Suspense fallback={<PageLoader />}>
-                <Productos />
-              </Suspense>
+              <RoleGuard roles={[UserType.VENDEDOR]} strategy="minimum">
+                <Suspense fallback={<PageLoader />}>
+                  <DashboardLayout>
+                    <ProductosSimple />
+                  </DashboardLayout>
+                </Suspense>
+              </RoleGuard>
+            }
+          />
+          <Route
+            path='productos/nuevo'
+            element={
+              <RoleGuard roles={[UserType.VENDEDOR]} strategy="minimum">
+                <Suspense fallback={<PageLoader />}>
+                  <Productos />
+                </Suspense>
+              </RoleGuard>
+            }
+          />
+          <Route
+            path='ordenes'
+            element={
+              <RoleGuard roles={[UserType.VENDEDOR]} strategy="minimum">
+                <Suspense fallback={<PageLoader />}>
+                  <DashboardLayout>
+                    <div className="p-6">
+                      <h1 className="text-2xl font-bold text-gray-900 mb-6">Mis Órdenes</h1>
+                      <div className="bg-white rounded-lg shadow p-6">
+                        <p className="text-gray-600">Gestión de órdenes - En desarrollo</p>
+                        <p className="text-sm text-gray-500 mt-2">
+                          Esta sección permitirá ver y gestionar todas las órdenes de venta.
+                        </p>
+                      </div>
+                    </div>
+                  </DashboardLayout>
+                </Suspense>
+              </RoleGuard>
+            }
+          />
+          <Route
+            path='reportes'
+            element={
+              <RoleGuard roles={[UserType.VENDEDOR]} strategy="minimum">
+                <Suspense fallback={<PageLoader />}>
+                  <DashboardLayout>
+                    <div className="p-6">
+                      <h1 className="text-2xl font-bold text-gray-900 mb-6">Reportes</h1>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="bg-white rounded-lg shadow p-6">
+                          <h3 className="text-lg font-semibold text-gray-900 mb-2">Reportes Disponibles</h3>
+                          <div className="space-y-2">
+                            <a href="/app/reportes/comisiones" className="block text-blue-600 hover:text-blue-800">
+                              📊 Reporte de Comisiones
+                            </a>
+                            <p className="text-sm text-gray-500">Más reportes próximamente...</p>
+                          </div>
+                        </div>
+                        <div className="bg-white rounded-lg shadow p-6">
+                          <h3 className="text-lg font-semibold text-gray-900 mb-2">Estadísticas</h3>
+                          <p className="text-gray-600">Análisis detallado de ventas y performance</p>
+                        </div>
+                      </div>
+                    </div>
+                  </DashboardLayout>
+                </Suspense>
+              </RoleGuard>
             }
           />
           <Route
             path='reportes/comisiones'
             element={
-              <Suspense fallback={<PageLoader />}>
-                <DashboardLayout>
-                  <CommissionReport />
-                </DashboardLayout>
-              </Suspense>
+              <RoleGuard roles={[UserType.VENDEDOR]} strategy="minimum">
+                <Suspense fallback={<PageLoader />}>
+                  <DashboardLayout>
+                    <CommissionReport />
+                  </DashboardLayout>
+                </Suspense>
+              </RoleGuard>
+            }
+          />
+          <Route
+            path='perfil'
+            element={
+              <RoleGuard roles={[UserType.VENDEDOR]} strategy="minimum">
+                <Suspense fallback={<PageLoader />}>
+                  <DashboardLayout>
+                    <VendorProfile />
+                  </DashboardLayout>
+                </Suspense>
+              </RoleGuard>
             }
           />
         </Route>
@@ -185,20 +271,29 @@ function App() {
         <Route
           path='/admin-secure-portal/*'
           element={
-            <AuthGuard>
+            <AuthGuard requiredRoles={[UserType.ADMIN, UserType.SUPERUSER]} unauthorizedPath="/unauthorized">
               <Suspense fallback={<PageLoader />}>
                 <AdminLayout>
                   <Routes>
                     <Route path='dashboard' element={<AdminDashboard />} />
-                    <Route path='users' element={<UserManagement />} />
+                    <Route path='users' element={
+                      <RoleGuard roles={[UserType.ADMIN, UserType.SUPERUSER]} strategy="any">
+                        <UserManagement />
+                      </RoleGuard>
+                    } />
                     <Route path='alertas-incidentes' element={<AlertasIncidentes />} />
                     <Route path='movement-tracker' element={<MovementTrackerPage />} />
                     <Route path='reportes-discrepancias' element={<ReportesDiscrepanciasPage />} />
                     <Route path='cola-productos-entrantes' element={<IncomingProductsQueuePage />} />
-                    <Route path='system-config' element={<SystemConfig />} />
+                    <Route path='system-config' element={
+                      <RoleGuard roles={[UserType.SUPERUSER]} strategy="exact">
+                        <SystemConfig />
+                      </RoleGuard>
+                    } />
                     <Route path='warehouse-map' element={<WarehouseMap />} />
                     <Route path='auditoria' element={<InventoryAuditPanel />} />
                     <Route path='storage-manager' element={<StorageManagerDashboard />} />
+                    <Route path='space-optimizer' element={<SpaceOptimizerDashboard />} />
                     <Route
                       index
                       element={<Navigate to='dashboard' replace />}
@@ -207,6 +302,16 @@ function App() {
                 </AdminLayout>
               </Suspense>
             </AuthGuard>
+          }
+        />
+
+        {/* Página de acceso denegado */}
+        <Route
+          path="/unauthorized"
+          element={
+            <Suspense fallback={<PageLoader />}>
+              <Unauthorized />
+            </Suspense>
           }
         />
 
