@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from app.models.incoming_product_queue import IncomingProductQueue
 from app.services.notification_service import NotificationService, NotificationType, NotificationChannel
 from app.services.location_assignment_service import LocationAssignmentService, AssignmentStrategy
+from app.services.qr_service import QRService
 
 class VerificationStep(str, Enum):
     INITIAL_INSPECTION = "initial_inspection"
@@ -45,6 +46,7 @@ class ProductVerificationWorkflow:
         self.queue_item = queue_item
         self.notification_service = NotificationService()
         self.location_service = LocationAssignmentService(db)
+        self.qr_service = QRService()
         self.steps = list(VerificationStep)
         self.step_order = [
             VerificationStep.INITIAL_INSPECTION,
@@ -413,3 +415,118 @@ class ProductVerificationWorkflow:
             return "Amplia capacidad disponible, ideal para productos grandes"
         else:
             return "Espacio limitado, apropiado para productos pequeños"
+    
+    async def complete_verification_with_qr(self, inspector_user_id: str) -> Dict[str, Any]:
+        """Completar verificación generando QR automáticamente"""
+        try:
+            # Generar ID interno único
+            internal_id = self.qr_service.generate_internal_tracking_id(
+                self.queue_item.tracking_number
+            )
+            
+            # Preparar información del producto
+            product_info = {
+                "name": self.queue_item.product.name if self.queue_item.product else "Producto",
+                "category": self.queue_item.product.categoria if self.queue_item.product else "General",
+                "sku": self.queue_item.product.sku if self.queue_item.product else None,
+                "verification_date": datetime.utcnow().isoformat()
+            }
+            
+            # Generar código QR
+            qr_result = self.qr_service.create_qr_code(
+                tracking_number=self.queue_item.tracking_number,
+                internal_id=internal_id,
+                product_info=product_info,
+                style="styled"
+            )
+            
+            # Generar etiqueta completa
+            label_filepath = self.qr_service.create_product_label(
+                tracking_number=self.queue_item.tracking_number,
+                internal_id=internal_id,
+                product_info=product_info,
+                qr_filepath=qr_result["qr_filepath"]
+            )
+            
+            # Actualizar metadata del producto en la cola
+            if not self.queue_item.metadata:
+                self.queue_item.metadata = {}
+            
+            self.queue_item.metadata.update({
+                "internal_id": internal_id,
+                "qr_generated": True,
+                "qr_filename": qr_result["qr_filename"],
+                "label_filepath": label_filepath,
+                "qr_generation_date": datetime.utcnow().isoformat(),
+                "generated_by": inspector_user_id
+            })
+            
+            # Actualizar estado final
+            self.queue_item.verification_status = "COMPLETED_WITH_QR"
+            
+            self.db.commit()
+            
+            return {
+                "success": True,
+                "internal_id": internal_id,
+                "qr_data": qr_result,
+                "label_filepath": label_filepath,
+                "message": "Verificación completada con QR generado"
+            }
+            
+        except Exception as e:
+            self.db.rollback()
+            return {
+                "success": False,
+                "message": f"Error generando QR: {str(e)}"
+            }
+    
+    def get_qr_info(self) -> Optional[Dict[str, Any]]:
+        """Obtener información del QR si existe"""
+        if self.queue_item.metadata and self.queue_item.metadata.get("qr_generated"):
+            return {
+                "internal_id": self.queue_item.metadata.get("internal_id"),
+                "qr_filename": self.queue_item.metadata.get("qr_filename"),
+                "generation_date": self.queue_item.metadata.get("qr_generation_date"),
+                "has_qr": True
+            }
+        return {"has_qr": False}
+    
+    async def regenerate_qr(self, inspector_user_id: str, style: str = "standard") -> Dict[str, Any]:
+        """Regenerar QR con nuevo estilo"""
+        if not self.queue_item.metadata or not self.queue_item.metadata.get("internal_id"):
+            return {"success": False, "message": "No hay ID interno para regenerar QR"}
+        
+        try:
+            internal_id = self.queue_item.metadata["internal_id"]
+            product_info = {
+                "name": self.queue_item.product.name if self.queue_item.product else "Producto",
+                "category": self.queue_item.product.categoria if self.queue_item.product else "General"
+            }
+            
+            # Regenerar QR
+            qr_result = self.qr_service.create_qr_code(
+                tracking_number=self.queue_item.tracking_number,
+                internal_id=internal_id,
+                product_info=product_info,
+                style=style
+            )
+            
+            # Actualizar metadata
+            self.queue_item.metadata.update({
+                "qr_filename": qr_result["qr_filename"],
+                "qr_regeneration_date": datetime.utcnow().isoformat(),
+                "regenerated_by": inspector_user_id
+            })
+            
+            self.db.commit()
+            
+            return {
+                "success": True,
+                "qr_data": qr_result,
+                "message": "QR regenerado exitosamente"
+            }
+            
+        except Exception as e:
+            self.db.rollback()
+            return {"success": False, "message": f"Error regenerando QR: {str(e)}"}

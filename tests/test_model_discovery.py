@@ -4,7 +4,7 @@ Tests for automatic model discovery in Alembic env.py
 
 import pytest
 import importlib
-from app.core.database import Base
+from app.database import Base
 
 
 class TestModelDiscovery:

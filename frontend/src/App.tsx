@@ -10,6 +10,7 @@ import { UserType } from './stores/authStore';
 import ErrorBoundary from './components/ErrorBoundary';
 import PageLoader from './components/ui/Loading/PageLoader';
 import LandingPage from './pages/LandingPage';
+import MarketplaceHome from './pages/MarketplaceHome';
 import './App.css';
 
 // Lazy loading de páginas principales
@@ -25,7 +26,6 @@ const IncomingProductsQueuePage = lazy(() => import('./pages/admin/IncomingProdu
 const SystemConfig = lazy(() => import('./pages/admin/SystemConfig'));
 const WarehouseMap = lazy(() => import('./components/admin/WarehouseMap'));
 const Productos = lazy(() => import('./pages/Productos'));
-const ProductosSimple = lazy(() => import('./pages/ProductosSimple'));
 const VendorProfile = lazy(() => import('./pages/VendorProfile'));
 const CommissionReport = lazy(
   () => import('./components/reports/CommissionReport')
@@ -54,6 +54,10 @@ function App() {
         {/* Ruta principal pública - Nueva Landing Page */}
         <Route path='/' element={<LandingPage />} />
         
+        {/* Ruta principal del marketplace */}
+        <Route path="/marketplace" element={<MarketplaceHome />} />
+        <Route path="/marketplace/home" element={<MarketplaceHome />} />
+        
         {/* Redirección de compatibilidad para dashboard directo */}
         <Route path='/dashboard' element={<Navigate to='/app/dashboard' replace />} />
         <Route path='/test-imageupload' element={<TestImageUpload />} />
@@ -75,9 +79,9 @@ function App() {
           }
         />
 
-        {/* Ruta del Marketplace para compradores */}
+        {/* Ruta del Marketplace Original para compradores autenticados */}
         <Route
-          path='/marketplace'
+          path='/marketplace/app'
           element={
             <AuthGuard requiredRoles={[UserType.COMPRADOR, UserType.VENDEDOR, UserType.ADMIN, UserType.SUPERUSER]}>
               <Suspense fallback={<PageLoader />}>
@@ -113,18 +117,8 @@ function App() {
               <RoleGuard roles={[UserType.VENDEDOR]} strategy="minimum">
                 <Suspense fallback={<PageLoader />}>
                   <DashboardLayout>
-                    <ProductosSimple />
+                    <Productos />
                   </DashboardLayout>
-                </Suspense>
-              </RoleGuard>
-            }
-          />
-          <Route
-            path='productos/nuevo'
-            element={
-              <RoleGuard roles={[UserType.VENDEDOR]} strategy="minimum">
-                <Suspense fallback={<PageLoader />}>
-                  <Productos />
                 </Suspense>
               </RoleGuard>
             }

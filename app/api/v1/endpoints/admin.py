@@ -5,6 +5,7 @@ import os
 import aiofiles
 from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, select
@@ -15,11 +16,15 @@ import io
 from app.core.auth import get_current_user
 from app.database import get_async_db as get_db, get_db as get_sync_db
 from app.models import User, Product, Transaction
+from app.models.user import UserType
 from app.models.incoming_product_queue import IncomingProductQueue
 from app.schemas.admin import AdminDashboardResponse, GlobalKPIs, PeriodMetrics
 from app.schemas.product_verification import QualityPhoto, PhotoUploadResponse, QualityChecklist, QualityChecklistRequest
 from app.services.product_verification_workflow import ProductVerificationWorkflow, VerificationStep, StepResult, ProductRejection, RejectionReason
 from app.services.location_assignment_service import LocationAssignmentService, AssignmentStrategy
+from app.services.qr_service import QRService
+from app.services.storage_manager_service import StorageManagerService
+from app.services.space_optimizer_service import SpaceOptimizerService, OptimizationGoal, OptimizationStrategy
 from app.core.config import settings
 
 router = APIRouter()
@@ -710,11 +715,11 @@ async def submit_quality_checklist(
 # ENDPOINTS PARA SISTEMA DE RECHAZO
 def get_current_admin_user(current_user: User = Depends(get_current_user)):
     """Validar que el usuario tenga permisos de administrador"""
-    if not (current_user.is_superuser or 
-            (hasattr(current_user, 'user_type') and current_user.user_type in ['ADMIN', 'SUPERUSER'])):
+    if not (hasattr(current_user, 'user_type') and 
+            current_user.user_type in [UserType.ADMIN, UserType.SUPERUSER]):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="No tienes permisos de administrador"
+            detail=f"No tienes permisos de administrador. Tu tipo: {current_user.user_type if hasattr(current_user, 'user_type') else 'Desconocido'}"
         )
     return current_user
 
@@ -1346,3 +1351,436 @@ async def get_assignment_analytics(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error obteniendo analytics de asignación: {str(e)}"
         )
+
+
+# ======================
+# QR CODE ENDPOINTS
+# ======================
+
+@router.post("/incoming-products/{queue_id}/generate-qr")
+async def generate_product_qr(
+    queue_id: int,
+    style: str = "standard",
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Generar código QR para producto"""
+    
+    # Verificar que el usuario tiene permisos de admin
+    if not current_user.user_type in ["SUPERUSER", "ADMIN"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acceso denegado. Se requieren permisos de administrador"
+        )
+    
+    queue_item = db.query(IncomingProductQueue).filter(
+        IncomingProductQueue.id == queue_id
+    ).first()
+    
+    if not queue_item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Producto no encontrado"
+        )
+    
+    workflow = ProductVerificationWorkflow(db, queue_item)
+    result = await workflow.complete_verification_with_qr(current_user.id)
+    
+    return result
+
+
+@router.get("/incoming-products/{queue_id}/qr-info")
+async def get_qr_info(
+    queue_id: int,
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Obtener información del QR del producto"""
+    
+    # Verificar que el usuario tiene permisos de admin
+    if not current_user.user_type in ["SUPERUSER", "ADMIN"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acceso denegado. Se requieren permisos de administrador"
+        )
+    
+    queue_item = db.query(IncomingProductQueue).filter(
+        IncomingProductQueue.id == queue_id
+    ).first()
+    
+    if not queue_item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Producto no encontrado"
+        )
+    
+    workflow = ProductVerificationWorkflow(db, queue_item)
+    qr_info = workflow.get_qr_info()
+    
+    return qr_info
+
+
+@router.get("/qr-codes/{filename}")
+async def download_qr_code(
+    filename: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Descargar imagen de código QR"""
+    
+    # Verificar que el usuario tiene permisos de admin
+    if not current_user.user_type in ["SUPERUSER", "ADMIN"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acceso denegado. Se requieren permisos de administrador"
+        )
+    
+    filepath = f"uploads/qr_codes/{filename}"
+    
+    if not os.path.exists(filepath):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Archivo QR no encontrado"
+        )
+    
+    return FileResponse(
+        filepath,
+        media_type="image/png",
+        filename=filename
+    )
+
+
+@router.get("/labels/{filename}")
+async def download_label(
+    filename: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Descargar etiqueta completa"""
+    
+    # Verificar que el usuario tiene permisos de admin
+    if not current_user.user_type in ["SUPERUSER", "ADMIN"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acceso denegado. Se requieren permisos de administrador"
+        )
+    
+    filepath = f"uploads/labels/{filename}"
+    
+    if not os.path.exists(filepath):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Etiqueta no encontrada"
+        )
+    
+    return FileResponse(
+        filepath,
+        media_type="image/png",
+        filename=filename
+    )
+
+
+@router.post("/qr/decode")
+async def decode_qr_content(
+    qr_content: str,
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Decodificar contenido de QR escaneado"""
+    
+    # Verificar que el usuario tiene permisos de admin
+    if not current_user.user_type in ["SUPERUSER", "ADMIN"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acceso denegado. Se requieren permisos de administrador"
+        )
+    
+    qr_service = QRService()
+    decoded = qr_service.decode_qr_content(qr_content)
+    
+    if not decoded:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Contenido QR inválido"
+        )
+    
+    # Buscar producto por internal_id
+    queue_item = db.query(IncomingProductQueue).filter(
+        IncomingProductQueue.metadata.op('->>')('internal_id') == decoded["internal_id"]
+    ).first()
+    
+    if queue_item:
+        return {
+            "decoded_data": decoded,
+            "product_info": {
+                "tracking_number": queue_item.tracking_number,
+                "status": queue_item.verification_status,
+                "product_name": queue_item.product.name if queue_item.product else "N/A"
+            },
+            "found": True
+        }
+    else:
+        return {
+            "decoded_data": decoded,
+            "found": False,
+            "message": "Producto no encontrado en sistema"
+        }
+
+
+@router.get("/qr/stats")
+async def get_qr_statistics(
+    current_user: User = Depends(get_current_user)
+):
+    """Obtener estadísticas de QRs generados"""
+    
+    # Verificar que el usuario tiene permisos de admin
+    if not current_user.user_type in ["SUPERUSER", "ADMIN"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acceso denegado. Se requieren permisos de administrador"
+        )
+    
+    qr_service = QRService()
+    stats = qr_service.get_qr_stats()
+    
+    return stats
+
+
+@router.post("/incoming-products/{queue_id}/regenerate-qr")
+async def regenerate_qr(
+    queue_id: int,
+    style: str = "standard",
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Regenerar código QR con nuevo estilo"""
+    
+    # Verificar que el usuario tiene permisos de admin
+    if not current_user.user_type in ["SUPERUSER", "ADMIN"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acceso denegado. Se requieren permisos de administrador"
+        )
+    
+    queue_item = db.query(IncomingProductQueue).filter(
+        IncomingProductQueue.id == queue_id
+    ).first()
+    
+    if not queue_item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Producto no encontrado"
+        )
+    
+    workflow = ProductVerificationWorkflow(db, queue_item)
+    result = await workflow.regenerate_qr(current_user.id, style)
+    
+    return result
+
+
+# ==============================================
+# ENDPOINTS PARA STORAGE MANAGER
+# ==============================================
+
+@router.get("/storage/overview")
+async def get_storage_overview(
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Obtener resumen general de ocupación del almacén"""
+    
+    storage_manager = StorageManagerService(db)
+    overview = storage_manager.get_zone_occupancy_overview()
+    
+    return overview
+
+@router.get("/storage/alerts")
+async def get_storage_alerts(
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Obtener alertas del sistema de almacén"""
+    
+    storage_manager = StorageManagerService(db)
+    alerts = storage_manager.get_storage_alerts()
+    
+    return {
+        "alerts": [
+            {
+                "level": alert.level,
+                "zone": alert.zone,
+                "message": alert.message,
+                "percentage": alert.percentage,
+                "timestamp": alert.timestamp.isoformat()
+            }
+            for alert in alerts
+        ],
+        "total_alerts": len(alerts),
+        "critical_count": len([a for a in alerts if a.level == "critical"]),
+        "warning_count": len([a for a in alerts if a.level == "warning"])
+    }
+
+@router.get("/storage/trends")
+async def get_storage_trends(
+    days: int = 7,
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Obtener tendencias de utilización del almacén"""
+    
+    if days < 1 or days > 30:
+        raise HTTPException(400, "Days must be between 1 and 30")
+    
+    storage_manager = StorageManagerService(db)
+    trends = storage_manager.get_utilization_trends(days)
+    
+    return trends
+
+@router.get("/storage/zones/{zone}")
+async def get_zone_details(
+    zone: str,
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Obtener detalles completos de una zona específica"""
+    
+    zone = zone.upper()
+    storage_manager = StorageManagerService(db)
+    details = storage_manager.get_zone_details(zone)
+    
+    return details
+
+@router.get("/storage/stats")
+async def get_storage_statistics(
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Obtener estadísticas generales del almacén"""
+    
+    storage_manager = StorageManagerService(db)
+    overview = storage_manager.get_zone_occupancy_overview()
+    alerts = storage_manager.get_storage_alerts()
+    
+    # Calcular estadísticas adicionales
+    zones = overview["zones"]
+    utilizations = [zone["utilization_percentage"] for zone in zones]
+    
+    import statistics
+    
+    stats = {
+        "summary": overview["summary"],
+        "zone_statistics": {
+            "average_utilization": round(statistics.mean(utilizations), 1) if utilizations else 0,
+            "max_utilization": max(utilizations) if utilizations else 0,
+            "min_utilization": min(utilizations) if utilizations else 0,
+            "std_deviation": round(statistics.stdev(utilizations), 1) if len(utilizations) > 1 else 0
+        },
+        "alert_summary": {
+            "total_alerts": len(alerts),
+            "by_level": {
+                "critical": len([a for a in alerts if a.level == "critical"]),
+                "warning": len([a for a in alerts if a.level == "warning"]),
+                "info": len([a for a in alerts if a.level == "info"])
+            }
+        },
+        "efficiency_metrics": {
+            "well_utilized_zones": len([z for z in zones if 30 <= z["utilization_percentage"] <= 75]),
+            "underutilized_zones": len([z for z in zones if z["utilization_percentage"] < 30]),
+            "overutilized_zones": len([z for z in zones if z["utilization_percentage"] > 85])
+        }
+    }
+    
+    return stats
+
+
+# === SPACE OPTIMIZER ENDPOINTS ===
+
+@router.get("/space-optimizer/analysis")
+async def get_space_efficiency_analysis(
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Obtener análisis de eficiencia actual del almacén"""
+    
+    optimizer = SpaceOptimizerService(db)
+    analysis = optimizer.analyze_current_efficiency()
+    
+    return analysis
+
+@router.post("/space-optimizer/suggestions")
+async def generate_optimization_suggestions(
+    goal: OptimizationGoal = OptimizationGoal.MAXIMIZE_CAPACITY,
+    strategy: OptimizationStrategy = OptimizationStrategy.HYBRID_APPROACH,
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Generar sugerencias de optimización"""
+    
+    optimizer = SpaceOptimizerService(db)
+    suggestions = optimizer.generate_optimization_suggestions(goal, strategy)
+    
+    return suggestions
+
+@router.post("/space-optimizer/simulate")
+async def simulate_optimization(
+    suggestions: List[dict],
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Simular impacto de optimizaciones propuestas"""
+    
+    optimizer = SpaceOptimizerService(db)
+    simulation = optimizer.simulate_optimization_scenario(suggestions)
+    
+    return simulation
+
+@router.get("/space-optimizer/analytics")
+async def get_optimization_analytics(
+    days: int = 30,
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Obtener analytics históricos de optimización"""
+    
+    if days < 7 or days > 90:
+        raise HTTPException(400, "Days must be between 7 and 90")
+    
+    optimizer = SpaceOptimizerService(db)
+    analytics = optimizer.get_optimization_analytics(days)
+    
+    return analytics
+
+@router.get("/space-optimizer/recommendations")
+async def get_quick_recommendations(
+    priority: str = "all",
+    db: Session = Depends(get_sync_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Obtener recomendaciones rápidas de optimización"""
+    
+    optimizer = SpaceOptimizerService(db)
+    
+    # Generar sugerencias con diferentes objetivos
+    capacity_suggestions = optimizer.generate_optimization_suggestions(
+        OptimizationGoal.MAXIMIZE_CAPACITY, 
+        OptimizationStrategy.GREEDY_ALGORITHM
+    )
+    
+    access_suggestions = optimizer.generate_optimization_suggestions(
+        OptimizationGoal.MINIMIZE_ACCESS_TIME,
+        OptimizationStrategy.GREEDY_ALGORITHM
+    )
+    
+    # Filtrar por prioridad si se especifica
+    all_suggestions = capacity_suggestions["suggested_relocations"] + access_suggestions["suggested_relocations"]
+    
+    if priority != "all":
+        all_suggestions = [s for s in all_suggestions if s.get("priority") == priority]
+    
+    return {
+        "quick_recommendations": all_suggestions[:8],
+        "summary": {
+            "total_recommendations": len(all_suggestions),
+            "high_priority": len([s for s in all_suggestions if s.get("priority") == "high"]),
+            "medium_priority": len([s for s in all_suggestions if s.get("priority") == "medium"]),
+            "low_priority": len([s for s in all_suggestions if s.get("priority") == "low"])
+        }
+    }

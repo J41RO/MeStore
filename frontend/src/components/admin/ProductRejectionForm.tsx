@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import * as React from 'react';
+import { useState } from 'react';
 import { X, AlertTriangle, Send, FileText, Clock, Shield } from 'lucide-react';
 
 interface ProductRejectionFormProps {

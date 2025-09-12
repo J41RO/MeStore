@@ -1401,6 +1401,110 @@ async def rechazar_vendedor(
         )
 
 
+@router.get("/dashboard/ordenes", response_model=Dict[str, Any], status_code=status.HTTP_200_OK)
+async def get_dashboard_ordenes(
+    estado: Optional[str] = Query(None, description="Filtrar por estado de orden"),
+    limite: int = Query(10, ge=1, le=50, description="Número de órdenes a retornar"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> Dict[str, Any]:
+    """Obtener órdenes recientes del vendedor para el dashboard."""
+    # Verificar permisos de vendedor
+    if current_user.user_type != UserType.VENDEDOR:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo vendedores pueden acceder a sus órdenes"
+        )
+    
+    try:
+        # Por ahora simular datos de órdenes hasta que tengamos el modelo Order
+        ordenes_simuladas = [
+            {
+                "id": "ORD-001",
+                "cliente": "Juan Pérez",
+                "email_cliente": "juan.perez@email.com",
+                "total": 125000,
+                "estado": "pendiente",
+                "fecha": "2025-01-11T10:30:00",
+                "productos": 2,
+                "productos_detalle": [
+                    {"nombre": "Producto A", "cantidad": 1, "precio": 75000},
+                    {"nombre": "Producto B", "cantidad": 1, "precio": 50000}
+                ]
+            },
+            {
+                "id": "ORD-002", 
+                "cliente": "María García",
+                "email_cliente": "maria.garcia@email.com",
+                "total": 85000,
+                "estado": "procesando",
+                "fecha": "2025-01-11T08:15:00",
+                "productos": 1,
+                "productos_detalle": [
+                    {"nombre": "Producto C", "cantidad": 1, "precio": 85000}
+                ]
+            },
+            {
+                "id": "ORD-003",
+                "cliente": "Carlos López", 
+                "email_cliente": "carlos.lopez@email.com",
+                "total": 200000,
+                "estado": "completado",
+                "fecha": "2025-01-10T16:45:00",
+                "productos": 3,
+                "productos_detalle": [
+                    {"nombre": "Producto D", "cantidad": 2, "precio": 60000},
+                    {"nombre": "Producto E", "cantidad": 1, "precio": 80000}
+                ]
+            },
+            {
+                "id": "ORD-004",
+                "cliente": "Ana Martínez",
+                "email_cliente": "ana.martinez@email.com", 
+                "total": 95000,
+                "estado": "pendiente",
+                "fecha": "2025-01-10T14:20:00",
+                "productos": 1,
+                "productos_detalle": [
+                    {"nombre": "Producto F", "cantidad": 1, "precio": 95000}
+                ]
+            }
+        ]
+        
+        # Filtrar por estado si se especifica
+        if estado:
+            ordenes_filtradas = [o for o in ordenes_simuladas if o["estado"].lower() == estado.lower()]
+        else:
+            ordenes_filtradas = ordenes_simuladas
+            
+        # Aplicar límite
+        ordenes_resultado = ordenes_filtradas[:limite]
+        
+        # Calcular métricas
+        total_ordenes = len(ordenes_filtradas)
+        pendientes = len([o for o in ordenes_filtradas if o["estado"] == "pendiente"])
+        procesando = len([o for o in ordenes_filtradas if o["estado"] == "procesando"])
+        completadas = len([o for o in ordenes_filtradas if o["estado"] == "completado"])
+        
+        return {
+            "ordenes": ordenes_resultado,
+            "metricas": {
+                "total_ordenes": total_ordenes,
+                "ordenes_pendientes": pendientes,
+                "ordenes_procesando": procesando,
+                "ordenes_completadas": completadas
+            },
+            "total_valor": sum(o["total"] for o in ordenes_resultado)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error obteniendo órdenes del vendedor {current_user.id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor al obtener órdenes"
+        )
+
+
 @router.get("/health", status_code=status.HTTP_200_OK)
 async def health_check() -> Dict[str, Any]:
     """
@@ -1422,6 +1526,7 @@ async def health_check() -> Dict[str, Any]:
             "GET /vendedores/dashboard/comisiones",
             "GET /vendedores/dashboard/inventario",
             "GET /vendedores/dashboard/exportar",
+            "GET /vendedores/dashboard/ordenes",
             "GET /vendedores/health",
             "POST /vendedores/{id}/approve",
             "POST /vendedores/{id}/reject"

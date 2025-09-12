@@ -32,7 +32,7 @@
  */
 
 import * as yup from 'yup';
-import { CreateProductData } from '../types/api.types';
+// import { CreateProductData } from '../types/api.types';
 
 // Enum de categorías válidas
 export const PRODUCT_CATEGORIES = [
@@ -50,71 +50,271 @@ export const PRODUCT_CATEGORIES = [
 
 export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
 
-// Schema base para validación de productos
+// Schema base robusto para validación de productos
 const baseProductSchema = {
+  // Campos básicos con validaciones avanzadas
   name: yup
     .string()
-    .required('El nombre del producto es requerido')
-    .min(3, 'El nombre debe tener al menos 3 caracteres')
-    .max(100, 'El nombre no puede exceder 100 caracteres')
+    .required('Nombre del producto es obligatorio')
+    .min(3, 'Nombre debe tener al menos 3 caracteres')
+    .max(100, 'Nombre no puede exceder 100 caracteres')
+    .matches(/^[a-zA-Z0-9\s\-_áéíóúÁÉÍÓÚñÑ]+$/, 'Nombre contiene caracteres no válidos')
     .trim(),
 
   description: yup
     .string()
-    .required('La descripción del producto es requerida')
-    .min(10, 'La descripción debe tener al menos 10 caracteres')
-    .max(500, 'La descripción no puede exceder 500 caracteres')
+    .required('Descripción es obligatoria')
+    .min(10, 'Descripción debe tener al menos 10 caracteres')
+    .max(1000, 'Descripción no puede exceder 1000 caracteres')
     .trim(),
-
-  price: yup
-    .number()
-    .required('El precio es requerido')
-    .positive('El precio debe ser un número positivo')
-    .max(999999, 'El precio no puede exceder 99,999')
-    .typeError('El precio debe ser un número válido'),
-
-  stock: yup
-    .number()
-    .required('El stock es requerido')
-    .integer('El stock debe ser un número entero')
-    .min(0, 'El stock no puede ser negativo')
-    .typeError('El stock debe ser un número válido'),
 
   category: yup
     .string()
-    .required('La categoría es requerida')
-    .oneOf(PRODUCT_CATEGORIES, 'Selecciona una categoría válida'),
+    .required('Categoría es obligatoria')
+    .oneOf(PRODUCT_CATEGORIES, 'Categoría no válida'),
 
-  imageUrl: yup.string().url('Debe ser una URL válida').optional().nullable(),
+  // Campos de pricing con validaciones complejas
+  precio_venta: yup
+    .number()
+    .required('Precio de venta es obligatorio')
+    .positive('Precio debe ser positivo')
+    .min(1000, 'Precio mínimo es $1,000 COP')
+    .max(50000000, 'Precio máximo es $50,000,000 COP')
+    .typeError('Precio debe ser un número válido'),
+
+  precio_costo: yup
+    .number()
+    .required('Precio de costo es obligatorio')
+    .positive('Precio de costo debe ser positivo')
+    .typeError('Precio de costo debe ser un número válido')
+    .test('cost-validation', 'Precio de costo debe ser menor que precio de venta', 
+      function(value) {
+        const { precio_venta } = this.parent;
+        return !value || !precio_venta || value < precio_venta;
+      }),
+
+  stock: yup
+    .number()
+    .required('Stock inicial es obligatorio')
+    .integer('Stock debe ser un número entero')
+    .min(0, 'Stock no puede ser negativo')
+    .max(100000, 'Stock máximo es 100,000 unidades')
+    .typeError('Stock debe ser un número válido'),
+
+  // Campos físicos con validaciones de coherencia
+  peso: yup
+    .number()
+    .required('Peso es obligatorio')
+    .positive('Peso debe ser positivo')
+    .min(0.01, 'Peso mínimo 0.01 kg')
+    .max(1000, 'Peso máximo 1000 kg')
+    .typeError('Peso debe ser un número válido'),
+
+  largo: yup
+    .number()
+    .required('Largo es obligatorio')
+    .positive('Largo debe ser positivo')
+    .min(1, 'Largo mínimo 1 cm')
+    .max(500, 'Largo máximo 500 cm')
+    .typeError('Largo debe ser un número válido'),
+
+  ancho: yup
+    .number()
+    .required('Ancho es obligatorio')
+    .positive('Ancho debe ser positivo')
+    .min(1, 'Ancho mínimo 1 cm')
+    .max(500, 'Ancho máximo 500 cm')
+    .typeError('Ancho debe ser un número válido'),
+
+  alto: yup
+    .number()
+    .required('Alto es obligatorio')
+    .positive('Alto debe ser positivo')
+    .min(1, 'Alto mínimo 1 cm')
+    .max(500, 'Alto máximo 500 cm')
+    .typeError('Alto debe ser un número válido'),
+
+  // SKU con validación de formato
+  sku: yup
+    .string()
+    .optional()
+    .matches(/^[A-Z0-9\-_]+$/, 'SKU solo puede contener letras mayúsculas, números, guiones y guiones bajos')
+    .min(3, 'SKU debe tener al menos 3 caracteres')
+    .max(20, 'SKU no puede exceder 20 caracteres'),
+
+  // Tags y características
+  tags: yup
+    .array()
+    .of(yup.string().min(2, 'Tag debe tener al menos 2 caracteres'))
+    .max(10, 'Máximo 10 tags permitidos')
+    .optional(),
+
+  // Campos de producto específicos
+  marca: yup
+    .string()
+    .optional()
+    .min(2, 'Marca debe tener al menos 2 caracteres')
+    .max(50, 'Marca no puede exceder 50 caracteres'),
+
+  modelo: yup
+    .string()
+    .optional()
+    .min(1, 'Modelo debe tener al menos 1 caracter')
+    .max(50, 'Modelo no puede exceder 50 caracteres'),
+
+  color: yup
+    .string()
+    .optional()
+    .min(3, 'Color debe tener al menos 3 caracteres')
+    .max(30, 'Color no puede exceder 30 caracteres'),
+
+  material: yup
+    .string()
+    .optional()
+    .min(3, 'Material debe tener al menos 3 caracteres')
+    .max(50, 'Material no puede exceder 50 caracteres'),
+
+  // Campos de inventario avanzados
+  stock_minimo: yup
+    .number()
+    .optional()
+    .min(0, 'Stock mínimo no puede ser negativo')
+    .max(1000, 'Stock mínimo máximo es 1000')
+    .typeError('Stock mínimo debe ser un número válido'),
+
+  stock_maximo: yup
+    .number()
+    .optional()
+    .min(1, 'Stock máximo debe ser al menos 1')
+    .max(100000, 'Stock máximo no puede exceder 100,000')
+    .typeError('Stock máximo debe ser un número válido')
+    .test('stock-range', 'Stock máximo debe ser mayor que stock mínimo',
+      function(value) {
+        const { stock_minimo } = this.parent;
+        return !value || !stock_minimo || value > stock_minimo;
+      }),
+
+  // Estado del producto
+  estado: yup
+    .string()
+    .optional()
+    .oneOf(['nuevo', 'usado', 'reacondicionado'], 'Estado del producto no válido'),
+
+  // Campos de imagen (cuando se integre completamente)
+  imageUrl: yup
+    .string()
+    .optional()
+    .url('Debe ser una URL válida')
+    .nullable(),
+
+  // Campos de garantía
+  garantia_meses: yup
+    .number()
+    .optional()
+    .min(0, 'Garantía no puede ser negativa')
+    .max(120, 'Garantía máxima es 120 meses (10 años)')
+    .integer('Garantía debe ser un número entero de meses')
+    .typeError('Garantía debe ser un número válido'),
+
+  // Validación compleja de dimensiones vs peso (densidad razonable)
+  _dimensionsWeight: yup
+    .mixed()
+    .test('dimensions-weight-coherence', 'Las dimensiones y peso no son coherentes',
+      function() {
+        const { largo, ancho, alto, peso } = this.parent;
+        if (!largo || !ancho || !alto || !peso) return true;
+        
+        const volumen = largo * ancho * alto; // cm³
+        const densidad = peso / (volumen / 1000000); // kg/m³
+        
+        // Rango razonable de densidad: 0.1 a 10000 kg/m³
+        return densidad >= 0.1 && densidad <= 10000;
+      }),
 };
 
 // Schema para crear productos (todos los campos requeridos)
 export const createProductSchema = yup.object(baseProductSchema);
 
-// Schema para actualizar productos (campos opcionales)
+// Schema para actualizar productos (campos opcionales excepto los críticos)
 export const updateProductSchema = yup.object({
   name: baseProductSchema.name.optional(),
   description: baseProductSchema.description.optional(),
-  price: baseProductSchema.price.optional(),
-  stock: baseProductSchema.stock.optional(),
   category: baseProductSchema.category.optional(),
+  precio_venta: baseProductSchema.precio_venta.optional(),
+  precio_costo: baseProductSchema.precio_costo.optional(),
+  stock: baseProductSchema.stock.optional(),
+  peso: baseProductSchema.peso.optional(),
+  largo: baseProductSchema.largo.optional(),
+  ancho: baseProductSchema.ancho.optional(),
+  alto: baseProductSchema.alto.optional(),
+  sku: baseProductSchema.sku.optional(),
+  tags: baseProductSchema.tags.optional(),
+  marca: baseProductSchema.marca.optional(),
+  modelo: baseProductSchema.modelo.optional(),
+  color: baseProductSchema.color.optional(),
+  material: baseProductSchema.material.optional(),
+  stock_minimo: baseProductSchema.stock_minimo.optional(),
+  stock_maximo: baseProductSchema.stock_maximo.optional(),
+  estado: baseProductSchema.estado.optional(),
   imageUrl: baseProductSchema.imageUrl.optional(),
+  garantia_meses: baseProductSchema.garantia_meses.optional(),
+  _dimensionsWeight: baseProductSchema._dimensionsWeight.optional(),
 });
 
-// Tipo para los datos del formulario
-export type ProductFormData = CreateProductData;
+// Tipo extendido para los datos del formulario
+export interface ProductFormData {
+  id?: string;
+  name: string;
+  description: string;
+  category: ProductCategory;
+  precio_venta: number;
+  precio_costo: number;
+  stock: number;
+  peso: number;
+  largo: number;
+  ancho: number;
+  alto: number;
+  sku?: string;
+  tags?: string[];
+  marca?: string;
+  modelo?: string;
+  color?: string;
+  material?: string;
+  stock_minimo?: number;
+  stock_maximo?: number;
+  estado?: string;
+  imageUrl?: string;
+  garantia_meses?: number;
+  // Campos calculados
+  volumen?: number;
+  densidad?: number;
+  margen_ganancia?: number;
+  _dimensionsWeight?: any;
+}
 
 // Valores por defecto para el formulario
 export const defaultProductValues: Partial<ProductFormData> = {
   name: '',
   description: '',
-  price: 0,
+  category: undefined,
+  precio_venta: 0,
+  precio_costo: 0,
   stock: 0,
-  category: '',
-  imageUrl: '',
+  peso: 0,
+  largo: 0,
+  ancho: 0,
+  alto: 0,
   sku: '',
-  dimensions: undefined,
-  weight: undefined,
+  tags: [],
+  marca: '',
+  modelo: '',
+  color: '',
+  material: '',
+  stock_minimo: 0,
+  stock_maximo: 100,
+  estado: 'nuevo',
+  imageUrl: '',
+  garantia_meses: 0,
 };
 
 // Función helper para validar una categoría

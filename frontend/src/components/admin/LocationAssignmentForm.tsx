@@ -218,11 +218,11 @@ export const LocationAssignmentForm: React.FC<LocationAssignmentFormProps> = ({
     return 'text-red-600';
   };
 
-  const getUtilizationBgColor = (rate: number): string => {
-    if (rate < 50) return 'bg-green-100';
-    if (rate < 80) return 'bg-yellow-100';
-    return 'bg-red-100';
-  };
+  // const _getUtilizationBgColor = (rate: number): string => {
+  //   if (rate < 50) return 'bg-green-100';
+  //   if (rate < 80) return 'bg-yellow-100';
+  //   return 'bg-red-100';
+  // };
 
   // Si hay un resultado exitoso, mostrar pantalla de confirmación
   if (result?.type === 'success') {

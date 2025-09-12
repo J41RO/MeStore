@@ -5,8 +5,9 @@ import {
   Clock, Package, AlertTriangle, CheckCircle, 
   User, TrendingUp, Filter, 
   RefreshCw, Plus, Edit, Eye, Truck,
-  BarChart3, Activity
+  BarChart3, Activity, CheckSquare
 } from 'lucide-react';
+import { ProductVerificationWorkflow } from './ProductVerificationWorkflow';
 
 // Tipos TypeScript para la cola de productos
 interface QueueItem {
@@ -56,6 +57,7 @@ const IncomingProductsQueue: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState<QueueItem | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [showVerificationWorkflow, setShowVerificationWorkflow] = useState(false);
   const [currentView, setCurrentView] = useState<'list' | 'analytics'>('list');
   const [refreshing, setRefreshing] = useState(false);
 
@@ -81,7 +83,7 @@ const IncomingProductsQueue: React.FC = () => {
 
       const response = await fetch(`/api/v1/inventory/queue/incoming-products?${params.toString()}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
         }
       });
 
@@ -103,7 +105,7 @@ const IncomingProductsQueue: React.FC = () => {
     try {
       const response = await fetch('/api/v1/inventory/queue/stats', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
         }
       });
 
@@ -168,6 +170,18 @@ const IncomingProductsQueue: React.FC = () => {
   const handleRefresh = () => {
     fetchQueueData(true);
     fetchStats();
+  };
+
+  const handleWorkflowStepComplete = (step: string, result: any) => {
+    console.log('Workflow step completed:', step, result);
+    // Refresh data to show updated status
+    fetchQueueData();
+    fetchStats();
+  };
+
+  const handleOpenVerificationWorkflow = (item: QueueItem) => {
+    setSelectedItem(item);
+    setShowVerificationWorkflow(true);
   };
 
   return (
@@ -414,12 +428,26 @@ const IncomingProductsQueue: React.FC = () => {
                                     setShowDetails(true);
                                   }}
                                   className="text-blue-600 hover:text-blue-900"
+                                  title="Ver detalles"
                                 >
                                   <Eye className="w-4 h-4" />
                                 </button>
-                                <button className="text-indigo-600 hover:text-indigo-900">
+                                <button 
+                                  className="text-indigo-600 hover:text-indigo-900"
+                                  title="Editar"
+                                >
                                   <Edit className="w-4 h-4" />
                                 </button>
+                                {/* Botón de verificación solo para items que requieren verificación */}
+                                {item.verification_status !== 'COMPLETED' && item.verification_status !== 'REJECTED' && (
+                                  <button
+                                    onClick={() => handleOpenVerificationWorkflow(item)}
+                                    className="text-green-600 hover:text-green-900"
+                                    title="Iniciar/Continuar verificación"
+                                  >
+                                    <CheckSquare className="w-4 h-4" />
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -550,6 +578,19 @@ const IncomingProductsQueue: React.FC = () => {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de workflow de verificación */}
+      {showVerificationWorkflow && selectedItem && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-6xl max-h-screen overflow-y-auto w-full">
+            <ProductVerificationWorkflow
+              queueId={selectedItem.id}
+              onStepComplete={handleWorkflowStepComplete}
+              onClose={() => setShowVerificationWorkflow(false)}
+            />
           </div>
         </div>
       )}

@@ -235,6 +235,20 @@ class Inventory(BaseModel):
         "Transaction",
         back_populates="inventario"
     )
+    
+    # Relationship con IncidenteInventario para tracking de incidentes
+    incidentes = relationship(
+        "IncidenteInventario",
+        back_populates="inventory"
+    )
+    
+    # Relationship con MovimientoStock para historial de movimientos
+    movimientos = relationship(
+        "MovimientoStock",
+        back_populates="inventory",
+        order_by="MovimientoStock.fecha_movimiento.desc()",
+        cascade="all, delete-orphan"
+    )
     # Constraints e índices
     __table_args__ = (
         Index('ix_inventory_location', 'zona', 'estante', 'posicion'),
@@ -575,3 +589,6 @@ class Inventory(BaseModel):
     def __repr__(self) -> str:
         """Representación string del objeto Inventory."""
         return f"<Inventory {self.get_ubicacion_completa()}: {self.cantidad_disponible()}/{self.cantidad} [{self.status.value}] [{self.condicion_producto.value}]>"
+    
+    # Relación con incidentes
+    incidentes = relationship("IncidenteInventario", back_populates="inventory", cascade="all, delete-orphan")

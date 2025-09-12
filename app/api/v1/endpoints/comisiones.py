@@ -6,7 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import get_async_db as get_db
 from app.schemas.financial_reports import ComisionBreakdown
 from app.models.commission_dispute import ComissionDispute
 from app.schemas.commission_dispute import DisputeCreate, DisputeResponse
@@ -262,11 +262,11 @@ async def obtener_historial_payout(
         raise HTTPException(status_code=403, detail="No tienes permisos para ver este historial")
     
     # Obtener historial completo
-    historial_query = await db.execute(
+    historial_result = await db.execute(
         select(PayoutHistory).where(PayoutHistory.payout_request_id == payout_id)
         .order_by(PayoutHistory.fecha_cambio.desc())
     )
-    historial = historial_query.scalars().all()
+    historial = historial_result.scalars().all()
     
     return PayoutHistoryListResponse(
         payout_request_id=payout_id,

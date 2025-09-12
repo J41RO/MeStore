@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { X } from 'lucide-react';
+import { X, CheckCircle, AlertTriangle } from 'lucide-react';
 import {
   createProductSchema,
+  updateProductSchema,
   ProductFormData,
   defaultProductValues,
   getCategoryOptions,
@@ -14,6 +15,11 @@ import ImageUpload from '../ui/ImageUpload/ImageUpload';
 import { ImageFile } from '../ui/ImageUpload/ImageUpload.types';
 import { uploadProductImages, validateProductImageFiles, getProductImages, deleteProductImage } from '../../services/productImageService';
 import type { ProductImage } from '../../services/productImageService';
+import { debounce } from 'lodash';
+import FormField from './FormField';
+import NumberField from './NumberField';
+import SelectField from './SelectField';
+import TextAreaField from './TextAreaField';
 
 export interface ProductFormProps {
   mode: 'create' | 'edit';
@@ -26,6 +32,13 @@ export interface ProductFormProps {
 interface MessageState {
   text: string;
   type: 'success' | 'error' | 'info';
+}
+
+interface ValidationState {
+  nameAvailable: boolean | null;
+  priceReasonable: boolean | null;
+  dimensionsValid: boolean | null;
+  marginHealthy: boolean | null;
 }
 
 const ProductForm: React.FC<ProductFormProps> = ({
@@ -42,6 +55,15 @@ const ProductForm: React.FC<ProductFormProps> = ({
   const [deletedImageIds, setDeletedImageIds] = useState<string[]>([]);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [loadingExistingImages, setLoadingExistingImages] = useState(false);
+  const [validationState, setValidationState] = useState<ValidationState>({
+    nameAvailable: null,
+    priceReasonable: null,
+    dimensionsValid: null,
+    marginHealthy: null
+  });
+
+  // Seleccionar schema según el modo
+  const schema = mode === 'edit' ? updateProductSchema : createProductSchema;
 
   const {
     register,
@@ -49,14 +71,65 @@ const ProductForm: React.FC<ProductFormProps> = ({
     formState: { errors, isValid },
     reset,
     setValue,
-  } = useForm<any>({
-    resolver: yupResolver(createProductSchema) as any,
-    mode: 'onChange',
+    watch,
+    trigger,
+  } = useForm<ProductFormData>({
+    resolver: yupResolver(schema) as any,
+    mode: 'onChange', // Validación en tiempo real
     defaultValues: {
       ...defaultProductValues,
       ...initialData,
-    },
+      id: initialData?.id || undefined,
+    } as ProductFormData,
   });
+
+  // Watch para validaciones dependientes
+  const precioVenta = watch('precio_venta');
+  const precioCosto = watch('precio_costo');
+  const watchedName = watch('name');
+  const watchedDimensions = watch(['largo', 'ancho', 'alto', 'peso']);
+
+  // Validación asíncrona de nombre único
+  const checkNameAvailability = useCallback(
+    debounce(async (name: string) => {
+      if (name.length < 3) return;
+      
+      try {
+        const response = await fetch(`/api/v1/products/check-name?name=${encodeURIComponent(name)}`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          }
+        });
+        const { available } = await response.json();
+        setValidationState(prev => ({ ...prev, nameAvailable: available }));
+      } catch (error) {
+        console.error('Error checking name availability:', error);
+      }
+    }, 500),
+    []
+  );
+
+  // Validación de dimensiones vs peso
+  const validateDimensions = useCallback((largo: number, ancho: number, alto: number, peso: number) => {
+    const volumen = largo * ancho * alto; // cm³
+    const densidad = peso / (volumen / 1000000); // kg/m³
+    
+    const isReasonable = densidad > 0.1 && densidad < 10000; // Rango razonable
+    setValidationState(prev => ({ ...prev, dimensionsValid: isReasonable }));
+    
+    return isReasonable;
+  }, []);
+
+  // Validación de margen de ganancia
+  const validateMargin = useCallback((precioVenta: number, precioCosto: number) => {
+    if (!precioVenta || !precioCosto) return true;
+    
+    const margen = ((precioVenta - precioCosto) / precioVenta) * 100;
+    const isHealthy = margen >= 10 && margen <= 80;
+    
+    setValidationState(prev => ({ ...prev, marginHealthy: isHealthy }));
+    return isHealthy;
+  }, []);
 
   useEffect(() => {
     if (mode === 'edit' && initialData) {
@@ -65,6 +138,32 @@ const ProductForm: React.FC<ProductFormProps> = ({
       });
     }
   }, [mode, initialData, setValue]);
+
+  // Watchers para validaciones en tiempo real
+  useEffect(() => {
+    if (watchedName) {
+      checkNameAvailability(watchedName);
+    }
+  }, [watchedName, checkNameAvailability]);
+
+  useEffect(() => {
+    const [largo, ancho, alto, peso] = watchedDimensions;
+    if (largo && ancho && alto && peso) {
+      validateDimensions(largo, ancho, alto, peso);
+    }
+  }, [watchedDimensions, validateDimensions]);
+
+  // Validación de margen en tiempo real
+  useEffect(() => {
+    if (precioVenta && precioCosto) {
+      validateMargin(precioVenta, precioCosto);
+      
+      const margen = ((precioVenta - precioCosto) / precioVenta) * 100;
+      if (margen < 10) {
+        showMessage('Margen de ganancia es menor al 10%', 'info');
+      }
+    }
+  }, [precioVenta, precioCosto, validateMargin]);
 
   // Load existing images when in edit mode
   useEffect(() => {
@@ -100,18 +199,47 @@ const ProductForm: React.FC<ProductFormProps> = ({
     clearMessage();
 
     try {
+      // Validación final antes de envío
+      const isFormValid = await trigger();
+      if (!isFormValid) return;
+
+      // Transform form data to API format
+      const apiData: CreateProductData = {
+        name: data.name,
+        description: data.description,
+        price: data.precio_venta, // Transform precio_venta to price
+        stock: data.stock,
+        category: data.category,
+        sku: data.sku,
+        dimensions: {
+          length: data.largo,
+          width: data.ancho,
+          height: data.alto,
+          unit: 'cm'
+        },
+        weight: {
+          value: data.peso,
+          unit: 'kg'
+        }
+      };
+
       let productId: string;
 
       if (mode === 'create') {
-        const response = await api.products.create(data as CreateProductData);
+        const response = await api.products.create(apiData);
         productId = response.data.id;
         showMessage('Producto creado exitosamente', 'success');
       } else {
-        productId = (initialData as any)?.id;
-        if (!productId) {
+        const productIdString = (initialData as any)?.id;
+        if (!productIdString) {
           throw new Error('ID del producto requerido para actualización');
         }
-        await api.products.update(productId, data as UpdateProductData);
+        const updateData: UpdateProductData = {
+          ...apiData,
+          id: parseInt(productIdString, 10)
+        };
+        await api.products.update(productIdString, updateData);
+        productId = productIdString;
         showMessage('Producto actualizado exitosamente', 'success');
       }
 
@@ -150,7 +278,17 @@ const ProductForm: React.FC<ProductFormProps> = ({
       }
 
       if (mode === 'create') {
-        reset(defaultProductValues);
+        reset(defaultProductValues as ProductFormData);
+        setSelectedImages([]);
+        setExistingImages([]);
+        setDeletedImageIds([]);
+        // Limpiar estados de validación
+        setValidationState({
+          nameAvailable: null,
+          priceReasonable: null,
+          dimensionsValid: null,
+          marginHealthy: null
+        });
       }
     } catch (error) {
       console.error('Error al procesar producto:', error);
@@ -234,108 +372,196 @@ const ProductForm: React.FC<ProductFormProps> = ({
         </div>
       )}
 
-      <form onSubmit={handleSubmit(onFormSubmit)} className='space-y-6'>
-        <div>
-          <label htmlFor='name' className='block text-sm font-medium mb-2'>
-            Nombre del Producto *
-          </label>
-          <input
-            id='name'
-            type='text'
-            {...register('name')}
-            className='w-full px-3 py-2 border rounded-lg'
-            placeholder='Ej: iPhone 14 Pro Max'
+      <form onSubmit={handleSubmit(onFormSubmit as any)} className='space-y-6'>
+        {/* Campo nombre con validación asíncrona */}
+        <div className="space-y-1">
+          <FormField
+            label="Nombre del Producto"
+            name="name"
+            register={register}
+            error={errors.name?.message}
+            placeholder="Ej: iPhone 14 Pro Max"
+            required
+            helpText="Nombre único y descriptivo del producto"
           />
-          {errors.name && (
-            <p className='mt-1 text-sm text-red-600'>
-              {errors.name?.message as string}
+          {validationState.nameAvailable === false && (
+            <p className="text-sm text-amber-600 flex items-center animate-fade-in">
+              <AlertTriangle className="w-4 h-4 mr-1" />
+              Este nombre ya está en uso
+            </p>
+          )}
+          {validationState.nameAvailable === true && (
+            <p className="text-sm text-green-600 flex items-center animate-fade-in">
+              <CheckCircle className="w-4 h-4 mr-1" />
+              Nombre disponible
             </p>
           )}
         </div>
 
-        <div>
-          <label
-            htmlFor='description'
-            className='block text-sm font-medium mb-2'
-          >
-            Descripción *
-          </label>
-          <textarea
-            id='description'
-            {...register('description')}
-            rows={4}
-            className='w-full px-3 py-2 border rounded-lg'
-            placeholder='Describe las características principales...'
+        {/* Campo descripción con contador de caracteres */}
+        <TextAreaField
+          label="Descripción"
+          name="description"
+          register={register}
+          error={errors.description?.message}
+          placeholder="Describe las características principales del producto..."
+          required
+          rows={4}
+          maxLength={1000}
+          showCharCount
+          watch={watch}
+          helpText="Descripción detallada que ayude a los clientes a entender el producto"
+        />
+
+        {/* Campos de pricing */}
+        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+          <NumberField
+            label="Precio de Venta"
+            name="precio_venta"
+            register={register}
+            error={errors.precio_venta?.message}
+            min={1000}
+            max={50000000}
+            currency
+            placeholder="0.00"
+            required
+            helpText="Precio al cual se venderá el producto (COP)"
           />
-          {errors.description && (
-            <p className='mt-1 text-sm text-red-600'>
-              {errors.description?.message as string}
-            </p>
-          )}
+
+          <NumberField
+            label="Precio de Costo"
+            name="precio_costo"
+            register={register}
+            error={errors.precio_costo?.message}
+            min={1}
+            max={49999999}
+            currency
+            placeholder="0.00"
+            required
+            helpText="Precio de adquisición o costo del producto"
+          />
         </div>
 
-        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-          <div>
-            <label htmlFor='price' className='block text-sm font-medium mb-2'>
-              Precio ($) *
-            </label>
-            <input
-              id='price'
-              type='number'
-              step='0.01'
-              min='0'
-              max='999999'
-              {...register('price')}
-              className='w-full px-3 py-2 border rounded-lg'
-              placeholder='0.00'
-            />
-            {errors.price && (
-              <p className='mt-1 text-sm text-red-600'>
-                {errors.price?.message as string}
-              </p>
-            )}
+        {/* Indicador de margen de ganancia */}
+        {precioVenta && precioCosto && (
+          <div className="bg-gray-50 p-4 rounded-lg border">
+            <h4 className="text-sm font-medium text-gray-700 mb-2">Análisis de Precio</h4>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600">Margen de ganancia:</span>
+                <span className={`text-sm font-medium ${
+                  validationState.marginHealthy ? 'text-green-600' : 'text-amber-600'
+                }`}>
+                  {(((precioVenta - precioCosto) / precioVenta) * 100).toFixed(1)}%
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600">Ganancia por unidad:</span>
+                <span className="text-sm font-medium text-gray-900">
+                  ${(precioVenta - precioCosto).toLocaleString()} COP
+                </span>
+              </div>
+              {!validationState.marginHealthy && (
+                <p className="text-sm text-amber-600 flex items-center">
+                  <AlertTriangle className="w-4 h-4 mr-1" />
+                  Margen recomendado entre 10% y 80%
+                </p>
+              )}
+            </div>
           </div>
+        )}
 
-          <div>
-            <label htmlFor='stock' className='block text-sm font-medium mb-2'>
-              Stock *
-            </label>
-            <input
-              id='stock'
-              type='number'
-              min='0'
-              {...register('stock')}
-              className='w-full px-3 py-2 border rounded-lg'
-              placeholder='0'
-            />
-            {errors.stock && (
-              <p className='mt-1 text-sm text-red-600'>
-                {errors.stock?.message as string}
-              </p>
-            )}
-          </div>
+        {/* Campos básicos */}
+        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+          <SelectField
+            label="Categoría"
+            name="category"
+            register={register}
+            error={errors.category?.message}
+            options={categoryOptions}
+            placeholder="Selecciona una categoría"
+            required
+            helpText="Categoría principal del producto"
+          />
+
+          <NumberField
+            label="Stock Inicial"
+            name="stock"
+            register={register}
+            error={errors.stock?.message}
+            min={0}
+            max={100000}
+            step={1}
+            unit="unidades"
+            placeholder="0"
+            required
+            helpText="Cantidad inicial en inventario"
+          />
         </div>
 
-        <div>
-          <label htmlFor='category' className='block text-sm font-medium mb-2'>
-            Categoría *
-          </label>
-          <select
-            id='category'
-            {...register('category')}
-            className='w-full px-3 py-2 border rounded-lg'
-          >
-            <option value=''>Selecciona una categoría</option>
-            {categoryOptions.map(option => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          {errors.category && (
-            <p className='mt-1 text-sm text-red-600'>
-              {errors.category?.message as string}
-            </p>
+        {/* Campos de dimensiones físicas */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium text-gray-900">Dimensiones y Peso</h3>
+          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
+            <NumberField
+              label="Largo"
+              name="largo"
+              register={register}
+              error={errors.largo?.message}
+              min={1}
+              max={500}
+              unit="cm"
+              placeholder="0"
+              required
+            />
+            <NumberField
+              label="Ancho"
+              name="ancho"
+              register={register}
+              error={errors.ancho?.message}
+              min={1}
+              max={500}
+              unit="cm"
+              placeholder="0"
+              required
+            />
+            <NumberField
+              label="Alto"
+              name="alto"
+              register={register}
+              error={errors.alto?.message}
+              min={1}
+              max={500}
+              unit="cm"
+              placeholder="0"
+              required
+            />
+            <NumberField
+              label="Peso"
+              name="peso"
+              register={register}
+              error={errors.peso?.message}
+              min={0.01}
+              max={1000}
+              unit="kg"
+              placeholder="0.00"
+              required
+            />
+          </div>
+          
+          {/* Validación de coherencia de dimensiones */}
+          {watchedDimensions.every(val => val && val > 0) && (
+            <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+              <p className="text-sm text-blue-800">
+                <strong>Volumen calculado:</strong> {(watchedDimensions[0] * watchedDimensions[1] * watchedDimensions[2]).toLocaleString()} cm³
+              </p>
+              {validationState.dimensionsValid === false && (
+                <p className="text-sm text-amber-600 flex items-center mt-1">
+                  <AlertTriangle className="w-4 h-4 mr-1" />
+                  Las dimensiones y peso parecen inconsistentes
+                </p>
+              )}
+            </div>
           )}
         </div>
 
@@ -444,83 +670,14 @@ const ProductForm: React.FC<ProductFormProps> = ({
         </div>
 
         {/* SKU Field */}
-        <div>
-          <label htmlFor='sku' className='block text-sm font-medium mb-2'>
-            SKU (Opcional)
-          </label>
-          <input
-            id='sku'
-            type='text'
-            {...register('sku')}
-            className='w-full px-3 py-2 border rounded-lg'
-            placeholder='Ej: PROD-001'
-          />
-          {errors.sku && (
-            <p className='mt-1 text-sm text-red-600'>
-              {errors.sku?.message as string}
-            </p>
-          )}
-        </div>
-
-        {/* Dimensions Fields */}
-        <div>
-          <label className='block text-sm font-medium mb-2'>
-            Dimensiones (Opcional)
-          </label>
-          <div className='grid grid-cols-4 gap-2'>
-            <input
-              placeholder='Largo'
-              type='number'
-              {...register('dimensions.length')}
-              className='px-3 py-2 border rounded-lg'
-            />
-            <input
-              placeholder='Ancho'
-              type='number'
-              {...register('dimensions.width')}
-              className='px-3 py-2 border rounded-lg'
-            />
-            <input
-              placeholder='Alto'
-              type='number'
-              {...register('dimensions.height')}
-              className='px-3 py-2 border rounded-lg'
-            />
-            <select
-              {...register('dimensions.unit')}
-              className='px-3 py-2 border rounded-lg'
-            >
-              <option value=''>Unidad</option>
-              <option value='cm'>cm</option>
-              <option value='m'>m</option>
-              <option value='mm'>mm</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Weight Fields */}
-        <div>
-          <label className='block text-sm font-medium mb-2'>
-            Peso (Opcional)
-          </label>
-          <div className='grid grid-cols-2 gap-2'>
-            <input
-              placeholder='Peso'
-              type='number'
-              {...register('weight.value')}
-              className='px-3 py-2 border rounded-lg'
-            />
-            <select
-              {...register('weight.unit')}
-              className='px-3 py-2 border rounded-lg'
-            >
-              <option value=''>Unidad</option>
-              <option value='g'>g</option>
-              <option value='kg'>kg</option>
-              <option value='lb'>lb</option>
-            </select>
-          </div>
-        </div>
+        <FormField
+          label="SKU (Opcional)"
+          name="sku"
+          register={register}
+          error={errors.sku?.message}
+          placeholder="Ej: PROD-001"
+          helpText="Código único de producto"
+        />
         <div className='flex gap-3 pt-6'>
           <button
             type='submit'

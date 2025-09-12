@@ -53,6 +53,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_async_db as get_db
 from app.models.product import Product
+from app.models.user import User
 from app.models.product_image import ProductImage
 from app.schemas.product import (
     ProductCreate,
@@ -66,6 +67,7 @@ from app.schemas.product_image import (
     ProductImageUploadResponse,
 )
 from app.utils.file_validator import validate_multiple_files, get_image_dimensions, compress_image_multiple_resolutions, delete_image_files
+from app.api.v1.endpoints.vendor_profile import get_current_vendor
 
 
 # Configurar logging
@@ -807,6 +809,126 @@ async def delete_producto_imagen(
     except Exception as e:
         await db.rollback()
         logger.error(f"Error eliminando imagen {imagen_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )
+
+
+@router.post("/validate")
+async def validate_product_data(
+    product_data: ProductCreate,
+    current_user: User = Depends(get_current_vendor),
+    db: AsyncSession = Depends(get_db)
+):
+    """Validar datos de producto antes de crear"""
+    validation_results = {
+        "valid": True,
+        "errors": [],
+        "warnings": [],
+        "suggestions": []
+    }
+    
+    try:
+        # Validar nombre único para el vendor
+        stmt = select(Product).where(
+            and_(
+                Product.name.ilike(f"%{product_data.name}%"),
+                Product.vendedor_id == current_user.id,
+                Product.deleted_at.is_(None)
+            )
+        )
+        result = await db.execute(stmt)
+        existing_product = result.scalar_one_or_none()
+        
+        if existing_product:
+            validation_results["errors"].append({
+                "field": "name",
+                "message": "Ya tienes un producto con este nombre"
+            })
+            validation_results["valid"] = False
+        
+        # Validar precio vs mercado (productos similares)
+        if hasattr(product_data, 'categoria') and hasattr(product_data, 'precio_venta'):
+            stmt_similar = select(Product).where(
+                and_(
+                    Product.categoria == product_data.categoria,
+                    Product.precio_venta.between(
+                        product_data.precio_venta * 0.7,
+                        product_data.precio_venta * 1.3
+                    ),
+                    Product.deleted_at.is_(None)
+                )
+            ).limit(10)
+            
+            result_similar = await db.execute(stmt_similar)
+            similar_products = result_similar.scalars().all()
+            
+            if len(similar_products) < 2:
+                validation_results["warnings"].append({
+                    "field": "precio_venta",
+                    "message": "Precio fuera del rango típico para esta categoría"
+                })
+        
+        # Validar coherencia de margen
+        if hasattr(product_data, 'precio_venta') and hasattr(product_data, 'precio_costo'):
+            if product_data.precio_venta and product_data.precio_costo:
+                margen = ((product_data.precio_venta - product_data.precio_costo) / product_data.precio_venta) * 100
+                
+                if margen < 10:
+                    validation_results["warnings"].append({
+                        "field": "precio_venta",
+                        "message": f"Margen de ganancia muy bajo ({margen:.1f}%)"
+                    })
+                elif margen > 80:
+                    validation_results["warnings"].append({
+                        "field": "precio_venta", 
+                        "message": f"Margen de ganancia muy alto ({margen:.1f}%)"
+                    })
+        
+        # Sugerencias de optimización
+        if hasattr(product_data, 'description') and len(product_data.description) < 50:
+            validation_results["suggestions"].append({
+                "field": "description",
+                "message": "Una descripción más detallada puede aumentar las ventas"
+            })
+        
+        return validation_results
+        
+    except Exception as e:
+        logger.error(f"Error validating product data: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )
+
+
+@router.get("/check-name")
+async def check_product_name(
+    name: str = Query(..., min_length=3, description="Nombre del producto a verificar"),
+    current_user: User = Depends(get_current_vendor),
+    db: AsyncSession = Depends(get_db)
+):
+    """Verificar disponibilidad de nombre de producto"""
+    try:
+        stmt = select(Product).where(
+            and_(
+                Product.name.ilike(f"%{name}%"),
+                Product.vendedor_id == current_user.id,
+                Product.deleted_at.is_(None)
+            )
+        )
+        result = await db.execute(stmt)
+        existing = result.scalar_one_or_none()
+        
+        return {
+            "available": existing is None,
+            "name": name,
+            "similar_count": 0 if existing is None else 1
+        }
+        
+    except Exception as e:
+        logger.error(f"Error checking product name availability: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error interno del servidor"

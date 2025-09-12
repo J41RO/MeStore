@@ -11,11 +11,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
 
   const navigationItems = [
-    { name: 'Dashboard', href: '/dashboard' },
-    { name: 'Productos', href: '/productos' },
-    { name: 'Órdenes', href: '/ordenes' },
-    { name: 'Configuración', href: '/configuracion' },
-    { name: 'Auditoría', href: '/auditoria' },
+    { name: 'Dashboard', href: '/app/dashboard' },
+    { name: 'Productos', href: '/app/productos' },
+    { name: 'Órdenes', href: '/app/ordenes' },
+    { name: 'Reportes', href: '/app/reportes' },
+    { name: 'Comisiones', href: '/app/reportes/comisiones' },
+    { name: 'Mi Perfil', href: '/app/perfil' },
   ];
 
   const NavigationItems = ({ onItemClick }: { onItemClick?: () => void }) => (

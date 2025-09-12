@@ -92,3 +92,35 @@ export interface StockMovementFilters {
   };
   searchTerm?: string;
 }
+
+// Tipos para incidentes de inventario
+export enum TipoIncidente {
+  PERDIDO = 'PERDIDO',
+  DAÑADO = 'DAÑADO',
+}
+
+export enum EstadoIncidente {
+  REPORTADO = 'REPORTADO',
+  EN_INVESTIGACION = 'EN_INVESTIGACION',
+  RESUELTO = 'RESUELTO',
+  CERRADO = 'CERRADO',
+}
+
+export interface Incidente {
+  id: string;
+  inventory_id: string;
+  tipo_incidente: TipoIncidente;
+  estado: EstadoIncidente;
+  descripcion: string;
+  reportado_por: string;
+  fecha_incidente?: Date;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface IncidenteCreate {
+  inventory_id: string;
+  tipo_incidente: TipoIncidente;
+  descripcion: string;
+  fecha_incidente?: Date;
+}

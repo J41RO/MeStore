@@ -7,7 +7,7 @@ import { useAuthStore } from '../stores/authStore';
 const getRedirectPath = (userType: UserType, portalType?: string): string => {
   switch (userType) {
     case 'VENDEDOR':
-      return '/vendor';
+      return '/app/dashboard'; // Corregido: redirigir a la ruta correcta del dashboard
     case 'COMPRADOR':
       return '/marketplace';
     case 'ADMIN':
@@ -18,7 +18,7 @@ const getRedirectPath = (userType: UserType, portalType?: string): string => {
       }
       return '/admin/dashboard';
     default:
-      return '/dashboard';
+      return '/app/dashboard'; // Corregido: ruta por defecto también corregida
   }
 };
 
@@ -30,7 +30,7 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const from = (location.state as any)?.from || '/dashboard';
+  const from = (location.state as any)?.from || '/app/dashboard';
 
   if (isAuthenticated) {
     return <Navigate to={from} replace />;
@@ -95,6 +95,17 @@ const Login: React.FC = () => {
           email: 'super@mestore.com',
           name: 'SuperUsuario de Prueba',
           user_type: 'SUPERUSER' as UserType,
+          profile: null,
+        }
+      },
+      {
+        email: 'vendedor.test@mestore.com',
+        password: 'VendorTest123!',
+        user: {
+          id: 'test-vendor-001',
+          email: 'vendedor.test@mestore.com',
+          name: 'Vendedor Test',
+          user_type: 'VENDEDOR' as UserType,
           profile: null,
         }
       }

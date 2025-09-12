@@ -88,7 +88,7 @@ const VendorProfile: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'profile' | 'banking' | 'notifications'>('profile');
   const [vendorData, setVendorData] = useState<VendorProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [saving] = useState(false);
   const { showNotification } = useNotifications();
   const { user } = useAuthStore();
 
@@ -104,7 +104,7 @@ const VendorProfile: React.FC = () => {
           email: user?.email || 'vendedor.test@mestore.com',
           nombre: user?.name || 'Vendedor',
           apellido: 'Test',
-          avatar_url: null,
+          avatar_url: undefined,
           business_name: 'Mi Tienda Online',
           business_description: 'Especialistas en productos de calidad para el hogar y la oficina.',
           website_url: 'https://mitienda.com',
@@ -152,14 +152,14 @@ const VendorProfile: React.FC = () => {
     loadVendorData();
   }, [user, showNotification]);
 
-  const handleAvatarUpdate = (avatarUrl: string) => {
-    setVendorData(prev => prev ? { ...prev, avatar_url: avatarUrl } : null);
-    showNotification({
-      title: 'Éxito',
-      message: 'Avatar actualizado correctamente',
-      type: 'success'
-    });
-  };
+  // const _handleAvatarUpdate = (avatarUrl: string) => {
+  //   setVendorData(prev => prev ? { ...prev, avatar_url: avatarUrl } : null);
+  //   showNotification({
+  //     title: 'Éxito',
+  //     message: 'Avatar actualizado correctamente',
+  //     type: 'success'
+  //   });
+  // };
 
   if (loading) {
     return (

@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   InventoryItem,
   InventoryStatus,
   LocationZone,
+  Incidente,
 } from '../../../types/inventory.types';
+import { ReportarIncidente } from '../../admin/ReportarIncidente';
+import Button from '../Button/Button';
 
 // Datos mock para testing
 const mockInventoryData: InventoryItem[] = [
@@ -52,6 +55,23 @@ interface InventoryTableProps {
 export const InventoryTable: React.FC<InventoryTableProps> = ({
   data = mockInventoryData,
 }) => {
+  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+
+  const handleReportIncident = (item: InventoryItem) => {
+    setSelectedItem(item);
+    setIsReportModalOpen(true);
+  };
+
+  const handleIncidenteReportado = (incidente: Incidente) => {
+    console.log('Incidente reportado:', incidente);
+    // Aquí podrías actualizar la lista o mostrar una notificación
+  };
+
+  const handleCloseModal = () => {
+    setIsReportModalOpen(false);
+    setSelectedItem(null);
+  };
   return (
     <div className='w-full overflow-x-auto'>
       <table className='min-w-full bg-white border border-gray-200 rounded-lg'>
@@ -71,6 +91,9 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
             </th>
             <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase'>
               Ubicación
+            </th>
+            <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase'>
+              Acciones
             </th>
           </tr>
         </thead>
@@ -101,10 +124,30 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                 {item.location.zone} - {item.location.aisle}
                 {item.location.shelf}
               </td>
+              <td className='px-4 py-4 text-sm'>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleReportIncident(item)}
+                  className="text-xs"
+                >
+                  Reportar Incidente
+                </Button>
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
+      
+      {/* Modal para reportar incidente */}
+      {selectedItem && (
+        <ReportarIncidente
+          inventoryItem={selectedItem}
+          onIncidenteReportado={handleIncidenteReportado}
+          onClose={handleCloseModal}
+          isOpen={isReportModalOpen}
+        />
+      )}
     </div>
   );
 };

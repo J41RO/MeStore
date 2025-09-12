@@ -164,12 +164,14 @@ const ProductTable: React.FC<ProductTableProps> = ({
   selectedProducts = [],
   onSelectionChange,
 }) => {
-  // Estado y lógica para manejo de selección múltiple
+  // Estado y lógica para manejo de selección múltiple  
+  const productsList = products || [];
+  
   const handleSelectAll = () => {
-    if (selectedProducts.length === products.length) {
+    if (selectedProducts.length === productsList.length) {
       onSelectionChange?.([]);
     } else {
-      onSelectionChange?.(products.map(p => p.id));
+      onSelectionChange?.(productsList.map(p => p.id));
     }
   };
 
@@ -181,9 +183,9 @@ const ProductTable: React.FC<ProductTableProps> = ({
   };
 
   const isAllSelected =
-    products.length > 0 && selectedProducts.length === products.length;
+    productsList.length > 0 && selectedProducts.length === productsList.length;
   const isIndeterminate =
-    selectedProducts.length > 0 && selectedProducts.length < products.length;
+    selectedProducts.length > 0 && selectedProducts.length < productsList.length;
 
   if (loading) {
     return (
@@ -196,7 +198,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
     );
   }
 
-  if (products.length === 0) {
+  if (productsList.length === 0) {
     return (
       <div className='bg-white shadow rounded-lg'>
         <div className='px-4 py-8 text-center'>
@@ -247,7 +249,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
             </tr>
           </thead>
           <tbody className='bg-white divide-y divide-gray-200'>
-            {products.map(product => (
+            {productsList.map(product => (
               <tr key={product.id} className='hover:bg-gray-50'>
                 <td className='relative px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>
                   <input
@@ -263,7 +265,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                       {(() => {
                         // Priority order: main_image_url, first image from images array, legacy imageUrl
                         const imageUrl = product.main_image_url || 
-                                        (product.images && product.images.length > 0 ? product.images[0].public_url : null) || 
+                                        (product.images && product.images.length > 0 ? product.images[0]?.public_url : null) || 
                                         product.imageUrl;
                         
                         return imageUrl ? (
@@ -347,11 +349,13 @@ const ProductTable: React.FC<ProductTableProps> = ({
         </table>
       </div>
 
-      <Pagination
-        currentPage={pagination.page}
-        totalPages={pagination.totalPages}
-        onPageChange={onPageChange}
-      />
+      {pagination && (
+        <Pagination
+          currentPage={pagination.page}
+          totalPages={pagination.totalPages}
+          onPageChange={onPageChange}
+        />
+      )}
     </div>
   );
 };

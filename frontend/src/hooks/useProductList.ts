@@ -81,10 +81,11 @@ export const useProductList = (): UseProductListReturn => {
       setState(prev => ({ ...prev, loading: true, error: null }));
 
       try {
+        const currentLimit = state.pagination?.limit || 10;
         const response = await api.products.getWithFilters({
           ...filters,
           page: page,
-          limit: state.pagination.limit
+          limit: currentLimit
         });
         const data: PaginatedResponse<Product> = response.data;
 
@@ -105,21 +106,21 @@ export const useProductList = (): UseProductListReturn => {
         }));
       }
     },
-    [state.pagination.limit]
+    [state.pagination?.limit]
   );
 
   const applyFilters = useCallback((newFilters: ProductFilters) => {
     setState(prev => ({
       ...prev,
       filters: newFilters,
-      pagination: { ...prev.pagination, page: 1 },
+      pagination: { ...(prev.pagination || initialPagination), page: 1 },
     }));
   }, []);
 
   const changePage = useCallback((page: number) => {
     setState(prev => ({
       ...prev,
-      pagination: { ...prev.pagination, page },
+      pagination: { ...(prev.pagination || initialPagination), page },
     }));
   }, []);
 
@@ -127,17 +128,17 @@ export const useProductList = (): UseProductListReturn => {
     setState(prev => ({
       ...prev,
       filters: initialFilters,
-      pagination: { ...prev.pagination, page: 1 },
+      pagination: { ...(prev.pagination || initialPagination), page: 1 },
     }));
   }, []);
 
   const refreshProducts = useCallback(() => {
-    fetchProducts(state.filters, state.pagination.page);
-  }, [fetchProducts, state.filters, state.pagination.page]);
+    fetchProducts(state.filters, state.pagination?.page || 1);
+  }, [fetchProducts, state.filters, state.pagination?.page]);
 
   useEffect(() => {
-    fetchProducts(state.filters, state.pagination.page);
-  }, [fetchProducts, state.filters, state.pagination.page]);
+    fetchProducts(state.filters, state.pagination?.page || 1);
+  }, [fetchProducts, state.filters, state.pagination?.page]);
 
   return {
     ...state,

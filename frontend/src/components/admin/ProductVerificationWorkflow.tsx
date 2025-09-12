@@ -1,9 +1,10 @@
 import * as React from 'react';
 import { useState, useEffect, useCallback } from 'react';
-import { CheckCircle, Clock, AlertCircle, Play, RefreshCw, FileText, Package, Star, MapPin, Award, X } from 'lucide-react';
+import { CheckCircle, Clock, AlertCircle, Play, RefreshCw, FileText, Package, Star, MapPin, Award, X, QrCode } from 'lucide-react';
 import { QualityChecklistForm } from './QualityChecklistForm';
 import { ProductRejectionForm } from './ProductRejectionForm';
 import { LocationAssignmentForm } from './LocationAssignmentForm';
+import { QRGeneratorForm } from './QRGeneratorForm';
 
 interface VerificationStep {
   step: string;
@@ -46,6 +47,7 @@ export const ProductVerificationWorkflow: React.FC<ProductVerificationWorkflowPr
   const [showQualityChecklist, setShowQualityChecklist] = useState(false);
   const [showRejectionForm, setShowRejectionForm] = useState(false);
   const [showLocationAssignment, setShowLocationAssignment] = useState(false);
+  const [showQRGenerator, setShowQRGenerator] = useState(false);
   const [productInfo, setProductInfo] = useState<any>(null);
   const [stepForm, setStepForm] = useState({
     notes: '',
@@ -483,6 +485,48 @@ export const ProductVerificationWorkflow: React.FC<ProductVerificationWorkflowPr
                 Iniciar Asignación de Ubicación
               </button>
             </div>
+          ) : currentStep.step === 'final_approval' ? (
+            /* Paso final con opción de generar QR */
+            <div className="text-center py-8">
+              <h4 className="text-lg font-semibold mb-4 flex items-center justify-center">
+                Aprobación Final
+                <span className="ml-3 px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
+                  PASO FINAL
+                </span>
+              </h4>
+              <p className="text-gray-600 mb-6">
+                Producto verificado completamente. Genere código QR para tracking interno 
+                o complete la verificación sin QR.
+              </p>
+              
+              <div className="flex justify-center space-x-4">
+                <button
+                  onClick={() => setShowQRGenerator(true)}
+                  disabled={executingStep === currentStep.step}
+                  className="flex items-center px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  {executingStep === currentStep.step ? (
+                    <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
+                  ) : (
+                    <QrCode className="w-5 h-5 mr-2" />
+                  )}
+                  Generar QR y Finalizar
+                </button>
+                
+                <button
+                  onClick={() => onStepComplete(currentStep.step, {
+                    passed: true,
+                    notes: 'Aprobación final sin QR',
+                    metadata: { completed_without_qr: true }
+                  })}
+                  disabled={executingStep === currentStep.step}
+                  className="flex items-center px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  <Award className="w-5 h-5 mr-2" />
+                  Finalizar sin QR
+                </button>
+              </div>
+            </div>
           ) : (
             /* Formulario estándar para otros pasos */
             <>
@@ -617,6 +661,29 @@ export const ProductVerificationWorkflow: React.FC<ProductVerificationWorkflowPr
           productInfo={productInfo || {}}
           onAssigned={handleLocationAssignmentComplete}
           onCancel={() => setShowLocationAssignment(false)}
+        />
+      )}
+
+      {/* Modal de generador QR */}
+      {showQRGenerator && (
+        <QRGeneratorForm
+          queueId={parseInt(queueId)}
+          trackingNumber={workflowStatus?.tracking_number || workflowStatus?.queue_id || queueId}
+          productName={productInfo?.name || 'Producto'}
+          onQRGenerated={(result) => {
+            setShowQRGenerator(false);
+            // Completar workflow automáticamente después de generar QR
+            onStepComplete(currentStep?.step || 'final_approval', {
+              passed: true,
+              notes: `QR generado: ${result.internal_id || 'ID no disponible'}`,
+              metadata: {
+                qr_generated: true,
+                internal_id: result.internal_id,
+                qr_filename: result.qr_data?.qr_filename
+              }
+            });
+          }}
+          onClose={() => setShowQRGenerator(false)}
         />
       )}
     </div>

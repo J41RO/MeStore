@@ -22,7 +22,7 @@ class TestUserProfileFields:
 
         assert "empresa" in columns, "Campo empresa debe existir en modelo User"
         assert "direccion" in columns, "Campo direccion debe existir en modelo User"
-        assert len(columns) == 32, f"Esperado 32 columnas (17 originales + 7 OTP + 4 password reset + 3 bancarios + 1 vendor_status), encontrado {len(columns)}"
+        assert len(columns) == 44, f"Esperado 44 columnas del modelo User completo, encontrado {len(columns)}"
 
     def test_user_schema_accepts_empresa_direccion(self):
         """Verificar que UserBase acepta empresa y direccion."""

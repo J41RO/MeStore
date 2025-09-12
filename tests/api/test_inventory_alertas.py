@@ -11,19 +11,23 @@ def test_alertas_schemas_exist():
     """Test que los schemas de alertas existen y son construibles."""
     # Test AlertasMetadata
     metadata = AlertasMetadata(
-        total_alertas=5,
+        total_alertas=7,
         stock_bajo=2,
         sin_movimiento=1,
         stock_agotado=1,
-        criticos=1
+        criticos=1,
+        perdidos=1,
+        danados=1
     )
-    assert metadata.total_alertas == 5
-    print("✅ AlertasMetadata construible y funcional")
+    assert metadata.total_alertas == 7
+    assert metadata.perdidos == 1
+    assert metadata.danados == 1
+    print("✅ AlertasMetadata construible y funcional con nuevos campos")
     
     # Test AlertasResponse (con data mock)
     mock_alertas = []
     response = AlertasResponse(alertas=mock_alertas, metadata=metadata)
-    assert response.metadata.total_alertas == 5
+    assert response.metadata.total_alertas == 7
     print("✅ AlertasResponse construible y funcional")
 
 def test_tipo_alerta_enum():
@@ -32,7 +36,9 @@ def test_tipo_alerta_enum():
     assert TipoAlerta.SIN_MOVIMIENTO == "SIN_MOVIMIENTO"
     assert TipoAlerta.STOCK_AGOTADO == "STOCK_AGOTADO"
     assert TipoAlerta.CRITICO == "CRITICO"
-    print("✅ Enum TipoAlerta completo con 4 tipos")
+    assert TipoAlerta.PERDIDO == "PERDIDO"
+    assert TipoAlerta.DAÑADO == "DAÑADO"
+    print("✅ Enum TipoAlerta completo con 6 tipos incluyendo PERDIDO y DAÑADO")
 
 def test_import_compatibility():
     """Test que todos los imports necesarios funcionan."""

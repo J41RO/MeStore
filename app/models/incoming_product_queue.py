@@ -33,9 +33,14 @@ from sqlalchemy.sql import func
 from enum import Enum
 from typing import Optional, Dict, Any
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from .base import BaseModel
+
+
+def now_utc() -> datetime:
+    """Obtener datetime actual con timezone UTC"""
+    return datetime.now(timezone.utc)
 
 
 class QueuePriority(str, Enum):
@@ -286,13 +291,19 @@ class IncomingProductQueue(BaseModel):
         """Verificar si está vencido"""
         if not self.deadline:
             return False
-        return datetime.utcnow() > self.deadline
+        # Manejar timezone compatibility
+        now = now_utc()
+        if self.deadline.tzinfo is None:
+            # Si deadline es naive, usar datetime naive para comparación
+            now = datetime.utcnow()
+        return now > self.deadline
     
     @property
     def days_in_queue(self) -> int:
         """Calcular días en la cola"""
         if not self.created_at:
             return 0
+        # Usar datetime naive para compatibilidad con BaseModel
         delta = datetime.utcnow() - self.created_at
         return delta.days
     
@@ -302,7 +313,16 @@ class IncomingProductQueue(BaseModel):
         if not self.processing_started_at:
             return None
         
-        end_time = self.processing_completed_at or datetime.utcnow()
+        # Manejar timezone compatibility
+        if self.processing_completed_at:
+            end_time = self.processing_completed_at
+        else:
+            # Si processing_started_at es naive, usar datetime naive
+            if self.processing_started_at.tzinfo is None:
+                end_time = datetime.utcnow()
+            else:
+                end_time = now_utc()
+        
         delta = end_time - self.processing_started_at
         return delta.total_seconds() / 3600
     
@@ -341,24 +361,24 @@ class IncomingProductQueue(BaseModel):
     def assign_to_user(self, user_id: UUID, notes: Optional[str] = None):
         """Asignar producto a un verificador"""
         self.assigned_to = user_id
-        self.assigned_at = datetime.utcnow()
+        self.assigned_at = now_utc()
         self.verification_status = VerificationStatus.ASSIGNED
         
         if notes:
-            self.verification_notes = (self.verification_notes or "") + f"\n[{datetime.utcnow()}] Asignado: {notes}"
+            self.verification_notes = (self.verification_notes or "") + f"\n[{now_utc()}] Asignado: {notes}"
     
     def start_processing(self, notes: Optional[str] = None):
         """Iniciar proceso de verificación"""
-        self.processing_started_at = datetime.utcnow()
+        self.processing_started_at = now_utc()
         self.verification_status = VerificationStatus.IN_PROGRESS
         self.verification_attempts += 1
         
         if notes:
-            self.verification_notes = (self.verification_notes or "") + f"\n[{datetime.utcnow()}] Iniciado: {notes}"
+            self.verification_notes = (self.verification_notes or "") + f"\n[{now_utc()}] Iniciado: {notes}"
     
     def complete_verification(self, approved: bool, quality_score: Optional[int] = None, notes: Optional[str] = None):
         """Completar proceso de verificación"""
-        self.processing_completed_at = datetime.utcnow()
+        self.processing_completed_at = now_utc()
         
         if approved:
             self.verification_status = VerificationStatus.APPROVED
@@ -369,7 +389,7 @@ class IncomingProductQueue(BaseModel):
         
         if notes:
             action = "Aprobado" if approved else "Rechazado"
-            self.verification_notes = (self.verification_notes or "") + f"\n[{datetime.utcnow()}] {action}: {notes}"
+            self.verification_notes = (self.verification_notes or "") + f"\n[{now_utc()}] {action}: {notes}"
     
     def mark_as_delayed(self, reason: DelayReason, notes: Optional[str] = None):
         """Marcar producto como retrasado"""
@@ -377,7 +397,7 @@ class IncomingProductQueue(BaseModel):
         self.delay_reason = reason
         
         if notes:
-            self.notes = (self.notes or "") + f"\n[{datetime.utcnow()}] Retraso ({reason.value}): {notes}"
+            self.notes = (self.notes or "") + f"\n[{now_utc()}] Retraso ({reason.value}): {notes}"
     
     def update_arrival(self, actual_arrival: datetime):
         """Actualizar fecha de llegada real"""

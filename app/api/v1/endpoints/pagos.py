@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import get_async_db as get_db
 from app.schemas.transaction import TransactionRead
 from sqlalchemy import select, desc
 from app.models.transaction import Transaction

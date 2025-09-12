@@ -10,13 +10,13 @@ import { useDashboardMetrics } from '../hooks/useDashboardMetrics';
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
-  
+
   // Hook para métricas del dashboard
-  const { 
-    dashboardMetrics, 
-    isLoadingMetrics, 
-    metricsError, 
-    refreshMetrics 
+  const {
+    dashboardMetrics,
+    isLoadingMetrics,
+    metricsError,
+    refreshMetrics
   } = useDashboardMetrics();
 
   return (
@@ -28,7 +28,7 @@ const LandingPage: React.FC = () => {
       <HeroSection />
 
       {/* DASHBOARD SECTION - Funcionalidad existente */}
-      <DashboardSection 
+      <DashboardSection
         dashboardMetrics={dashboardMetrics}
         isLoadingMetrics={isLoadingMetrics}
         metricsError={metricsError}
@@ -47,7 +47,7 @@ const LandingPage: React.FC = () => {
               Datos verificables de nuestra plataforma
             </p>
           </div>
-          
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div className="group">
               <div className="text-4xl md:text-5xl font-bold text-blue-600 mb-2 group-hover:scale-110 transition-transform">
@@ -59,20 +59,20 @@ const LandingPage: React.FC = () => {
               </div>
               <div className="text-gray-600 dark:text-gray-300 font-medium">Vendedores Activos</div>
             </div>
-            
+
             <div className="group">
               <div className="text-4xl md:text-5xl font-bold text-purple-600 mb-2 group-hover:scale-110 transition-transform">
                 {isLoadingMetrics ? (
                   <div className="animate-pulse bg-gray-300 h-12 w-16 mx-auto rounded"></div>
                 ) : (
-                  dashboardMetrics?.totalProducts && dashboardMetrics.totalProducts > 0 
-                    ? `${Math.floor(dashboardMetrics.totalProducts / 1000)}K+` 
+                  dashboardMetrics?.totalProducts && dashboardMetrics.totalProducts > 0
+                    ? `${Math.floor(dashboardMetrics.totalProducts / 1000)}K+`
                     : '1K+'
                 )}
               </div>
               <div className="text-gray-600 dark:text-gray-300 font-medium">Productos Gestionados</div>
             </div>
-            
+
             <div className="group">
               <div className="text-4xl md:text-5xl font-bold text-green-600 mb-2 group-hover:scale-110 transition-transform">
                 {isLoadingMetrics ? (
@@ -83,7 +83,7 @@ const LandingPage: React.FC = () => {
               </div>
               <div className="text-gray-600 dark:text-gray-300 font-medium">Entregas Exitosas</div>
             </div>
-            
+
             <div className="group">
               <div className="text-4xl md:text-5xl font-bold text-orange-600 mb-2 group-hover:scale-110 transition-transform">
                 24/7
@@ -108,7 +108,7 @@ const LandingPage: React.FC = () => {
               Solución integral de fulfillment diseñada para vendedores online en Colombia
             </p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <div className="group p-8 rounded-2xl bg-white dark:bg-gray-800 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 dark:border-gray-700">
               <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
@@ -121,7 +121,7 @@ const LandingPage: React.FC = () => {
                 Instalaciones modernas en Bucaramanga con seguridad 24/7, control de clima y sistemas de monitoreo avanzados para proteger tus productos
               </p>
             </div>
-            
+
             <div className="group p-8 rounded-2xl bg-white dark:bg-gray-800 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 dark:border-gray-700">
               <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                 <span className="text-2xl">📊</span>
@@ -133,7 +133,7 @@ const LandingPage: React.FC = () => {
                 Sistema avanzado con IA para control de inventario, optimización de stock y reportes detallados en tiempo real
               </p>
             </div>
-            
+
             <div className="group p-8 rounded-2xl bg-white dark:bg-gray-800 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 dark:border-gray-700">
               <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-green-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                 <span className="text-2xl">🚚</span>
@@ -204,42 +204,42 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* CALL TO ACTION SECTION */}
+      {/* CALL TO ACTION SECTION - CENTRADO PERFECTO */}
       <section className="py-20 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white">
             Transforma tu Negocio Hoy
           </h2>
           <p className="text-xl text-blue-100 mb-8 leading-relaxed">
-            Únete a MeStocker y accede a la única plataforma que combina fulfillment inteligente, 
+            Únete a MeStocker y accede a la única plataforma que combina fulfillment inteligente,
             marketplace integrado y tecnología IA en Bucaramanga
           </p>
-          
+
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
-            <button 
+            <button
               onClick={() => navigate('/register')}
-              className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-xl"
+              className="mx-auto block text-center w-fit bg-white text-blue-600 hover:bg-gray-100 px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-xl"
             >
               Comenzar Gratis
             </button>
-            <button 
+            <button
               onClick={() => navigate('/dashboard')}
-              className="border-2 border-white text-white hover:bg-white hover:text-blue-600 px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-300"
+              className="mx-auto block text-center w-fit border-2 border-white text-white hover:bg-white hover:text-blue-600 px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-300"
             >
               Ver Plataforma
             </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center text-blue-100">
-            <div>
+            <div className="text-center mx-auto">
               <div className="text-2xl font-bold text-white mb-1">✓ Sin costos ocultos</div>
               <div className="text-sm">Transparencia total</div>
             </div>
-            <div>
+            <div className="text-center mx-auto">
               <div className="text-2xl font-bold text-white mb-1">✓ Setup inmediato</div>
               <div className="text-sm">En menos de 5 minutos</div>
             </div>
-            <div>
+            <div className="text-center mx-auto">
               <div className="text-2xl font-bold text-white mb-1">✓ Soporte 24/7</div>
               <div className="text-sm">Asistencia especializada</div>
             </div>

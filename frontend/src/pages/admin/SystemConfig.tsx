@@ -8,8 +8,6 @@ import {
   AlertCircle, 
   Search,
   Filter,
-  Download,
-  Upload
 } from 'lucide-react';
 
 const SystemConfig: React.FC = () => {
@@ -20,7 +18,7 @@ const SystemConfig: React.FC = () => {
     refreshSettings,
     updateSetting,
     bulkUpdateSettings,
-    getSettingsByCategory
+    getSettingsByCategory: _getSettingsByCategory
   } = useSystemConfig();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -64,7 +62,7 @@ const SystemConfig: React.FC = () => {
   }, [bulkUpdateSettings, showSuccess, showError]);
 
   // Handle reset to default
-  const handleResetToDefault = useCallback(async (key: string) => {
+  const handleResetToDefault = useCallback(async (_key: string) => {
     // This would require implementing a reset endpoint
     showError('Reset to default not implemented yet');
   }, [showError]);

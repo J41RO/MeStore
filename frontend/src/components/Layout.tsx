@@ -37,7 +37,7 @@ const Layout: React.FC = () => {
 
               {/* Logo - Responsive Text Size */}
               <Link
-                to='/dashboard'
+                to='/app/dashboard'
                 className='text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white'
               >
                 MeStore
@@ -46,9 +46,9 @@ const Layout: React.FC = () => {
               {/* Desktop Navigation - Hidden on mobile */}
               <div className='hidden md:flex space-x-2 lg:space-x-4'>
                 <Link
-                  to='/dashboard'
+                  to='/app/dashboard'
                   className={`px-2 sm:px-3 py-1 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-colors ${
-                    location.pathname === '/dashboard'
+                    location.pathname === '/app/dashboard'
                       ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
                       : 'text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white'
                   }`}
@@ -56,9 +56,9 @@ const Layout: React.FC = () => {
                   Dashboard
                 </Link>
                 <Link
-                  to='/productos'
+                  to='/app/productos'
                   className={`px-2 sm:px-3 py-1 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-colors ${
-                    location.pathname === '/productos'
+                    location.pathname === '/app/productos'
                       ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
                       : 'text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white'
                   }`}

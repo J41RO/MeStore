@@ -138,7 +138,12 @@ class TestUsersSimpleMigration:
             # Campos bancarios agregados
             'banco', 'tipo_cuenta', 'numero_cuenta',
             # Campo vendor status agregado
-            'vendor_status'}
+            'vendor_status',
+            # Campos perfil empresa agregados
+            'business_description', 'business_name', 'notification_preferences', 
+            'business_hours', 'shipping_policy', 'bank_name', 'social_media_links',
+            'website_url', 'avatar_url', 'account_holder_name', 'return_policy', 
+            'account_number'}
         model_fields = {col.name for col in User.__table__.columns}
         
         assert expected_fields == model_fields, f"Campos del modelo no coinciden: esperados={expected_fields}, modelo={model_fields}"

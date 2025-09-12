@@ -58,9 +58,23 @@ class TestAuthEndpoints:
                 return {"sub": self.mock_user.id, "type": "refresh"}
             return None
 
+        # Mock database session
+        mock_db = MagicMock()
+        mock_query = MagicMock()
+        mock_filter = MagicMock()
+        mock_filter.first.return_value = self.mock_user
+        mock_query.filter.return_value = mock_filter
+        mock_db.query.return_value = mock_query
+
+        def mock_get_db():
+            yield mock_db
+
         # Override dependencies
         app.dependency_overrides[get_auth_service] = lambda: mock_auth_service
         app.dependency_overrides[get_redis_service] = lambda: mock_redis_service
+        
+        from app.database import get_db
+        app.dependency_overrides[get_db] = mock_get_db
 
         import app.api.v1.endpoints.auth as auth_module
         original_decode = auth_module.decode_refresh_token
@@ -73,7 +87,12 @@ class TestAuthEndpoints:
             assert response.status_code == 200
             data = response.json()
             assert "access_token" in data
-            assert data["access_token"] == "new_access_token"
+            assert "refresh_token" in data
+            assert data["token_type"] == "bearer"
+            assert data["expires_in"] == 3600
+            # Check tokens are not None (actual JWT tokens generated)
+            assert data["access_token"] is not None
+            assert data["refresh_token"] is not None
 
         finally:
             auth_module.decode_refresh_token = original_decode

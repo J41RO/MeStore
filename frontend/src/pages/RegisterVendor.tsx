@@ -6,7 +6,7 @@ import * as yup from 'yup';
 import { UserType } from '../stores/authStore';
 import { GoogleLogin } from '@react-oauth/google';
 import { FaFacebook } from 'react-icons/fa';
-import ImageUpload from '../components/ui/ImageUpload/ImageUpload';
+// import ImageUpload from '../components/ui/ImageUpload/ImageUpload';
 import type { ImageFile } from '../components/ui/ImageUpload/ImageUpload.types';
 
 // Schema de validación para datos básicos (Paso 1)

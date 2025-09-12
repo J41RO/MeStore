@@ -242,7 +242,7 @@ class TestTipoMovimiento:
         expected_values = [
             "INGRESO", "AJUSTE_POSITIVO", "AJUSTE_NEGATIVO",
             "RESERVA", "LIBERACION_RESERVA", "PICKING",
-            "CAMBIO_STATUS", "CAMBIO_CONDICION"
+            "CAMBIO_STATUS", "CAMBIO_CONDICION", "CAMBIO_UBICACION"
         ]
 
         actual_values = [t.value for t in TipoMovimiento]

@@ -41,7 +41,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
     description: product.description,
     price: product.price,
     stock: product.stock,
-    category: product.category,
+    category: product.category as any,
     imageUrl: product.imageUrl || '',
   };
 

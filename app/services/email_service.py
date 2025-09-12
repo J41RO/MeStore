@@ -155,6 +155,100 @@ class EmailService:
             logger.error(f"Error enviando email de reset: {str(e)}")
             return False
     
+    def send_lead_welcome_email(
+        self,
+        email: str,
+        nombre: str,
+        tipo_negocio: str
+    ) -> bool:
+        """
+        Envía email de bienvenida para leads nuevos.
+
+        Args:
+            email: Email del lead
+            nombre: Nombre del lead
+            tipo_negocio: Tipo de negocio (vendedor/comprador/ambos)
+
+        Returns:
+            bool: True si se envió exitosamente
+        """
+        try:
+            subject_text = "¡Bienvenido al futuro del fulfillment! - MeStocker Early Access"
+            
+            # Contenido personalizado por tipo de negocio
+            business_benefits = {
+                'vendedor': {
+                    'title': 'Para Vendedores Inteligentes',
+                    'benefits': [
+                        'Automatización completa de inventario 24/7',
+                        'IA que optimiza tus precios automáticamente',
+                        'Acceso directo a 500+ compradores activos',
+                        'Reducción del 40% en costos operativos'
+                    ]
+                },
+                'comprador': {
+                    'title': 'Para Compradores Estratégicos', 
+                    'benefits': [
+                        'Acceso prioritario a productos exclusivos',
+                        'Precios mayoristas automatizados',
+                        'Fulfillment local en Bucaramanga',
+                        'Análisis predictivo de stock disponible'
+                    ]
+                },
+                'ambos': {
+                    'title': 'Para Empresarios Visionarios',
+                    'benefits': [
+                        'Doble flujo de ingresos: compra y vende',
+                        'Plataforma unificada B2B + B2C',
+                        'IA especializada para ambos roles',
+                        'ROI maximizado con estrategia híbrida'
+                    ]
+                }
+            }
+            
+            # Contenido HTML
+            html_content = self._create_lead_welcome_html_template(
+                nombre=nombre,
+                tipo_negocio=tipo_negocio,
+                business_info=business_benefits.get(tipo_negocio, business_benefits['vendedor'])
+            )
+            
+            # Contenido texto plano
+            plain_content = self._create_lead_welcome_plain_template(
+                nombre=nombre,
+                tipo_negocio=tipo_negocio
+            )
+            
+            if self.simulation_mode:
+                logger.info(f"SIMULACIÓN EMAIL LEAD - Para: {email}, Lead: {nombre}")
+                print(f"📧 SIMULACIÓN EMAIL LEAD WELCOME:")
+                print(f"   Para: {email}")
+                print(f"   Nombre: {nombre}")
+                print(f"   Tipo: {tipo_negocio}")
+                return True
+            
+            # Crear y enviar email
+            message = Mail(
+                from_email=From(self.from_email, "MeStocker Team"),
+                to_emails=To(email),
+                subject=Subject(subject_text),
+                html_content=HtmlContent(html_content),
+                plain_text_content=PlainTextContent(plain_content)
+            )
+            
+            response = self.sg.send(message)
+            
+            if response.status_code in [200, 201, 202]:
+                logger.info(f"Email lead welcome enviado exitosamente a {email}")
+                return True
+            else:
+                logger.error(f"Error enviando email lead welcome: {response.status_code}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Excepción enviando email lead welcome: {str(e)}")
+            return False
+    
     def _create_otp_html_template(self, otp_code: str, user_name: str) -> str:
         """Crea template HTML para email OTP."""
         return f"""
@@ -281,26 +375,89 @@ Este email fue enviado automáticamente, no responder.
 </html>"""
 
     def _create_reset_plain_template(self, reset_token: str, user_name: str) -> str:
-        """Crea template texto plano para email de reset."""
+        # Crea template texto plano para email de reset
         reset_url = f"http://localhost:3000/reset-password?token={reset_token}"
         
-        return f"""MeStore - Recuperación de Contraseña
-
-Hola {user_name},
-
-Hemos recibido una solicitud para restablecer la contraseña de tu cuenta en MeStore.
-
-Para restablecer tu contraseña, haz clic en el siguiente enlace:
-{reset_url}
-
-⚠️ IMPORTANTE:
-- Este enlace expira en 1 hora
-- Si no solicitaste este cambio, ignora este email
-- Por seguridad, nunca compartimos enlaces por teléfono o redes sociales
-
-Si tienes problemas, contacta nuestro soporte.
-
-Saludos,
-Equipo MeStore
-
-© 2025 MeStore. Todos los derechos reservados."""
+        lines = [
+            "MeStore - Recuperacion de Contrasena",
+            "",
+            f"Hola {user_name},",
+            "",
+            "Hemos recibido una solicitud para restablecer la contrasena de tu cuenta en MeStore.",
+            "",
+            "Para restablecer tu contrasena, haz clic en el siguiente enlace:",
+            reset_url,
+            "",
+            "IMPORTANTE:",
+            "- Este enlace expira en 1 hora",
+            "- Si no solicitaste este cambio, ignora este email",
+            "",
+            "Saludos,",
+            "Equipo MeStore",
+            "",
+            "2025 MeStore. Todos los derechos reservados."
+        ]
+        return "\n".join(lines)
+    
+    def _create_lead_welcome_html_template(self, nombre: str, tipo_negocio: str, business_info: dict) -> str:
+        # Crea template HTML para email de bienvenida de leads
+        benefits_html = "".join([f"<li>{benefit}</li>" for benefit in business_info['benefits']])
+        
+        html_parts = [
+            "<!DOCTYPE html>",
+            "<html>",
+            "<head><meta charset='UTF-8'><title>Bienvenido a MeStocker</title></head>",
+            "<body style='font-family: Arial; max-width: 600px; margin: 0 auto;'>",
+            f"<div style='background: #667eea; padding: 30px; text-align: center;'>",
+            f"<h1 style='color: white; margin: 0;'>MeStocker</h1>",
+            f"<p style='color: white;'>El futuro del fulfillment inteligente</p>",
+            "</div>",
+            "<div style='padding: 30px; background: white;'>",
+            f"<h2>Bienvenido, {nombre}!</h2>",
+            "<p>Gracias por unirte al Early Access de MeStocker.</p>",
+            f"<h3>{business_info['title']}</h3>",
+            f"<ul>{benefits_html}</ul>",
+            "<h3>Proximos Pasos:</h3>",
+            "<p>1. Te contactaremos en 48 horas</p>",
+            "<p>2. Configuracion de cuenta</p>",
+            "<p>3. Acceso prioritario</p>",
+            "<p>Saludos,<br>Equipo MeStocker</p>",
+            "</div>",
+            "<div style='background: #f8f9fa; padding: 20px; text-align: center;'>",
+            "<p style='font-size: 12px;'>2025 MeStocker. Bucaramanga, Colombia.</p>",
+            "</div>",
+            "</body>",
+            "</html>"
+        ]
+        
+        return "\n".join(html_parts)
+    
+    def _create_lead_welcome_plain_template(self, nombre: str, tipo_negocio: str) -> str:
+        # Crea template texto plano para email de bienvenida de leads
+        lines = [
+            "MeStocker - Bienvenido al Early Access!",
+            "",
+            f"Hola {nombre},",
+            "",
+            "Gracias por unirte al Early Access de MeStocker. Eres de los primeros en descubrir la plataforma de fulfillment mas avanzada de Colombia.",
+            "",
+            f"Como {tipo_negocio}, tendras acceso a:",
+            "- Automatizacion completa de inventario 24/7",
+            "- IA que optimiza precios automaticamente",
+            "- Acceso a red de 500+ compradores/vendedores", 
+            "- Reduccion del 40% en costos operativos",
+            "",
+            "PROXIMOS PASOS:",
+            "1. Te contactaremos en las proximas 48 horas",
+            "2. Configuracion personalizada de tu cuenta",
+            "3. Acceso prioritario al beta",
+            "",
+            "Tienes preguntas? Responde a este email.",
+            "",
+            "Saludos,",
+            "Equipo MeStocker",
+            "Revolucionando el fulfillment en Colombia",
+            "",
+            "2025 MeStocker. Bucaramanga, Colombia."
+        ]
+        return "\n".join(lines)

@@ -261,7 +261,7 @@ class QueueScheduler:
         try:
             logger.info("🔔 Forzando verificación de notificaciones...")
             
-            async with async_session_maker() as db:
+            async with AsyncSessionLocal() as db:
                 notifications_sent = await queue_notification_service.check_and_send_notifications(db)
                 logger.info(f"Verificación forzada completada: {notifications_sent}")
                 return notifications_sent

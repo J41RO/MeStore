@@ -8,27 +8,59 @@ const AdvantagesSection: React.FC<AdvantagesSectionProps> = ({ className = '' })
   const advantages = [
     { 
       title: 'IA Especializada Real', 
-      desc: 'Agentes IA que optimizan precios y ventas', 
+      desc: 'Agentes IA que optimizan precios y ventas automáticamente', 
       icon: '🤖', 
-      unique: 'vs promesas vacías competencia' 
+      unique: 'vs promesas vacías competencia',
+      roi: 'ROI: +35% en ventas promedio'
     },
     { 
       title: 'Marketplace Público', 
-      desc: 'B2B + B2C integrado en una plataforma', 
+      desc: 'B2B + B2C integrado - Vendedores y Compradores unidos', 
       icon: '🏪', 
-      unique: 'vs solo B2B como MELONN' 
+      unique: 'vs solo B2B como MELONN',
+      roi: 'Acceso: 500+ compradores activos'
     },
     { 
       title: 'Fulfillment Bucaramanga', 
-      desc: 'Único centro logístico en la región', 
+      desc: 'Único centro logístico especializado en la región', 
       icon: '📍', 
-      unique: 'vs solo Bogotá/Medellín' 
+      unique: 'vs solo Bogotá/Medellín',
+      roi: 'Ahorro: -60% en tiempos de entrega'
     },
     { 
       title: 'Canvas Interactivo', 
-      desc: 'Visualiza tu almacén en tiempo real', 
+      desc: 'Visualiza tu almacén en tiempo real con mapas 3D', 
       icon: '🎨', 
-      unique: 'vs reportes estáticos' 
+      unique: 'vs reportes estáticos',
+      roi: 'Eficiencia: +45% optimización espacial'
+    },
+    { 
+      title: 'Setup en 5 Minutos', 
+      desc: 'Onboarding automatizado sin complejidades técnicas', 
+      icon: '⚡', 
+      unique: 'vs semanas de implementación',
+      roi: 'Tiempo: 95% reducción en setup'
+    },
+    { 
+      title: 'Análisis Predictivo', 
+      desc: 'Predicción de demanda con ML avanzado', 
+      icon: '📊', 
+      unique: 'vs análisis básicos manuales',
+      roi: 'Precisión: 87% en predicciones'
+    },
+    { 
+      title: 'Automatización 24/7', 
+      desc: 'Gestión completa sin intervención humana', 
+      icon: '🔄', 
+      unique: 'vs procesos manuales',
+      roi: 'Ahorro: -40% costos operativos'
+    },
+    { 
+      title: 'Soporte Local', 
+      desc: 'Equipo técnico especializado en Bucaramanga', 
+      icon: '🤝', 
+      unique: 'vs call centers genéricos',
+      roi: 'Respuesta: <30min tiempo promedio'
     }
   ];
 
@@ -61,8 +93,11 @@ const AdvantagesSection: React.FC<AdvantagesSectionProps> = ({ className = '' })
               <p className="text-gray-600 mb-3">
                 {advantage.desc}
               </p>
-              <div className="text-sm text-purple-600 font-medium">
+              <div className="text-sm text-purple-600 font-medium mb-2">
                 {advantage.unique}
+              </div>
+              <div className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full font-semibold">
+                {advantage.roi}
               </div>
             </div>
           ))}

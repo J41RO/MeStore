@@ -52,8 +52,9 @@ async def async_client(async_session: AsyncSession) -> AsyncGenerator[AsyncClien
         finally:
             pass
 
-    # Override de la dependencia get_db ANTES de crear el cliente
+    # Override de la dependencia get_db Y get_async_db ANTES de crear el cliente
     app.dependency_overrides[get_db] = get_test_db
+    app.dependency_overrides[get_async_db] = get_test_db
 
     try:
             # Headers con User-Agent válido para evitar bloqueo de middleware
@@ -123,8 +124,17 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.core.database import Base, get_db
+from app.core.database import get_db
+from app.database import Base, get_async_db
 from app.main import app
+
+# Import all models to ensure they're registered with Base.metadata
+from app.models.transaction import Transaction
+from app.models.commission_dispute import ComissionDispute
+from app.models.payout_request import PayoutRequest
+from app.models.payout_history import PayoutHistory
+from app.models.user import User
+from app.models.product import Product
 
 # Configuración de base de datos de testing
 SQLALCHEMY_TEST_DATABASE_URL = "sqlite:///:memory:"
@@ -219,8 +229,9 @@ def override_get_db(async_session: AsyncSession) -> Generator[None, None, None]:
         finally:
             pass  # Session cleanup manejado por test_db_session fixture
 
-    # Override de la dependencia get_db
+    # Override de la dependencia get_db Y get_async_db
     app.dependency_overrides[get_db] = get_test_db
+    app.dependency_overrides[get_async_db] = get_test_db
 
     yield
 

@@ -600,3 +600,8 @@ class Product(BaseModel):
     images = relationship(
         "ProductImage", back_populates="product", cascade="all, delete-orphan"
     )
+    
+    # Relación con cola de productos entrantes
+    queue_entries = relationship(
+        "IncomingProductQueue", back_populates="product", cascade="all, delete-orphan"
+    )

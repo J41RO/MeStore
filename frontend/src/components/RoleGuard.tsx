@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { UserType, useAuthStore } from '../stores/authStore';
+import { UserType } from '../stores/authStore';
 import { useRoleAccess, getRoleDisplayName } from '../hooks/useRoleAccess';
 
 export type RoleStrategy = 'exact' | 'minimum' | 'any' | 'all';
@@ -36,8 +36,6 @@ const RoleGuard: React.FC<RoleGuardProps> = ({
   const location = useLocation();
   const currentRole = getCurrentRole();
   
-  // Debug auth store directly
-  const { user, isAuthenticated } = useAuthStore();
 
   // Validate props
   if (!roles || roles.length === 0) {
@@ -58,7 +56,7 @@ const RoleGuard: React.FC<RoleGuardProps> = ({
           console.warn('RoleGuard: minimum strategy requires exactly one role');
           return false;
         }
-        return hasMinimumRole(roles[0]);
+        return currentRole && roles[0] ? hasMinimumRole(roles[0]) : false;
 
       case 'any':
         // User must have any of the specified roles
@@ -159,9 +157,9 @@ export const withRoleGuard = <P extends object>(
   roles: UserType[],
   strategy: RoleStrategy = 'any'
 ) => {
-  return React.forwardRef<any, P>((props, ref) => (
+  return React.forwardRef<any, P>((props, _ref) => (
     <RoleGuard roles={roles} strategy={strategy}>
-      <Component {...props} ref={ref} />
+      <Component {...(props as P)} />
     </RoleGuard>
   ));
 };
@@ -201,7 +199,7 @@ export const useRoleConditionalRender = (
       case 'exact':
         return roles.some(role => hasRole(role));
       case 'minimum':
-        return roles.length === 1 ? hasMinimumRole(roles[0]) : false;
+        return roles.length === 1 && roles[0] ? hasMinimumRole(roles[0]) : false;
       case 'any':
         return hasAnyRole(roles);
       case 'all':

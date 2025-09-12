@@ -15,8 +15,13 @@ export const vendorApi = {
     register: (userData: any): Promise<AxiosResponse<AuthResponse>> =>
       apiClient.post('/api/v1/vendedores/register', userData),
     
-    dashboard: (): Promise<AxiosResponse<any>> =>
-      apiClient.get('/api/v1/vendedores/dashboard/resumen'),
+    dashboard: {
+      resumen: (): Promise<AxiosResponse<any>> =>
+        apiClient.get('/api/v1/vendedores/dashboard/resumen'),
+      
+      ordenes: (): Promise<AxiosResponse<any>> =>
+        apiClient.get('/api/v1/vendedores/dashboard/ordenes'),
+    },
   },
   
   // Productos del vendedor
