@@ -6,8 +6,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: true,
-    allowedHosts: ['localhost', '127.0.0.1', '192.168.1.137', 'admin.mestocker.com', 'mestocker.com']
-    ,
+    port: 5173,
+    allowedHosts: ['localhost', '127.0.0.1', '192.168.1.137', 'admin.mestocker.com', 'mestocker.com'],
     proxy: {
       "/api": {
         target: "http://192.168.1.137:8000",
@@ -15,6 +15,45 @@ export default defineConfig({
         secure: false
       }
     }
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Core React libraries
+          vendor: ['react', 'react-dom'],
+          // Router
+          router: ['react-router-dom'],
+          // UI components and icons
+          ui: ['lucide-react'],
+          // Charts library
+          charts: ['recharts'],
+          // Form libraries
+          forms: ['react-hook-form'],
+          // HTTP client
+          http: ['axios'],
+          // Utilities
+          utils: ['date-fns', 'clsx']
+        }
+      }
+    },
+    chunkSizeWarningLimit: 1000,
+    minify: 'esbuild', // Use esbuild for faster builds
+    target: 'esnext',
+    sourcemap: false, // Disable sourcemaps in production for smaller bundle
+    cssCodeSplit: true, // Split CSS into separate files
+    assetsInlineLimit: 4096, // Inline assets smaller than 4kb
+    reportCompressedSize: true
+  },
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      'lucide-react',
+      'recharts',
+      'react-hook-form'
+    ]
   },
   define: {
     'process.env': {

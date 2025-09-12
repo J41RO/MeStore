@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
+import { BrowserRouter } from 'react-router-dom';
 import SearchResults from './SearchResults';
 
 const mockProducts = [
@@ -92,14 +93,16 @@ describe('SearchResults', () => {
 
   it('renders products correctly', () => {
     render(
-      <SearchResults
-        products={mockProducts}
-        loading={false}
-        error={null}
-        hasMore={false}
-        onLoadMore={mockOnLoadMore}
-        searchQuery=""
-      />
+      <BrowserRouter>
+        <SearchResults
+          products={mockProducts}
+          loading={false}
+          error={null}
+          hasMore={false}
+          onLoadMore={mockOnLoadMore}
+          searchQuery=""
+        />
+      </BrowserRouter>
     );
 
     expect(screen.getByText('Test Product 1')).toBeInTheDocument();
@@ -110,14 +113,16 @@ describe('SearchResults', () => {
 
   it('shows load more button when hasMore is true', () => {
     render(
-      <SearchResults
-        products={mockProducts}
-        loading={false}
-        error={null}
-        hasMore={true}
-        onLoadMore={mockOnLoadMore}
-        searchQuery=""
-      />
+      <BrowserRouter>
+        <SearchResults
+          products={mockProducts}
+          loading={false}
+          error={null}
+          hasMore={true}
+          onLoadMore={mockOnLoadMore}
+          searchQuery=""
+        />
+      </BrowserRouter>
     );
 
     expect(screen.getByText('Ver más productos')).toBeInTheDocument();
@@ -125,14 +130,16 @@ describe('SearchResults', () => {
 
   it('calls onLoadMore when load more button is clicked', () => {
     render(
-      <SearchResults
-        products={mockProducts}
-        loading={false}
-        error={null}
-        hasMore={true}
-        onLoadMore={mockOnLoadMore}
-        searchQuery=""
-      />
+      <BrowserRouter>
+        <SearchResults
+          products={mockProducts}
+          loading={false}
+          error={null}
+          hasMore={true}
+          onLoadMore={mockOnLoadMore}
+          searchQuery=""
+        />
+      </BrowserRouter>
     );
 
     const loadMoreButton = screen.getByText('Ver más productos');
@@ -143,14 +150,16 @@ describe('SearchResults', () => {
 
   it('displays formatted prices correctly', () => {
     render(
-      <SearchResults
-        products={mockProducts}
-        loading={false}
-        error={null}
-        hasMore={false}
-        onLoadMore={mockOnLoadMore}
-        searchQuery=""
-      />
+      <BrowserRouter>
+        <SearchResults
+          products={mockProducts}
+          loading={false}
+          error={null}
+          hasMore={false}
+          onLoadMore={mockOnLoadMore}
+          searchQuery=""
+        />
+      </BrowserRouter>
     );
 
     // Prices should be formatted as Colombian pesos
@@ -160,14 +169,16 @@ describe('SearchResults', () => {
 
   it('shows loading state for additional products', () => {
     render(
-      <SearchResults
-        products={mockProducts}
-        loading={true}
-        error={null}
-        hasMore={true}
-        onLoadMore={mockOnLoadMore}
-        searchQuery=""
-      />
+      <BrowserRouter>
+        <SearchResults
+          products={mockProducts}
+          loading={true}
+          error={null}
+          hasMore={true}
+          onLoadMore={mockOnLoadMore}
+          searchQuery=""
+        />
+      </BrowserRouter>
     );
 
     // Should show existing products plus loading skeletons

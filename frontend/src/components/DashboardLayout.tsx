@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../stores/authStore';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -9,6 +10,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { logout, user } = useAuthStore();
 
   const navigationItems = [
     { name: 'Dashboard', href: '/app/dashboard' },
@@ -110,9 +112,22 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             Dashboard Principal
           </h2>
 
-          <div className='ml-auto'>
+          <div className='ml-auto flex items-center space-x-4'>
+            <span className='text-gray-600 text-sm hidden md:block'>
+              {user?.email}
+            </span>
+            
+            <button
+              onClick={logout}
+              className='bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200'
+            >
+              Cerrar Sesión
+            </button>
+            
             <div className='w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center'>
-              <span className='text-white text-sm font-medium'>U</span>
+              <span className='text-white text-sm font-medium'>
+                {user?.email?.charAt(0).toUpperCase() || 'U'}
+              </span>
             </div>
           </div>
         </header>

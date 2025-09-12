@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../stores/authStore';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -9,6 +10,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { logout, user } = useAuthStore();
 
   const navigationItems = [
     { name: 'Panel Admin', href: '/admin-secure-portal/dashboard' },
@@ -61,24 +63,42 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 Panel Administrativo
               </h1>
               <span className='ml-3 px-3 py-1 bg-red-800 text-red-100 text-xs font-semibold rounded-full'>
-                SUPERUSER
+                {user?.user_type || 'ADMIN'}
               </span>
             </div>
-            <button className='md:hidden bg-red-600 p-2 rounded-md text-red-200 hover:text-white hover:bg-red-500'>
-              <svg
-                className='h-6 w-6'
-                fill='none'
-                viewBox='0 0 24 24'
-                stroke='currentColor'
+            
+            <div className='flex items-center space-x-4'>
+              <span className='text-red-100 text-sm hidden md:block'>
+                {user?.email}
+              </span>
+              
+              {/* Botón Logout */}
+              <button 
+                onClick={logout}
+                className='bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200'
               >
-                <path
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  strokeWidth={2}
-                  d='M4 6h16M4 12h16M4 18h16'
-                />
-              </svg>
-            </button>
+                Cerrar Sesión
+              </button>
+              
+              <button 
+                className='md:hidden bg-red-600 p-2 rounded-md text-red-200 hover:text-white hover:bg-red-500'
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+              >
+                <svg
+                  className='h-6 w-6'
+                  fill='none'
+                  viewBox='0 0 24 24'
+                  stroke='currentColor'
+                >
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M4 6h16M4 12h16M4 18h16'
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       </header>

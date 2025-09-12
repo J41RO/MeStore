@@ -47,6 +47,13 @@ const InventoryAuditPanel = lazy(() => import('./components/admin/InventoryAudit
 const StorageManagerDashboard = lazy(() => import('./components/admin/StorageManagerDashboard'));
 const SpaceOptimizerDashboard = lazy(() => import('./components/admin/SpaceOptimizerDashboard'));
 const MarketplaceSearch = lazy(() => import('./pages/MarketplaceSearch'));
+const ProductDetail = lazy(() => import('./pages/ProductDetail'));
+const ShoppingCart = lazy(() => import('./pages/ShoppingCart'));
+const BuyerDashboard = lazy(() => import('./pages/BuyerDashboard'));
+const BuyerProfile = lazy(() => import('./pages/BuyerProfile'));
+const BuyerOrders = lazy(() => import('./pages/BuyerOrders'));
+const BuyerLayout = lazy(() => import('./components/BuyerLayout'));
+const RoleBasedRedirect = lazy(() => import('./components/RoleBasedRedirect'));
 
 function App() {
   return (
@@ -61,6 +68,16 @@ function App() {
         <Route path="/marketplace/search" element={
           <Suspense fallback={<PageLoader />}>
             <MarketplaceSearch />
+          </Suspense>
+        } />
+        <Route path="/marketplace/product/:id" element={
+          <Suspense fallback={<PageLoader />}>
+            <ProductDetail />
+          </Suspense>
+        } />
+        <Route path="/marketplace/cart" element={
+          <Suspense fallback={<PageLoader />}>
+            <ShoppingCart />
           </Suspense>
         } />
         
@@ -106,15 +123,37 @@ function App() {
             </AuthGuard>
           }
         >
-          <Route index element={<Navigate to='/app/dashboard' replace />} />
+          <Route index element={
+            <Suspense fallback={<PageLoader />}>
+              <RoleBasedRedirect />
+            </Suspense>
+          } />
+          
+          {/* Dashboard principal para COMPRADORES */}
           <Route
             path='dashboard'
             element={
-              <Suspense fallback={<PageLoader />}>
-                <DashboardLayout>
-                  <Dashboard />
-                </DashboardLayout>
-              </Suspense>
+              <RoleGuard roles={[UserType.COMPRADOR]} strategy="exact">
+                <Suspense fallback={<PageLoader />}>
+                  <BuyerLayout>
+                    <BuyerDashboard />
+                  </BuyerLayout>
+                </Suspense>
+              </RoleGuard>
+            }
+          />
+          
+          {/* Dashboard para VENDEDORES y superiores */}
+          <Route
+            path='vendor-dashboard'
+            element={
+              <RoleGuard roles={[UserType.VENDEDOR]} strategy="minimum">
+                <Suspense fallback={<PageLoader />}>
+                  <DashboardLayout>
+                    <Dashboard />
+                  </DashboardLayout>
+                </Suspense>
+              </RoleGuard>
             }
           />
           <Route
@@ -198,6 +237,32 @@ function App() {
                   <DashboardLayout>
                     <VendorProfile />
                   </DashboardLayout>
+                </Suspense>
+              </RoleGuard>
+            }
+          />
+          
+          {/* Rutas específicas para COMPRADORES */}
+          <Route
+            path='mi-perfil'
+            element={
+              <RoleGuard roles={[UserType.COMPRADOR]} strategy="exact">
+                <Suspense fallback={<PageLoader />}>
+                  <BuyerLayout>
+                    <BuyerProfile />
+                  </BuyerLayout>
+                </Suspense>
+              </RoleGuard>
+            }
+          />
+          <Route
+            path='mis-compras'
+            element={
+              <RoleGuard roles={[UserType.COMPRADOR]} strategy="exact">
+                <Suspense fallback={<PageLoader />}>
+                  <BuyerLayout>
+                    <BuyerOrders />
+                  </BuyerLayout>
                 </Suspense>
               </RoleGuard>
             }

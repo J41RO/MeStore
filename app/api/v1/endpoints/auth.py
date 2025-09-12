@@ -355,3 +355,26 @@ async def refresh_token(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token inválido"
         )
+
+
+@router.post("/logout", response_model=AuthResponse, status_code=status.HTTP_200_OK)
+async def logout(
+    current_user: User = Depends(get_current_user_clean)
+) -> AuthResponse:
+    """
+    Endpoint para logout/cierre de sesión.
+    """
+    try:
+        logger.info("Logout exitoso", user_id=str(current_user.id), email=current_user.email)
+        
+        return AuthResponse(
+            success=True,
+            message="Sesión cerrada exitosamente"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error en logout: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )
