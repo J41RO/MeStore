@@ -148,7 +148,7 @@ const renderDashboard = () => {
 describe('Dashboard Component', () => {
   test('renders welcome message with user email', () => {
     renderDashboard();
-    expect(screen.getByText(/Buenos días.*test@example.com/)).toBeInTheDocument();
+    expect(screen.getByText(/Buenas tardes.*test@example.com/)).toBeInTheDocument();
   });
 
   test('renders QuickActions component', () => {
@@ -176,7 +176,7 @@ describe('Dashboard Component', () => {
 
   test('should display metrics values correctly', () => {
     renderDashboard();
-    expect(screen.getByText(/Buenos días.*test@example.com/)).toBeInTheDocument();
+    expect(screen.getByText(/Buenas tardes.*test@example.com/)).toBeInTheDocument();
     expect(screen.getByText('24')).toBeInTheDocument(); // Total Productos
     expect(screen.getByText('$320,000')).toBeInTheDocument(); // Ventas del Mes
     expect(screen.getByText('$1,250,000')).toBeInTheDocument(); // Ingresos Totales

@@ -15,6 +15,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const navigationItems = [
     { name: 'Panel Admin', href: '/admin-secure-portal/dashboard' },
     { name: 'Gestión de Usuarios', href: '/admin-secure-portal/users' },
+    { name: 'Gestión de Órdenes', href: '/admin-secure-portal/orders' },
     { name: 'Cola de Productos Entrantes', href: '/admin-secure-portal/cola-productos-entrantes' },
     { name: 'Storage Manager', href: '/admin-secure-portal/storage-manager' },
     { name: 'Space Optimizer', href: '/admin-secure-portal/space-optimizer' },

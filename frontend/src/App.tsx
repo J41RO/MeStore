@@ -52,10 +52,16 @@ const ProductDetail = lazy(() => import('./pages/ProductDetail'));
 const ShoppingCart = lazy(() => import('./pages/ShoppingCart'));
 const BuyerDashboard = lazy(() => import('./pages/BuyerDashboard'));
 const BuyerProfile = lazy(() => import('./pages/BuyerProfile'));
-const BuyerOrders = lazy(() => import('./pages/BuyerOrders'));
+// const BuyerOrders = lazy(() => import('./pages/BuyerOrders')); // Replaced by BuyerOrdersNew
 const BuyerLayout = lazy(() => import('./components/BuyerLayout'));
 const RoleBasedRedirect = lazy(() => import('./components/RoleBasedRedirect'));
 const Checkout = lazy(() => import('./pages/Checkout'));
+
+// Order management pages - MICRO-FASE 4.3
+const OrdersManagement = lazy(() => import('./pages/admin/OrdersManagement'));
+const VendorOrders = lazy(() => import('./pages/VendorOrders'));
+const BuyerOrdersNew = lazy(() => import('./pages/BuyerOrdersNew'));
+const OrderTracking = lazy(() => import('./pages/OrderTracking'));
 
 function App() {
   return (
@@ -90,6 +96,13 @@ function App() {
         <Route path="/checkout" element={
           <Suspense fallback={<PageLoader />}>
             <Checkout />
+          </Suspense>
+        } />
+        
+        {/* Public Order Tracking */}
+        <Route path="/track/:orderNumber" element={
+          <Suspense fallback={<PageLoader />}>
+            <OrderTracking />
           </Suspense>
         } />
         
@@ -186,15 +199,7 @@ function App() {
               <RoleGuard roles={[UserType.VENDEDOR]} strategy="minimum">
                 <Suspense fallback={<PageLoader />}>
                   <DashboardLayout>
-                    <div className="p-6">
-                      <h1 className="text-2xl font-bold text-gray-900 mb-6">Mis Órdenes</h1>
-                      <div className="bg-white rounded-lg shadow p-6">
-                        <p className="text-gray-600">Gestión de órdenes - En desarrollo</p>
-                        <p className="text-sm text-gray-500 mt-2">
-                          Esta sección permitirá ver y gestionar todas las órdenes de venta.
-                        </p>
-                      </div>
-                    </div>
+                    <VendorOrders />
                   </DashboardLayout>
                 </Suspense>
               </RoleGuard>
@@ -273,7 +278,7 @@ function App() {
               <RoleGuard roles={[UserType.COMPRADOR]} strategy="exact">
                 <Suspense fallback={<PageLoader />}>
                   <BuyerLayout>
-                    <BuyerOrders />
+                    <BuyerOrdersNew />
                   </BuyerLayout>
                 </Suspense>
               </RoleGuard>
@@ -358,6 +363,7 @@ function App() {
                         <UserManagement />
                       </RoleGuard>
                     } />
+                    <Route path='orders' element={<OrdersManagement />} />
                     <Route path='alertas-incidentes' element={<AlertasIncidentes />} />
                     <Route path='movement-tracker' element={<MovementTrackerPage />} />
                     <Route path='reportes-discrepancias' element={<ReportesDiscrepanciasPage />} />
