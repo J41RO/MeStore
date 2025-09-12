@@ -17,6 +17,11 @@ export interface User {
   user_type: UserType;
   name: string;
   profile?: any;
+  token?: string;
+  full_name?: string;
+  telefono?: string;
+  nombre?: string;
+  apellido?: string;
 }
 
 // Interface del estado de autenticación

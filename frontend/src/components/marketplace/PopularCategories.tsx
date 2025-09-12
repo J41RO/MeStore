@@ -48,15 +48,15 @@ const PopularCategories: React.FC = () => {
     },
     {
       id: 'sports',
-      name: 'Deportes',
+      name: 'Deportes y Fitness',
       icon: <Dumbbell className="w-8 h-8" />,
       productCount: 80,
       image: '/images/categories/sports.jpg',
-      color: 'bg-orange-500'
+      color: 'bg-red-500'
     },
     {
       id: 'books',
-      name: 'Libros',
+      name: 'Libros y Educación',
       icon: <BookOpen className="w-8 h-8" />,
       productCount: 90,
       image: '/images/categories/books.jpg',
@@ -64,19 +64,19 @@ const PopularCategories: React.FC = () => {
     },
     {
       id: 'beauty',
-      name: 'Belleza',
+      name: 'Belleza y Cuidado Personal',
       icon: <Sparkles className="w-8 h-8" />,
       productCount: 110,
       image: '/images/categories/beauty.jpg',
-      color: 'bg-rose-500'
+      color: 'bg-yellow-500'
     },
     {
-      id: 'toys',
-      name: 'Juguetes',
+      id: 'baby',
+      name: 'Bebés y Niños',
       icon: <Baby className="w-8 h-8" />,
       productCount: 75,
-      image: '/images/categories/toys.jpg',
-      color: 'bg-yellow-500'
+      image: '/images/categories/baby.jpg',
+      color: 'bg-indigo-500'
     },
     {
       id: 'automotive',

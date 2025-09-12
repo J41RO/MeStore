@@ -63,8 +63,9 @@ describe('DashboardLayout', () => {
       </DashboardLayoutWrapper>
     );
 
-    // Encontrar botón hamburger
-    const mobileMenuButton = screen.getByRole('button');
+    // Encontrar botón hamburger (el primero es el botón del menú móvil)
+    const buttons = screen.getAllByRole('button');
+    const mobileMenuButton = buttons[0]; // El primer botón es el hamburger menu
 
     // Verificar que el overlay no está visible inicialmente
     expect(screen.queryByTestId('mobile-overlay')).not.toBeInTheDocument();

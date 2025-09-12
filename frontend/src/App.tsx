@@ -47,6 +47,7 @@ const InventoryAuditPanel = lazy(() => import('./components/admin/InventoryAudit
 const StorageManagerDashboard = lazy(() => import('./components/admin/StorageManagerDashboard'));
 const SpaceOptimizerDashboard = lazy(() => import('./components/admin/SpaceOptimizerDashboard'));
 const MarketplaceSearch = lazy(() => import('./pages/MarketplaceSearch'));
+const CategoryPage = lazy(() => import('./pages/CategoryPage'));
 const ProductDetail = lazy(() => import('./pages/ProductDetail'));
 const ShoppingCart = lazy(() => import('./pages/ShoppingCart'));
 const BuyerDashboard = lazy(() => import('./pages/BuyerDashboard'));
@@ -54,6 +55,7 @@ const BuyerProfile = lazy(() => import('./pages/BuyerProfile'));
 const BuyerOrders = lazy(() => import('./pages/BuyerOrders'));
 const BuyerLayout = lazy(() => import('./components/BuyerLayout'));
 const RoleBasedRedirect = lazy(() => import('./components/RoleBasedRedirect'));
+const Checkout = lazy(() => import('./pages/Checkout'));
 
 function App() {
   return (
@@ -70,6 +72,11 @@ function App() {
             <MarketplaceSearch />
           </Suspense>
         } />
+        <Route path="/marketplace/category/:slug" element={
+          <Suspense fallback={<PageLoader />}>
+            <CategoryPage />
+          </Suspense>
+        } />
         <Route path="/marketplace/product/:id" element={
           <Suspense fallback={<PageLoader />}>
             <ProductDetail />
@@ -78,6 +85,11 @@ function App() {
         <Route path="/marketplace/cart" element={
           <Suspense fallback={<PageLoader />}>
             <ShoppingCart />
+          </Suspense>
+        } />
+        <Route path="/checkout" element={
+          <Suspense fallback={<PageLoader />}>
+            <Checkout />
           </Suspense>
         } />
         

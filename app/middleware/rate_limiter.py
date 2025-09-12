@@ -93,7 +93,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next) -> Response:
         # Bypass rate limiting para testing
-        if os.getenv('TESTING') == 'true':
+        if os.getenv('TESTING') in ['true', '1']:
             logger.info('Rate limiting bypassed for testing environment')
             return await call_next(request)
         """Procesa request aplicando rate limiting si corresponde."""

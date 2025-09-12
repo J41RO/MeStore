@@ -28,6 +28,8 @@ from app.api.v1.endpoints.admin import router as admin_router
 from app.api.v1.endpoints.leads import router as leads_router
 from app.api.v1.endpoints.system_config import router as system_config_router
 from app.api.v1.endpoints.vendor_profile import router as vendor_profile_router
+from app.api.v1.endpoints.payments import router as payments_router
+from app.api.v1.endpoints.orders import router as orders_router
 
 # Router principal que unifica todos los endpoints v1
 api_router = APIRouter()
@@ -67,3 +69,5 @@ api_router.include_router(admin_router, prefix="/admin", tags=["admin"])
 api_router.include_router(leads_router, prefix="/leads", tags=["leads"])
 api_router.include_router(system_config_router, prefix="/system-config", tags=["system-config"])
 api_router.include_router(vendor_profile_router, tags=["vendor-profile"])
+api_router.include_router(payments_router, prefix="/payments", tags=["payments"])
+api_router.include_router(orders_router, prefix="/orders", tags=["orders"])

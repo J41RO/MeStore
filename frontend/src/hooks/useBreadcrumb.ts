@@ -13,6 +13,19 @@ const routeLabels: Record<string, string> = {
   perfil: 'Perfil',
   configuracion: 'Configuración',
   reportes: 'Reportes',
+  marketplace: 'Marketplace',
+  category: 'Categoría',
+  search: 'Búsqueda',
+  product: 'Producto',
+  cart: 'Carrito',
+  electronics: 'Electrónicos',
+  fashion: 'Ropa y Moda',
+  home: 'Hogar y Jardín',
+  sports: 'Deportes y Fitness',
+  books: 'Libros y Educación',
+  beauty: 'Belleza y Cuidado Personal',
+  baby: 'Bebés y Niños',
+  automotive: 'Automotriz'
 };
 
 // Función para obtener label personalizado o capitalizado

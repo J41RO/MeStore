@@ -16,7 +16,7 @@ interface Order {
 }
 
 const BuyerOrders: React.FC = () => {
-  const { user } = useAuthStore();
+  const { } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'delivered' | 'cancelled'>('all');
 
   // Datos de ejemplo - en producción vendrían del API

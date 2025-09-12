@@ -2,34 +2,40 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
-import { default as ShoppingCart } from '../ShoppingCart';
+import ShoppingCart from '../ShoppingCart';
 
 // Mock MarketplaceLayout
-jest.mock('../../components/marketplace/MarketplaceLayout', () => ({
-  default: ({ children }: { children: React.ReactNode }) => <div data-testid="marketplace-layout">{children}</div>
-}));
+jest.mock('../../components/marketplace/MarketplaceLayout', () => {
+  return function MockMarketplaceLayout({ children }: { children: React.ReactNode }) {
+    return <div data-testid="marketplace-layout">{children}</div>;
+  };
+});
 
 // Mock CartItemList
-jest.mock('../../components/marketplace/CartItemList', () => ({
-  default: ({ items, onUpdateQuantity, onRemoveItem, onClearCart }: any) => (
-    <div data-testid="cart-item-list">
-      <div>Items count: {items.length}</div>
-      <button onClick={() => onUpdateQuantity(1, 2)} data-testid="update-quantity">Update Quantity</button>
-      <button onClick={() => onRemoveItem(1)} data-testid="remove-item">Remove Item</button>
-      <button onClick={onClearCart} data-testid="clear-cart">Clear Cart</button>
-    </div>
-  )
-}));
+jest.mock('../../components/marketplace/CartItemList', () => {
+  return function MockCartItemList({ items, onUpdateQuantity, onRemoveItem, onClearCart }: any) {
+    return (
+      <div data-testid="cart-item-list">
+        <div>Items count: {items.length}</div>
+        <button onClick={() => onUpdateQuantity(1, 2)} data-testid="update-quantity">Update Quantity</button>
+        <button onClick={() => onRemoveItem(1)} data-testid="remove-item">Remove Item</button>
+        <button onClick={onClearCart} data-testid="clear-cart">Clear Cart</button>
+      </div>
+    );
+  };
+});
 
 // Mock CartSummary
-jest.mock('../../components/marketplace/CartSummary', () => ({
-  default: ({ items, onProceedToCheckout }: any) => (
-    <div data-testid="cart-summary">
-      <div>Summary items: {items.length}</div>
-      <button onClick={onProceedToCheckout} data-testid="checkout-button">Checkout</button>
-    </div>
-  )
-}));
+jest.mock('../../components/marketplace/CartSummary', () => {
+  return function MockCartSummary({ items, onProceedToCheckout }: any) {
+    return (
+      <div data-testid="cart-summary">
+        <div>Summary items: {items.length}</div>
+        <button onClick={onProceedToCheckout} data-testid="checkout-button">Checkout</button>
+      </div>
+    );
+  };
+});
 
 // Mock localStorage
 const mockLocalStorage = {

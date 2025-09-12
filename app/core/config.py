@@ -202,4 +202,12 @@ class Settings(BaseSettings):
 
     # Formato de salida estandarizado
     OUTPUT_FORMAT: str = "JPEG"
+    
+    # Wompi Payment Gateway Configuration
+    WOMPI_PUBLIC_KEY: str = Field(default="", description="Wompi public key")
+    WOMPI_PRIVATE_KEY: str = Field(default="", description="Wompi private key")
+    WOMPI_ENVIRONMENT: str = Field(default="test", description="Wompi environment")
+    WOMPI_WEBHOOK_SECRET: str = Field(default="", description="Wompi webhook secret")
+    WOMPI_BASE_URL: str = Field(default="https://sandbox.wompi.co/v1", description="Wompi base URL")
+
 settings = Settings()

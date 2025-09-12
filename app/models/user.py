@@ -449,6 +449,10 @@ class User(BaseModel):
         back_populates="vendedor"
     )
 
+    # Relationships con Order system
+    orders = relationship("Order", back_populates="buyer")
+    payment_methods = relationship("PaymentMethod", back_populates="buyer")
+
     # Relationship con Inventory
     ubicaciones_inventario = relationship(
         "Inventory",
@@ -628,3 +632,12 @@ class User(BaseModel):
         self.reset_token = None
         self.reset_token_expires_at = None
         self.reset_attempts = 0
+
+# Alias para Buyer - usar User con user_type='buyer'
+# Se define aquí para referencia en los modelos de orden
+from sqlalchemy import text
+
+def get_buyers():
+    """Helper function to get buyers"""
+    from sqlalchemy.orm import Session
+    return Session.query(User).filter(User.user_type == 'buyer')

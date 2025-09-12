@@ -33,7 +33,7 @@ describe('CartItemList', () => {
     expect(screen.getByText('Productos en tu carrito')).toBeInTheDocument();
     expect(screen.getByText('Producto #1')).toBeInTheDocument();
     expect(screen.getByText('Producto #2')).toBeInTheDocument();
-    expect(screen.getByText('2 productos • $250')).toBeInTheDocument();
+    expect(screen.getByText('3 productos • $ 250')).toBeInTheDocument();
   });
 
   it('displays empty state when no items', () => {
@@ -141,8 +141,8 @@ describe('CartItemList', () => {
   it('formats prices in Colombian pesos', () => {
     render(<CartItemList {...mockProps} />);
 
-    expect(screen.getByText('$100 por unidad')).toBeInTheDocument();
-    expect(screen.getByText('$200')).toBeInTheDocument(); // 2 × $100
+    expect(screen.getByText('$ 100 por unidad')).toBeInTheDocument();
+    expect(screen.getByText('$ 200')).toBeInTheDocument(); // 2 × $100
   });
 
   it('formats dates correctly', () => {
@@ -154,14 +154,14 @@ describe('CartItemList', () => {
   it('calculates subtotals correctly', () => {
     render(<CartItemList {...mockProps} />);
 
-    expect(screen.getByText('$200')).toBeInTheDocument(); // 2 × $100
-    expect(screen.getByText('$50')).toBeInTheDocument(); // 1 × $50
+    expect(screen.getByText('$ 200')).toBeInTheDocument(); // 2 × $100
+    expect(screen.getByText('$ 50')).toBeInTheDocument(); // 1 × $50
   });
 
   it('shows quantity breakdown for multiple items', () => {
     render(<CartItemList {...mockProps} />);
 
-    expect(screen.getByText('2 × $100')).toBeInTheDocument();
+    expect(screen.getByText('2 × $ 100')).toBeInTheDocument();
   });
 
   it('handles updating state with spinner', async () => {

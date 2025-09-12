@@ -11,7 +11,7 @@ import os
 from typing import AsyncGenerator
 
 # Configurar variables de entorno para testing ANTES de importar app
-os.environ["TESTING"] = "true"
+os.environ["TESTING"] = "1"
 os.environ["CORS_ORIGINS"] = (
     "http://localhost:3000,http://localhost:8000,https://mestocker.com"
 )

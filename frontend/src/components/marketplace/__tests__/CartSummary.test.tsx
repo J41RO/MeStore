@@ -24,7 +24,7 @@ describe('CartSummary', () => {
 
     expect(screen.getByText('Resumen del pedido')).toBeInTheDocument();
     expect(screen.getByText('Subtotal (3 productos)')).toBeInTheDocument();
-    expect(screen.getByText('$130.000')).toBeInTheDocument(); // Subtotal
+    expect(screen.getByText('$ 130.000')).toBeInTheDocument(); // Subtotal
   });
 
   it('calculates tax correctly (19% IVA)', () => {
@@ -32,14 +32,19 @@ describe('CartSummary', () => {
 
     // Subtotal: 130000, Tax: 130000 * 0.19 = 24700
     expect(screen.getByText('IVA (19%)')).toBeInTheDocument();
-    expect(screen.getByText('$24.700')).toBeInTheDocument();
+    expect(screen.getByText('$ 24.700')).toBeInTheDocument();
   });
 
   it('shows shipping cost when below free shipping threshold', () => {
-    render(<CartSummary {...mockProps} />);
+    const lowValueItems = [
+      { productId: 1, quantity: 1, price: 50000, addedAt: '2023-01-01T00:00:00.000Z' }, // Only 50k - below 100k threshold
+    ];
+    const lowValueProps = { ...mockProps, items: lowValueItems };
+
+    render(<CartSummary {...lowValueProps} />);
 
     expect(screen.getByText('Envío')).toBeInTheDocument();
-    expect(screen.getByText('$15.000')).toBeInTheDocument(); // Base shipping cost
+    expect(screen.getByText('$ 15.000')).toBeInTheDocument(); // Base shipping cost
   });
 
   it('shows free shipping when above threshold', () => {
@@ -51,18 +56,29 @@ describe('CartSummary', () => {
     render(<CartSummary {...freeShippingProps} />);
 
     expect(screen.getByText('GRATIS')).toBeInTheDocument();
-    expect(screen.getByText('$0')).toBeInTheDocument(); // Free shipping
+    expect(screen.getByText('$ 0')).toBeInTheDocument(); // Free shipping
   });
 
   it('calculates total correctly with shipping', () => {
-    render(<CartSummary {...mockProps} />);
+    // Use items that will trigger shipping costs (below 100k threshold)
+    const lowValueItems = [
+      { productId: 1, quantity: 1, price: 50000, addedAt: '2023-01-01T00:00:00.000Z' }, // Only 50k - below 100k threshold
+    ];
+    const lowValueProps = { ...mockProps, items: lowValueItems };
+    
+    render(<CartSummary {...lowValueProps} />);
 
-    // Subtotal: 130000, Tax: 24700, Shipping: 15000 = Total: 169700
-    expect(screen.getByText('$169.700')).toBeInTheDocument();
+    // 50,000 + 9,500 (IVA) + 15,000 (envío) = 74,500
+    expect(screen.getByText('$ 74.500')).toBeInTheDocument();
   });
 
   it('shows free shipping progress bar', () => {
-    render(<CartSummary {...mockProps} />);
+    const lowValueItems = [
+      { productId: 1, quantity: 1, price: 50000, addedAt: '2023-01-01T00:00:00.000Z' }, // Only 50k - below 100k threshold
+    ];
+    const lowValueProps = { ...mockProps, items: lowValueItems };
+
+    render(<CartSummary {...lowValueProps} />);
 
     expect(screen.getByText(/¡Envío GRATIS comprando/)).toBeInTheDocument();
     expect(document.querySelector('.bg-blue-600')).toBeInTheDocument(); // Progress bar
@@ -85,8 +101,8 @@ describe('CartSummary', () => {
     const toggleButton = screen.getByText('Ver detalles');
     fireEvent.click(toggleButton);
 
-    expect(screen.getByText('$100.000')).toBeInTheDocument(); // 2 × 50000
-    expect(screen.getByText('$30.000')).toBeInTheDocument(); // 1 × 30000
+    expect(screen.getByText('$ 100.000')).toBeInTheDocument(); // 2 × 50000
+    expect(screen.getByText('$ 30.000')).toBeInTheDocument(); // 1 × 30000
   });
 
   it('displays loading state correctly', () => {
@@ -162,10 +178,10 @@ describe('CartSummary', () => {
   it('formats Colombian pesos correctly', () => {
     render(<CartSummary {...mockProps} />);
 
-    // Check currency formatting
-    expect(screen.getByText('$130.000')).toBeInTheDocument(); // Subtotal
-    expect(screen.getByText('$24.700')).toBeInTheDocument(); // Tax
-    expect(screen.getByText('$169.700')).toBeInTheDocument(); // Total
+    // Check currency formatting (with free shipping above 100k threshold)
+    expect(screen.getByText('$ 130.000')).toBeInTheDocument(); // Subtotal
+    expect(screen.getByText('$ 24.700')).toBeInTheDocument(); // Tax
+    expect(screen.getByText('$ 154.700')).toBeInTheDocument(); // Total (130k + 24.7k tax, no shipping)
   });
 
   it('shows correct singular/plural forms', () => {
@@ -197,6 +213,6 @@ describe('CartSummary', () => {
     render(<CartSummary {...lowValueProps} />);
 
     expect(screen.getByText(/¡Envío GRATIS comprando/)).toBeInTheDocument();
-    expect(screen.getByText('$50.000')).toBeInTheDocument(); // Amount needed
+    expect(screen.getByText('$ 50.000')).toBeInTheDocument(); // Amount needed
   });
 });
