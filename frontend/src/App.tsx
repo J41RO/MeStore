@@ -46,6 +46,7 @@ const Unauthorized = lazy(() => import('./pages/Unauthorized'));
 const InventoryAuditPanel = lazy(() => import('./components/admin/InventoryAuditPanel'));
 const StorageManagerDashboard = lazy(() => import('./components/admin/StorageManagerDashboard'));
 const SpaceOptimizerDashboard = lazy(() => import('./components/admin/SpaceOptimizerDashboard'));
+const MarketplaceSearch = lazy(() => import('./pages/MarketplaceSearch'));
 
 function App() {
   return (
@@ -57,6 +58,11 @@ function App() {
         {/* Ruta principal del marketplace */}
         <Route path="/marketplace" element={<MarketplaceHome />} />
         <Route path="/marketplace/home" element={<MarketplaceHome />} />
+        <Route path="/marketplace/search" element={
+          <Suspense fallback={<PageLoader />}>
+            <MarketplaceSearch />
+          </Suspense>
+        } />
         
         {/* Redirección de compatibilidad para dashboard directo */}
         <Route path='/dashboard' element={<Navigate to='/app/dashboard' replace />} />
