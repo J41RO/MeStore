@@ -53,7 +53,7 @@ class QRService:
             "timestamp": datetime.now().isoformat(),
             "product_name": product_info.get("name", "N/A"),
             "category": product_info.get("category", "N/A"),
-            "verification_url": f"http://192.168.1.137:5173/admin-secure-portal/product/{internal_id}"
+            "verification_url": f"{os.getenv('DEV_FRONTEND_URL', 'http://192.168.1.137:5173')}/admin-secure-portal/product/{internal_id}"
         }
         
         # Convertir a string para QR

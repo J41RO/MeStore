@@ -24,11 +24,26 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+class EmailConfig:
+    """PRODUCTION_READY: Configuración dinámica para emails"""
+    
+    def __init__(self):
+        self.ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')
+        self.FRONTEND_URL = self._get_frontend_url()
+        
+    def _get_frontend_url(self) -> str:
+        if self.ENVIRONMENT == 'production':
+            # TODO_HOSTING: Configurar dominio real
+            return os.getenv('FRONTEND_URL', 'https://tudominio.com')
+        return os.getenv('DEV_FRONTEND_URL', 'http://192.168.1.137:5173')
+
+
 class EmailService:
     """Servicio para envío de emails usando SendGrid."""
     
     def __init__(self):
         """Inicializar servicio de email con configuración."""
+        self.config = EmailConfig()
         self.api_key = os.getenv('SENDGRID_API_KEY')
         self.from_email = os.getenv('FROM_EMAIL', 'noreply@mestore.com')
         self.from_name = os.getenv('FROM_NAME', 'MeStore')
@@ -143,7 +158,7 @@ class EmailService:
                 print(f"   Para: {email}")
                 print(f"   Token: {reset_token}")
                 print(f"   Usuario: {name}")
-                print(f"   Enlace: http://localhost:3000/reset-password?token={reset_token}")
+                print(f"   Enlace: {self.config.FRONTEND_URL}/reset-password?token={reset_token}")
                 return True
 
             # Enviar email real
@@ -316,7 +331,7 @@ Este email fue enviado automáticamente, no responder.
 
     def _create_reset_html_template(self, reset_token: str, user_name: str) -> str:
         """Crea template HTML para email de reset de contraseña."""
-        reset_url = f"http://localhost:3000/reset-password?token={reset_token}"
+        reset_url = f"{self.config.FRONTEND_URL}/reset-password?token={reset_token}"
         
         return f"""<!DOCTYPE html>
 <html>
@@ -376,7 +391,7 @@ Este email fue enviado automáticamente, no responder.
 
     def _create_reset_plain_template(self, reset_token: str, user_name: str) -> str:
         # Crea template texto plano para email de reset
-        reset_url = f"http://localhost:3000/reset-password?token={reset_token}"
+        reset_url = f"{self.config.FRONTEND_URL}/reset-password?token={reset_token}"
         
         lines = [
             "MeStore - Recuperacion de Contrasena",

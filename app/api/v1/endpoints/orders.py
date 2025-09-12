@@ -13,6 +13,7 @@ from app.models.user import User
 from app.models.order import Order, OrderItem, OrderStatus, Transaction
 from app.models.product import Product
 from app.core.auth import get_current_user
+from app.services.order_tracking_service import order_tracking_service
 from pydantic import BaseModel, EmailStr
 
 logger = logging.getLogger(__name__)
@@ -549,4 +550,175 @@ async def update_order_status(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to update order status"
+        )
+
+
+# ===== ENDPOINTS DE TRACKING PÚBLICO ENTERPRISE =====
+
+@router.get("/track/{order_number}", summary="Tracking público de orden", tags=["Public Tracking"])
+async def track_order_public(
+    order_number: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Endpoint público para tracking de órdenes.
+    
+    No requiere autenticación - acceso mediante número de orden únicamente.
+    Información filtrada para seguridad pública.
+    """
+    try:
+        tracking_info = await order_tracking_service.get_public_tracking(db, order_number)
+        return {
+            "success": True,
+            "data": tracking_info,
+            "message": f"Tracking information for order {order_number}"
+        }
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Error in public tracking for {order_number}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error retrieving tracking information"
+        )
+
+
+@router.get("/track/{order_number}/detailed", summary="Tracking detallado con autenticación")
+async def track_order_detailed(
+    order_number: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Endpoint para tracking detallado con autenticación.
+    
+    Incluye información completa y sensible de la orden.
+    Solo para el comprador o administradores.
+    """
+    try:
+        # Verificar que el usuario tenga acceso a esta orden
+        result = await db.execute(
+            select(Order).where(Order.order_number == order_number)
+        )
+        order = result.scalars().first()
+        
+        if not order:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Order not found"
+            )
+        
+        # Verificar permisos
+        if order.buyer_id != current_user.id and current_user.user_type not in ["ADMIN", "SUPERUSER"]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to access this order"
+            )
+        
+        tracking_info = await order_tracking_service.get_order_tracking_info(db, order_number)
+        
+        return {
+            "success": True,
+            "data": tracking_info,
+            "message": f"Detailed tracking information for order {order_number}"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in detailed tracking for {order_number}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error retrieving detailed tracking information"
+        )
+
+
+@router.get("/tracking/config", summary="Configuración de tracking")
+async def get_tracking_config():
+    """
+    Endpoint para obtener configuración de tracking.
+    
+    Información pública sobre URLs y configuraciones de tracking.
+    """
+    try:
+        config = order_tracking_service.get_tracking_config()
+        return {
+            "success": True,
+            "data": config,
+            "message": "Tracking configuration retrieved successfully"
+        }
+    except Exception as e:
+        logger.error(f"Error getting tracking config: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error retrieving tracking configuration"
+        )
+
+
+class TrackingTokenRequest(BaseModel):
+    """Request model para generar token de tracking"""
+    order_number: str
+    email: str  # Email del comprador para validación
+
+
+@router.post("/tracking/generate-token", summary="Generar token de tracking público")
+async def generate_tracking_token(
+    request: TrackingTokenRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Genera token seguro para tracking público.
+    
+    Permite acceso a tracking sin autenticación mediante token seguro.
+    Validación por email del comprador.
+    """
+    try:
+        # Verificar que la orden existe y el email coincide
+        result = await db.execute(
+            select(Order).options(selectinload(Order.buyer))
+            .where(Order.order_number == request.order_number)
+        )
+        order = result.scalars().first()
+        
+        if not order:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Order not found"
+            )
+        
+        # Verificar email del comprador
+        if order.buyer.email != request.email:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Email does not match order buyer"
+            )
+        
+        # Generar token público
+        token = order_tracking_service._generate_public_token(order)
+        
+        # URL de tracking con token
+        tracking_url = f"{order_tracking_service.config.TRACKING_PUBLIC_URL}/{request.order_number}?token={token}"
+        
+        return {
+            "success": True,
+            "data": {
+                "tracking_token": token,
+                "tracking_url": tracking_url,
+                "expires_in": "30 days",
+                "order_number": request.order_number
+            },
+            "message": "Tracking token generated successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating tracking token: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error generating tracking token"
         )
