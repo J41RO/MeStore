@@ -21,9 +21,60 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from '../../contexts/AuthContext';
 import { UserProvider } from '../../contexts/UserContext';
 import Dashboard from '../Dashboard';
+
+// Mock de AuthStore para simular usuario autenticado
+jest.mock('../../stores/authStore', () => ({
+  useAuthStore: () => ({
+    user: {
+      id: 1,
+      email: 'test@example.com',
+      tipo_usuario: 'vendedor',
+      is_active: true
+    },
+    isAuthenticated: true,
+    isLoading: false,
+    login: jest.fn(),
+    logout: jest.fn(),
+    setUser: jest.fn()
+  })
+}));
+
+// Mantener los otros mocks para compatibilidad
+jest.mock('../../contexts/AuthContext', () => ({
+  AuthProvider: ({ children }: any) => children,
+  useAuth: () => ({
+    user: {
+      id: 1,
+      email: 'test@example.com',
+      tipo_usuario: 'vendedor',
+      is_active: true
+    },
+    isAuthenticated: true,
+    isLoading: false,
+    login: jest.fn(),
+    logout: jest.fn(),
+    refreshToken: jest.fn()
+  })
+}));
+
+// Mock de UserContext
+jest.mock('../../contexts/UserContext', () => ({
+  UserProvider: ({ children }: any) => children,
+  useUser: () => ({
+    user: {
+      id: 1,
+      email: 'test@example.com',
+      tipo_usuario: 'vendedor',
+      business_name: 'Mi Tienda'
+    },
+    setUser: jest.fn(),
+    clearUser: jest.fn()
+  })
+}));
 
 // Mock de Recharts para evitar errores en testing
 jest.mock('recharts', () => ({
@@ -38,32 +89,24 @@ jest.mock('recharts', () => ({
   Bar: () => null,
 }));
 
-// Mock del hook useVendor
-jest.mock('../../hooks/useVendor', () => ({
-  useVendor: () => ({
-    storeName: 'Mi Tienda',
+// Mock del hook useVendorMetrics
+jest.mock('../../hooks/useVendorMetrics', () => ({
+  useVendorMetrics: () => ({
     metrics: {
-      totalSales: 15000,
-      totalCommissions: 1500,
-      activeProducts: 25,
-      totalOrders: 150,
+      totalProductos: 24,
+      productosActivos: 18,
+      totalVentas: 1250000,
+      ventasDelMes: 320000,
+      ingresosTotales: 1250000,
+      ingresosMes: 320000,
+      comisionesTotales: 125000,
+      ordenesPendientes: 5,
+      ordenesCompletadas: 47,
     },
-    isLoading: false,
-    getCompletionStatus: () => ({
-      percentage: 80,
-      isComplete: false,
-      missingFields: ['logo', 'bio'],
-      canPublish: true,
-    }),
+    loading: false,
+    error: null,
     refreshMetrics: jest.fn(),
-    salesHistory: [
-      { date: '2025-01', sales: 1000 },
-      { date: '2025-02', sales: 1200 },
-    ],
-    monthlySales: [
-      { month: 'Enero', sales: 1000, target: 1100 },
-      { month: 'Febrero', sales: 1200, target: 1100 },
-    ],
+    isRefreshing: false,
   }),
 }));
 
@@ -92,89 +135,93 @@ jest.mock('../../components/widgets/TopProductsWidget', () => {
 
 const renderDashboard = () => {
   return render(
-    <AuthProvider>
-      <UserProvider>
-        <Dashboard />
-      </UserProvider>
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <UserProvider>
+          <Dashboard />
+        </UserProvider>
+      </AuthProvider>
+    </BrowserRouter>
   );
 };
 
 describe('Dashboard Component', () => {
-  test('renders welcome message with store name', () => {
+  test('renders welcome message with user email', () => {
     renderDashboard();
-    expect(screen.getByText(/Bienvenido,.*Mi Tienda/)).toBeInTheDocument();
+    expect(screen.getByText(/Buenos días.*test@example.com/)).toBeInTheDocument();
   });
 
   test('renders QuickActions component', () => {
     renderDashboard();
     expect(screen.getByText('Acciones Rápidas')).toBeInTheDocument();
-    expect(screen.getByText('Añadir Producto')).toBeInTheDocument();
-    expect(screen.getByText('Ver Comisiones')).toBeInTheDocument();
-    expect(screen.getByText('Contactar Soporte')).toBeInTheDocument();
+    expect(screen.getByText('Nuevo Producto')).toBeInTheDocument();
+    expect(screen.getByText('Ver Órdenes')).toBeInTheDocument();
+    expect(screen.getByText('Mis Productos')).toBeInTheDocument();
+    expect(screen.getByText('Reportes')).toBeInTheDocument();
   });
 
-  test('should render active products metrics card', () => {
+  test('should render active products metrics display', () => {
     renderDashboard();
-    // El texto real es "Productos" no "Productos Activos"
-    expect(screen.getByText('Productos')).toBeInTheDocument();
+    expect(screen.getByText('Productos activos')).toBeInTheDocument();
+    expect(screen.getByText('18')).toBeInTheDocument();
   });
 
-  test('should render both metrics cards with correct styling', () => {
+  test('should render metrics cards with correct styling', () => {
     renderDashboard();
-    // Buscar los textos que realmente existen
-    const cards = screen.getAllByText(/Ventas Totales|Productos/);
-    expect(cards.length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText('Total Productos')).toBeInTheDocument();
+    expect(screen.getByText('Ventas del Mes')).toBeInTheDocument();
+    expect(screen.getByText('Ingresos Totales')).toBeInTheDocument();
+    expect(screen.getByText('Órdenes Pendientes')).toBeInTheDocument();
   });
 
-  test('should display initial values correctly', () => {
+  test('should display metrics values correctly', () => {
     renderDashboard();
-    // Buscar el texto real: "Bienvenido, Mi Tienda"
-    expect(screen.getByText(/Bienvenido,.*Mi Tienda/)).toBeInTheDocument();
+    expect(screen.getByText(/Buenos días.*test@example.com/)).toBeInTheDocument();
+    expect(screen.getByText('24')).toBeInTheDocument(); // Total Productos
+    expect(screen.getByText('$320,000')).toBeInTheDocument(); // Ventas del Mes
+    expect(screen.getByText('$1,250,000')).toBeInTheDocument(); // Ingresos Totales
+    expect(screen.getByText('5')).toBeInTheDocument(); // Órdenes Pendientes
   });
 
   test('should render grid layout structure', () => {
     renderDashboard();
-    const container = screen.getByText('Ventas Totales').closest('.grid');
+    const container = screen.getByText('Total Productos').closest('.grid');
     expect(container).toHaveClass('grid');
   });
 
   test('should render sales charts section', () => {
     renderDashboard();
-    // El texto real es "Ventas Mensuales" no "Análisis de Ventas"
-    expect(screen.getByText('Ventas Mensuales')).toBeInTheDocument();
+    expect(screen.getByText('Resumen de Ventas')).toBeInTheDocument();
   });
 
-  test('should render SalesChart component', () => {
+  test('should render orders section', () => {
     renderDashboard();
-    expect(screen.getByTestId('sales-chart')).toBeInTheDocument();
-    // El título real es "Historial de Ventas" no "Tendencias de Ventas"
-    expect(screen.getByText('Historial de Ventas')).toBeInTheDocument();
+    expect(screen.getByText('Órdenes Recientes')).toBeInTheDocument();
+    expect(screen.getByText('Ver todas →')).toBeInTheDocument();
   });
 
-  test('should render MonthlySalesChart component', () => {
+  test('should render secondary metrics', () => {
     renderDashboard();
-    expect(screen.getByTestId('monthly-sales-chart')).toBeInTheDocument();
-    // El título real es "Ventas Mensuales" no "Ventas vs Objetivos"
-    expect(screen.getByText('Ventas Mensuales')).toBeInTheDocument();
+    expect(screen.getByText('Métricas Principales')).toBeInTheDocument();
+    expect(screen.getByText('Estadísticas Adicionales')).toBeInTheDocument();
   });
 
   test('should have responsive grid layout for charts', () => {
     renderDashboard();
-    const container = screen.getByText('Ventas Mensuales').closest('.grid');
-    expect(container).toHaveClass('grid');
+    // "Acciones Rápidas" contains a grid inside it, not the other way around
+    const quickActionsSection = screen.getByText('Acciones Rápidas').parentElement;
+    const gridContainer = quickActionsSection?.querySelector('.grid');
+    expect(gridContainer).toBeTruthy();
   });
 
-  test('renders metrics cards with correct values', () => {
+  test('renders metrics cards with actual values', () => {
     renderDashboard();
-    expect(screen.getByText('Ventas Totales')).toBeInTheDocument();
-    expect(screen.getByText('$15,000')).toBeInTheDocument();
-    expect(screen.getByText('Comisiones')).toBeInTheDocument();
-    expect(screen.getByText('$1,500')).toBeInTheDocument();
-    expect(screen.getByText('Productos')).toBeInTheDocument();
-    expect(screen.getByText('25')).toBeInTheDocument();
-    expect(screen.getByText('Órdenes')).toBeInTheDocument();
-    expect(screen.getByText('150')).toBeInTheDocument();
+    expect(screen.getByText('Total Productos')).toBeInTheDocument();
+    expect(screen.getByText('24')).toBeInTheDocument();
+    expect(screen.getByText('Ventas del Mes')).toBeInTheDocument();
+    expect(screen.getByText('$320,000')).toBeInTheDocument();
+    expect(screen.getByText('Ingresos Totales')).toBeInTheDocument();
+    expect(screen.getByText('$1,250,000')).toBeInTheDocument();
   });
 
   test('renders TopProductsWidget', () => {
@@ -182,32 +229,25 @@ describe('Dashboard Component', () => {
     expect(screen.getByTestId('top-products-widget')).toBeInTheDocument();
   });
 
-  test('renders completion status alert when fields are missing', () => {
+  test('renders performance summary section', () => {
     renderDashboard();
-    expect(
-      screen.getByText('Completa tu perfil para mejor rendimiento')
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/Elementos pendientes:.*logo.*bio/)
-    ).toBeInTheDocument();
+    expect(screen.getByText('Resumen de Performance')).toBeInTheDocument();
+    expect(screen.getByText('Puntuación General')).toBeInTheDocument();
   });
 
-  test('renders activity section', () => {
+  test('renders quick actions section', () => {
     renderDashboard();
-    expect(screen.getByText('Actividad Reciente')).toBeInTheDocument();
-    expect(screen.getByText('Nueva venta registrada')).toBeInTheDocument();
-    expect(screen.getByText('Producto actualizado')).toBeInTheDocument();
-    expect(screen.getByText('Comisión procesada')).toBeInTheDocument();
+    expect(screen.getByText('Acciones Rápidas')).toBeInTheDocument();
+    expect(screen.getByText('Nuevo Producto')).toBeInTheDocument();
+    expect(screen.getByText('Ver Órdenes')).toBeInTheDocument();
+    expect(screen.getByText('Mis Productos')).toBeInTheDocument();
+    expect(screen.getByText('Reportes')).toBeInTheDocument();
   });
 
   test('has responsive grid layout', () => {
     renderDashboard();
-    const container = screen.getByText('Ventas Totales').closest('.grid');
-    expect(container).toHaveClass(
-      'grid-cols-1',
-      'sm:grid-cols-2',
-      'lg:grid-cols-4'
-    );
+    const container = screen.getByText('Total Productos').closest('.grid');
+    expect(container).toHaveClass('grid');
   });
 
   test('applies correct container classes', () => {

@@ -5,7 +5,7 @@ import DashboardLayout from '../DashboardLayout';
 
 // Mock useLocation
 const mockLocation = {
-  pathname: '/dashboard',
+  pathname: '/app/dashboard',
 };
 
 const mockNavigate = jest.fn();
@@ -47,11 +47,13 @@ describe('DashboardLayout', () => {
       </DashboardLayoutWrapper>
     );
 
-    // Verificar items de navegación
+    // Verificar items de navegación reales según DashboardLayout.tsx
     expect(screen.getAllByText('Dashboard')).toHaveLength(2); // Desktop y mobile
     expect(screen.getAllByText('Productos')).toHaveLength(2);
     expect(screen.getAllByText('Órdenes')).toHaveLength(2);
-    expect(screen.getAllByText('Configuración')).toHaveLength(2);
+    expect(screen.getAllByText('Reportes')).toHaveLength(2);
+    expect(screen.getAllByText('Comisiones')).toHaveLength(2);
+    expect(screen.getAllByText('Mi Perfil')).toHaveLength(2);
   });
 
   test('mobile menu toggle works', () => {
@@ -97,7 +99,7 @@ describe('DashboardLayout', () => {
     const productosLink = screen.getAllByText('Productos')[0];
     fireEvent.click(productosLink);
 
-    // El click debería llamar navigate
-    expect(mockNavigate).toHaveBeenCalledWith('/productos');
+    // El click debería llamar navigate con la ruta completa
+    expect(mockNavigate).toHaveBeenCalledWith('/app/productos');
   });
 });

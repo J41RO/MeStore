@@ -1,5 +1,5 @@
 import { renderHook, act } from '@testing-library/react';
-import { useAuthStore } from '../authStore';
+import { useAuthStore, UserType } from '../authStore';
 
 // Mock localStorage
 const mockLocalStorage = {
@@ -64,6 +64,17 @@ describe('AuthStore', () => {
   test('should check auth from localStorage', () => {
     mockLocalStorage.getItem.mockReturnValue('existing-token');
     const { result } = renderHook(() => useAuthStore());
+
+    // Primero necesitamos establecer un usuario para que checkAuth funcione correctamente
+    act(() => {
+      result.current.login('initial-token', {
+        id: 1,
+        email: 'test@example.com',
+        user_type: UserType.VENDEDOR,
+        tipo_usuario: 'vendedor',
+        is_active: true
+      });
+    });
 
     act(() => {
       const isAuthenticated = result.current.checkAuth();

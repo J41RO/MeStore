@@ -174,7 +174,7 @@ describe('QuickActions Component', () => {
       screen.getByLabelText(/Nombre del Producto/),
       'Producto Test'
     );
-    await user.type(screen.getByLabelText(/Precio/), '99.99');
+    await user.type(screen.getByLabelText(/Precio de Venta/), '99.99');
     await user.selectOptions(screen.getByLabelText(/Categoría/), 'electronics');
     await user.type(
       screen.getByLabelText(/Descripción/),
@@ -211,7 +211,8 @@ describe('QuickActions Component', () => {
 
     // ProductForm usa React Hook Form - verificar que campos existen
     expect(screen.getByLabelText(/Nombre del Producto/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Precio/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Precio de Venta/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Precio de Costo/)).toBeInTheDocument();
   });
 
   // Test 10: Navegación con teclado (accesibilidad)

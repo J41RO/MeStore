@@ -108,8 +108,8 @@ class InventoryService:
     @staticmethod
     async def get_available_locations_in_zone(
         zona: str,
-        limit: int = 50,
-        db: AsyncSession
+        db: AsyncSession,
+        limit: int = 50
     ) -> List[dict]:
         '''Obtiene ubicaciones disponibles en una zona específica'''
         

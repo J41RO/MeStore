@@ -32,7 +32,7 @@ describe('Layout Component', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseLocation.mockReturnValue({ pathname: '/dashboard' });
+    mockUseLocation.mockReturnValue({ pathname: '/app/dashboard' });
   });
 
   test('should render navigation with MeStore branding', () => {
@@ -105,7 +105,7 @@ describe('Layout Component', () => {
   });
 
   test('should highlight productos link when on productos page', () => {
-    mockUseLocation.mockReturnValue({ pathname: '/productos' });
+    mockUseLocation.mockReturnValue({ pathname: '/app/productos' });
     mockUseAuthStore.mockReturnValue({
       user: { id: '1', email: 'test@test.com' },
       logout: mockLogout,

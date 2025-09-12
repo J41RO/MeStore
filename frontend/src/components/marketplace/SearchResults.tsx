@@ -1,5 +1,6 @@
 import React from 'react';
-import { ShoppingCart, Eye, Store, AlertCircle, Loader2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Eye, Store, AlertCircle, Loader2 } from 'lucide-react';
 
 interface Product {
   id: number;
@@ -61,7 +62,10 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200 group">
+    <Link 
+      to={`/marketplace/product/${product.id}`}
+      className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200 group block"
+    >
       {/* Product Image */}
       <div className="relative h-48 bg-gray-100">
         <img
@@ -79,11 +83,11 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
           </div>
         )}
         
-        {/* Quick Action Buttons */}
+        {/* Quick View Indicator */}
         <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <button className="bg-white bg-opacity-90 hover:bg-opacity-100 p-2 rounded-full shadow-sm transition-colors">
+          <div className="bg-white bg-opacity-90 p-2 rounded-full shadow-sm">
             <Eye className="h-4 w-4 text-gray-600" />
-          </button>
+          </div>
         </div>
       </div>
 
@@ -116,16 +120,15 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
           </p>
         )}
 
-        {/* Price and Actions */}
+        {/* Price */}
         <div className="flex items-center justify-between">
           <div className="text-lg font-bold text-blue-600">
             {formatPrice(product.precio_venta)}
           </div>
           
-          <button className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-1">
-            <ShoppingCart className="h-4 w-4" />
-            <span className="hidden sm:inline">Agregar</span>
-          </button>
+          <div className="text-sm text-gray-500">
+            Ver detalles →
+          </div>
         </div>
 
         {/* SKU */}
@@ -135,7 +138,7 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
           </div>
         )}
       </div>
-    </div>
+    </Link>
   );
 };
 
