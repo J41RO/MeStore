@@ -1,0 +1,712 @@
+# ~/app/models/business_metric.py
+# ---------------------------------------------------------------------------------------------
+# MeStore - Business Metrics Model
+# Copyright (c) 2025 Jairo. Todos los derechos reservados.
+# Licensed under the proprietary license detailed in a LICENSE file in the root of this project.
+# ---------------------------------------------------------------------------------------------
+#
+# Nombre del Archivo: business_metric.py
+# Ruta: ~/app/models/business_metric.py
+# Autor: Jairo - Backend Senior Developer
+# Fecha de Creación: 2025-09-14
+# Última Actualización: 2025-09-14
+# Versión: 1.0.0
+# Propósito: SUPERUSER Admin Panel - Business Metrics and KPI System
+#
+# TASK_002A: SUPERUSER Admin Panel Backend - Dashboard APIs
+# - Real-time business metrics storage
+# - KPI calculation and aggregation
+# - Performance analytics tracking
+# - Business intelligence data models
+#
+# ---------------------------------------------------------------------------------------------
+
+"""
+SUPERUSER Business Metrics System.
+
+Este módulo implementa el sistema de métricas empresariales:
+- Real-time KPI tracking and storage
+- Business intelligence data aggregation
+- Performance metrics calculation
+- Trend analysis and forecasting support
+- Multi-dimensional metric organization
+- Historical data preservation
+"""
+
+from datetime import datetime, timedelta
+from typing import Optional, Dict, List, Any, Union
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text, JSON, ForeignKey, Float, Numeric
+from sqlalchemy import Index, UniqueConstraint
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship, validates
+from sqlalchemy.sql import func
+from enum import Enum as PyEnum
+from sqlalchemy import Enum as SQLEnum
+import uuid
+from decimal import Decimal
+
+from app.models.base import BaseModel
+
+
+class MetricType(str, PyEnum):
+    """
+    Enterprise Business Metric Types.
+
+    Categories of business metrics tracked:
+        FINANCIAL: Revenue, profit, costs, commission data
+        OPERATIONAL: Orders, fulfillment, inventory metrics
+        CUSTOMER: User engagement, satisfaction, retention
+        VENDOR: Vendor performance, onboarding metrics
+        SYSTEM: Performance, uptime, technical metrics
+        MARKETING: Conversion, acquisition, campaign metrics
+        COMPLIANCE: Regulatory, audit, security metrics
+    """
+    FINANCIAL = "FINANCIAL"
+    OPERATIONAL = "OPERATIONAL"
+    CUSTOMER = "CUSTOMER"
+    VENDOR = "VENDOR"
+    SYSTEM = "SYSTEM"
+    MARKETING = "MARKETING"
+    COMPLIANCE = "COMPLIANCE"
+
+
+class MetricFrequency(str, PyEnum):
+    """
+    Metric calculation and update frequencies.
+
+    How often metrics should be calculated/updated:
+        REAL_TIME: Updated immediately when data changes
+        HOURLY: Calculated every hour
+        DAILY: Daily aggregation
+        WEEKLY: Weekly rollup
+        MONTHLY: Monthly summary
+        QUARTERLY: Quarterly business review metrics
+        YEARLY: Annual performance metrics
+        ON_DEMAND: Calculated only when requested
+    """
+    REAL_TIME = "REAL_TIME"
+    HOURLY = "HOURLY"
+    DAILY = "DAILY"
+    WEEKLY = "WEEKLY"
+    MONTHLY = "MONTHLY"
+    QUARTERLY = "QUARTERLY"
+    YEARLY = "YEARLY"
+    ON_DEMAND = "ON_DEMAND"
+
+
+class MetricStatus(str, PyEnum):
+    """
+    Status of metric calculations.
+
+    Current state of metric data:
+        ACTIVE: Metric is actively being calculated
+        INACTIVE: Metric calculation is paused
+        CALCULATING: Metric is currently being computed
+        ERROR: Error in metric calculation
+        ARCHIVED: Historical metric, no longer active
+        PENDING: Metric setup pending approval
+    """
+    ACTIVE = "ACTIVE"
+    INACTIVE = "INACTIVE"
+    CALCULATING = "CALCULATING"
+    ERROR = "ERROR"
+    ARCHIVED = "ARCHIVED"
+    PENDING = "PENDING"
+
+
+class AggregationType(str, PyEnum):
+    """
+    Types of data aggregation for metrics.
+
+    How metric values should be aggregated:
+        SUM: Sum all values
+        AVERAGE: Calculate average
+        COUNT: Count items
+        MIN: Minimum value
+        MAX: Maximum value
+        MEDIAN: Median value
+        PERCENTILE: Percentile calculation
+        UNIQUE_COUNT: Count unique values
+        RATE: Calculate rate/percentage
+        CUMULATIVE: Cumulative total
+    """
+    SUM = "SUM"
+    AVERAGE = "AVERAGE"
+    COUNT = "COUNT"
+    MIN = "MIN"
+    MAX = "MAX"
+    MEDIAN = "MEDIAN"
+    PERCENTILE = "PERCENTILE"
+    UNIQUE_COUNT = "UNIQUE_COUNT"
+    RATE = "RATE"
+    CUMULATIVE = "CUMULATIVE"
+
+
+class BusinessMetric(BaseModel):
+    """
+    Enterprise Business Metrics Model.
+
+    Comprehensive system for tracking business KPIs and metrics:
+    - Multi-dimensional metric organization
+    - Real-time and historical data storage
+    - Flexible aggregation and calculation methods
+    - Performance benchmarking and targets
+    - Trend analysis and forecasting support
+    - Integration with business intelligence tools
+    """
+
+    __tablename__ = "business_metrics"
+
+    # === PRIMARY KEY ===
+    id = Column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+        index=True,
+        comment="Unique metric identifier"
+    )
+
+    # === METRIC DEFINITION ===
+    metric_name = Column(
+        String(100),
+        nullable=False,
+        index=True,
+        comment="Unique metric name identifier"
+    )
+
+    display_name = Column(
+        String(200),
+        nullable=False,
+        comment="Human-readable metric name for dashboards"
+    )
+
+    description = Column(
+        Text,
+        nullable=True,
+        comment="Detailed description of what this metric measures"
+    )
+
+    # === METRIC CLASSIFICATION ===
+    metric_type = Column(
+        SQLEnum(MetricType),
+        nullable=False,
+        index=True,
+        comment="Category of business metric"
+    )
+
+    category = Column(
+        String(50),
+        nullable=True,
+        index=True,
+        comment="Sub-category for detailed classification"
+    )
+
+    tags = Column(
+        JSON,
+        nullable=True,
+        comment="Tags for filtering and organization"
+    )
+
+    # === MEASUREMENT CONFIGURATION ===
+    unit_of_measure = Column(
+        String(50),
+        nullable=True,
+        comment="Unit of measurement (USD, units, percentage, etc.)"
+    )
+
+    aggregation_type = Column(
+        SQLEnum(AggregationType),
+        nullable=False,
+        default=AggregationType.SUM,
+        comment="How to aggregate this metric's data"
+    )
+
+    frequency = Column(
+        SQLEnum(MetricFrequency),
+        nullable=False,
+        default=MetricFrequency.DAILY,
+        comment="How often this metric is calculated"
+    )
+
+    # === TIME DIMENSIONS ===
+    period_start = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        index=True,
+        comment="Start of measurement period"
+    )
+
+    period_end = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        index=True,
+        comment="End of measurement period"
+    )
+
+    # === METRIC VALUES ===
+    current_value = Column(
+        Numeric(precision=20, scale=4),
+        nullable=True,
+        comment="Current metric value (high precision)"
+    )
+
+    previous_value = Column(
+        Numeric(precision=20, scale=4),
+        nullable=True,
+        comment="Previous period value for comparison"
+    )
+
+    target_value = Column(
+        Numeric(precision=20, scale=4),
+        nullable=True,
+        comment="Target/goal value for this metric"
+    )
+
+    benchmark_value = Column(
+        Numeric(precision=20, scale=4),
+        nullable=True,
+        comment="Industry benchmark or historical baseline"
+    )
+
+    # === ADDITIONAL METRIC DATA ===
+    data_points = Column(
+        JSON,
+        nullable=True,
+        comment="Raw data points used in calculation"
+    )
+
+    calculation_details = Column(
+        JSON,
+        nullable=True,
+        comment="Details about how metric was calculated"
+    )
+
+    metadata = Column(
+        JSON,
+        nullable=True,
+        comment="Additional metadata about the metric"
+    )
+
+    # === PERFORMANCE INDICATORS ===
+    variance_percent = Column(
+        Float,
+        nullable=True,
+        comment="Percentage variance from target"
+    )
+
+    trend_direction = Column(
+        String(20),
+        nullable=True,
+        comment="Trend direction: INCREASING, DECREASING, STABLE"
+    )
+
+    performance_status = Column(
+        String(20),
+        nullable=True,
+        comment="Performance status: EXCELLENT, GOOD, NEEDS_ATTENTION, CRITICAL"
+    )
+
+    # === QUALITY AND CONFIDENCE ===
+    data_quality_score = Column(
+        Float,
+        nullable=True,
+        comment="Data quality score (0-100)"
+    )
+
+    confidence_level = Column(
+        Float,
+        nullable=True,
+        comment="Confidence level in the metric (0-100)"
+    )
+
+    sample_size = Column(
+        Integer,
+        nullable=True,
+        comment="Sample size used for calculation"
+    )
+
+    # === CALCULATION METADATA ===
+    status = Column(
+        SQLEnum(MetricStatus),
+        nullable=False,
+        default=MetricStatus.ACTIVE,
+        index=True,
+        comment="Current status of metric calculation"
+    )
+
+    last_calculated_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="When this metric was last calculated"
+    )
+
+    calculation_duration_ms = Column(
+        Float,
+        nullable=True,
+        comment="Time taken to calculate metric in milliseconds"
+    )
+
+    calculation_source = Column(
+        String(100),
+        nullable=True,
+        comment="Source system or process that calculated this metric"
+    )
+
+    # === DIMENSIONS FOR ANALYSIS ===
+    dimensions = Column(
+        JSON,
+        nullable=True,
+        comment="Dimensional breakdowns (by region, vendor, product, etc.)"
+    )
+
+    filters = Column(
+        JSON,
+        nullable=True,
+        comment="Filters applied when calculating this metric"
+    )
+
+    # === ALERTING AND MONITORING ===
+    alert_thresholds = Column(
+        JSON,
+        nullable=True,
+        comment="Threshold values for alerting"
+    )
+
+    is_alerting_enabled = Column(
+        Boolean,
+        default=False,
+        nullable=False,
+        comment="Whether alerting is enabled for this metric"
+    )
+
+    last_alert_sent = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="When last alert was sent for this metric"
+    )
+
+    # === FORECASTING DATA ===
+    forecast_values = Column(
+        JSON,
+        nullable=True,
+        comment="Forecasted values for future periods"
+    )
+
+    seasonality_factors = Column(
+        JSON,
+        nullable=True,
+        comment="Seasonal adjustment factors"
+    )
+
+    # === RELATIONSHIPS ===
+    # Link to admin user who created/owns this metric
+    owner_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey('users.id', ondelete='SET NULL'),
+        nullable=True,
+        comment="Admin user who owns this metric"
+    )
+
+    owner = relationship(
+        "User",
+        foreign_keys=[owner_id],
+        back_populates="owned_metrics"
+    )
+
+    # === INDEXES FOR PERFORMANCE ===
+    __table_args__ = (
+        UniqueConstraint('metric_name', 'period_start', 'period_end', name='uq_metric_period'),
+        Index('ix_business_metrics_type_category', 'metric_type', 'category'),
+        Index('ix_business_metrics_status_frequency', 'status', 'frequency'),
+        Index('ix_business_metrics_performance', 'performance_status', 'trend_direction'),
+        Index('ix_business_metrics_calculation_time', 'last_calculated_at'),
+        Index('ix_business_metrics_alert_enabled', 'is_alerting_enabled', 'last_alert_sent'),
+        Index('ix_business_metrics_owner_type', 'owner_id', 'metric_type'),
+    )
+
+    # === VALIDATION METHODS ===
+
+    @validates('period_start', 'period_end')
+    def validate_periods(self, key, value):
+        """Validate that period_start comes before period_end."""
+        if key == 'period_end' and self.period_start and value:
+            if value <= self.period_start:
+                raise ValueError("Period end must be after period start")
+        return value
+
+    @validates('current_value', 'previous_value', 'target_value', 'benchmark_value')
+    def validate_numeric_values(self, key, value):
+        """Validate numeric values are reasonable."""
+        if value is not None and isinstance(value, (int, float, Decimal)):
+            # Convert to Decimal for precision
+            if not isinstance(value, Decimal):
+                value = Decimal(str(value))
+        return value
+
+    @validates('data_quality_score', 'confidence_level')
+    def validate_percentage_scores(self, key, value):
+        """Validate percentage scores are between 0 and 100."""
+        if value is not None and not 0 <= value <= 100:
+            raise ValueError(f"{key} must be between 0 and 100")
+        return value
+
+    # === CALCULATION METHODS ===
+
+    def calculate_variance_percent(self) -> Optional[float]:
+        """Calculate percentage variance from target value."""
+        if not self.current_value or not self.target_value or self.target_value == 0:
+            return None
+
+        variance = ((float(self.current_value) - float(self.target_value)) / float(self.target_value)) * 100
+        self.variance_percent = round(variance, 2)
+        return self.variance_percent
+
+    def determine_trend_direction(self) -> str:
+        """Determine trend direction based on current vs previous value."""
+        if not self.current_value or not self.previous_value:
+            return "UNKNOWN"
+
+        current = float(self.current_value)
+        previous = float(self.previous_value)
+
+        if abs(current - previous) / previous < 0.05:  # Less than 5% change
+            return "STABLE"
+        elif current > previous:
+            return "INCREASING"
+        else:
+            return "DECREASING"
+
+    def determine_performance_status(self) -> str:
+        """Determine performance status based on variance from target."""
+        if not self.variance_percent:
+            return "UNKNOWN"
+
+        abs_variance = abs(self.variance_percent)
+
+        if abs_variance <= 5:
+            return "EXCELLENT"
+        elif abs_variance <= 15:
+            return "GOOD"
+        elif abs_variance <= 30:
+            return "NEEDS_ATTENTION"
+        else:
+            return "CRITICAL"
+
+    def update_performance_indicators(self) -> None:
+        """Update all performance indicators."""
+        self.calculate_variance_percent()
+        self.trend_direction = self.determine_trend_direction()
+        self.performance_status = self.determine_performance_status()
+
+    def is_alert_needed(self) -> bool:
+        """Check if an alert should be sent based on thresholds."""
+        if not self.is_alerting_enabled or not self.alert_thresholds:
+            return False
+
+        thresholds = self.alert_thresholds
+        current = float(self.current_value) if self.current_value else 0
+
+        # Check various threshold conditions
+        if 'min_value' in thresholds and current < thresholds['min_value']:
+            return True
+        if 'max_value' in thresholds and current > thresholds['max_value']:
+            return True
+        if 'variance_threshold' in thresholds and self.variance_percent:
+            if abs(self.variance_percent) > thresholds['variance_threshold']:
+                return True
+
+        return False
+
+    def mark_calculation_complete(self, duration_ms: float = None, source: str = None) -> None:
+        """Mark metric calculation as complete."""
+        self.status = MetricStatus.ACTIVE
+        self.last_calculated_at = datetime.utcnow()
+        if duration_ms:
+            self.calculation_duration_ms = duration_ms
+        if source:
+            self.calculation_source = source
+
+    # === SERIALIZATION METHODS ===
+
+    def to_dict(self, include_raw_data: bool = False) -> Dict[str, Any]:
+        """Convert metric to dictionary for API responses."""
+        data = {
+            'id': str(self.id),
+            'metric_name': self.metric_name,
+            'display_name': self.display_name,
+            'description': self.description,
+            'metric_type': self.metric_type.value,
+            'category': self.category,
+            'unit_of_measure': self.unit_of_measure,
+            'aggregation_type': self.aggregation_type.value,
+            'frequency': self.frequency.value,
+            'period_start': self.period_start.isoformat() if self.period_start else None,
+            'period_end': self.period_end.isoformat() if self.period_end else None,
+            'current_value': float(self.current_value) if self.current_value else None,
+            'previous_value': float(self.previous_value) if self.previous_value else None,
+            'target_value': float(self.target_value) if self.target_value else None,
+            'benchmark_value': float(self.benchmark_value) if self.benchmark_value else None,
+            'variance_percent': self.variance_percent,
+            'trend_direction': self.trend_direction,
+            'performance_status': self.performance_status,
+            'data_quality_score': self.data_quality_score,
+            'confidence_level': self.confidence_level,
+            'status': self.status.value,
+            'last_calculated_at': self.last_calculated_at.isoformat() if self.last_calculated_at else None,
+            'tags': self.tags,
+            'dimensions': self.dimensions,
+            'is_alerting_enabled': self.is_alerting_enabled,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+        if include_raw_data:
+            data.update({
+                'data_points': self.data_points,
+                'calculation_details': self.calculation_details,
+                'metadata': self.metadata,
+                'alert_thresholds': self.alert_thresholds,
+                'forecast_values': self.forecast_values,
+                'seasonality_factors': self.seasonality_factors
+            })
+
+        return data
+
+    def to_dashboard_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary optimized for dashboard display."""
+        return {
+            'id': str(self.id),
+            'name': self.display_name,
+            'value': float(self.current_value) if self.current_value else None,
+            'unit': self.unit_of_measure,
+            'variance': self.variance_percent,
+            'trend': self.trend_direction,
+            'status': self.performance_status,
+            'target': float(self.target_value) if self.target_value else None,
+            'category': self.category,
+            'type': self.metric_type.value,
+            'last_updated': self.last_calculated_at.isoformat() if self.last_calculated_at else None
+        }
+
+    def __repr__(self) -> str:
+        """String representation for debugging."""
+        return f"<BusinessMetric(name='{self.metric_name}', value={self.current_value}, type={self.metric_type.value})>"
+
+    def __str__(self) -> str:
+        """Human-readable string representation."""
+        value_str = f"{self.current_value} {self.unit_of_measure}" if self.current_value else "No data"
+        return f"{self.display_name}: {value_str}"
+
+
+# Pre-defined system metrics for enterprise dashboard
+SYSTEM_METRICS = [
+    # Financial Metrics
+    {
+        "metric_name": "total_revenue_daily",
+        "display_name": "Total Daily Revenue",
+        "description": "Total revenue generated across all transactions",
+        "metric_type": MetricType.FINANCIAL,
+        "category": "revenue",
+        "unit_of_measure": "USD",
+        "aggregation_type": AggregationType.SUM,
+        "frequency": MetricFrequency.DAILY
+    },
+    {
+        "metric_name": "commission_revenue_daily",
+        "display_name": "Daily Commission Revenue",
+        "description": "Total commission revenue earned from transactions",
+        "metric_type": MetricType.FINANCIAL,
+        "category": "commission",
+        "unit_of_measure": "USD",
+        "aggregation_type": AggregationType.SUM,
+        "frequency": MetricFrequency.DAILY
+    },
+
+    # Operational Metrics
+    {
+        "metric_name": "orders_processed_daily",
+        "display_name": "Orders Processed Daily",
+        "description": "Total number of orders processed per day",
+        "metric_type": MetricType.OPERATIONAL,
+        "category": "orders",
+        "unit_of_measure": "count",
+        "aggregation_type": AggregationType.COUNT,
+        "frequency": MetricFrequency.DAILY
+    },
+    {
+        "metric_name": "order_fulfillment_rate",
+        "display_name": "Order Fulfillment Rate",
+        "description": "Percentage of orders successfully fulfilled",
+        "metric_type": MetricType.OPERATIONAL,
+        "category": "fulfillment",
+        "unit_of_measure": "percentage",
+        "aggregation_type": AggregationType.RATE,
+        "frequency": MetricFrequency.DAILY
+    },
+
+    # Vendor Metrics
+    {
+        "metric_name": "active_vendors",
+        "display_name": "Active Vendors",
+        "description": "Number of currently active vendors on platform",
+        "metric_type": MetricType.VENDOR,
+        "category": "status",
+        "unit_of_measure": "count",
+        "aggregation_type": AggregationType.COUNT,
+        "frequency": MetricFrequency.DAILY
+    },
+    {
+        "metric_name": "vendor_approval_rate",
+        "display_name": "Vendor Approval Rate",
+        "description": "Percentage of vendor applications approved",
+        "metric_type": MetricType.VENDOR,
+        "category": "onboarding",
+        "unit_of_measure": "percentage",
+        "aggregation_type": AggregationType.RATE,
+        "frequency": MetricFrequency.WEEKLY
+    },
+
+    # Customer Metrics
+    {
+        "metric_name": "new_users_daily",
+        "display_name": "New Users Daily",
+        "description": "Number of new user registrations per day",
+        "metric_type": MetricType.CUSTOMER,
+        "category": "acquisition",
+        "unit_of_measure": "count",
+        "aggregation_type": AggregationType.COUNT,
+        "frequency": MetricFrequency.DAILY
+    },
+    {
+        "metric_name": "user_retention_rate",
+        "display_name": "User Retention Rate",
+        "description": "Percentage of users who remain active over time",
+        "metric_type": MetricType.CUSTOMER,
+        "category": "retention",
+        "unit_of_measure": "percentage",
+        "aggregation_type": AggregationType.RATE,
+        "frequency": MetricFrequency.WEEKLY
+    },
+
+    # System Performance Metrics
+    {
+        "metric_name": "api_response_time_avg",
+        "display_name": "Average API Response Time",
+        "description": "Average response time for API endpoints",
+        "metric_type": MetricType.SYSTEM,
+        "category": "performance",
+        "unit_of_measure": "milliseconds",
+        "aggregation_type": AggregationType.AVERAGE,
+        "frequency": MetricFrequency.HOURLY
+    },
+    {
+        "metric_name": "system_uptime_percentage",
+        "display_name": "System Uptime",
+        "description": "Percentage of time system is available",
+        "metric_type": MetricType.SYSTEM,
+        "category": "availability",
+        "unit_of_measure": "percentage",
+        "aggregation_type": AggregationType.RATE,
+        "frequency": MetricFrequency.HOURLY
+    }
+]

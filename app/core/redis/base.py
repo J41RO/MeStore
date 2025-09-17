@@ -33,7 +33,9 @@ Provides async Redis client with connection pooling for:
 """
 
 import logging
+import os
 from typing import Optional
+from unittest.mock import MagicMock
 
 import redis.asyncio as redis
 
@@ -53,6 +55,20 @@ class RedisManager:
     async def connect(self) -> redis.Redis:
         """Initialize Redis connection with pool"""
         if self._redis is None:
+            # In testing mode, return a mock Redis instance
+            if os.getenv('TESTING') == '1':
+                logger.info("🧪 Using mock Redis for testing")
+                mock_redis = MagicMock()
+                # Mock common Redis methods that tests might use
+                mock_redis.ping.return_value = True
+                mock_redis.setex.return_value = True
+                mock_redis.get.return_value = None
+                mock_redis.delete.return_value = True
+                mock_redis.exists.return_value = False
+                mock_redis.close.return_value = None
+                self._redis = mock_redis
+                return self._redis
+
             try:
                 # Create connection pool for better performance
                 self._pool = redis.ConnectionPool.from_url(
@@ -96,5 +112,38 @@ class RedisManager:
 
 
 # === MANAGERS ESPECÍFICOS POR DATABASE ===
+
+# Global Redis Manager instance
+_redis_manager = RedisManager()
+
+
+async def get_redis_manager() -> RedisManager:
+    """
+    Dependency function to get the Redis manager instance.
+
+    Returns:
+        RedisManager: The global Redis manager instance
+    """
+    return _redis_manager
+
+
+async def get_redis() -> redis.Redis:
+    """
+    Dependency function to get Redis connection.
+
+    Returns:
+        redis.Redis: Active Redis connection
+    """
+    return await _redis_manager.get_redis()
+
+
+async def get_redis_client() -> redis.Redis:
+    """
+    Alias for get_redis() for backwards compatibility.
+
+    Returns:
+        redis.Redis: Active Redis connection
+    """
+    return await _redis_manager.get_redis()
 
 

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Buyer Routing - MeStore Frontend</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .route-test {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            background: #fafafa;
+        }
+        .route-link {
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .route-link:hover {
+            text-decoration: underline;
+        }
+        .status {
+            margin-left: 10px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .status.working { background: #dcfce7; color: #16a34a; }
+        .status.broken { background: #fef2f2; color: #dc2626; }
+        .status.pending { background: #fef3c7; color: #d97706; }
+        h1 { color: #1f2937; margin-bottom: 10px; }
+        h2 { color: #374151; margin-bottom: 15px; }
+        .instructions {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .critical {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎯 BUYER ROUTING SYSTEM TEST - MeStore Frontend</h1>
+
+    <div class="instructions critical">
+        <strong>⚠️ CRITICAL TESTING:</strong> Frontend routing implementation completed.<br>
+        Test all buyer routes below - they should load React components, not show 404 errors.
+    </div>
+
+    <div class="instructions">
+        <strong>📋 Instructions:</strong>
+        <ol>
+            <li><strong>Login first</strong> as a BUYER user at: <a href="http://192.168.1.137:5173/login">Login Page</a></li>
+            <li><strong>Test each route below</strong> - they should show buyer interface with data</li>
+            <li><strong>Navigation should work</strong> from sidebar in buyer layout</li>
+            <li><strong>API integration</strong> should show 6 buyer orders from backend</li>
+        </ol>
+    </div>
+
+    <div class="test-container">
+        <h2>🛒 BUYER ROUTES - External Access</h2>
+
+        <div class="route-test">
+            <strong>Primary Buyer Orders:</strong>
+            <a href="http://192.168.1.137:5173/buyer/orders" class="route-link" target="_blank">
+                /buyer/orders
+            </a>
+            <span class="status pending">TESTING REQUIRED</span>
+            <p><small>Should show: BuyerOrderDashboard with 6 orders from API</small></p>
+        </div>
+
+        <div class="route-test">
+            <strong>Order Tracking:</strong>
+            <a href="http://192.168.1.137:5173/tracking" class="route-link" target="_blank">
+                /tracking
+            </a>
+            <span class="status pending">TESTING REQUIRED</span>
+            <p><small>Should show: OrderTracking component in BuyerLayout</small></p>
+        </div>
+
+        <div class="route-test">
+            <strong>Compatibility Route (Redirect):</strong>
+            <a href="http://192.168.1.137:5173/app/compras" class="route-link" target="_blank">
+                /app/compras
+            </a>
+            <span class="status pending">TESTING REQUIRED</span>
+            <p><small>Should redirect to: /app/mis-compras</small></p>
+        </div>
+
+        <div class="route-test">
+            <strong>Main Buyer Orders (Internal):</strong>
+            <a href="http://192.168.1.137:5173/app/mis-compras" class="route-link" target="_blank">
+                /app/mis-compras
+            </a>
+            <span class="status pending">TESTING REQUIRED</span>
+            <p><small>Should show: BuyerOrderDashboard with full functionality</small></p>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>🏠 BUYER NAVIGATION - Internal Routes</h2>
+
+        <div class="route-test">
+            <strong>Buyer Dashboard:</strong>
+            <a href="http://192.168.1.137:5173/app/dashboard" class="route-link" target="_blank">
+                /app/dashboard
+            </a>
+            <span class="status working">WORKING</span>
+            <p><small>Should show: Main buyer dashboard with navigation</small></p>
+        </div>
+
+        <div class="route-test">
+            <strong>Buyer Profile:</strong>
+            <a href="http://192.168.1.137:5173/app/mi-perfil" class="route-link" target="_blank">
+                /app/mi-perfil
+            </a>
+            <span class="status working">WORKING</span>
+            <p><small>Should show: Buyer profile management</small></p>
+        </div>
+
+        <div class="route-test">
+            <strong>Order Tracking (Internal):</strong>
+            <a href="http://192.168.1.137:5173/app/tracking" class="route-link" target="_blank">
+                /app/tracking
+            </a>
+            <span class="status pending">TESTING REQUIRED</span>
+            <p><small>Should show: OrderTracking component for authenticated buyers</small></p>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>🎯 EXPECTED RESULTS</h2>
+
+        <div class="route-test">
+            <strong>✅ SUCCESS CRITERIA:</strong>
+            <ul style="margin: 10px 0;">
+                <li>All routes load React components (NO 404 errors)</li>
+                <li>Buyer authentication guards work correctly</li>
+                <li>Navigation from BuyerLayout sidebar functions</li>
+                <li>API integration shows 6 buyer orders from backend</li>
+                <li>Redirects work correctly (/app/compras → /app/mis-compras)</li>
+            </ul>
+        </div>
+
+        <div class="route-test">
+            <strong>❌ FAILURE INDICATORS:</strong>
+            <ul style="margin: 10px 0;">
+                <li>404 Page Not Found errors</li>
+                <li>Blank pages or loading spinners that don't resolve</li>
+                <li>Authentication errors for buyer users</li>
+                <li>Empty order lists (should show 6 orders)</li>
+                <li>Broken navigation or routing loops</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>🔧 BACKEND STATUS</h2>
+        <div class="route-test">
+            <strong>Backend Server:</strong>
+            <span class="status working">ACTIVE on 192.168.1.137:8000</span><br>
+            <strong>Buyer API:</strong>
+            <span class="status working">6 ORDERS AVAILABLE</span><br>
+            <strong>Authentication:</strong>
+            <span class="status working">JWT FUNCTIONAL</span><br>
+            <strong>User-Agent:</strong>
+            <span class="status working">RESTRICTIONS REMOVED</span>
+        </div>
+    </div>
+
+    <script>
+        // Auto-refresh status indicator
+        console.log('🎯 Buyer Routing Test Page Loaded');
+        console.log('Frontend Server: http://192.168.1.137:5173');
+        console.log('Backend API: http://192.168.1.137:8000');
+        console.log('Test all buyer routes above after logging in as a buyer user.');
+
+        // Test routes programmatically
+        async function testRoutes() {
+            const routes = [
+                '/buyer/orders',
+                '/tracking',
+                '/app/compras',
+                '/app/mis-compras'
+            ];
+
+            console.log('🧪 Testing Routes (index.html size check):');
+            for(const route of routes) {
+                try {
+                    const response = await fetch(`http://192.168.1.137:5173${route}`);
+                    const text = await response.text();
+                    console.log(`${route}: ${text.length} bytes ${text.length === 3312 ? '✅ (SPA index.html)' : '❌'}`);
+                } catch(e) {
+                    console.log(`${route}: ERROR - ${e.message}`);
+                }
+            }
+        }
+
+        // Run test after 2 seconds
+        setTimeout(testRoutes, 2000);
+    </script>
+</body>
+</html>

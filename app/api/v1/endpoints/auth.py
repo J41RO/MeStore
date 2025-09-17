@@ -11,8 +11,8 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 # IMPORTS CORREGIDOS - Solo del AuthService correcto
 from app.services.auth_service import AuthService
-from app.database import get_db
-from sqlalchemy.orm import Session
+from app.core.database import get_db
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user import User
 from app.services.audit_service import AuditService
 from app.core.security import decode_access_token, decode_refresh_token, create_access_token, create_refresh_token
@@ -76,7 +76,7 @@ def get_auth_service() -> AuthService:
 @router.post("/login", response_model=TokenResponse, status_code=status.HTTP_200_OK)
 async def login(
     login_data: LoginRequest,
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ) -> TokenResponse:
     """
     Endpoint de autenticación con email y contraseña.
@@ -127,7 +127,7 @@ async def login(
 async def admin_login(
     request: LoginRequest,
     request_info: Request,
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ) -> TokenResponse:
     """
     Endpoint específico para autenticación administrativa.
@@ -208,7 +208,7 @@ async def get_current_user_info(
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 async def register(
     user_data: LoginRequest,
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ) -> TokenResponse:
     """Registrar nuevo usuario."""
     auth_service = get_auth_service()
@@ -241,7 +241,7 @@ async def register(
 @router.post("/forgot-password", response_model=PasswordResetResponse, status_code=status.HTTP_200_OK)
 async def forgot_password(
     request: PasswordResetRequest,
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     """Solicita recuperación de contraseña por email."""
     auth_service = get_auth_service()
@@ -268,7 +268,7 @@ async def forgot_password(
 @router.post("/reset-password", response_model=PasswordResetResponse, status_code=status.HTTP_200_OK)
 async def reset_password(
     request: PasswordResetConfirm,
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     """Confirma reset de contraseña con token."""
     auth_service = get_auth_service()
@@ -307,7 +307,7 @@ async def reset_password(
 @router.post("/refresh-token", response_model=TokenResponse, status_code=status.HTTP_200_OK)
 async def refresh_token(
     request: RefreshTokenRequest,
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ) -> TokenResponse:
     """Refrescar access token usando refresh token."""
     try:

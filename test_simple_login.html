@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Simple de Login</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+        .log { background-color: #f8f9fa; padding: 10px; margin: 5px 0; border-left: 4px solid #007bff; }
+        .success { border-left-color: #28a745; }
+        .error { border-left-color: #dc3545; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Simple de Login</h1>
+    
+    <div>
+        <button onclick="clearAll()">🧹 Limpiar Todo</button>
+        <button onclick="testVendorLogin()">🏪 Test Vendor Login</button>
+        <button onclick="checkStorage()">📦 Ver Storage</button>
+        <button onclick="testApiCall()">🔗 Test API Call</button>
+    </div>
+    
+    <div id="logs"></div>
+
+    <script>
+        const API_BASE = 'http://192.168.1.137:8000/api/v1';
+        let currentToken = null;
+        
+        function log(message, type = 'log') {
+            const logs = document.getElementById('logs');
+            const div = document.createElement('div');
+            div.className = `log ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            logs.appendChild(div);
+            logs.scrollTop = logs.scrollHeight;
+            console.log(message);
+        }
+
+        function clearAll() {
+            localStorage.clear();
+            currentToken = null;
+            document.getElementById('logs').innerHTML = '';
+            log('🧹 Todo limpiado');
+        }
+
+        async function testVendorLogin() {
+            log('🏪 Iniciando test de login para vendor@mestore.com');
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'User-Agent': 'MeStore-Frontend/1.0'
+                    },
+                    body: JSON.stringify({
+                        email: 'vendor@mestore.com',
+                        password: '123456'
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    currentToken = data.access_token;
+                    
+                    // Guardar token como lo hace el frontend
+                    localStorage.setItem('auth_token', currentToken);
+                    
+                    // También guardar refresh token si viene
+                    if (data.refresh_token) {
+                        localStorage.setItem('refresh_token', data.refresh_token);
+                        log('✅ Refresh token guardado también');
+                    }
+                    
+                    log('✅ Login exitoso!');
+                    log(`🎫 Token: ${currentToken.substring(0, 20)}...`);
+                    
+                    // Ahora obtener datos del usuario
+                    await getUserData();
+                    
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ Login fallido: ${response.status} - ${errorText}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Error en login: ${error.message}`, 'error');
+            }
+        }
+
+        async function getUserData() {
+            log('📊 Obteniendo datos del usuario...');
+            
+            try {
+                const token = localStorage.getItem('auth_token');
+                if (!token) {
+                    log('❌ No hay token disponible', 'error');
+                    return;
+                }
+                
+                const response = await fetch(`${API_BASE}/auth/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                        'User-Agent': 'MeStore-Frontend/1.0'
+                    }
+                });
+
+                if (response.ok) {
+                    const userData = await response.json();
+                    log('✅ Datos del usuario obtenidos:', 'success');
+                    log(`👤 Email: ${userData.email}`);
+                    log(`🎭 Rol: ${userData.user_type}`);
+                    log(`📋 Datos completos: ${JSON.stringify(userData, null, 2)}`);
+                    
+                    // Simular lo que haría el frontend
+                    const authData = {
+                        state: {
+                            user: {
+                                id: userData.id,
+                                email: userData.email,
+                                user_type: userData.user_type,
+                                name: userData.nombre
+                            },
+                            token: token,
+                            isAuthenticated: true
+                        },
+                        version: 0
+                    };
+                    
+                    localStorage.setItem('auth-storage', JSON.stringify(authData));
+                    log('✅ Estado de autenticación guardado en Zustand persist');
+                    
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ Error obteniendo datos: ${response.status} - ${errorText}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Error en getUserData: ${error.message}`, 'error');
+            }
+        }
+
+        function checkStorage() {
+            log('📦 Verificando localStorage:');
+            log(`🎫 auth_token: ${localStorage.getItem('auth_token') ? '✅ Presente' : '❌ No existe'}`);
+            log(`🔄 refresh_token: ${localStorage.getItem('refresh_token') ? '✅ Presente' : '❌ No existe'}`);
+            log(`💾 auth-storage: ${localStorage.getItem('auth-storage') ? '✅ Presente' : '❌ No existe'}`);
+            
+            if (localStorage.getItem('auth-storage')) {
+                try {
+                    const parsed = JSON.parse(localStorage.getItem('auth-storage'));
+                    log(`📋 Contenido auth-storage: ${JSON.stringify(parsed, null, 2)}`);
+                } catch (e) {
+                    log(`❌ Error parseando auth-storage: ${e.message}`, 'error');
+                }
+            }
+        }
+
+        async function testApiCall() {
+            log('🔗 Probando llamada API con token actual...');
+            
+            try {
+                const token = localStorage.getItem('auth_token');
+                if (!token) {
+                    log('❌ No hay token para probar', 'error');
+                    return;
+                }
+                
+                // Simular una llamada que podría hacer el frontend
+                const response = await fetch(`${API_BASE}/auth/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                        'User-Agent': 'MeStore-Frontend/1.0'
+                    }
+                });
+
+                if (response.ok) {
+                    log('✅ API call exitosa - token válido', 'success');
+                } else {
+                    log(`❌ API call falló: ${response.status}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Error en API call: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-check al cargar
+        window.onload = () => {
+            log('🔄 Página cargada');
+            checkStorage();
+        };
+    </script>
+</body>
+</html>

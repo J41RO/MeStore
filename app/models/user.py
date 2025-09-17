@@ -37,8 +37,7 @@ from datetime import datetime
 from typing import Optional
 from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text, JSON
 from sqlalchemy import Index
-from sqlalchemy.dialects.postgresql import UUID
-import uuid
+from app.core.types import UUID, generate_uuid
 from sqlalchemy.sql import func
 from enum import Enum as PyEnum
 from sqlalchemy import Enum
@@ -129,9 +128,9 @@ class User(BaseModel):
 
     # === CLAVE PRIMARIA ===
     id = Column(
-        UUID(as_uuid=True),
+        UUID(),
         primary_key=True,
-        default=uuid.uuid4,
+        default=generate_uuid,
         index=True,
         comment="Identificador único UUID del usuario"
     )
@@ -465,6 +464,25 @@ class User(BaseModel):
         "ComissionDispute",
         foreign_keys="ComissionDispute.usuario_id",
         back_populates="usuario"
+    )
+
+    # Commission relationships
+    vendor_commissions = relationship(
+        "Commission",
+        foreign_keys="Commission.vendor_id",
+        back_populates="vendor"
+    )
+    approved_commissions = relationship(
+        "Commission",
+        foreign_keys="Commission.approved_by_id",
+        back_populates="approver"
+    )
+
+    # Admin Activity Log relationship
+    admin_activity_logs = relationship(
+        "AdminActivityLog",
+        foreign_keys="AdminActivityLog.admin_user_id",
+        back_populates="admin_user"
     )
     # Relationship con InventoryAudit
     auditorias_realizadas = relationship(

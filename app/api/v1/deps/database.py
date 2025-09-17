@@ -55,5 +55,22 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
             await session.close()
 
 
+async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
+    """
+    Alias for get_db() for async session dependency.
+
+    This is an alternative name for get_db() that makes it clear
+    we're working with async sessions.
+    """
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
+
+
 # Export the main dependency for easy import
-__all__ = ["get_db", "get_db_session"]
+__all__ = ["get_db", "get_db_session", "get_async_session"]

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Route Test</title>
+</head>
+<body>
+    <h1>Testing Buyer Routes</h1>
+    <div id="results"></div>
+
+    <script>
+        const routes = [
+            '/buyer/orders',
+            '/tracking',
+            '/app/compras',
+            '/app/mis-compras'
+        ];
+
+        const results = document.getElementById('results');
+
+        function testRoute(route) {
+            return new Promise((resolve) => {
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                iframe.src = `http://192.168.1.137:5173${route}`;
+
+                iframe.onload = () => {
+                    try {
+                        // Check if React app loaded by looking for the root div
+                        const doc = iframe.contentDocument;
+                        const root = doc.getElementById('root');
+                        const hasReactContent = root && root.children.length > 0;
+
+                        resolve({
+                            route,
+                            success: hasReactContent,
+                            title: doc.title || 'No title'
+                        });
+                    } catch (e) {
+                        resolve({
+                            route,
+                            success: false,
+                            error: e.message
+                        });
+                    }
+                    document.body.removeChild(iframe);
+                };
+
+                iframe.onerror = () => {
+                    resolve({
+                        route,
+                        success: false,
+                        error: 'Failed to load'
+                    });
+                    document.body.removeChild(iframe);
+                };
+
+                document.body.appendChild(iframe);
+            });
+        }
+
+        async function runTests() {
+            results.innerHTML = '<p>Testing routes...</p>';
+
+            for (const route of routes) {
+                const result = await testRoute(route);
+                const div = document.createElement('div');
+                div.innerHTML = `
+                    <h3>${route}</h3>
+                    <p>Status: ${result.success ? '✅ SUCCESS' : '❌ FAILED'}</p>
+                    <p>Title: ${result.title}</p>
+                    ${result.error ? `<p>Error: ${result.error}</p>` : ''}
+                    <hr>
+                `;
+                results.appendChild(div);
+            }
+        }
+
+        runTests();
+    </script>
+</body>
+</html>

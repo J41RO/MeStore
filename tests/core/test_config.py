@@ -18,9 +18,13 @@ from app.core.config import settings
 
 def test_settings_loaded():
     """Test que la configuración se carga correctamente"""
-    # Verificar DATABASE_URL (acepta postgresql y postgresql+asyncpg)
-    assert settings.DATABASE_URL.startswith(("postgresql://", "postgresql+asyncpg://"))
-    assert "mestocker" in settings.DATABASE_URL
+    # Verificar DATABASE_URL (acepta postgresql, postgresql+asyncpg y sqlite)
+    assert settings.DATABASE_URL.startswith(("postgresql://", "postgresql+asyncpg://", "sqlite+aiosqlite://"))
+    # Solo verificar mestocker en PostgreSQL, no en SQLite
+    if settings.DATABASE_URL.startswith("sqlite"):
+        assert "mestore" in settings.DATABASE_URL
+    else:
+        assert "mestocker" in settings.DATABASE_URL
 
     # Verificar REDIS_URL
     assert settings.REDIS_URL.startswith("redis://")
@@ -37,9 +41,13 @@ def test_settings_loaded():
 
 def test_database_url_format():
     """Test formato específico de DATABASE_URL"""
-    # Debe ser formato asyncpg para FastAPI
-    assert settings.DATABASE_URL.startswith("postgresql+asyncpg://")
-    assert "localhost" in settings.DATABASE_URL or "127.0.0.1" in settings.DATABASE_URL
+    # Puede ser PostgreSQL o SQLite dependiendo del entorno
+    valid_starts = ("postgresql+asyncpg://", "sqlite+aiosqlite://")
+    assert settings.DATABASE_URL.startswith(valid_starts)
+
+    # Para PostgreSQL, verificar host
+    if settings.DATABASE_URL.startswith("postgresql+asyncpg://"):
+        assert "localhost" in settings.DATABASE_URL or "127.0.0.1" in settings.DATABASE_URL
 
 
 def test_redis_url_format():

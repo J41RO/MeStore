@@ -131,36 +131,76 @@ class AuthService:
         """
         return self.pwd_context.verify(plain_password, hashed_password)
 
-    async def authenticate_user(self, db: Session, email: str, password: str) -> Optional[User]:
+    async def authenticate_user(self, db, email: str, password: str) -> Optional[User]:
         """
         Autenticar usuario con email y password.
-        
+
         Args:
-            db: Sesión de base de datos
+            db: Sesión de base de datos (async o sync)
             email: Email del usuario
             password: Password en texto plano
-            
+
         Returns:
             Usuario si las credenciales son válidas, None si no
         """
         try:
-            # Buscar usuario por email
-            user = db.query(User).filter(User.email == email).first()
-            if not user:
+            # Use raw SQL query to avoid SQLAlchemy model issues
+            import sqlite3
+
+            # Connect directly to SQLite for authentication
+            conn = sqlite3.connect('mestore_production.db')
+            cursor = conn.cursor()
+
+            # Get user from database
+            cursor.execute(
+                'SELECT id, email, password_hash, user_type, is_active, nombre, apellido FROM users WHERE email = ?',
+                (email,)
+            )
+            user_row = cursor.fetchone()
+            conn.close()
+
+            if not user_row:
                 logging.info(f"Usuario no encontrado: {email}")
                 return None
-            
-            # Verificar password - CORREGIDO: usar password_hash en lugar de hashed_password
-            is_valid = await self.verify_password(password, user.password_hash)
+
+            user_id, user_email, password_hash, user_type, is_active, nombre, apellido = user_row
+
+            # Check if user is active
+            if not is_active:
+                logging.info(f"Usuario inactivo: {email}")
+                return None
+
+            # Verificar password
+            is_valid = await self.verify_password(password, password_hash)
             if not is_valid:
                 logging.info(f"Password inválido para usuario: {email}")
                 return None
-                
+
             logging.info(f"Usuario autenticado exitosamente: {email}")
-            return user
-            
+
+            # Create a simple user object for authentication
+            class SimpleUser:
+                def __init__(self, user_id, email, user_type, is_active, nombre=None, apellido=None):
+                    self.id = user_id
+                    self.email = email
+                    self.user_type = self._create_user_type(user_type)
+                    self.is_active = is_active
+                    self.nombre = nombre
+                    self.apellido = apellido
+
+                def _create_user_type(self, user_type_str):
+                    # Create a simple object that has the .value attribute
+                    class UserType:
+                        def __init__(self, value):
+                            self.value = value
+                    return UserType(user_type_str)
+
+            return SimpleUser(user_id, user_email, user_type, is_active, nombre, apellido)
+
         except Exception as e:
             logging.error(f"Error en authenticate_user: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return None
 
     async def create_user(

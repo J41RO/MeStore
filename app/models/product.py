@@ -292,6 +292,199 @@ class Product(BaseModel):
                 return ubicacion
         return None
 
+    # === CATEGORY MANAGEMENT METHODS ===
+
+    def get_primary_category(self) -> Optional["Category"]:
+        """
+        Obtener la categoría principal del producto.
+
+        Returns:
+            Optional[Category]: Categoría principal o None si no tiene
+        """
+        for association in self.category_associations:
+            if association.is_primary:
+                return association.category
+        return None
+
+    def get_secondary_categories(self) -> List["Category"]:
+        """
+        Obtener categorías secundarias del producto.
+
+        Returns:
+            List[Category]: Lista de categorías secundarias
+        """
+        secondary_cats = []
+        for association in self.category_associations:
+            if not association.is_primary:
+                secondary_cats.append(association.category)
+        return secondary_cats
+
+    def add_category(self, category: "Category", is_primary: bool = False, sort_order: int = 0, assigned_by_id: Optional[UUID] = None) -> None:
+        """
+        Agregar categoría al producto.
+
+        Args:
+            category: Categoría a agregar
+            is_primary: Si es la categoría principal
+            sort_order: Orden de la categoría
+            assigned_by_id: ID del usuario que asigna la categoría
+        """
+        from app.models.category import ProductCategory
+
+        # Si se está marcando como primary, desmarcar otras primary categories
+        if is_primary:
+            for association in self.category_associations:
+                if association.is_primary:
+                    association.is_primary = False
+
+        # Crear nueva asociación
+        new_association = ProductCategory(
+            product_id=self.id,
+            category_id=category.id,
+            is_primary=is_primary,
+            sort_order=sort_order,
+            assigned_by_id=assigned_by_id
+        )
+
+        self.category_associations.append(new_association)
+
+    def remove_category(self, category: "Category") -> bool:
+        """
+        Remover categoría del producto.
+
+        Args:
+            category: Categoría a remover
+
+        Returns:
+            bool: True si se removió exitosamente
+        """
+        for association in self.category_associations:
+            if association.category_id == category.id:
+                self.category_associations.remove(association)
+                return True
+        return False
+
+    def set_primary_category(self, category: "Category", assigned_by_id: Optional[UUID] = None) -> None:
+        """
+        Establecer categoría principal del producto.
+
+        Args:
+            category: Categoría a establecer como principal
+            assigned_by_id: ID del usuario que asigna
+        """
+        # Verificar si la categoría ya está asignada
+        existing_association = None
+        for association in self.category_associations:
+            if association.category_id == category.id:
+                existing_association = association
+                break
+
+        # Desmarcar otras categorías como primary
+        for association in self.category_associations:
+            if association.is_primary:
+                association.is_primary = False
+
+        # Si la categoría ya existe, marcarla como primary
+        if existing_association:
+            existing_association.is_primary = True
+            if assigned_by_id:
+                existing_association.assigned_by_id = assigned_by_id
+        else:
+            # Agregar nueva categoría como primary
+            self.add_category(category, is_primary=True, assigned_by_id=assigned_by_id)
+
+    def has_category(self, category: "Category") -> bool:
+        """
+        Verificar si el producto tiene una categoría específica.
+
+        Args:
+            category: Categoría a verificar
+
+        Returns:
+            bool: True si el producto tiene la categoría
+        """
+        for association in self.category_associations:
+            if association.category_id == category.id:
+                return True
+        return False
+
+    def has_category_in_hierarchy(self, category: "Category") -> bool:
+        """
+        Verificar si el producto tiene una categoría o alguna de sus subcategorías.
+
+        Args:
+            category: Categoría raíz a verificar
+
+        Returns:
+            bool: True si el producto está en la jerarquía de la categoría
+        """
+        for association in self.category_associations:
+            # Verificar si la categoría del producto es descendiente de la categoría dada
+            if (association.category.path.startswith(category.path) and
+                association.category.level >= category.level):
+                return True
+        return False
+
+    def get_category_breadcrumbs(self, session) -> List[List[Dict]]:
+        """
+        Obtener breadcrumbs de todas las categorías del producto.
+
+        Args:
+            session: SQLAlchemy session
+
+        Returns:
+            List[List[Dict]]: Lista de breadcrumbs para cada categoría
+        """
+        breadcrumbs = []
+        for association in self.category_associations:
+            category_breadcrumb = association.category.get_breadcrumb(session)
+            breadcrumbs.append(category_breadcrumb)
+        return breadcrumbs
+
+    def migrate_from_old_categoria(self, session, assigned_by_id: Optional[UUID] = None) -> None:
+        """
+        Migrar del campo categoria string al nuevo sistema de categorías.
+
+        Args:
+            session: SQLAlchemy session
+            assigned_by_id: ID del usuario que realiza la migración
+        """
+        if not self.categoria:
+            return
+
+        from app.models.category import Category
+
+        # Buscar categoría existente por nombre
+        existing_category = (
+            session.query(Category)
+            .filter(Category.name.ilike(f"%{self.categoria}%"))
+            .first()
+        )
+
+        if existing_category:
+            # Asignar categoría existente como primary
+            self.set_primary_category(existing_category, assigned_by_id)
+        else:
+            # Crear nueva categoría desde string
+            import re
+            slug = re.sub(r'[^a-z0-9\-_]', '-', self.categoria.lower().strip())
+            slug = re.sub(r'-+', '-', slug).strip('-')
+
+            new_category = Category(
+                name=self.categoria,
+                slug=slug,
+                description=f"Categoría migrada desde producto: {self.categoria}",
+                path=f"/{slug}/",
+                level=0,
+                is_active=True
+            )
+
+            session.add(new_category)
+            session.flush()  # Para obtener el ID
+
+            # Asignar nueva categoría como primary
+            self.set_primary_category(new_category, assigned_by_id)
+
     # Relationship con User (vendedor)
     vendedor_id = Column(
         UUID(as_uuid=True),
@@ -520,6 +713,26 @@ class Product(BaseModel):
             "ubicaciones_count": (
                 len(self.ubicaciones_inventario) if self.ubicaciones_inventario else 0
             ),
+            # Nueva información de categorías
+            "primary_category": (
+                {
+                    "id": str(self.get_primary_category().id),
+                    "name": self.get_primary_category().name,
+                    "slug": self.get_primary_category().slug,
+                    "path": self.get_primary_category().path,
+                    "level": self.get_primary_category().level
+                } if self.get_primary_category() else None
+            ),
+            "categories_count": len(self.category_associations) if self.category_associations else 0,
+            "secondary_categories": [
+                {
+                    "id": str(cat.id),
+                    "name": cat.name,
+                    "slug": cat.slug,
+                    "path": cat.path,
+                    "level": cat.level
+                } for cat in self.get_secondary_categories()
+            ] if self.category_associations else [],
         }
         return {**base_dict, **product_dict}
 
@@ -604,4 +817,19 @@ class Product(BaseModel):
     # Relación con cola de productos entrantes
     queue_entries = relationship(
         "IncomingProductQueue", back_populates="product", cascade="all, delete-orphan"
+    )
+
+    # === CATEGORY RELATIONSHIPS ===
+    # Many-to-many relationship con Category a través de ProductCategory
+    categories = relationship(
+        "Category",
+        secondary="product_categories",
+        back_populates="products"
+    )
+
+    # Direct access a ProductCategory associations para control granular
+    category_associations = relationship(
+        "ProductCategory",
+        back_populates="product",
+        cascade="all, delete-orphan"
     )

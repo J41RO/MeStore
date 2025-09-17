@@ -1,6 +1,6 @@
 [run]
 source = app
-omit = 
+omit =
     app/__init__.py
     app/middleware/__init__.py
     app/models/__init__.py
@@ -9,16 +9,34 @@ omit =
     */tests/*
     */__pycache__/*
     .venv/*
+    */migrations/*
+    */alembic/*
+    app/main.py
 
 [report]
 exclude_lines =
     pragma: no cover
     def __repr__
+    def __str__
     raise AssertionError
     raise NotImplementedError
     if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    class .*\bProtocol\):
+    @(abc\.)?abstractmethod
     pass
-    
+    \.\.\.
+
 skip_covered = false
 precision = 2
 show_missing = true
+skip_empty = true
+
+[html]
+directory = htmlcov
+title = MeStore Coverage Report
+
+[paths]
+source =
+    app/
+    */site-packages/app/

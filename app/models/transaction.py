@@ -267,6 +267,13 @@ class Transaction(BaseModel):
         back_populates="transacciones"
     )
 
+    # Commission relationship
+    commission = relationship(
+        "Commission",
+        back_populates="transaction",
+        uselist=False
+    )
+
     # Constraints e índices
     __table_args__ = (
         Index("ix_transaction_estado_fecha", "estado", "created_at"),

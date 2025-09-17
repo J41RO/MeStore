@@ -63,6 +63,7 @@ class Order(Base):
     buyer = relationship("User", back_populates="orders")
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
     transactions = relationship("OrderTransaction", back_populates="order")
+    commissions = relationship("Commission", back_populates="order", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<Order(id={self.id}, order_number='{self.order_number}', total={self.total_amount})>"

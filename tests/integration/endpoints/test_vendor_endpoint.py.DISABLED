@@ -1,0 +1,84 @@
+#!/usr/bin/env python3
+"""
+Test script para verificar endpoints vendor orders
+"""
+import os
+import sys
+sys.path.append('/home/admin-jairo/MeStore')
+
+from fastapi import FastAPI, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from typing import List
+import uuid
+
+# Setup básico sin configuraciones problemáticas
+app = FastAPI(title="Test Vendor Orders")
+
+# Imports necesarios (sin config problemática)
+from app.database import SessionLocal
+from app.models.user import User, UserType
+from app.models.order import Order, OrderStatus
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+@app.get("/test/vendor/{vendor_id}/orders")
+async def test_vendor_orders(vendor_id: str, db: Session = Depends(get_db)):
+    """Test endpoint para verificar órdenes vendor"""
+    try:
+        vendor_uuid = uuid.UUID(vendor_id)
+
+        # Verificar vendor existe
+        vendor = db.query(User).filter(
+            User.id == vendor_uuid,
+            User.user_type == UserType.VENDEDOR
+        ).first()
+
+        if not vendor:
+            return {"error": "Vendor not found"}
+
+        # Obtener órdenes del vendor
+        orders = db.query(Order).filter(Order.vendor_id == vendor_uuid).all()
+
+        result = []
+        for order in orders:
+            result.append({
+                "id": order.id,
+                "order_number": order.order_number,
+                "status": order.status.value,
+                "total_amount": float(order.total_amount),
+                "created_at": order.created_at.isoformat()
+            })
+
+        return {
+            "vendor_email": vendor.email,
+            "total_orders": len(result),
+            "orders": result
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/test/vendors")
+async def test_get_vendors(db: Session = Depends(get_db)):
+    """Test endpoint para listar vendors"""
+    try:
+        vendors = db.query(User).filter(User.user_type == UserType.VENDEDOR).all()
+        return [
+            {
+                "id": str(vendor.id),
+                "email": vendor.email,
+                "full_name": vendor.full_name
+            }
+            for vendor in vendors
+        ]
+    except Exception as e:
+        return {"error": str(e)}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8001)

@@ -34,7 +34,9 @@ def client() -> TestClient:
     Scope: module - Un cliente por módulo de tests.
     Returns: TestClient configurado con la app FastAPI principal.
     """
-    return TestClient(app)
+    # Headers con User-Agent válido para evitar bloqueo de middleware
+    headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+    return TestClient(app, headers=headers)
 
 
 @pytest.fixture(scope="function")
@@ -98,6 +100,28 @@ def cleanup_test_data():
     # Cleanup después del test
     # Aquí irá limpieza de base de datos, cache, etc.
     pass
+
+
+@pytest.fixture(scope="function")
+def performance_monitor():
+    """
+    Mock fixture for performance monitoring in tests.
+
+    Returns a mock performance monitor that doesn't actually
+    monitor performance but allows tests to run.
+    """
+    from unittest.mock import Mock
+
+    mock_monitor = Mock()
+    mock_monitor.start_monitoring = Mock()
+    mock_monitor.stop_monitoring = Mock()
+    mock_monitor.get_metrics = Mock(return_value={
+        'response_time': 0.05,
+        'cpu_usage': 10.0,
+        'memory_usage': 50.0
+    })
+
+    return mock_monitor
 
 
 @pytest.fixture(scope="function")
@@ -280,7 +304,7 @@ def sample_product_data():
     """Datos de muestra para crear productos en tests."""
     import time
     timestamp = int(time.time() * 1000)
-    
+
     return {
         "sku": f"TEST-SAMPLE-{timestamp}",
         "name": "Producto Test Muestra",
@@ -292,3 +316,258 @@ def sample_product_data():
         "dimensiones": {"largo": 20.0, "ancho": 15.0, "alto": 5.0},
         "tags": ["test", "muestra"]
     }
+
+
+# === USER FIXTURES FOR TESTING ===
+
+@pytest.fixture(scope="function")
+async def test_vendor_user(async_session: AsyncSession) -> User:
+    """Fixture para usuario vendor de testing."""
+    from app.models.user import User, UserType
+    import uuid
+    from app.core.security import get_password_hash
+
+    vendor = User(
+        id=uuid.uuid4(),
+        email="test_vendor@example.com",
+        password_hash=await get_password_hash("testpass123"),
+        nombre="Test Vendor",
+        apellido="User",
+        user_type=UserType.VENDEDOR,
+        is_active=True
+    )
+
+    async_session.add(vendor)
+    await async_session.commit()
+    await async_session.refresh(vendor)
+    return vendor
+
+
+@pytest.fixture(scope="function")
+async def test_admin_user(async_session: AsyncSession) -> User:
+    """Fixture para usuario admin de testing."""
+    from app.models.user import User, UserType
+    import uuid
+    from app.core.security import get_password_hash
+
+    admin = User(
+        id=uuid.uuid4(),
+        email="test_admin@example.com",
+        password_hash=await get_password_hash("testpass123"),
+        nombre="Test Admin",
+        apellido="User",
+        user_type=UserType.SUPERUSER,
+        is_active=True
+    )
+
+    async_session.add(admin)
+    await async_session.commit()
+    await async_session.refresh(admin)
+    return admin
+
+
+@pytest.fixture(scope="function")
+async def test_buyer_user(async_session: AsyncSession) -> User:
+    """Fixture para usuario buyer de testing."""
+    from app.models.user import User, UserType
+    import uuid
+    from app.core.security import get_password_hash
+
+    buyer = User(
+        id=uuid.uuid4(),
+        email="test_buyer@example.com",
+        password_hash=await get_password_hash("testpass123"),
+        nombre="Test Buyer",
+        apellido="User",
+        user_type=UserType.COMPRADOR,
+        is_active=True
+    )
+
+    async_session.add(buyer)
+    await async_session.commit()
+    await async_session.refresh(buyer)
+    return buyer
+
+
+# === AUTHENTICATION TEST FIXTURES ===
+
+@pytest.fixture(scope="function")
+def auth_token_vendor(test_vendor_user: User) -> str:
+    """Generate valid JWT token for vendor user"""
+    from app.core.security import create_access_token
+    token_data = {
+        "sub": str(test_vendor_user.id),
+        "email": test_vendor_user.email,
+        "user_type": test_vendor_user.user_type.value,
+        "nombre": test_vendor_user.nombre,
+        "apellido": test_vendor_user.apellido
+    }
+    return create_access_token(data=token_data)
+
+
+@pytest.fixture(scope="function")
+def auth_token_admin(test_admin_user: User) -> str:
+    """Generate valid JWT token for admin user"""
+    from app.core.security import create_access_token
+    token_data = {
+        "sub": str(test_admin_user.id),
+        "email": test_admin_user.email,
+        "user_type": test_admin_user.user_type.value,
+        "nombre": test_admin_user.nombre,
+        "apellido": test_admin_user.apellido
+    }
+    return create_access_token(data=token_data)
+
+
+@pytest.fixture(scope="function")
+def auth_token_buyer(test_buyer_user: User) -> str:
+    """Generate valid JWT token for buyer user"""
+    from app.core.security import create_access_token
+    token_data = {
+        "sub": str(test_buyer_user.id),
+        "email": test_buyer_user.email,
+        "user_type": test_buyer_user.user_type.value,
+        "nombre": test_buyer_user.nombre,
+        "apellido": test_buyer_user.apellido
+    }
+    return create_access_token(data=token_data)
+
+
+@pytest.fixture(scope="function")
+def auth_headers_vendor(auth_token_vendor: str) -> dict:
+    """Valid authentication headers for vendor user"""
+    return {"Authorization": f"Bearer {auth_token_vendor}"}
+
+
+@pytest.fixture(scope="function")
+def auth_headers_admin(auth_token_admin: str) -> dict:
+    """Valid authentication headers for admin user"""
+    return {"Authorization": f"Bearer {auth_token_admin}"}
+
+
+@pytest.fixture(scope="function")
+def auth_headers_buyer(auth_token_buyer: str) -> dict:
+    """Valid authentication headers for buyer user"""
+    return {"Authorization": f"Bearer {auth_token_buyer}"}
+
+
+# === FINANCIAL TEST FIXTURES ===
+
+@pytest.fixture(scope="function")
+def db_session(test_db_session: Session) -> Session:
+    """Alias fixture for tests expecting db_session instead of test_db_session."""
+    return test_db_session
+
+
+@pytest.fixture(scope="function")
+def audit_logger():
+    """Mock audit logger for financial tests."""
+    from unittest.mock import Mock
+    mock_logger = Mock()
+    mock_logger.log_commission_calculation = Mock()
+    mock_logger.log_commission_error = Mock()
+    mock_logger.log_commission_approval = Mock()
+    mock_logger.log_transaction_event = Mock()
+    return mock_logger
+
+
+@pytest.fixture(scope="function")
+def test_commission_service(db_session: Session, monkeypatch):
+    """Fixture for CommissionService with test database."""
+    from app.services.commission_service import CommissionService
+    # Set test environment
+    monkeypatch.setenv('ENVIRONMENT', 'test')
+    monkeypatch.setenv('COMMISSION_AUDIT_LEVEL', 'standard')
+    monkeypatch.setenv('COMMISSION_BATCH_SIZE', '50')
+    monkeypatch.setenv('COMMISSION_ASYNC_THRESHOLD', '25')
+
+    # Create service with sync session
+    service = CommissionService(db_session=db_session)
+    return service
+
+
+@pytest.fixture(scope="function")
+def test_confirmed_order(db_session: Session):
+    """Fixture for a confirmed test order."""
+    from app.models.order import Order, OrderStatus
+    from app.models.user import User, UserType
+    from decimal import Decimal
+    import uuid
+
+    # Create test buyer - let database auto-generate id
+    buyer = User(
+        email="test_buyer@example.com",
+        password_hash="$2b$12$test.hash.for.testing",
+        nombre="Test Buyer",
+        apellido="User",
+        user_type=UserType.COMPRADOR,
+        is_active=True
+    )
+
+    db_session.add(buyer)
+    db_session.commit()
+    db_session.refresh(buyer)  # Refresh to get auto-generated id
+
+    # Create a simple order without vendor_id since it's not in the model
+    order = Order(
+        order_number=f"TEST-ORDER-{uuid.uuid4().hex[:8]}",
+        buyer_id=buyer.id,
+        total_amount=100000.0,  # Float type as per model
+        status=OrderStatus.CONFIRMED,
+        shipping_name="Test User",
+        shipping_phone="3001234567",
+        shipping_address="Test Address 123, Test City",
+        shipping_city="Bogotá",
+        shipping_state="Cundinamarca"
+    )
+
+    db_session.add(order)
+    db_session.commit()
+    db_session.refresh(order)
+    return order
+
+
+@pytest.fixture(scope="function")
+def sample_commission_data():
+    """Sample commission data for testing."""
+    from decimal import Decimal
+    return {
+        "commission_rate": Decimal("0.05"),  # 5%
+        "order_amount": Decimal("100000.00"),  # 100k COP
+        "commission_type": "STANDARD",
+        "currency": "COP"
+    }
+
+
+# === FINANCIAL FACTORIES INTEGRATION ===
+
+@pytest.fixture(scope="function")
+def financial_factory(test_db_session: Session):
+    """Fixture for financial factories with test database."""
+    from tests.fixtures.financial.financial_factories import FinancialScenarioFactory
+    return FinancialScenarioFactory(test_db_session)
+
+
+@pytest.fixture(scope="function")
+def edge_case_factory(test_db_session: Session):
+    """Fixture for edge case financial factories."""
+    from tests.fixtures.financial.financial_factories import EdgeCaseFinancialFactory
+    return EdgeCaseFinancialFactory(test_db_session)
+
+
+# === CUSTOM PYTEST MARKERS ===
+
+def pytest_configure(config):
+    """Configure custom pytest markers."""
+    config.addinivalue_line("markers", "unit: Unit tests")
+    config.addinivalue_line("markers", "integration: Integration tests")
+    config.addinivalue_line("markers", "integration_financial: Financial integration tests")
+    config.addinivalue_line("markers", "api: API endpoint tests")
+    config.addinivalue_line("markers", "auth: Authentication tests")
+    config.addinivalue_line("markers", "database: Database tests")
+    config.addinivalue_line("markers", "slow: Slow running tests")
+    config.addinivalue_line("markers", "financial: Financial system tests")
+    config.addinivalue_line("markers", "commission: Commission calculation tests")
+    config.addinivalue_line("markers", "transaction: Transaction processing tests")
+    config.addinivalue_line("markers", "critical: Critical functionality tests")
+    config.addinivalue_line("markers", "smoke: Smoke tests for basic functionality")

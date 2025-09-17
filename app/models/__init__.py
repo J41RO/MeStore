@@ -102,5 +102,33 @@ try:
 except ImportError:
     pass
 
+# Import AdminActivityLog explicitly
+try:
+    from .admin_activity_log import AdminActivityLog, ActionType as AdminActionType, RiskLevel, AlertType, ComplianceLevel
+    __all__.extend(["AdminActivityLog", "AdminActionType", "RiskLevel", "AlertType", "ComplianceLevel"])
+except ImportError:
+    pass
+
+# Import Commission explicitly
+try:
+    from .commission import Commission, CommissionStatus, CommissionType
+    __all__.extend(["Commission", "CommissionStatus", "CommissionType"])
+except ImportError:
+    pass
+
+# Import Order explicitly
+try:
+    from .order import Order, OrderStatus, OrderPriority
+    __all__.extend(["Order", "OrderStatus", "OrderPriority"])
+except ImportError:
+    pass
+
+# Import Category models explicitly
+try:
+    from .category import Category, CategoryStatus, ProductCategory
+    __all__.extend(["Category", "CategoryStatus", "ProductCategory"])
+except ImportError:
+    pass
+
 # Agregar a __all__
 "StorageType"

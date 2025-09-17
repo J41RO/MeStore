@@ -1,0 +1,32 @@
+{
+  "section": "integration-testing",
+  "version": "1.0.0",
+  "test_frameworks": {
+    "api_testing": "fastapi.testclient",
+    "database": "sqlalchemy_async",
+    "fixtures": "pytest-fixtures",
+    "mocking": "unittest.mock"
+  },
+  "test_database": {
+    "type": "sqlite",
+    "url": "sqlite:///./test_integration.db",
+    "isolation": "transaction_rollback"
+  },
+  "test_scope": [
+    "authentication_endpoints",
+    "product_management_endpoints",
+    "order_processing_endpoints",
+    "admin_management_endpoints"
+  ],
+  "priorities": {
+    "P1": "authentication_api_tests",
+    "P2": "product_management_api_tests",
+    "P3": "order_processing_api_tests",
+    "P4": "admin_management_api_tests"
+  },
+  "coordination": {
+    "tdd_specialist": "infrastructure_ready",
+    "unit_testing": "fixtures_available",
+    "test_execution": "independent_parallel"
+  }
+}

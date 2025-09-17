@@ -1,7 +1,9 @@
 # Redis Session Manager Module
 # Extracted from app/core/redis.py (lines 119-140)
 
+import os
 import redis
+from unittest.mock import MagicMock
 from app.core.config import settings
 from app.core.logger import logger
 from .base import RedisManager
@@ -11,6 +13,19 @@ class RedisSessionManager(RedisManager):
 
     async def connect(self) -> redis.Redis:
         if self._redis is None:
+            # In testing mode, return a mock Redis instance
+            if os.getenv('TESTING') == '1':
+                logger.info("🧪 Using mock Redis Sessions for testing")
+                mock_redis = MagicMock()
+                # Mock common Redis methods that tests might use
+                mock_redis.ping.return_value = True
+                mock_redis.setex.return_value = True
+                mock_redis.get.return_value = None
+                mock_redis.delete.return_value = True
+                mock_redis.exists.return_value = False
+                self._redis = mock_redis
+                return self._redis
+
             try:
                 self._pool = redis.ConnectionPool.from_url(
                     settings.REDIS_SESSION_URL,

@@ -36,6 +36,9 @@ from typing import Any, Union
 from jose import JWTError, jwt
 from app.utils.password import hash_password, verify_password, pwd_context
 
+# Export for backward compatibility with tests
+get_password_hash = hash_password
+
 from .config import settings
 
 

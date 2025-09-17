@@ -25,9 +25,10 @@ class Settings(BaseSettings):
     @classmethod
     def validate_database_url(cls, v: str) -> str:
         """Validate DATABASE_URL format and driver compatibility."""
-        if not v.startswith(("postgresql://", "postgresql+asyncpg://")):
+        allowed_schemes = ("postgresql://", "postgresql+asyncpg://", "sqlite+aiosqlite://")
+        if not v.startswith(allowed_schemes):
             raise ValueError(
-                "DATABASE_URL must use postgresql or postgresql+asyncpg driver"
+                f"DATABASE_URL must use postgresql, postgresql+asyncpg, or sqlite+aiosqlite driver"
             )
         return v
 

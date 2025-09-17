@@ -1,0 +1,118 @@
+#!/usr/bin/env python3
+# ~/test_local_agent.py
+# Test script for local CrewAI agent
+
+"""
+Quick test of local CrewAI agent functionality
+"""
+
+from crewai_local_config import MeStoreLocalAgentFactory, LocalLLMConfig
+from crewai import Task
+
+def test_qa_agent():
+    """Test QA agent with a simple task"""
+    print("🧪 Testing local QA agent...")
+
+    try:
+        # Create factory and agent
+        factory = MeStoreLocalAgentFactory()
+        qa_agent = factory.create_qa_engineer()
+
+        print(f"✅ QA Agent created successfully")
+        print(f"   Role: {qa_agent.role}")
+        print(f"   Model: {qa_agent.llm}")
+
+        # Create a simple task
+        task = Task(
+            description="""
+            Review the test coverage status for MeStore project.
+            Focus on financial services and provide recommendations.
+            Keep response concise (2-3 sentences).
+            """,
+            agent=qa_agent,
+            expected_output="Brief test coverage assessment with key recommendations"
+        )
+
+        print("🔄 Executing task...")
+        result = task.execute_sync()
+
+        print("📋 Result:")
+        print(f"   {result}")
+
+        return True
+
+    except Exception as e:
+        print(f"❌ Test failed: {e}")
+        return False
+
+def test_code_analyzer():
+    """Test code analysis tool"""
+    print("\n🔍 Testing code analysis tool...")
+
+    try:
+        from crewai_local_config import analyze_python_code
+
+        sample_code = '''
+def calculate_commission(amount, rate):
+    # TODO: Add validation
+    return amount * rate
+        '''
+
+        result = analyze_python_code(sample_code)
+        print("📋 Analysis result:")
+        print(f"   {result}")
+
+        return True
+
+    except Exception as e:
+        print(f"❌ Code analysis test failed: {e}")
+        return False
+
+def main():
+    """Run local agent tests"""
+    print("🧪 MeStore Local LLM Agent Test")
+    print("=" * 40)
+
+    # Check configuration
+    try:
+        config = LocalLLMConfig()
+        if not config.check_ollama_status():
+            print("❌ Ollama service not running")
+            print("💡 Start it with: ./start_local_llm.sh")
+            return
+
+        if not config.check_model_available():
+            print("❌ Model not available")
+            print("💡 Download it with: ollama pull qwen2.5-coder:7b")
+            return
+
+        print("✅ Ollama service and model ready")
+
+    except Exception as e:
+        print(f"❌ Configuration check failed: {e}")
+        return
+
+    # Run tests
+    tests_passed = 0
+    total_tests = 2
+
+    if test_code_analyzer():
+        tests_passed += 1
+
+    if test_qa_agent():
+        tests_passed += 1
+
+    print(f"\n📊 Test Results: {tests_passed}/{total_tests} passed")
+
+    if tests_passed == total_tests:
+        print("🎉 All tests passed! Local LLM is working correctly.")
+        print("\n💡 You can now use:")
+        print("   - Financial audit crews")
+        print("   - Code review teams")
+        print("   - Security analysis agents")
+        print("   - All with complete privacy and no API costs!")
+    else:
+        print("⚠️ Some tests failed. Check configuration.")
+
+if __name__ == "__main__":
+    main()

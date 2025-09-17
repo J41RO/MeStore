@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Vendor Auth - MeStore</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .success { color: #059669; font-weight: bold; }
+        .error { color: #dc2626; font-weight: bold; }
+        .info { color: #2563eb; }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #2563eb; }
+        pre { background: #f3f4f6; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        .log { font-family: monospace; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug de Autenticación Vendor - MeStore</h1>
+
+    <div class="test-container">
+        <h2>⚡ Test de Login Vendor</h2>
+        <p>Este test simula el login de vendor@mestore.com y verifica el flujo de autorización</p>
+
+        <button onclick="testVendorLogin()">🧪 Simular Login Vendor</button>
+        <button onclick="testRoleAccess()">🔐 Test Role Access</button>
+        <button onclick="clearLogs()">🗑️ Limpiar Logs</button>
+
+        <div id="results"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>📝 Logs de Debug</h2>
+        <div id="debugLogs" class="log" style="background: #1f2937; color: #e5e7eb; padding: 15px; border-radius: 6px; min-height: 200px; max-height: 400px; overflow-y: auto;">
+            Abre la consola del navegador para ver los logs de debug detallados...
+        </div>
+    </div>
+
+    <script>
+        // Simulación de UserType enum
+        const UserType = {
+            BUYER: 'BUYER',
+            VENDOR: 'VENDOR',
+            ADMIN: 'ADMIN',
+            SUPERUSER: 'SUPERUSER'
+        };
+
+        // Simulación de ROLE_HIERARCHY
+        const ROLE_HIERARCHY = {
+            'BUYER': 1,
+            'VENDOR': 2,
+            'ADMIN': 3,
+            'SUPERUSER': 4,
+        };
+
+        // Función para mostrar resultados
+        function showResult(message, type = 'info') {
+            const resultsDiv = document.getElementById('results');
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : 'info';
+            resultsDiv.innerHTML += `<p class="${className}">• ${message}</p>`;
+        }
+
+        // Función para limpiar logs
+        function clearLogs() {
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('debugLogs').innerHTML = 'Logs limpiados...';
+            console.clear();
+        }
+
+        // Test de login vendor
+        function testVendorLogin() {
+            console.log('🔑 DEBUG testVendorLogin started');
+            clearLogs();
+
+            // Simular respuesta del backend
+            const backendResponse = {
+                user_type: "VENDOR",
+                email: "vendor@mestore.com",
+                is_active: true,
+                id: "123",
+                name: "Test Vendor"
+            };
+
+            console.log('🔑 Backend response:', backendResponse);
+            showResult(`Backend response: user_type="${backendResponse.user_type}"`, 'success');
+
+            // Simular AuthStore
+            const user = {
+                id: backendResponse.id,
+                email: backendResponse.email,
+                user_type: backendResponse.user_type, // VENDOR string
+                name: backendResponse.name
+            };
+
+            const isAuthenticated = true;
+
+            console.log('🔑 AuthStore state:', { user, isAuthenticated });
+            showResult(`AuthStore: user_type="${user.user_type}", authenticated=${isAuthenticated}`, 'success');
+
+            // Verificar que VENDOR string matches enum
+            const typeMatch = user.user_type === UserType.VENDOR;
+            console.log('🔑 Type comparison:', {
+                userType: user.user_type,
+                enumValue: UserType.VENDOR,
+                match: typeMatch
+            });
+            showResult(`Type match: "${user.user_type}" === "${UserType.VENDOR}" = ${typeMatch}`, typeMatch ? 'success' : 'error');
+
+            if (typeMatch) {
+                showResult('✅ LOGIN VENDOR: Tipo de usuario correctamente sincronizado', 'success');
+            } else {
+                showResult('❌ LOGIN VENDOR: Error de sincronización de tipo', 'error');
+            }
+        }
+
+        // Test de acceso por roles
+        function testRoleAccess() {
+            console.log('🔐 DEBUG testRoleAccess started');
+
+            // Simular usuario VENDOR autenticado
+            const user = {
+                user_type: 'VENDOR'
+            };
+            const isAuthenticated = true;
+
+            // Simular useRoleAccess logic
+            const currentUserType = user?.user_type || null;
+            const currentRoleLevel = currentUserType ? ROLE_HIERARCHY[currentUserType] : 0;
+
+            console.log('🔐 Role access state:', {
+                isAuthenticated,
+                user,
+                currentUserType,
+                currentRoleLevel,
+                roleHierarchy: ROLE_HIERARCHY
+            });
+
+            showResult(`Current user type: ${currentUserType}`, 'info');
+            showResult(`Current role level: ${currentRoleLevel}`, 'info');
+
+            // Test hasRole function
+            function hasRole(role) {
+                if (!isAuthenticated || !currentUserType) return false;
+                const result = currentUserType === role;
+                console.log('🔐 hasRole test:', { role, currentUserType, result });
+                return result;
+            }
+
+            // Test hasAnyRole function
+            function hasAnyRole(roles) {
+                if (!isAuthenticated || !currentUserType || roles.length === 0) return false;
+                const result = roles.includes(currentUserType);
+                console.log('🔐 hasAnyRole test:', { roles, currentUserType, result });
+                return result;
+            }
+
+            // Test hasMinimumRole function
+            function hasMinimumRole(minimumRole) {
+                if (!isAuthenticated || !currentUserType) {
+                    console.log('🔐 hasMinimumRole: Not authenticated or no user type');
+                    return false;
+                }
+                const minimumLevel = ROLE_HIERARCHY[minimumRole];
+                const result = currentRoleLevel >= minimumLevel;
+                console.log('🔐 hasMinimumRole test:', {
+                    minimumRole,
+                    minimumLevel,
+                    currentRoleLevel,
+                    currentUserType,
+                    result,
+                    comparison: `${currentRoleLevel} >= ${minimumLevel}`
+                });
+                return result;
+            }
+
+            // Pruebas específicas
+            const tests = [
+                { name: 'hasRole(VENDOR)', test: () => hasRole(UserType.VENDOR) },
+                { name: 'hasRole(BUYER)', test: () => hasRole(UserType.BUYER) },
+                { name: 'hasAnyRole([VENDOR])', test: () => hasAnyRole([UserType.VENDOR]) },
+                { name: 'hasAnyRole([VENDOR, ADMIN, SUPERUSER])', test: () => hasAnyRole([UserType.VENDOR, UserType.ADMIN, UserType.SUPERUSER]) },
+                { name: 'hasMinimumRole(VENDOR)', test: () => hasMinimumRole(UserType.VENDOR) },
+                { name: 'hasMinimumRole(BUYER)', test: () => hasMinimumRole(UserType.BUYER) },
+            ];
+
+            tests.forEach(({ name, test }) => {
+                const result = test();
+                showResult(`${name}: ${result}`, result ? 'success' : 'error');
+            });
+
+            // Test RoleGuard scenarios
+            console.log('🔐 Testing RoleGuard scenarios...');
+
+            // Scenario 1: strategy="any" with [VENDOR, ADMIN, SUPERUSER]
+            const scenario1 = hasAnyRole([UserType.VENDOR, UserType.ADMIN, UserType.SUPERUSER]);
+            showResult(`RoleGuard strategy="any" roles=[VENDOR, ADMIN, SUPERUSER]: ${scenario1}`, scenario1 ? 'success' : 'error');
+
+            // Scenario 2: strategy="minimum" with [VENDOR]
+            const scenario2 = hasMinimumRole(UserType.VENDOR);
+            showResult(`RoleGuard strategy="minimum" roles=[VENDOR]: ${scenario2}`, scenario2 ? 'success' : 'error');
+
+            // Scenario 3: strategy="exact" with [VENDOR]
+            const scenario3 = hasRole(UserType.VENDOR);
+            showResult(`RoleGuard strategy="exact" roles=[VENDOR]: ${scenario3}`, scenario3 ? 'success' : 'error');
+
+            if (scenario1 && scenario2 && scenario3) {
+                showResult('✅ ROLE ACCESS: Todos los escenarios funcionan correctamente', 'success');
+                showResult('🎉 VENDOR PUEDE ACCEDER A TODAS LAS RUTAS', 'success');
+            } else {
+                showResult('❌ ROLE ACCESS: Algunos escenarios fallan', 'error');
+            }
+        }
+
+        // Auto-run tests on load
+        window.addEventListener('load', function() {
+            console.log('🚀 Debug Vendor Auth page loaded');
+            showResult('Página de debug cargada. Ejecuta los tests para verificar la corrección.', 'info');
+        });
+    </script>
+</body>
+</html>

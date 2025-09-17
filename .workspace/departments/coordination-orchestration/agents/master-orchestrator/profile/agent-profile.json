@@ -1,0 +1,10 @@
+{
+  "agent_id": "master-orchestrator",
+  "department": "coordination-orchestration",
+  "role": "Director de Coordinación",
+  "status": "active",
+  "current_session": "2025-09-17T09:50:00",
+  "coordination_mode": "delegation_only",
+  "task": "comprehensive_project_review",
+  "scope": "MeStore FastAPI + React marketplace analysis"
+}

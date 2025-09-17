@@ -39,18 +39,45 @@ def get_async_database_url() -> str:
     return database_url
 
 
-# Motor async optimizado para desarrollo
+# Configuración de engine dependiendo del tipo de base de datos
+def get_engine_config() -> dict:
+    """
+    Retorna la configuración apropiada para el engine según el tipo de base de datos
+
+    Returns:
+        dict: Configuración del engine
+    """
+    database_url = get_async_database_url()
+    base_config = {
+        "echo": settings.DB_ECHO,
+        "future": True,
+    }
+
+    # Configuración específica para SQLite
+    if "sqlite" in database_url:
+        return {
+            **base_config,
+            "poolclass": NullPool,  # SQLite no soporta connection pooling
+        }
+
+    # Configuración específica para PostgreSQL
+    else:
+        return {
+            **base_config,
+            "pool_pre_ping": True,  # Verificar conexiones antes de usar
+            "pool_recycle": 300,  # Reciclar conexiones cada 5 minutos
+            "max_overflow": 20,  # Conexiones adicionales permitidas
+            "pool_size": 10,  # Tamaño base del pool
+            "poolclass": (
+                NullPool if "pytest" in os.environ.get("PYTEST_CURRENT_TEST", "") else None
+            ),
+        }
+
+
+# Motor async optimizado con configuración dinámica
 engine = create_async_engine(
     get_async_database_url(),
-    echo=settings.DB_ECHO,  # Configurado desde settings
-    future=True,
-    pool_pre_ping=True,  # Verificar conexiones antes de usar
-    pool_recycle=300,  # Reciclar conexiones cada 5 minutos
-    max_overflow=20,  # Conexiones adicionales permitidas
-    pool_size=10,  # Tamaño base del pool
-    poolclass=(
-        NullPool if "pytest" in os.environ.get("PYTEST_CURRENT_TEST", "") else None
-    ),
+    **get_engine_config()
 )
 
 # Session factory async
@@ -102,6 +129,6 @@ async def get_session() -> AsyncSession:
     """Obtener sesión async de base de datos"""
     async with AsyncSessionLocal() as session:
         try:
-            yield session
+            return session
         finally:
             await session.close()
