@@ -6,19 +6,19 @@ import { useAuthStore } from '../stores/authStore';
 // Función de redirección inteligente basada en UserType y portal_type
 const getRedirectPath = (userType: UserType, portalType?: string): string => {
   switch (userType) {
-    case 'VENDEDOR':
-      return '/app/dashboard'; // Corregido: redirigir a la ruta correcta del dashboard
-    case 'COMPRADOR':
-      return '/marketplace';
-    case 'ADMIN':
-    case 'SUPERUSER':
+    case UserType.VENDOR:
+      return '/app/vendor-dashboard'; // FIXED: Vendors go to vendor dashboard
+    case UserType.BUYER:
+      return '/app/dashboard'; // Buyers go to buyer dashboard
+    case UserType.ADMIN:
+    case UserType.SUPERUSER:
       // Portal oculto para admins con credenciales específicas
       if (portalType === 'secure') {
         return '/admin-secure-portal/dashboard';
       }
       return '/admin/dashboard';
     default:
-      return '/app/dashboard'; // Corregido: ruta por defecto también corregida
+      return '/dashboard'; // Default: use RoleBasedRedirect to determine correct path
   }
 };
 
@@ -26,11 +26,12 @@ const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
-  const { login, isAuthenticated } = useAuthStore();
+  const [isLoading, setIsLoading] = useState(false);
+  const { login, isAuthenticated, error, setError } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const from = (location.state as any)?.from || '/app/dashboard';
+  const from = (location.state as any)?.from || '/dashboard';
 
   if (isAuthenticated) {
     return <Navigate to={from} replace />;
@@ -38,132 +39,34 @@ const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
+    setError(null);
 
-    // 🔧 CREDENCIALES FICTICIAS PARA DESARROLLO - MÚLTIPLES ROLES
-    const testCredentials = [
-      {
-        email: 'admin@mestore.com',
-        password: '123456',
-        user: {
-          id: 'dev-admin-001',
-          email: 'admin@mestore.com',
-          name: 'Admin de Prueba',
-          user_type: 'ADMIN' as UserType,
-          profile: null,
-        },
-        portal_type: 'standard'  // Admin estándar
-      },
-      {
-        email: 'secure.admin@mestore.com',
-        password: 'SecurePortal2024!',
-        user: {
-          id: 'dev-secure-admin-001',
-          email: 'secure.admin@mestore.com',
-          name: 'Admin Portal Seguro',
-          user_type: 'ADMIN' as UserType,
-          profile: null,
-        },
-        portal_type: 'secure'  // Admin portal oculto
-      },
-      {
-        email: 'vendor@mestore.com',
-        password: '123456',
-        user: {
-          id: 'dev-vendor-001',
-          email: 'vendor@mestore.com',
-          name: 'Vendedor de Prueba',
-          user_type: 'VENDEDOR' as UserType,
-          profile: null,
-        }
-      },
-      {
-        email: 'buyer@mestore.com',
-        password: '123456',
-        user: {
-          id: 'dev-buyer-001',
-          email: 'buyer@mestore.com',
-          name: 'Comprador de Prueba',
-          user_type: 'COMPRADOR' as UserType,
-          profile: null,
-        }
-      },
-      {
-        email: 'super@mestore.com',
-        password: '123456',
-        user: {
-          id: 'dev-super-001',
-          email: 'super@mestore.com',
-          name: 'SuperUsuario de Prueba',
-          user_type: 'SUPERUSER' as UserType,
-          profile: null,
-        }
-      },
-      {
-        email: 'vendedor.test@mestore.com',
-        password: 'VendorTest123!',
-        user: {
-          id: 'test-vendor-001',
-          email: 'vendedor.test@mestore.com',
-          name: 'Vendedor Test',
-          user_type: 'VENDEDOR' as UserType,
-          profile: null,
-        }
-      }
-    ];
-
-    // Buscar credenciales de prueba
-    const testUser = testCredentials.find(
-      cred => cred.email === email && cred.password === password
-    );
-
-    if (testUser) {
-      const fakeToken = 'dev-token-' + Date.now();
-      login(fakeToken, testUser.user);
-      
-      // REDIRECCIÓN INTELIGENTE usando getRedirectPath con portal_type
-      const redirectPath = getRedirectPath(testUser.user.user_type, testUser.portal_type);
-      navigate(redirectPath);
-      return;
-    }
-
-    // Mantener compatibilidad con credencial original
-    if (email === 'test@mestore.com' && password === '123456') {
-      const fakeUser = {
-        id: 'dev-user-001',
-        email: 'test@mestore.com',
-        name: 'Usuario de Prueba',
-        user_type: 'ADMIN' as UserType,
-        profile: null,
-      };
-      const fakeToken = 'dev-token-' + Date.now();
-      login(fakeToken, fakeUser);
-      
-      // REDIRECCIÓN INTELIGENTE
-      const redirectPath = getRedirectPath(fakeUser.user_type);
-      navigate(redirectPath);
-      return;
-    }
-
-    // Conectar con API real de vendedores
     try {
-      const response = await fetch('/api/v1/vendedores/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
+      // Attempt login using Zustand auth store (which calls real API)
+      const success = await login(email, password);
 
-      if (response.ok) {
-        const data = await response.json();
-        login(data.token, data.user);
-        
-        // REDIRECCIÓN INTELIGENTE para API real
-        const redirectPath = getRedirectPath(data.user.user_type);
-        navigate(redirectPath);
+      if (success) {
+        // Get user data from the auth store after successful login
+        const { user } = useAuthStore.getState();
+
+        if (user) {
+          // REDIRECCIÓN INTELIGENTE usando getRedirectPath
+          const redirectPath = getRedirectPath(user.user_type);
+          navigate(redirectPath);
+        } else {
+          // Fallback redirect to role-based redirect
+          navigate('/dashboard');
+        }
       } else {
-        console.error('Error de autenticación');
+        // Handle login error - the error will be shown by the auth store error state
+        console.error('Login failed');
       }
     } catch (error) {
-      console.error('Error de conexión:', error);
+      console.error('Error during login:', error);
+      setError('Error de conexión. Verifica tu conexión a internet.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -187,20 +90,25 @@ const Login: React.FC = () => {
               
               {/* Credenciales de prueba visible */}
               <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-xs text-blue-700 font-medium mb-1">Credenciales de Prueba:</p>
+                <p className="text-xs text-blue-700 font-medium mb-1">Credenciales de Prueba (API Real):</p>
                 <div className="text-xs text-blue-600 space-y-1">
-                  <div>🔑 admin@mestore.com / 123456 (Admin)</div>
-                  <div>🔑 vendor@mestore.com / 123456 (Vendedor)</div>
-                  <div>🔑 buyer@mestore.com / 123456 (Comprador)</div>
-                  <div>🔑 super@mestore.com / 123456 (SuperUser)</div>
-                  <div>🔐 secure.admin@mestore.com / SecurePortal2024! (Portal Oculto)</div>
+                  <div>🔑 admin@test.com / admin123 (Admin)</div>
+                  <div>🔑 vendor@test.com / vendor123 (Vendedor)</div>
+                  <div>🔑 buyer@test.com / buyer123 (Comprador)</div>
                 </div>
               </div>
             </div>
 
             {/* Formulario de login */}
             <form className="space-y-6" onSubmit={handleSubmit}>
-              
+
+              {/* Error Display */}
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-700">{error}</p>
+                </div>
+              )}
+
               {/* Campo Email */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -271,9 +179,10 @@ const Login: React.FC = () => {
               {/* Botón de Login */}
               <button
                 type="submit"
-                className="w-full bg-gradient-to-r from-blue-700 to-indigo-700 text-white py-4 px-6 rounded-lg hover:from-blue-800 hover:to-indigo-800 font-bold text-lg transition-all transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500/30 shadow-xl border border-blue-600"
+                disabled={isLoading}
+                className="w-full bg-gradient-to-r from-blue-700 to-indigo-700 text-white py-4 px-6 rounded-lg hover:from-blue-800 hover:to-indigo-800 font-bold text-lg transition-all transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500/30 shadow-xl border border-blue-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
-                Iniciar Sesión
+                {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
               </button>
 
               {/* Divider */}

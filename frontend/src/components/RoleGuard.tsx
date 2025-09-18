@@ -174,7 +174,7 @@ export const AdminOnlyGuard: React.FC<{ children: React.ReactNode; fallback?: Re
 );
 
 export const VendorOrHigherGuard: React.FC<{ children: React.ReactNode; fallback?: React.ReactNode }> = ({ children, fallback }) => (
-  <RoleGuard roles={[UserType.VENDEDOR]} strategy="minimum" fallback={fallback}>
+  <RoleGuard roles={[UserType.VENDOR]} strategy="minimum" fallback={fallback}>
     {children}
   </RoleGuard>
 );

@@ -15,6 +15,7 @@ import './App.css';
 
 // Lazy loading de páginas principales
 const Dashboard = lazy(() => import('./pages/Dashboard'));
+const VendorDashboard = lazy(() => import('./components/dashboard/VendorDashboard'));
 const DashboardLayout = lazy(() => import('./components/DashboardLayout'));
 const AdminLayout = lazy(() => import('./components/AdminLayout'));
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
@@ -63,6 +64,9 @@ const VendorOrders = lazy(() => import('./pages/VendorOrders'));
 const BuyerOrdersNew = lazy(() => import('./pages/BuyerOrdersNew'));
 const OrderTracking = lazy(() => import('./pages/OrderTracking'));
 
+// Vendor management pages
+const ProductsManagementPage = lazy(() => import('./pages/vendor/ProductsManagementPage'));
+
 function App() {
   return (
     <ErrorBoundary>
@@ -106,8 +110,14 @@ function App() {
           </Suspense>
         } />
         
-        {/* Redirección de compatibilidad para dashboard directo */}
-        <Route path='/dashboard' element={<Navigate to='/app/dashboard' replace />} />
+        {/* Redirección de compatibilidad para dashboard directo - FIXED ROLE ROUTING */}
+        <Route path='/dashboard' element={
+          <AuthGuard>
+            <Suspense fallback={<PageLoader />}>
+              <RoleBasedRedirect />
+            </Suspense>
+          </AuthGuard>
+        } />
         <Route path='/test-imageupload' element={<TestImageUpload />} />
         <Route path='/test-inventory' element={<TestInventory />} />
         <Route path='/test-stock-movements' element={<TestStockMovements />} />
@@ -131,7 +141,7 @@ function App() {
         <Route
           path='/marketplace/app'
           element={
-            <AuthGuard requiredRoles={[UserType.COMPRADOR, UserType.VENDEDOR, UserType.ADMIN, UserType.SUPERUSER]}>
+            <AuthGuard requiredRoles={[UserType.BUYER, UserType.VENDOR, UserType.ADMIN, UserType.SUPERUSER]}>
               <Suspense fallback={<PageLoader />}>
                 <Marketplace />
               </Suspense>
@@ -158,7 +168,7 @@ function App() {
           <Route
             path='dashboard'
             element={
-              <RoleGuard roles={[UserType.COMPRADOR]} strategy="exact">
+              <RoleGuard roles={[UserType.BUYER]} strategy="exact">
                 <Suspense fallback={<PageLoader />}>
                   <BuyerLayout>
                     <BuyerDashboard />
@@ -167,15 +177,15 @@ function App() {
               </RoleGuard>
             }
           />
-          
+
           {/* Dashboard para VENDEDORES y superiores */}
           <Route
             path='vendor-dashboard'
             element={
-              <RoleGuard roles={[UserType.VENDEDOR]} strategy="minimum">
+              <RoleGuard roles={[UserType.VENDOR]} strategy="minimum">
                 <Suspense fallback={<PageLoader />}>
                   <DashboardLayout>
-                    <Dashboard />
+                    <VendorDashboard />
                   </DashboardLayout>
                 </Suspense>
               </RoleGuard>
@@ -184,7 +194,7 @@ function App() {
           <Route
             path='productos'
             element={
-              <RoleGuard roles={[UserType.VENDEDOR]} strategy="minimum">
+              <RoleGuard roles={[UserType.VENDOR]} strategy="minimum">
                 <Suspense fallback={<PageLoader />}>
                   <DashboardLayout>
                     <Productos />
@@ -194,9 +204,19 @@ function App() {
             }
           />
           <Route
+            path='vendor/products'
+            element={
+              <RoleGuard roles={[UserType.VENDOR]} strategy="minimum">
+                <Suspense fallback={<PageLoader />}>
+                  <ProductsManagementPage />
+                </Suspense>
+              </RoleGuard>
+            }
+          />
+          <Route
             path='ordenes'
             element={
-              <RoleGuard roles={[UserType.VENDEDOR]} strategy="minimum">
+              <RoleGuard roles={[UserType.VENDOR]} strategy="minimum">
                 <Suspense fallback={<PageLoader />}>
                   <DashboardLayout>
                     <VendorOrders />
@@ -208,7 +228,7 @@ function App() {
           <Route
             path='reportes'
             element={
-              <RoleGuard roles={[UserType.VENDEDOR]} strategy="minimum">
+              <RoleGuard roles={[UserType.VENDOR]} strategy="minimum">
                 <Suspense fallback={<PageLoader />}>
                   <DashboardLayout>
                     <div className="p-6">
@@ -237,7 +257,7 @@ function App() {
           <Route
             path='reportes/comisiones'
             element={
-              <RoleGuard roles={[UserType.VENDEDOR]} strategy="minimum">
+              <RoleGuard roles={[UserType.VENDOR]} strategy="minimum">
                 <Suspense fallback={<PageLoader />}>
                   <DashboardLayout>
                     <CommissionReport />
@@ -249,7 +269,7 @@ function App() {
           <Route
             path='perfil'
             element={
-              <RoleGuard roles={[UserType.VENDEDOR]} strategy="minimum">
+              <RoleGuard roles={[UserType.VENDOR]} strategy="minimum">
                 <Suspense fallback={<PageLoader />}>
                   <DashboardLayout>
                     <VendorProfile />
@@ -258,12 +278,12 @@ function App() {
               </RoleGuard>
             }
           />
-          
+
           {/* Rutas específicas para COMPRADORES */}
           <Route
             path='mi-perfil'
             element={
-              <RoleGuard roles={[UserType.COMPRADOR]} strategy="exact">
+              <RoleGuard roles={[UserType.BUYER]} strategy="exact">
                 <Suspense fallback={<PageLoader />}>
                   <BuyerLayout>
                     <BuyerProfile />
@@ -275,7 +295,7 @@ function App() {
           <Route
             path='mis-compras'
             element={
-              <RoleGuard roles={[UserType.COMPRADOR]} strategy="exact">
+              <RoleGuard roles={[UserType.BUYER]} strategy="exact">
                 <Suspense fallback={<PageLoader />}>
                   <BuyerLayout>
                     <BuyerOrdersNew />
