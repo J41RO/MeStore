@@ -15,6 +15,9 @@ os.environ["TESTING"] = "1"
 os.environ["CORS_ORIGINS"] = (
     "http://localhost:3000,http://localhost:8000,https://mestocker.com"
 )
+# Disable problematic imports in testing
+os.environ["DISABLE_SEARCH_SERVICE"] = "1"
+os.environ["DISABLE_CHROMA_SERVICE"] = "1"
 from typing import AsyncGenerator, Generator
 from sqlalchemy.ext.asyncio import AsyncSession
 from unittest.mock import AsyncMock

@@ -4,6 +4,7 @@
 import redis
 from typing import Optional, Dict, List, Any
 from app.core.logger import logger
+from app.core.redis.base import get_redis
 
 class RedisService:
     """High-level Redis operations for application use"""

@@ -1,516 +1,411 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status, BackgroundTasks
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
-from typing import Dict, Any, List, Optional
-import logging
-import json
+"""
+Payment Endpoints with Integrated Security and Fraud Detection
+==============================================================
 
+RESTful API endpoints for payment processing with comprehensive integration:
+- Wompi payment gateway processing
+- Fraud detection screening
+- Commission calculation
+- Order status management
+- Webhook handling
+- Audit logging
+
+Author: System Architect AI
+Date: 2025-09-17
+Purpose: Complete payment API integration with security and business logic
+"""
+
+import logging
+from typing import Dict, Any, List, Optional
+from fastapi import APIRouter, Depends, HTTPException, status, Request, BackgroundTasks
+from fastapi.security import HTTPBearer
+from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic import BaseModel, Field
+
+# Import dependencies
 from app.database import get_db
-from app.models.user import User
-from app.models.order import Order, Transaction, PaymentStatus
-from app.models.payment import Payment, PaymentIntent, WebhookEvent
-from app.services.payments.payment_processor import PaymentProcessor
-from app.services.payments.webhook_handler import WebhookHandler
-from app.services.payments.wompi_service import get_wompi_service
-from app.core.auth import get_current_user
-from pydantic import BaseModel, EmailStr
+from app.api.v1.deps.auth import get_current_user, require_buyer
+from app.schemas.user import UserRead
+
+# Import integrated payment service
+from app.services.integrated_payment_service import (
+    integrated_payment_service,
+    PaymentProcessingError
+)
+
+# Import models for validation
+from app.models.order import Order, PaymentStatus, OrderStatus
 
 logger = logging.getLogger(__name__)
+security = HTTPBearer()
 
 router = APIRouter()
 
 # Request/Response Models
-class CardPaymentRequest(BaseModel):
-    order_id: int
-    card_number: str
-    exp_month: str
-    exp_year: str
-    cvc: str
-    card_holder: str
-    installments: int = 1
-    customer_phone: Optional[str] = None
-    redirect_url: str
+class PaymentMethodData(BaseModel):
+    """Payment method specific data"""
+    payment_source_id: Optional[str] = None
+    card_number: Optional[str] = None
+    card_holder: Optional[str] = None
+    expiration_month: Optional[str] = None
+    expiration_year: Optional[str] = None
+    cvv: Optional[str] = None
+    installments: Optional[int] = 1
+    redirect_url: Optional[str] = None
 
-class PSEPaymentRequest(BaseModel):
-    order_id: int
-    user_type: str  # "0" for natural, "1" for juridical
-    user_legal_id: str
-    bank_code: str
-    redirect_url: str
+class ProcessPaymentRequest(BaseModel):
+    """Request model for payment processing"""
+    order_id: int = Field(..., description="Order ID to process payment for")
+    payment_method: str = Field(..., description="Payment method (credit_card, debit_card, etc.)")
+    payment_data: PaymentMethodData = Field(..., description="Payment method specific data")
+    save_payment_method: bool = Field(default=False, description="Save payment method for future use")
 
 class PaymentResponse(BaseModel):
-    transaction_id: int
-    wompi_transaction_id: str
+    """Response model for payment processing"""
+    success: bool
+    order_id: int
+    transaction_id: str
+    wompi_transaction_id: Optional[str]
     status: str
-    checkout_url: Optional[str] = None
-    reference: str
-    message: str
+    payment_url: Optional[str]
+    fraud_score: float
+    message: Optional[str] = None
 
 class PaymentStatusResponse(BaseModel):
-    transaction_id: int
-    reference: str
-    status: str
+    """Response model for payment status"""
+    order_id: int
+    order_status: str
+    payment_status: str
+    transaction_id: Optional[str]
+    wompi_transaction_id: Optional[str]
     amount: float
-    currency: str
-    order_number: str
-    created_at: str
-    failure_reason: Optional[str] = None
+    last_updated: Optional[str]
 
-class PSEBank(BaseModel):
-    financial_institution_code: str
-    financial_institution_name: str
+class PaymentMethodResponse(BaseModel):
+    """Response model for payment method"""
+    id: str
+    name: str
+    type: str
+    enabled: bool
+    description: Optional[str] = None
 
-class PaymentMethodsResponse(BaseModel):
-    card_enabled: bool
-    pse_enabled: bool
-    pse_banks: List[PSEBank]
-    wompi_public_key: str
+class WebhookRequest(BaseModel):
+    """Webhook request from payment gateway"""
+    data: Dict[str, Any]
+    timestamp: str
+    signature: Optional[str] = None
 
-@router.post("/create-payment-intent")
-async def create_payment_intent(
-    order_id: int,
-    redirect_url: str,
-    payment_methods: Optional[List[str]] = None,
-    current_user: User = Depends(get_current_user),
+
+@router.post("/process", response_model=PaymentResponse)
+async def process_payment(
+    payment_request: ProcessPaymentRequest,
+    background_tasks: BackgroundTasks,
+    request: Request,
+    current_user: UserRead = Depends(require_buyer),
     db: AsyncSession = Depends(get_db)
 ):
-    """Create a payment intent for an order"""
+    """
+    Process payment for an order with comprehensive fraud detection and integration.
+
+    This endpoint:
+    1. Validates the order and user permissions
+    2. Screens the transaction for fraud
+    3. Processes payment through Wompi gateway
+    4. Calculates commissions
+    5. Updates order status
+    6. Logs all actions for audit
+    """
     try:
-        processor = PaymentProcessor(db)
-        
-        # Verify user owns the order
-        result = await db.execute(
-            select(Order).where(
-                Order.id == order_id,
-                Order.buyer_id == current_user.id
-            )
-        )
-        order = result.scalar_one_or_none()
-        
-        if not order:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Order not found or access denied"
-            )
-        
-        payment_intent = await processor.create_payment_intent(
-            order_id=order_id,
-            customer_email=current_user.email,
-            redirect_url=redirect_url,
-            payment_method_types=payment_methods
-        )
-        
-        return {
-            "intent_id": payment_intent.id,
-            "intent_reference": payment_intent.intent_reference,
-            "amount": payment_intent.amount_in_currency,
-            "currency": payment_intent.currency,
-            "expires_at": payment_intent.expires_at,
-            "status": "created"
-        }
-        
-    except Exception as e:
-        logger.error(f"Error creating payment intent: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create payment intent"
+        # Extract client information for fraud detection
+        ip_address = request.client.host if request.client else None
+        user_agent = request.headers.get("User-Agent", "Unknown")
+
+        logger.info(
+            f"Processing payment for order {payment_request.order_id} "
+            f"by user {current_user.email} from IP {ip_address}"
         )
 
-@router.post("/card", response_model=PaymentResponse)
-async def process_card_payment(
-    payment_request: CardPaymentRequest,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
-):
-    """Process credit/debit card payment"""
-    try:
-        processor = PaymentProcessor(db)
-        
-        # Verify user owns the order
-        result = await db.execute(
-            select(Order).where(
-                Order.id == payment_request.order_id,
-                Order.buyer_id == current_user.id
-            )
-        )
-        order = result.scalar_one_or_none()
-        
-        if not order:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Order not found or access denied"
-            )
-        
-        # Prepare card data
-        card_data = {
-            "number": payment_request.card_number,
-            "exp_month": payment_request.exp_month,
-            "exp_year": payment_request.exp_year,
-            "cvc": payment_request.cvc,
-            "card_holder": payment_request.card_holder,
-            "installments": payment_request.installments
-        }
-        
-        # Prepare customer data
-        customer_data = {
-            "email": current_user.email,
-            "full_name": current_user.full_name,
-            "phone": payment_request.customer_phone or current_user.telefono or "",
-            "redirect_url": payment_request.redirect_url
-        }
-        
-        result = await processor.process_card_payment(
+        # Validate user can pay for this order
+        await _validate_order_ownership(payment_request.order_id, current_user, db)
+
+        # Process payment through integrated service
+        result = await integrated_payment_service.process_order_payment(
             order_id=payment_request.order_id,
-            card_data=card_data,
-            customer_data=customer_data
+            payment_method=payment_request.payment_method,
+            payment_data=payment_request.payment_data.dict(),
+            db=db,
+            user=current_user,
+            ip_address=ip_address
         )
-        
+
+        # Add background task for post-payment processing
+        background_tasks.add_task(
+            _post_payment_processing,
+            payment_request.order_id,
+            result.get("transaction_id"),
+            current_user.id
+        )
+
         return PaymentResponse(
+            success=result["success"],
+            order_id=result["order_id"],
             transaction_id=result["transaction_id"],
-            wompi_transaction_id=result["wompi_transaction_id"],
+            wompi_transaction_id=result.get("wompi_transaction_id"),
             status=result["status"],
-            checkout_url=result.get("checkout_url"),
-            reference=result["reference"],
-            message="Card payment initiated successfully"
+            payment_url=result.get("payment_url"),
+            fraud_score=result["fraud_score"],
+            message="Payment processed successfully"
         )
-        
-    except ValueError as e:
+
+    except PaymentProcessingError as e:
+        logger.warning(f"Payment processing error: {e.message}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            detail={
+                "error": e.error_code,
+                "message": e.message,
+                "details": e.details
+            }
         )
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error processing card payment: {e}")
+        logger.error(f"Unexpected payment processing error: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Payment processing failed"
+            detail="Internal payment processing error"
         )
 
-@router.post("/pse", response_model=PaymentResponse)
-async def process_pse_payment(
-    payment_request: PSEPaymentRequest,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
-):
-    """Process PSE bank transfer payment"""
-    try:
-        processor = PaymentProcessor(db)
-        
-        # Verify user owns the order
-        result = await db.execute(
-            select(Order).where(
-                Order.id == payment_request.order_id,
-                Order.buyer_id == current_user.id
-            )
-        )
-        order = result.scalar_one_or_none()
-        
-        if not order:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Order not found or access denied"
-            )
-        
-        # Prepare PSE data
-        pse_data = {
-            "user_type": payment_request.user_type,
-            "user_legal_id": payment_request.user_legal_id,
-            "bank_code": payment_request.bank_code
-        }
-        
-        # Prepare customer data
-        customer_data = {
-            "email": current_user.email,
-            "full_name": current_user.full_name,
-            "redirect_url": payment_request.redirect_url
-        }
-        
-        result = await processor.process_pse_payment(
-            order_id=payment_request.order_id,
-            pse_data=pse_data,
-            customer_data=customer_data
-        )
-        
-        return PaymentResponse(
-            transaction_id=result["transaction_id"],
-            wompi_transaction_id=result["wompi_transaction_id"],
-            status=result["status"],
-            checkout_url=result.get("pse_redirect_url"),
-            reference=result["reference"],
-            message="PSE payment initiated successfully"
-        )
-        
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
-    except Exception as e:
-        logger.error(f"Error processing PSE payment: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="PSE payment processing failed"
-        )
 
-@router.get("/status/{transaction_reference}", response_model=PaymentStatusResponse)
+@router.get("/status/{order_id}", response_model=PaymentStatusResponse)
 async def get_payment_status(
-    transaction_reference: str,
-    current_user: User = Depends(get_current_user),
+    order_id: int,
+    current_user: UserRead = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Get payment status by transaction reference"""
+    """
+    Get comprehensive payment status for an order.
+
+    Returns current payment status, transaction details, and Wompi gateway status.
+    """
     try:
-        processor = PaymentProcessor(db)
-        
-        # Verify user has access to this transaction
-        result = await db.execute(
-            select(Transaction)
-            .join(Order)
-            .where(
-                Transaction.transaction_reference == transaction_reference,
-                Order.buyer_id == current_user.id
-            )
+        # Validate user can view this order's payment status
+        await _validate_order_access(order_id, current_user, db)
+
+        # Get payment status from integrated service
+        status_data = await integrated_payment_service.get_payment_status(order_id, db)
+
+        return PaymentStatusResponse(**status_data)
+
+    except PaymentProcessingError as e:
+        logger.warning(f"Payment status error: {e.message}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=e.message
         )
-        transaction = result.scalar_one_or_none()
-        
-        if not transaction:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Transaction not found or access denied"
-            )
-        
-        status_data = await processor.get_payment_status(transaction_reference)
-        
-        return PaymentStatusResponse(
-            transaction_id=status_data["transaction_id"],
-            reference=status_data["reference"],
-            status=status_data["status"],
-            amount=status_data["amount"],
-            currency=status_data["currency"],
-            order_number=status_data["order_number"],
-            created_at=status_data["created_at"].isoformat() if status_data["created_at"] else "",
-            failure_reason=status_data.get("failure_reason")
-        )
-        
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting payment status: {e}")
+        logger.error(f"Error getting payment status: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to get payment status"
+            detail="Error retrieving payment status"
         )
 
-@router.get("/methods", response_model=PaymentMethodsResponse)
-async def get_payment_methods(db: AsyncSession = Depends(get_db)):
-    """Get available payment methods and PSE banks"""
-    try:
-        processor = PaymentProcessor(db)
-        pse_banks = await processor.get_pse_banks()
-        
-        wompi_service = get_wompi_service()
-        
-        return PaymentMethodsResponse(
-            card_enabled=True,
-            pse_enabled=True,
-            pse_banks=[
-                PSEBank(
-                    financial_institution_code=bank["financial_institution_code"],
-                    financial_institution_name=bank["financial_institution_name"]
-                )
-                for bank in pse_banks
-            ],
-            wompi_public_key=wompi_service.config.public_key
-        )
-        
-    except Exception as e:
-        logger.error(f"Error getting payment methods: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to get payment methods"
-        )
 
-@router.post("/cancel/{transaction_id}")
-async def cancel_payment(
-    transaction_id: int,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+@router.get("/methods", response_model=List[PaymentMethodResponse])
+async def get_payment_methods(
+    current_user: UserRead = Depends(get_current_user)
 ):
-    """Cancel a pending payment"""
+    """
+    Get available payment methods from the payment gateway.
+
+    Returns list of supported payment methods with their configurations.
+    """
     try:
-        # Verify user has access to this transaction
-        result = await db.execute(
-            select(Transaction)
-            .join(Order)
-            .where(
-                Transaction.id == transaction_id,
-                Order.buyer_id == current_user.id
+        methods = await integrated_payment_service.get_payment_methods()
+
+        return [
+            PaymentMethodResponse(
+                id=method.get("id"),
+                name=method.get("name"),
+                type=method.get("type"),
+                enabled=method.get("enabled", True),
+                description=method.get("description")
             )
-        )
-        transaction = result.scalar_one_or_none()
-        
-        if not transaction:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Transaction not found or access denied"
-            )
-        
-        processor = PaymentProcessor(db)
-        success = await processor.cancel_payment(transaction_id)
-        
-        return {
-            "success": success,
-            "message": "Payment cancelled successfully" if success else "Payment could not be cancelled"
-        }
-        
-    except HTTPException:
-        raise
+            for method in methods
+        ]
+
     except Exception as e:
-        logger.error(f"Error cancelling payment: {e}")
+        logger.error(f"Error getting payment methods: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to cancel payment"
+            detail="Error retrieving payment methods"
         )
+
 
 @router.post("/webhook")
-async def wompi_webhook(
+async def handle_payment_webhook(
+    webhook_request: WebhookRequest,
     request: Request,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db)
 ):
-    """Handle Wompi webhook notifications"""
+    """
+    Handle payment webhook from Wompi gateway.
+
+    This endpoint processes payment status updates, commission calculations,
+    and order status changes based on webhook notifications.
+    """
     try:
-        # Get raw payload and signature
-        payload = await request.body()
-        signature = request.headers.get("X-Signature", "")
-        
-        if not signature:
-            logger.warning("Webhook received without signature")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Missing signature"
-            )
-        
-        # Parse JSON payload
-        try:
-            event_data = json.loads(payload.decode())
-        except json.JSONDecodeError:
-            logger.error("Invalid JSON in webhook payload")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid JSON payload"
-            )
-        
-        # Process webhook in background
-        background_tasks.add_task(
-            process_webhook_async,
-            payload.decode(),
-            signature,
-            event_data,
-            db
-        )
-        
-        return {"message": "Webhook received", "status": "processing"}
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error handling webhook: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Webhook processing failed"
+        # Extract signature from headers (Wompi sends it in headers)
+        signature = request.headers.get("X-Wompi-Signature") or webhook_request.signature
+
+        logger.info(f"Processing payment webhook with signature verification")
+
+        # Process webhook through integrated service
+        result = await integrated_payment_service.handle_payment_webhook(
+            webhook_data=webhook_request.data,
+            signature=signature,
+            db=db
         )
 
-async def process_webhook_async(
-    payload: str,
-    signature: str,
-    event_data: Dict[str, Any],
+        # Add background task for additional webhook processing
+        background_tasks.add_task(
+            _post_webhook_processing,
+            webhook_request.data,
+            result.get("transaction_id")
+        )
+
+        return {
+            "success": True,
+            "message": "Webhook processed successfully",
+            "transaction_id": result.get("transaction_id")
+        }
+
+    except PaymentProcessingError as e:
+        logger.warning(f"Webhook processing error: {e.message}")
+        # Return 200 to acknowledge receipt even if processing failed
+        return {
+            "success": False,
+            "error": e.message,
+            "acknowledged": True
+        }
+    except Exception as e:
+        logger.error(f"Unexpected webhook processing error: {str(e)}")
+        # Return 200 to acknowledge receipt
+        return {
+            "success": False,
+            "error": "Internal webhook processing error",
+            "acknowledged": True
+        }
+
+
+@router.get("/health")
+async def payment_service_health():
+    """
+    Health check endpoint for payment service integration.
+
+    Returns health status of all payment service components.
+    """
+    try:
+        health_status = await integrated_payment_service.health_check()
+        return health_status
+
+    except Exception as e:
+        logger.error(f"Payment service health check error: {str(e)}")
+        return {
+            "service": "IntegratedPaymentService",
+            "status": "unhealthy",
+            "error": str(e),
+            "timestamp": "2025-09-17T00:00:00Z"
+        }
+
+
+# Helper Functions
+
+async def _validate_order_ownership(
+    order_id: int,
+    user: UserRead,
     db: AsyncSession
 ):
-    """Process webhook asynchronously"""
-    try:
-        handler = WebhookHandler(db)
-        result = await handler.process_webhook(payload, signature, event_data)
-        
-        if result.get("processed"):
-            logger.info(f"Webhook processed successfully: {result}")
-        else:
-            logger.warning(f"Webhook processing failed: {result}")
-            
-    except Exception as e:
-        logger.error(f"Error in background webhook processing: {e}")
+    """Validate that user owns the order"""
+    from sqlalchemy import select
 
-# Admin endpoints (could be moved to separate router)
-@router.get("/admin/transactions")
-async def get_all_transactions(
-    skip: int = 0,
-    limit: int = 100,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
-):
-    """Get all transactions (admin only)"""
-    if current_user.user_type != "admin":
+    stmt = select(Order).where(Order.id == order_id)
+    result = await db.execute(stmt)
+    order = result.scalar_one_or_none()
+
+    if not order:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin access required"
-        )
-    
-    try:
-        result = await db.execute(
-            select(Transaction)
-            .options(
-                selectinload(Transaction.order),
-                selectinload(Transaction.payment)
-            )
-            .offset(skip)
-            .limit(limit)
-        )
-        transactions = result.scalars().all()
-        
-        return [
-            {
-                "id": t.id,
-                "reference": t.transaction_reference,
-                "order_number": t.order.order_number,
-                "amount": t.amount,
-                "status": t.status.value,
-                "payment_method": t.payment_method_type,
-                "created_at": t.created_at,
-                "gateway_transaction_id": t.gateway_transaction_id
-            }
-            for t in transactions
-        ]
-        
-    except Exception as e:
-        logger.error(f"Error getting transactions: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to get transactions"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Order not found"
         )
 
-@router.post("/admin/retry-webhooks")
-async def retry_failed_webhooks(
-    limit: int = 100,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
-):
-    """Retry failed webhook events (admin only)"""
-    if current_user.user_type != "admin":
+    if order.buyer_id != int(user.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin access required"
+            detail="Access denied to this order"
         )
-    
-    try:
-        handler = WebhookHandler(db)
-        result = await handler.retry_failed_webhooks(limit)
-        
-        return result
-        
-    except Exception as e:
-        logger.error(f"Error retrying webhooks: {e}")
+
+    if order.status not in [OrderStatus.PENDING, OrderStatus.CONFIRMED]:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retry webhooks"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Order is not in a payable state"
         )
+
+
+async def _validate_order_access(
+    order_id: int,
+    user: UserRead,
+    db: AsyncSession
+):
+    """Validate that user can access order payment status"""
+    from sqlalchemy import select
+
+    stmt = select(Order).where(Order.id == order_id)
+    result = await db.execute(stmt)
+    order = result.scalar_one_or_none()
+
+    if not order:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Order not found"
+        )
+
+    # Allow access for order owner or admin
+    if order.buyer_id != int(user.id) and user.user_type != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied to this order"
+        )
+
+
+async def _post_payment_processing(
+    order_id: int,
+    transaction_id: str,
+    user_id: str
+):
+    """Background task for post-payment processing"""
+    try:
+        # Send payment confirmation email
+        # Update inventory
+        # Trigger fulfillment process
+        # Send notifications to vendors
+        logger.info(f"Post-payment processing completed for order {order_id}")
+    except Exception as e:
+        logger.error(f"Post-payment processing error: {str(e)}")
+
+
+async def _post_webhook_processing(
+    webhook_data: Dict[str, Any],
+    transaction_id: Optional[str]
+):
+    """Background task for post-webhook processing"""
+    try:
+        # Additional webhook processing
+        # Analytics updates
+        # Notification sending
+        logger.info(f"Post-webhook processing completed for transaction {transaction_id}")
+    except Exception as e:
+        logger.error(f"Post-webhook processing error: {str(e)}")

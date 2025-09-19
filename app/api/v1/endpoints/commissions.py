@@ -34,14 +34,17 @@ Este módulo contiene:
 """
 
 import os
+from decimal import Decimal
 from typing import Dict, List, Optional, Any
 from uuid import UUID
+from app.core.id_validation import validate_commission_id, validate_order_id, validate_vendor_id, IDValidator
+from app.api.v1.deps.database import get_commission_or_404
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Path, Body, status
 from fastapi.security import HTTPBearer
 from sqlalchemy.orm import Session
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.api.v1.deps.database import get_db
 from app.api.v1.deps.auth import get_current_user
@@ -143,9 +146,14 @@ class ApproveCommissionRequest(BaseModel):
 
 class CalculateCommissionRequest(BaseModel):
     """Request para cálculo de comisión"""
-    order_id: int = Field(..., gt=0, description="ID de la orden")
+    order_id: str = Field(..., min_length=36, max_length=36, description="Order UUID")
     commission_type: CommissionType = Field(default=CommissionType.STANDARD)
     custom_rate: Optional[float] = Field(None, ge=0, le=1, description="Tasa personalizada (0-1)")
+
+    @field_validator("order_id")
+    @classmethod
+    def validate_order_id(cls, v):
+        return IDValidator.validate_uuid_string(v, "order_id")
 
 
 # Helper functions
@@ -265,7 +273,7 @@ async def list_commissions(
     response_description="Commission details"
 )
 async def get_commission(
-    commission_id: UUID = Path(..., description="Commission ID"),
+    commission_id: str = Depends(validate_commission_id),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ) -> CommissionResponse:
@@ -326,7 +334,7 @@ async def get_commission(
     response_description="Earnings summary with breakdowns"
 )
 async def get_earnings(
-    vendor_id: Optional[UUID] = Query(None, description="Vendor ID (admin only)"),
+    vendor_id: Optional[str] = Query(None, min_length=36, max_length=36, description="Vendor UUID (admin only)"),
     start_date: Optional[datetime] = Query(None, description="Start date for report"),
     end_date: Optional[datetime] = Query(None, description="End date for report"),
     current_user: User = Depends(get_current_user),
@@ -463,7 +471,7 @@ async def calculate_commission(
     response_description="Approved commission"
 )
 async def approve_commission(
-    commission_id: UUID = Path(..., description="Commission ID"),
+    commission_id: str = Depends(validate_commission_id),
     request: ApproveCommissionRequest = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -649,7 +657,7 @@ async def get_vendor_earnings(
     response_description="List of commission reports by vendor"
 )
 async def get_admin_commissions(
-    vendor_id: Optional[UUID] = Query(None, description="Filtrar por vendor específico"),
+    vendor_id: Optional[str] = Query(None, min_length=36, max_length=36, description="Filtrar por vendor UUID"),
     date_from: Optional[datetime] = Query(None, description="Fecha inicio del reporte"),
     date_to: Optional[datetime] = Query(None, description="Fecha fin del reporte"),
     status_filter: Optional[CommissionStatus] = Query(None, description="Filtrar por estado"),
@@ -670,7 +678,7 @@ async def get_admin_commissions(
     """
     try:
         # Verificar permisos de admin
-        if current_user.user_type not in [UserType.ADMIN, UserType.SUPER_ADMIN]:
+        if current_user.user_type not in [UserType.ADMIN, UserType.SUPERUSER]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Administrator permissions required"
@@ -713,7 +721,7 @@ async def get_admin_commissions(
     response_description="Calculated commission"
 )
 async def process_order_commission(
-    order_id: int = Path(..., gt=0, description="Order ID"),
+    order_id: str = Depends(validate_order_id),
     force_recalculate: bool = Query(False, description="Force recalculation if commission exists"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -730,7 +738,7 @@ async def process_order_commission(
     """
     try:
         # Verificar permisos (admin o sistema interno)
-        if current_user.user_type not in [UserType.ADMIN, UserType.SUPER_ADMIN, UserType.SYSTEM]:
+        if current_user.user_type not in [UserType.ADMIN, UserType.SUPERUSER, UserType.SYSTEM]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Administrator or system permissions required"

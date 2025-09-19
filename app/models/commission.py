@@ -52,7 +52,7 @@ from sqlalchemy import (
     String,
     Text,
 )
-from sqlalchemy.dialects.postgresql import UUID as SQLAlchemyUUID
+# UUID import removed for SQLite compatibility as SQLAlchemyUUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.models.base import BaseModel
@@ -86,13 +86,13 @@ class Commission(BaseModel):
     __tablename__ = "commissions"
 
     # Primary identification
-    id = Column(SQLAlchemyUUID(as_uuid=True), primary_key=True, default=uuid4, index=True)
+    id = Column(String(36), primary_key=True, default=uuid4, index=True)
     commission_number = Column(String(50), unique=True, nullable=False, index=True)
     
     # Foreign keys - optimized with indexes
-    order_id = Column(Integer, ForeignKey("orders.id", ondelete="CASCADE"), nullable=False, index=True)
-    vendor_id = Column(SQLAlchemyUUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    transaction_id = Column(SQLAlchemyUUID(as_uuid=True), ForeignKey("transactions.id", ondelete="SET NULL"), nullable=True, index=True)
+    order_id = Column(String(36), ForeignKey("orders.id", ondelete="CASCADE"), nullable=False, index=True)
+    vendor_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    transaction_id = Column(String(36), ForeignKey("transactions.id", ondelete="SET NULL"), nullable=True, index=True)
     
     # Financial amounts - using DECIMAL for precision
     order_amount = Column(DECIMAL(precision=10, scale=2), nullable=False)
@@ -119,7 +119,7 @@ class Commission(BaseModel):
     resolved_at = Column(DateTime(timezone=True), nullable=True)
     
     # Approval tracking
-    approved_by_id = Column(SQLAlchemyUUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    approved_by_id = Column(String(36), ForeignKey("users.id"), nullable=True)
     
     # Relationships - optimized loading
     order = relationship("Order", back_populates="commissions", lazy="select")

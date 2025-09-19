@@ -25,7 +25,9 @@ from app.api.v1.endpoints.pagos import router as pagos_router
 from app.api.v1.endpoints.perfil import router as perfil_router
 from app.api.v1.endpoints.productos import router as productos_router
 from app.api.v1.endpoints.products_bulk import router as products_bulk_router
-from app.api.v1.endpoints.search import router as search_router
+import os
+if not os.getenv("DISABLE_SEARCH_SERVICE"):
+    from app.api.v1.endpoints.search import router as search_router
 from app.api.v1.endpoints.vendedores import router as vendedores_router
 from app.api.v1.endpoints.admin import router as admin_router
 from app.api.v1.endpoints.leads import router as leads_router
@@ -37,44 +39,91 @@ from app.api.v1.endpoints.orders import router as orders_router
 # Router principal que unifica todos los endpoints v1
 api_router = APIRouter()
 
-# Registrar todos los routers con sus prefijos específicos
-api_router.include_router(
-    health_simple_router, prefix="/health", tags=["health-simple"]
-)
+# STANDARDIZED ROUTER REGISTRATION - API v1
+# ==================================================
+# Organized by business domain with consistent patterns
+# Deprecated routers removed to eliminate language conflicts
 
-api_router.include_router(
-    health_complete_router, prefix="/health-complete", tags=["health-complete"]
-)
+# ===== CORE BUSINESS ENDPOINTS =====
+# Authentication (English standard)
+api_router.include_router(auth_router, prefix="/auth", tags=["authentication"])
 
-api_router.include_router(logs_router, prefix="/logs", tags=["logs"])
+# Products (Spanish - comprehensive implementation kept as primary)
+api_router.include_router(productos_router, prefix="/productos", tags=["products"])
 
-api_router.include_router(embeddings_router, prefix="/embeddings", tags=["embeddings"])
+# Products (English - comprehensive implementation with advanced features)
+from app.api.v1.endpoints.products import router as products_router_en
+api_router.include_router(products_router_en, prefix="/products", tags=["products-en"])
 
-api_router.include_router(
-    fulfillment_router, prefix="/fulfillment", tags=["fulfillment"]
-)
-
-api_router.include_router(
-    marketplace_router, prefix="/marketplace", tags=["marketplace"]
-)
-
-api_router.include_router(agents_router, prefix="/agents", tags=["agents"])
-api_router.include_router(auth_router, prefix="/auth", tags=["auth"])
-api_router.include_router(categories_router, tags=["categories"])
-api_router.include_router(vendedores_router, tags=["vendedores"])
-api_router.include_router(comisiones_router, prefix="/comisiones", tags=["comisiones"])
-api_router.include_router(commissions_router, prefix="/commissions", tags=["commissions"])
-api_router.include_router(productos_router, prefix="/productos", tags=["productos"])
+# Product bulk operations (English - specialized functionality)
 api_router.include_router(products_bulk_router, prefix="/products", tags=["products-bulk"])
-api_router.include_router(inventory_router, prefix="/inventory", tags=["inventory"])
-api_router.include_router(pagos_router, prefix="/pagos", tags=["pagos"])
-api_router.include_router(perfil_router, prefix="/perfil", tags=["perfil"])
-api_router.include_router(alerts_router, prefix="/alerts", tags=["alerts"])
-api_router.include_router(admin_router, prefix="/admin", tags=["admin"])
-api_router.include_router(leads_router, prefix="/leads", tags=["leads"])
-api_router.include_router(system_config_router, prefix="/system-config", tags=["system-config"])
-api_router.include_router(vendor_profile_router, tags=["vendor-profile"])
-api_router.include_router(payments_router, prefix="/payments", tags=["payments"])
+
+# Orders (English standard)
 api_router.include_router(orders_router, prefix="/orders", tags=["orders"])
-api_router.include_router(search_router, prefix="/search", tags=["search"])
-api_router.include_router(search_router, prefix="/search", tags=["search"])
+
+# Commissions (English - production-ready version)
+api_router.include_router(commissions_router, prefix="/commissions", tags=["commissions"])
+
+# Payments (English - integrated payment processing)
+api_router.include_router(payments_router, prefix="/payments", tags=["payments"])
+
+# ===== VENDOR & CUSTOMER MANAGEMENT =====
+# Vendor management (consolidated)
+api_router.include_router(vendor_profile_router, prefix="/vendors", tags=["vendors"])
+
+# Categories (hierarchical system)
+api_router.include_router(categories_router, prefix="/categories", tags=["categories"])
+
+# Inventory management
+api_router.include_router(inventory_router, prefix="/inventory", tags=["inventory"])
+
+# ===== MARKETPLACE & DISCOVERY =====
+# Search functionality (conditional)
+if not os.getenv("DISABLE_SEARCH_SERVICE"):
+    api_router.include_router(search_router, prefix="/search", tags=["search"])
+
+# Marketplace operations
+api_router.include_router(marketplace_router, prefix="/marketplace", tags=["marketplace"])
+
+# ===== ADMIN & SYSTEM =====
+# Admin operations
+api_router.include_router(admin_router, prefix="/admin", tags=["administration"])
+
+# System configuration
+api_router.include_router(system_config_router, prefix="/system", tags=["system"])
+
+# Alerts and notifications
+api_router.include_router(alerts_router, prefix="/alerts", tags=["alerts"])
+
+# Leads management
+api_router.include_router(leads_router, prefix="/leads", tags=["leads"])
+
+# ===== UTILITY & MONITORING =====
+# Health checks
+api_router.include_router(health_simple_router, prefix="/health", tags=["health"])
+api_router.include_router(health_complete_router, prefix="/health/complete", tags=["health"])
+
+# System logging
+api_router.include_router(logs_router, prefix="/logs", tags=["logging"])
+
+# ===== ADVANCED FEATURES =====
+# AI/ML features
+api_router.include_router(embeddings_router, prefix="/embeddings", tags=["ai-ml"])
+api_router.include_router(agents_router, prefix="/agents", tags=["ai-agents"])
+
+# Fulfillment operations
+api_router.include_router(fulfillment_router, prefix="/fulfillment", tags=["fulfillment"])
+
+# Legacy profile endpoint (to be migrated to /vendors)
+api_router.include_router(perfil_router, prefix="/profile", tags=["profile-legacy"])
+
+# ===== TEMPORARY VENDOR REGISTRATION TESTING =====
+# Adding vendedores router back for testing purposes
+api_router.include_router(vendedores_router, prefix="/vendedores", tags=["vendedores-testing"])
+
+# ==================================================
+# DEPRECATED ROUTERS (partially restored for testing):
+# - comisiones_router (Spanish) -> Use /commissions
+# - pagos_router (Spanish) -> Use /payments
+# - vendedores_router (Spanish) -> Use /vendors (but also available for testing)
+# ==================================================

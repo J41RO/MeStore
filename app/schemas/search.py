@@ -39,7 +39,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 from uuid import UUID
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 
 class SearchType(str, Enum):
@@ -81,7 +81,8 @@ class BaseSearchRequest(BaseModel):
     limit: int = Field(20, ge=1, le=100, description="Resultados por página")
     sort_by: SortBy = Field(SortBy.RELEVANCE, description="Criterio de ordenamiento")
 
-    @validator('q')
+    @field_validator('q')
+    @classmethod
     def validate_query(cls, v):
         if v is not None:
             v = v.strip()
@@ -101,10 +102,11 @@ class SearchRequest(BaseSearchRequest):
     tags: Optional[List[str]] = Field(None, description="Tags para filtrar")
     search_type: SearchType = Field(SearchType.TEXT, description="Tipo de búsqueda")
 
-    @validator('max_price')
-    def validate_price_range(cls, v, values):
-        if v is not None and 'min_price' in values and values['min_price'] is not None:
-            if v < values['min_price']:
+    @field_validator('max_price')
+    @classmethod
+    def validate_price_range(cls, v, info):
+        if v is not None and 'min_price' in info.data and info.data['min_price'] is not None:
+            if v < info.data['min_price']:
                 raise ValueError('max_price debe ser mayor que min_price')
         return v
 
@@ -121,8 +123,8 @@ class AdvancedSearchRequest(BaseModel):
     sort_by: SortBy = Field(SortBy.RELEVANCE)
     search_type: SearchType = Field(SearchType.HYBRID)
 
-    class Config:
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "query": "laptop gaming",
                 "filters": {
@@ -140,6 +142,7 @@ class AdvancedSearchRequest(BaseModel):
                 "search_type": "hybrid"
             }
         }
+    )
 
 
 class SemanticSearchRequest(BaseModel):
@@ -228,8 +231,7 @@ class ProductSearchResult(BaseModel):
     match_type: Optional[str] = Field(None, description="Tipo de coincidencia")
     highlighted_fields: Dict[str, str] = Field(default_factory=dict, description="Campos destacados")
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SuggestionItem(BaseModel):
@@ -248,8 +250,8 @@ class SearchResponse(BaseModel):
     facets: List[Facet] = Field(default_factory=list, description="Facetas disponibles")
     suggestions: List[str] = Field(default_factory=list, description="Sugerencias de términos")
 
-    class Config:
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "results": [
                     {
@@ -292,6 +294,7 @@ class SearchResponse(BaseModel):
                 "suggestions": ["laptop gaming", "laptop asus", "gaming computer"]
             }
         }
+    )
 
 
 class AutocompleteResponse(BaseModel):
@@ -300,8 +303,8 @@ class AutocompleteResponse(BaseModel):
     query: str = Field(..., description="Query original")
     response_time_ms: int = Field(..., description="Tiempo de respuesta")
 
-    class Config:
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "suggestions": [
                     {
@@ -322,6 +325,7 @@ class AutocompleteResponse(BaseModel):
                 "response_time_ms": 15
             }
         }
+    )
 
 
 class SemanticSearchResponse(BaseModel):
@@ -347,8 +351,8 @@ class TrendingTermsResponse(BaseModel):
     period: str = Field(..., description="Período analizado")
     updated_at: datetime = Field(..., description="Última actualización")
 
-    class Config:
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "terms": [
                     {"term": "laptop gaming", "count": 1250, "growth": "+25%"},
@@ -359,6 +363,7 @@ class TrendingTermsResponse(BaseModel):
                 "updated_at": "2025-09-17T10:30:00Z"
             }
         }
+    )
 
 
 class PopularSearchesResponse(BaseModel):
@@ -367,8 +372,8 @@ class PopularSearchesResponse(BaseModel):
     category_id: Optional[UUID] = Field(None, description="Categoría filtrada")
     period: str = Field(..., description="Período analizado")
 
-    class Config:
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "searches": [
                     {"query": "laptop", "count": 2500, "avg_results": 150},
@@ -378,6 +383,7 @@ class PopularSearchesResponse(BaseModel):
                 "period": "last_30_days"
             }
         }
+    )
 
 
 class FilterOptionsResponse(BaseModel):
@@ -388,8 +394,8 @@ class FilterOptionsResponse(BaseModel):
     tags: List[str] = Field(..., description="Tags disponibles")
     status_options: List[str] = Field(..., description="Estados disponibles")
 
-    class Config:
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "categories": [
                     {"id": "cat-123", "name": "Electrónicos", "product_count": 500},
@@ -407,6 +413,7 @@ class FilterOptionsResponse(BaseModel):
                 "status_options": ["DISPONIBLE", "VERIFICADO", "TRANSITO"]
             }
         }
+    )
 
 
 # ================================

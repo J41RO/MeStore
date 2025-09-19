@@ -26,7 +26,7 @@ Storage Model para MeStore Marketplace.
 Este módulo contiene:
 - Storage: Modelo principal para espacios de almacenamiento
 - Campos de espacio: tipo y capacidad_max
-- Herencia de BaseModel: UUID, timestamps automáticos y soft delete
+- Herencia de BaseModel: str, timestamps automáticos y soft delete
 - Métodos personalizados para gestión de espacios
 """
 
@@ -35,7 +35,7 @@ from datetime import datetime
 from typing import Optional
 from sqlalchemy.orm import relationship, validates
 from decimal import Decimal
-from sqlalchemy.dialects.postgresql import UUID
+# UUID import removed for SQLite compatibility
 from enum import Enum as PyEnum
 from datetime import datetime
 
@@ -92,7 +92,7 @@ class Storage(BaseModel):
 
     # Relationship con User (vendedor)
     vendedor_id = Column(
-        UUID(as_uuid=True),
+        String(36),
         ForeignKey("users.id"),
         nullable=True,
         index=True,

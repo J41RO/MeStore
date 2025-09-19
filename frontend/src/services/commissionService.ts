@@ -16,8 +16,8 @@
 
 import axios, { AxiosResponse } from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || process.env.VITE_API_BASE_URL ||
-  (process.env.NODE_ENV === 'production'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.MODE === 'production'
     ? 'https://api.tudominio.com/api/v1'
     : 'http://localhost:8000/api/v1');
 

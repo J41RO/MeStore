@@ -53,17 +53,21 @@ from app.models.base import BaseModel
 class UserType(PyEnum):
     """
     Enumeración para tipos de usuario en el sistema.
-    
+
     Jerarquía de permisos (menor a mayor):
-        COMPRADOR: Usuario básico que puede realizar compras
-        VENDEDOR: Usuario que puede vender productos  
+        BUYER: Usuario básico que puede realizar compras
+        VENDOR: Usuario que puede vender productos
         ADMIN: Administrador con permisos de gestión
         SUPERUSER: Super administrador con todos los permisos
+        SYSTEM: Usuario sistema para operaciones internas
+
+    IMPORTANT: Values match database enum (uppercase)
     """
-    COMPRADOR = "COMPRADOR"
-    VENDEDOR = "VENDEDOR"
+    BUYER = "BUYER"
+    VENDOR = "VENDOR"
     ADMIN = "ADMIN"
     SUPERUSER = "SUPERUSER"
+    SYSTEM = "SYSTEM"
 
 class VendorStatus(str, PyEnum):
     """
@@ -128,7 +132,7 @@ class User(BaseModel):
 
     # === CLAVE PRIMARIA ===
     id = Column(
-        UUID(),
+        String(36),
         primary_key=True,
         default=generate_uuid,
         index=True,
@@ -214,8 +218,8 @@ class User(BaseModel):
     user_type = Column(
         Enum(UserType),
         nullable=False,
-        default=UserType.COMPRADOR,
-        comment="Tipo de usuario: comprador o vendedor"
+        default=UserType.BUYER,
+        comment="Tipo de usuario: buyer, vendor, admin o superuser"
     )
 
     vendor_status = Column(
@@ -658,4 +662,4 @@ from sqlalchemy import text
 def get_buyers():
     """Helper function to get buyers"""
     from sqlalchemy.orm import Session
-    return Session.query(User).filter(User.user_type == 'buyer')
+    return Session.query(User).filter(User.user_type == 'BUYER')

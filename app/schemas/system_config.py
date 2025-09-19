@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, validator, field_validator
 from typing import Any, Dict, List, Optional, Union
 from datetime import datetime
 from enum import Enum
@@ -33,8 +33,11 @@ class SystemSettingBase(BaseModel):
 class SystemSettingCreate(SystemSettingBase):
     """Schema for creating a new system setting"""
     
-    @validator('value')
-    def validate_value_type(cls, v, values):
+    @field_validator('value')
+
+    
+    @classmethod
+    def validate_value_type(cls, v):
         """Validate that value matches the specified data_type"""
         if 'data_type' not in values:
             return v
@@ -73,7 +76,10 @@ class SystemSettingBulkUpdate(BaseModel):
     """Schema for bulk updating multiple settings"""
     settings: Dict[str, str] = Field(..., description="Dictionary of key-value pairs to update")
     
-    @validator('settings')
+    @field_validator('settings')
+
+    
+    @classmethod
     def validate_settings_not_empty(cls, v):
         if not v:
             raise ValueError("Settings dictionary cannot be empty")

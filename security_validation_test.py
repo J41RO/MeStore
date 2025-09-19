@@ -16,18 +16,19 @@ Author: Backend Senior Developer
 Date: 2025-09-14
 """
 
-import os
-import sys
 import asyncio
 import hashlib
 import hmac
+import os
 import secrets
+import sys
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Dict, List, Optional
 
 # Add project root to path
-sys.path.append('/home/admin-jairo/MeStore')
+sys.path.append("/home/admin-jairo/MeStore")
+
 
 def test_configuration_security():
     """Test 1: Validate hardcoded credentials have been removed"""
@@ -38,10 +39,10 @@ def test_configuration_security():
 
         # Test critical fields are no longer hardcoded
         security_checks = {
-            'DATABASE_URL': 'Database URL should not contain hardcoded credentials',
-            'SECRET_KEY': 'Secret key should be from environment',
-            'REDIS_URL': 'Redis URL should not contain hardcoded password',
-            'SENDGRID_API_KEY': 'SendGrid API key should be from environment'
+            "DATABASE_URL": "Database URL should not contain hardcoded credentials",
+            "SECRET_KEY": "Secret key should be from environment",
+            "REDIS_URL": "Redis URL should not contain hardcoded password",
+            "SENDGRID_API_KEY": "SendGrid API key should be from environment",
         }
 
         passed = 0
@@ -50,23 +51,25 @@ def test_configuration_security():
         for field, description in security_checks.items():
             try:
                 value = getattr(settings, field, None)
-                if field == 'DATABASE_URL':
+                if field == "DATABASE_URL":
                     # Should not contain default hardcoded values
-                    if 'mestocker_user:secure_password' in str(value):
+                    if "mestocker_user:secure_password" in str(value):
                         print(f"   ❌ {field}: Still contains hardcoded credentials")
                     else:
                         print(f"   ✅ {field}: No hardcoded credentials detected")
                         passed += 1
-                elif field == 'SECRET_KEY':
+                elif field == "SECRET_KEY":
                     # Should not be the old dev key
-                    if 'dev-secret-key-change-in-production' == str(value):
+                    if "dev-secret-key-change-in-production" == str(value):
                         print(f"   ❌ {field}: Still using dev secret key")
                     else:
-                        print(f"   ✅ {field}: Secret key appears to be from environment")
+                        print(
+                            f"   ✅ {field}: Secret key appears to be from environment"
+                        )
                         passed += 1
-                elif field == 'REDIS_URL':
+                elif field == "REDIS_URL":
                     # Should not contain dev-redis-password
-                    if 'dev-redis-password' in str(value):
+                    if "dev-redis-password" in str(value):
                         print(f"   ❌ {field}: Still contains hardcoded Redis password")
                     else:
                         print(f"   ✅ {field}: No hardcoded Redis password")
@@ -84,6 +87,7 @@ def test_configuration_security():
         print(f"   ❌ Configuration test failed: {e}")
         return False
 
+
 def test_commission_service_security():
     """Test 2: Validate SQL injection fixes in commission service"""
     print("\n💰 TEST 2: Commission Service Security")
@@ -97,16 +101,17 @@ def test_commission_service_security():
 
         # Check for ORM usage instead of raw SQL
         import inspect
+
         source = inspect.getsource(CommissionService)
 
         # Check that raw SQL patterns are not present
         dangerous_patterns = [
-            'execute(',
-            'executemany(',
+            "execute(",
+            "executemany(",
             '.execute("',
             ".execute('",
-            'cursor.execute',
-            'raw_sql'
+            "cursor.execute",
+            "raw_sql",
         ]
 
         sql_issues = []
@@ -121,7 +126,7 @@ def test_commission_service_security():
             print("   ✅ No raw SQL execution patterns detected")
 
         # Check for SQLAlchemy ORM usage
-        if 'db.query(' in source and 'filter(' in source:
+        if "db.query(" in source and "filter(" in source:
             print("   ✅ Using SQLAlchemy ORM for database operations")
         else:
             print("   ⚠️ Could not verify SQLAlchemy ORM usage")
@@ -132,22 +137,24 @@ def test_commission_service_security():
         print(f"   ❌ Commission service test failed: {e}")
         return False
 
+
 def test_middleware_security():
     """Test 3: Validate authentication bypass fixes"""
     print("\n🛡️ TEST 3: Security Middleware")
 
     try:
-        from app.middleware.enterprise_security import EnterpriseSecurityMiddleware
-
         # Check for fail-closed implementation
         import inspect
+
+        from app.middleware.enterprise_security import EnterpriseSecurityMiddleware
+
         source = inspect.getsource(EnterpriseSecurityMiddleware)
 
         security_patterns = [
-            'services_available',
-            'HTTP_503_SERVICE_UNAVAILABLE',
-            'Security services unavailable',
-            'fail closed'
+            "services_available",
+            "HTTP_503_SERVICE_UNAVAILABLE",
+            "Security services unavailable",
+            "fail closed",
         ]
 
         security_checks = 0
@@ -160,19 +167,22 @@ def test_middleware_security():
             print("   ✅ Service unavailability handling present")
 
             # Check for Redis dependency validation
-            if 'ping()' in source:
+            if "ping()" in source:
                 print("   ✅ Redis connection testing implemented")
             else:
                 print("   ⚠️ Redis connection testing not clearly visible")
 
             return True
         else:
-            print(f"   ❌ Security patterns not sufficiently implemented ({security_checks}/3)")
+            print(
+                f"   ❌ Security patterns not sufficiently implemented ({security_checks}/3)"
+            )
             return False
 
     except Exception as e:
         print(f"   ❌ Middleware security test failed: {e}")
         return False
+
 
 def test_admin_permission_security():
     """Test 4: Validate admin privilege escalation fixes"""
@@ -186,14 +196,15 @@ def test_admin_permission_security():
 
         # Check for security clearance validation
         import inspect
+
         source = inspect.getsource(AdminPermissionService)
 
         security_features = [
-            'security_clearance_level',
-            'InsufficientClearanceError',
-            '_can_user_grant_permission',
-            'PermissionScope.SYSTEM',
-            '_validate_by_hierarchy'
+            "security_clearance_level",
+            "InsufficientClearanceError",
+            "_can_user_grant_permission",
+            "PermissionScope.SYSTEM",
+            "_validate_by_hierarchy",
         ]
 
         implemented_features = 0
@@ -207,12 +218,15 @@ def test_admin_permission_security():
             print("   ✅ Privilege escalation protections added")
             return True
         else:
-            print(f"   ❌ Insufficient security features implemented ({implemented_features}/5)")
+            print(
+                f"   ❌ Insufficient security features implemented ({implemented_features}/5)"
+            )
             return False
 
     except Exception as e:
         print(f"   ❌ Admin permission test failed: {e}")
         return False
+
 
 def test_transaction_integrity():
     """Test 5: Validate financial transaction tampering fixes"""
@@ -226,15 +240,16 @@ def test_transaction_integrity():
 
         # Check for cryptographic integrity features
         import inspect
+
         source = inspect.getsource(TransactionService)
 
         integrity_features = [
-            'integrity_secret',
-            'hmac',
-            'hashlib',
-            '_generate_integrity_hash',
-            '_validate_transaction_integrity_hash',
-            'integrity_hash'
+            "integrity_secret",
+            "hmac",
+            "hashlib",
+            "_generate_integrity_hash",
+            "_validate_transaction_integrity_hash",
+            "integrity_hash",
         ]
 
         implemented = 0
@@ -248,7 +263,7 @@ def test_transaction_integrity():
             print("   ✅ Financial consistency validation added")
 
             # Test hash generation
-            if hasattr(service, '_generate_integrity_hash'):
+            if hasattr(service, "_generate_integrity_hash"):
                 print("   ✅ Integrity hash generation method available")
 
             return True
@@ -259,6 +274,7 @@ def test_transaction_integrity():
     except Exception as e:
         print(f"   ❌ Transaction integrity test failed: {e}")
         return False
+
 
 def test_session_security():
     """Test 6: Validate session management security"""
@@ -276,16 +292,17 @@ def test_session_security():
 
         # Check for security features
         import inspect
+
         source = inspect.getsource(EnterpriseSessionService)
 
         security_features = [
-            'secrets',
-            'hmac',
-            '_generate_secure_session_id',
-            '_validate_session_integrity',
-            'session_secret',
-            'token_entropy_bits',
-            '_encrypt_token'
+            "secrets",
+            "hmac",
+            "_generate_secure_session_id",
+            "_validate_session_integrity",
+            "session_secret",
+            "token_entropy_bits",
+            "_encrypt_token",
         ]
 
         implemented = 0
@@ -307,6 +324,7 @@ def test_session_security():
         print(f"   ❌ Session security test failed: {e}")
         return False
 
+
 def test_rate_limiting_security():
     """Test 7: Validate rate limiting bypass fixes"""
     print("\n⏱️ TEST 7: Rate Limiting Security")
@@ -323,14 +341,15 @@ def test_rate_limiting_security():
 
         # Check for fail-closed implementation
         import inspect
+
         source = inspect.getsource(EnterpriseRateLimitingService)
 
         security_features = [
-            'critical_endpoints',
-            'is_critical',
-            'Fail closed for critical endpoints',
-            'Denying access to critical endpoint',
-            'allowed=False'
+            "critical_endpoints",
+            "is_critical",
+            "Fail closed for critical endpoints",
+            "Denying access to critical endpoint",
+            "allowed=False",
         ]
 
         implemented = 0
@@ -344,7 +363,7 @@ def test_rate_limiting_security():
             print("   ✅ Enhanced error handling with security consideration")
 
             # Check for reduced limits
-            if 'max_requests": 60' in source or 'remaining_requests=10' in source:
+            if 'max_requests": 60' in source or "remaining_requests=10" in source:
                 print("   ✅ More restrictive rate limits implemented")
 
             return True
@@ -356,6 +375,7 @@ def test_rate_limiting_security():
         print(f"   ❌ Rate limiting security test failed: {e}")
         return False
 
+
 def run_comprehensive_security_validation():
     """Run all security validation tests"""
     print("🚨 EMERGENCY SECURITY REMEDIATION - VALIDATION SUITE")
@@ -364,13 +384,13 @@ def run_comprehensive_security_validation():
     print(f"Environment: {os.getenv('ENVIRONMENT', 'development')}")
 
     tests = [
-        ('Configuration Security (Hardcoded Credentials)', test_configuration_security),
-        ('Commission Service (SQL Injection)', test_commission_service_security),
-        ('Security Middleware (Auth Bypass)', test_middleware_security),
-        ('Admin Permissions (Privilege Escalation)', test_admin_permission_security),
-        ('Transaction Integrity (Financial Tampering)', test_transaction_integrity),
-        ('Session Management', test_session_security),
-        ('Rate Limiting (Bypass)', test_rate_limiting_security)
+        ("Configuration Security (Hardcoded Credentials)", test_configuration_security),
+        ("Commission Service (SQL Injection)", test_commission_service_security),
+        ("Security Middleware (Auth Bypass)", test_middleware_security),
+        ("Admin Permissions (Privilege Escalation)", test_admin_permission_security),
+        ("Transaction Integrity (Financial Tampering)", test_transaction_integrity),
+        ("Session Management", test_session_security),
+        ("Rate Limiting (Bypass)", test_rate_limiting_security),
     ]
 
     passed = 0
@@ -397,6 +417,7 @@ def run_comprehensive_security_validation():
         print("❌ SOME SECURITY ISSUES REMAIN - DO NOT DEPLOY TO PRODUCTION")
         print(f"📋 {total - passed} security issues still need attention")
         return False
+
 
 if __name__ == "__main__":
     success = run_comprehensive_security_validation()

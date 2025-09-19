@@ -28,9 +28,9 @@ Este módulo contiene el modelo para auditoría de cambios:
 """
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import Column, Text, ForeignKey, JSON
+from sqlalchemy import Column, String, Text, ForeignKey, JSON
 from sqlalchemy import Index
-from sqlalchemy.dialects.postgresql import UUID
+# UUID import removed for SQLite compatibility
 from sqlalchemy.orm import relationship
 from typing import TYPE_CHECKING
 from enum import Enum as PyEnum
@@ -59,7 +59,7 @@ class VendorAuditLog(BaseModel):
     Modelo para auditoría de cambios en vendedores.
     
     Attributes:
-        id: UUID único del registro (heredado de BaseModel)
+        id: str único del registro (heredado de BaseModel)
         vendor_id: ID del vendedor afectado
         admin_id: ID del administrador que realizó la acción
         action_type: Tipo de acción realizada (enum ActionType)
@@ -82,7 +82,7 @@ class VendorAuditLog(BaseModel):
     
     # === CAMPOS PRINCIPALES ===
     vendor_id = Column(
-        UUID(as_uuid=True),
+        String(36),
         ForeignKey('users.id', ondelete='CASCADE'),
         nullable=False,
         index=True,
@@ -90,7 +90,7 @@ class VendorAuditLog(BaseModel):
     )
     
     admin_id = Column(
-        UUID(as_uuid=True),
+        String(36),
         ForeignKey('users.id', ondelete='CASCADE'),
         nullable=False,
         index=True,

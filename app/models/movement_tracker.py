@@ -28,7 +28,7 @@ Este módulo contiene:
 
 from sqlalchemy import Column, String, ForeignKey, DateTime, Text, JSON
 from enum import Enum as PyEnum
-from sqlalchemy.dialects.postgresql import UUID
+# UUID import removed for SQLite compatibility
 from sqlalchemy.orm import relationship
 from typing import Optional, Dict, Any
 from datetime import datetime
@@ -79,7 +79,7 @@ class MovementTracker(BaseModel):
     
     # Relación con MovimientoStock
     movement_id = Column(
-        UUID(as_uuid=True),
+        String(36),
         ForeignKey('movimientos_stock.id'),
         nullable=False,
         index=True,
@@ -88,7 +88,7 @@ class MovementTracker(BaseModel):
     
     # Usuario que realizó la acción
     user_id = Column(
-        UUID(as_uuid=True),
+        String(36),
         ForeignKey('users.id'),
         nullable=False,
         index=True,
@@ -157,7 +157,7 @@ class MovementTracker(BaseModel):
     
     # Para movimientos en lote
     batch_id = Column(
-        UUID(as_uuid=True),
+        String(36),
         nullable=True,
         index=True,
         comment="ID de lote para movimientos agrupados"

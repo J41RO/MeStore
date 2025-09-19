@@ -28,7 +28,7 @@ Este módulo contiene:
 
 from sqlalchemy import Column, String, Integer, ForeignKey, DateTime, Text, Enum
 from enum import Enum as PyEnum
-from sqlalchemy.dialects.postgresql import UUID
+# UUID import removed for SQLite compatibility
 from sqlalchemy.orm import relationship
 from typing import Optional
 from datetime import datetime
@@ -82,7 +82,7 @@ class MovimientoStock(BaseModel):
     
     # Relación con Inventory
     inventory_id = Column(
-        UUID(as_uuid=True),
+        String(36),
         ForeignKey('inventory.id'),
         nullable=False,
         index=True,
@@ -112,7 +112,7 @@ class MovimientoStock(BaseModel):
     
     # Usuario que realizó el movimiento
     user_id = Column(
-        UUID(as_uuid=True),
+        String(36),
         ForeignKey('users.id'),
         nullable=True,
         index=True,

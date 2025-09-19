@@ -28,9 +28,9 @@ Este módulo contiene el modelo para notas internas de administradores:
 """
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import Column, Text, ForeignKey
+from sqlalchemy import Column, String, Text, ForeignKey
 from sqlalchemy import Index
-from sqlalchemy.dialects.postgresql import UUID
+# UUID import removed for SQLite compatibility
 from sqlalchemy.orm import relationship
 from typing import TYPE_CHECKING
 
@@ -45,7 +45,7 @@ class VendorNote(BaseModel):
     Modelo para notas internas de administradores sobre vendedores.
     
     Attributes:
-        id: UUID único del registro (heredado de BaseModel)
+        id: str único del registro (heredado de BaseModel)
         vendor_id: ID del vendedor sobre el que se hace la nota
         admin_id: ID del administrador que crea la nota
         note_text: Contenido de la nota interna
@@ -66,7 +66,7 @@ class VendorNote(BaseModel):
     
     # === CAMPOS PRINCIPALES ===
     vendor_id = Column(
-        UUID(as_uuid=True),
+        String(36),
         ForeignKey('users.id', ondelete='CASCADE'),
         nullable=False,
         index=True,
@@ -74,7 +74,7 @@ class VendorNote(BaseModel):
     )
     
     admin_id = Column(
-        UUID(as_uuid=True),
+        String(36),
         ForeignKey('users.id', ondelete='CASCADE'),
         nullable=False,
         index=True,

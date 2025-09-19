@@ -1,0 +1,229 @@
+# ~/Dockerfile.production
+# ---------------------------------------------------------------------------------------------
+# MESTORE - Production Backend Docker Configuration
+# Copyright (c) 2025 Jairo. Todos los derechos reservados.
+# Licensed under the proprietary license detailed in a LICENSE file in the root of this project.
+# ---------------------------------------------------------------------------------------------
+#
+# Nombre del Archivo: Dockerfile.production
+# Ruta: ~/Dockerfile.production
+# Autor: DevOps Integration AI
+# Fecha de Creación: 2025-09-17
+# Última Actualización: 2025-09-17
+# Versión: 2.0.0
+# Propósito: Containerizar backend Python/FastAPI para producción
+#            Multi-stage build con hardening de seguridad y optimización
+#
+# Modificaciones:
+# 2025-09-17 - Configuración production-ready con security hardening
+#
+# ---------------------------------------------------------------------------------------------
+
+# ===== STAGE 1: DEPENDENCY BUILDER =====
+FROM python:3.11-slim AS dependency-builder
+
+# Metadatos del builder stage
+LABEL stage="dependency-builder"
+LABEL description="MeStore Backend Dependencies Builder"
+
+# Variables de entorno para build
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PIP_NO_CACHE_DIR=1
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Instalar dependencias del sistema para compilación
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc \
+    g++ \
+    libc6-dev \
+    libpq-dev \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Crear directorio para dependencias
+WORKDIR /app
+
+# Copiar archivo de dependencias
+COPY requirements.txt .
+
+# Instalar dependencias en directorio específico
+RUN pip install --user --no-cache-dir --upgrade pip \
+    && pip install --user --no-cache-dir -r requirements.txt
+
+# ===== STAGE 2: APPLICATION BUILDER =====
+FROM python:3.11-slim AS application-builder
+
+# Metadatos del app builder stage
+LABEL stage="application-builder"
+LABEL description="MeStore Backend Application Builder"
+
+# Variables de entorno
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# Instalar herramientas mínimas necesarias
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Crear usuario de aplicación
+RUN groupadd --gid 1000 appuser \
+    && useradd --uid 1000 --gid appuser --shell /bin/bash --create-home appuser
+
+# Copiar dependencias del stage anterior
+COPY --from=dependency-builder /root/.local /home/appuser/.local
+
+# Cambiar al usuario de aplicación
+USER appuser
+WORKDIR /home/appuser/app
+
+# Asegurar que el PATH incluye los binarios de usuario
+ENV PATH=/home/appuser/.local/bin:$PATH
+
+# Copiar código fuente con ownership correcto
+COPY --chown=appuser:appuser . .
+
+# Verificar la instalación de dependencias
+RUN python -c "import fastapi, uvicorn, sqlalchemy, alembic, redis; print('Dependencies verified')"
+
+# ===== STAGE 3: PRODUCTION RUNTIME =====
+FROM python:3.11-slim AS production
+
+# Metadatos de producción
+LABEL maintainer="jairo.colina.co@gmail.com"
+LABEL description="MeStore Backend - Production Ready with Security Hardening"
+LABEL version="2.0.0"
+LABEL org.opencontainers.image.title="MeStore Backend"
+LABEL org.opencontainers.image.description="FastAPI marketplace backend for production deployment"
+LABEL org.opencontainers.image.version="2.0.0"
+LABEL org.opencontainers.image.vendor="MeStore"
+
+# Variables de entorno de producción
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV ENVIRONMENT=production
+ENV PYTHONPATH=/home/appuser/app
+ENV PATH=/home/appuser/.local/bin:$PATH
+
+# Instalar dependencias mínimas del sistema y herramientas de seguridad
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # Runtime dependencies
+    libpq5 \
+    curl \
+    # Security tools
+    ca-certificates \
+    # Health check tools
+    netcat-openbsd \
+    # Logging tools
+    logrotate \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Actualizar certificados SSL
+RUN update-ca-certificates
+
+# Crear usuario de aplicación con configuración de seguridad
+RUN groupadd --gid 1000 appuser \
+    && useradd --uid 1000 --gid appuser --shell /bin/bash --create-home appuser \
+    && mkdir -p /home/appuser/app/logs \
+    && chown -R appuser:appuser /home/appuser
+
+# Cambiar a usuario no-root
+USER appuser
+WORKDIR /home/appuser/app
+
+# Copiar aplicación y dependencias del builder stage
+COPY --from=application-builder --chown=appuser:appuser /home/appuser/.local /home/appuser/.local
+COPY --from=application-builder --chown=appuser:appuser /home/appuser/app .
+
+# Crear directorios necesarios para logs y datos
+RUN mkdir -p logs uploads qr_codes \
+    && chmod 755 logs uploads qr_codes
+
+# Configurar logrotate para la aplicación (como root temporalmente)
+USER root
+RUN echo '/home/appuser/app/logs/*.log {\n\
+    daily\n\
+    missingok\n\
+    rotate 30\n\
+    compress\n\
+    delaycompress\n\
+    notifempty\n\
+    create 0644 appuser appuser\n\
+    postrotate\n\
+        /usr/bin/killall -USR1 uvicorn || true\n\
+    endscript\n\
+}' > /etc/logrotate.d/mestore
+
+# Volver al usuario de aplicación
+USER appuser
+
+# Verificar que todas las dependencias están instaladas
+RUN python -c "import fastapi, uvicorn, sqlalchemy, alembic, redis; print('Production dependencies verified')"
+
+# Exponer puerto de aplicación
+EXPOSE 8000
+
+# Health check para monitoreo
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Variables de entorno adicionales para producción
+ENV UVICORN_HOST=0.0.0.0
+ENV UVICORN_PORT=8000
+ENV UVICORN_WORKERS=4
+ENV UVICORN_LOOP=uvloop
+ENV UVICORN_HTTP=httptools
+ENV UVICORN_ACCESS_LOG=true
+ENV UVICORN_LOG_LEVEL=info
+
+# Script de inicio para producción
+COPY --chown=appuser:appuser scripts/production-entrypoint.sh /home/appuser/production-entrypoint.sh
+RUN chmod +x /home/appuser/production-entrypoint.sh
+
+# Comando de producción optimizado
+CMD ["/home/appuser/production-entrypoint.sh"]
+
+# ===== STAGE 4: DEVELOPMENT (Optional) =====
+FROM production AS development
+
+# Metadatos de desarrollo
+LABEL stage="development"
+LABEL description="MeStore Backend - Development with debugging tools"
+
+# Cambiar a root para instalar herramientas de desarrollo
+USER root
+
+# Instalar herramientas de desarrollo adicionales
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    vim \
+    git \
+    htop \
+    strace \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Volver al usuario de aplicación
+USER appuser
+
+# Instalar dependencias de desarrollo
+RUN pip install --user --no-cache-dir \
+    debugpy \
+    pytest \
+    pytest-cov \
+    black \
+    flake8 \
+    isort
+
+# Override para desarrollo con hot-reload
+ENV ENVIRONMENT=development
+ENV UVICORN_WORKERS=1
+ENV UVICORN_RELOAD=true
+ENV UVICORN_LOG_LEVEL=debug
+
+# Comando de desarrollo
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--log-level", "debug"]

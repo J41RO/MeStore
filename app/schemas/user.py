@@ -26,9 +26,11 @@ from uuid import UUID
 import re
 
 from app.models.user import UserType
+from app.schemas.base import BaseSchema, BaseIDSchema, BaseCreateSchema, BaseUpdateSchema, BaseResponseSchema
+from app.core.id_validation import IDValidationMixin
 
 
-class UserBase(BaseModel):
+class UserBase(BaseSchema):
     """
     Schema base con campos compartidos entre operaciones.
 
@@ -40,7 +42,7 @@ class UserBase(BaseModel):
     email: EmailStr = Field(..., description="Email único del usuario")
     nombre: str = Field(..., min_length=2, max_length=50, description="Nombre del usuario")
     apellido: str = Field(..., min_length=2, max_length=50, description="Apellido del usuario")
-    user_type: UserType = Field(default=UserType.COMPRADOR, description="Tipo de usuario en el sistema")
+    user_type: UserType = Field(default=UserType.BUYER, description="Tipo de usuario en el sistema")
 
     # Campos específicos colombianos (opcionales)
     cedula: Optional[str] = Field(None, description="Cédula de ciudadanía colombiana")
@@ -86,15 +88,14 @@ class UserBase(BaseModel):
 
         return f"+57 {phone_clean}"
 
-    class Config:
-        """Configuración del schema"""
-        from_attributes = True
-        json_schema_extra = {
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
             "example": {
                 "email": "juan.perez@email.com",
                 "nombre": "Juan",
                 "apellido": "Pérez",
-                "user_type": "COMPRADOR",
+                "user_type": "buyer",
                 "cedula": "12345678",
                 "telefono": "+57 300 123 4567",
                 "ciudad": "Bogotá",
@@ -103,9 +104,10 @@ class UserBase(BaseModel):
                 "is_verified": False
             }
         }
+    )
 
 
-class UserCreate(UserBase):
+class UserCreate(UserBase, BaseCreateSchema):
     """
     Schema para crear nuevos usuarios.
 
@@ -126,16 +128,27 @@ class UserCreate(UserBase):
             raise ValueError("Contraseña debe tener al menos un número")
         return v
 
-    class Config(UserBase.Config):
-        json_schema_extra = {
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
             "example": {
-                **UserBase.Config.json_schema_extra["example"],
+                "email": "juan.perez@email.com",
+                "nombre": "Juan",
+                "apellido": "Pérez",
+                "user_type": "buyer",
+                "cedula": "12345678",
+                "telefono": "+57 300 123 4567",
+                "ciudad": "Bogotá",
+                "empresa": "Mi Empresa SAS",
+                "direccion": "Calle 123 #45-67, Bogotá",
+                "is_verified": False,
                 "password": "MiPassword123"
             }
         }
+    )
 
 
-class UserUpdate(BaseModel):
+class UserUpdate(BaseUpdateSchema):
     """
     Schema para actualizaciones parciales de usuario.
 
@@ -172,18 +185,19 @@ class UserUpdate(BaseModel):
             return v
         return UserBase.validate_telefono(v)
 
-    class Config:
-        from_attributes = True
-        json_schema_extra = {
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
             "example": {
                 "nombre": "Juan Carlos",
                 "telefono": "+57 300 987 6543",
                 "ciudad": "Medellín"
             }
         }
+    )
 
 
-class UserRead(UserBase):
+class UserRead(BaseResponseSchema):
     """
     Schema para respuestas de API que incluyen datos completos del usuario.
 
@@ -194,16 +208,36 @@ class UserRead(UserBase):
 
     Usado en auth.py - MANTENER COMPATIBILIDAD
     """
-    id: UUID = Field(..., description="Identificador único del usuario")
+    # Inherit id, created_at, updated_at from BaseResponseSchema
+    email: EmailStr = Field(..., description="Email único del usuario")
+    nombre: str = Field(..., min_length=2, max_length=50, description="Nombre del usuario")
+    apellido: str = Field(..., min_length=2, max_length=50, description="Apellido del usuario")
+    user_type: UserType = Field(default=UserType.BUYER, description="Tipo de usuario en el sistema")
     is_active: bool = Field(..., description="Estado activo del usuario")
-    created_at: datetime = Field(..., description="Fecha de creación del usuario")
-    updated_at: datetime = Field(..., description="Fecha de última actualización")
+
+    # Campos específicos colombianos (opcionales)
+    cedula: Optional[str] = Field(None, description="Cédula de ciudadanía colombiana")
+    telefono: Optional[str] = Field(None, description="Número de teléfono (formato colombiano)")
+    ciudad: Optional[str] = Field(None, max_length=100, description="Ciudad de residencia")
+    empresa: Optional[str] = Field(None, max_length=200, description="Empresa donde trabaja")
+    direccion: Optional[str] = Field(None, max_length=300, description="Dirección completa")
+    is_verified: bool = Field(default=False, description="Estado de verificación del usuario")
     last_login: Optional[datetime] = Field(None, description="Fecha del último login")
 
-    class Config(UserBase.Config):
-        json_schema_extra = {
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
             "example": {
-                **UserBase.Config.json_schema_extra["example"],
+                "email": "juan.perez@email.com",
+                "nombre": "Juan",
+                "apellido": "Pérez",
+                "user_type": "buyer",
+                "cedula": "12345678",
+                "telefono": "+57 300 123 4567",
+                "ciudad": "Bogotá",
+                "empresa": "Mi Empresa SAS",
+                "direccion": "Calle 123 #45-67, Bogotá",
+                "is_verified": False,
                 "id": "550e8400-e29b-41d4-a716-446655440000",
                 "is_active": True,
                 "created_at": "2025-01-15T10:30:00Z",
@@ -211,13 +245,14 @@ class UserRead(UserBase):
                 "last_login": "2025-01-15T10:30:00Z"
             }
         }
+    )
 
 
 # Alias más descriptivo para UserRead
 UserResponse = UserRead
 
 
-class UserInDB(UserRead):
+class UserInDB(UserRead, IDValidationMixin):
     """
     Schema interno que incluye campos sensibles (solo para uso interno).
 
@@ -225,13 +260,29 @@ class UserInDB(UserRead):
     """
     password_hash: str = Field(..., description="Hash de la contraseña")
 
-    class Config(UserRead.Config):
-        json_schema_extra = {
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
             "example": {
-                **UserRead.Config.json_schema_extra["example"],
+                "email": "juan.perez@email.com",
+                "nombre": "Juan",
+                "apellido": "Pérez",
+                "user_type": "buyer",
+                "cedula": "12345678",
+                "telefono": "+57 300 123 4567",
+                "ciudad": "Bogotá",
+                "empresa": "Mi Empresa SAS",
+                "direccion": "Calle 123 #45-67, Bogotá",
+                "is_verified": False,
+                "id": "550e8400-e29b-41d4-a716-446655440000",
+                "is_active": True,
+                "created_at": "2025-01-15T10:30:00Z",
+                "updated_at": "2025-01-15T10:30:00Z",
+                "last_login": "2025-01-15T10:30:00Z",
                 "password_hash": "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewJM5bfQ9q6ib.rK"
             }
         }
+    )
 
 
 # Exports para facilitar imports

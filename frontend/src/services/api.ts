@@ -21,9 +21,9 @@ baseApi.interceptors.request.use((config) => {
 
 // Endpoints específicos para autenticación
 export const authAPI = {
-  login: (credentials: any) => baseApi.post('/api/auth/login', credentials),
-  register: (userData: any) => baseApi.post('/api/auth/register', userData),
-  refresh: (refreshToken: string) => baseApi.post('/api/auth/refresh', { refresh_token: refreshToken })
+  login: (credentials: any) => baseApi.post('/auth/login', credentials),
+  register: (userData: any) => baseApi.post('/auth/register', userData),
+  refresh: (refreshToken: string) => baseApi.post('/auth/refresh-token', { refresh_token: refreshToken })
 };
 
 // Endpoints específicos para usuarios

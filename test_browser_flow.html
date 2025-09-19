@@ -17,7 +17,7 @@
 </head>
 <body>
     <h1>🧪 Test de Autenticación MeStore</h1>
-    
+
     <div class="section info">
         <h3>📋 Credenciales de Prueba</h3>
         <ul>
@@ -46,7 +46,7 @@
 
     <script>
         const API_BASE = 'http://192.168.1.137:8000/api/v1';
-        
+
         function log(message, type = 'info') {
             const results = document.getElementById('results');
             const div = document.createElement('div');
@@ -59,12 +59,12 @@
         async function testLogin() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            
+
             log(`🔐 Intentando login con: ${email}`, 'info');
-            
+
             try {
                 const endpoint = email.includes('admin') || email.includes('super') ? '/auth/admin-login' : '/auth/login';
-                
+
                 const response = await fetch(`${API_BASE}${endpoint}`, {
                     method: 'POST',
                     headers: {
@@ -77,10 +77,10 @@
                 if (response.ok) {
                     const data = await response.json();
                     const token = data.access_token;
-                    
+
                     // Simular lo que hace el frontend
                     localStorage.setItem('auth_token', token);
-                    
+
                     // Obtener datos del usuario
                     const userResponse = await fetch(`${API_BASE}/auth/me`, {
                         headers: {
@@ -89,10 +89,10 @@
                             'User-Agent': 'MeStore-Frontend/1.0'
                         }
                     });
-                    
+
                     if (userResponse.ok) {
                         const userData = await userResponse.json();
-                        
+
                         // Simular el store de Zustand
                         const authData = {
                             user: {
@@ -104,29 +104,29 @@
                             token: token,
                             isAuthenticated: true
                         };
-                        
+
                         localStorage.setItem('auth-storage', JSON.stringify({
                             state: authData,
                             version: 0
                         }));
-                        
+
                         log(`✅ Login exitoso! Rol: ${userData.user_type}`, 'success');
                         log(`🎫 Token guardado en localStorage`, 'success');
                         log(`📋 Datos del usuario: ${JSON.stringify(userData, null, 2)}`, 'info');
-                        
+
                         // Sugerir próximo paso
                         const dashboardUrl = getDashboardUrl(userData.user_type);
                         log(`🔗 Deberías poder acceder a: <a href="${dashboardUrl}" target="_blank">${dashboardUrl}</a>`, 'info');
-                        
+
                     } else {
                         log(`❌ Error obteniendo datos del usuario: ${userResponse.status}`, 'error');
                     }
-                    
+
                 } else {
                     const errorData = await response.text();
                     log(`❌ Error en login: ${response.status} - ${errorData}`, 'error');
                 }
-                
+
             } catch (error) {
                 log(`❌ Error de conexión: ${error.message}`, 'error');
             }
@@ -137,7 +137,7 @@
             switch(userType) {
                 case 'COMPRADOR': return `${baseUrl}/app/dashboard`;
                 case 'VENDEDOR': return `${baseUrl}/app/vendor-dashboard`;
-                case 'ADMIN': 
+                case 'ADMIN':
                 case 'SUPERUSER': return `${baseUrl}/admin-secure-portal/dashboard`;
                 default: return `${baseUrl}/`;
             }
@@ -146,13 +146,13 @@
         function checkAuth() {
             const token = localStorage.getItem('auth_token');
             const authStorage = localStorage.getItem('auth-storage');
-            
+
             if (token) {
                 log(`🎫 Token encontrado: ${token.substring(0, 20)}...`, 'success');
             } else {
                 log(`❌ No hay token en localStorage`, 'error');
             }
-            
+
             if (authStorage) {
                 try {
                     const parsed = JSON.parse(authStorage);

@@ -33,7 +33,6 @@ Este módulo contiene:
 from decimal import Decimal
 from enum import Enum as PyEnum
 from typing import Optional
-from uuid import UUID
 from datetime import datetime
 
 from sqlalchemy import (
@@ -45,7 +44,6 @@ from sqlalchemy import (
     Index,
     String,
     Text,
-    UUID as SQLAlchemyUUID,
     DateTime,
 )
 from sqlalchemy.orm import relationship
@@ -147,7 +145,7 @@ class Transaction(BaseModel):
 
     # FK para relación con Inventory
     inventory_id = Column(
-        SQLAlchemyUUID(as_uuid=True),
+        String(36),
         ForeignKey("inventory.id"),
         nullable=True,
         index=True,
@@ -212,7 +210,7 @@ class Transaction(BaseModel):
 
     # Relationships con otros modelos
     comprador_id = Column(
-        SQLAlchemyUUID(as_uuid=True),
+        String(36),
         ForeignKey("users.id"),
         nullable=False,
         index=True,
@@ -220,7 +218,7 @@ class Transaction(BaseModel):
     )
 
     vendedor_id = Column(
-        SQLAlchemyUUID(as_uuid=True),
+        String(36),
         ForeignKey("users.id"),
         nullable=True,
         index=True,
@@ -228,7 +226,7 @@ class Transaction(BaseModel):
     )
 
     product_id = Column(
-        SQLAlchemyUUID(as_uuid=True),
+        String(36),
         ForeignKey("products.id"),
         nullable=True,
         index=True,
@@ -389,3 +387,6 @@ class Transaction(BaseModel):
             "es_pago_digital": self.es_pago_digital(),
         }
         return {**base_dict, **transaction_dict}
+# Aliases for English compatibility
+TransactionStatus = EstadoTransaccion
+PaymentMethod = MetodoPago

@@ -28,12 +28,12 @@ try {
     // Intentar acceder al store de Zustand directamente
     const zustandStores = Object.keys(window).filter(key => key.includes('zustand') || key.includes('store'));
     console.log('🔍 Stores detectados:', zustandStores);
-    
+
     // Verificar si hay un store global accesible
     if (window.__ZUSTAND__) {
         console.log('🏪 Zustand devtools detectado:', window.__ZUSTAND__);
     }
-    
+
 } catch (e) {
     console.log('⚠️ No se puede acceder directamente al store Zustand');
 }
@@ -69,7 +69,7 @@ console.group('⚛️ ANÁLISIS DE REACT DEVTOOLS');
 if (window.__REACT_DEVTOOLS_GLOBAL_HOOK__) {
     console.log('✅ React DevTools detectado');
     console.log('🔍 Intentando encontrar componentes de autenticación...');
-    
+
     // Función helper para buscar componentes
     window.findAuthComponents = () => {
         const hook = window.__REACT_DEVTOOLS_GLOBAL_HOOK__;
@@ -77,7 +77,7 @@ if (window.__REACT_DEVTOOLS_GLOBAL_HOOK__) {
             console.log('🔍 Renderizadores React:', Object.keys(hook.renderers));
         }
     };
-    
+
     findAuthComponents();
 } else {
     console.log('⚠️ React DevTools no detectado');
@@ -87,46 +87,46 @@ console.groupEnd();
 // 6. Función para testear validación de roles
 window.testRoleValidation = () => {
     console.group('🧪 TEST DE VALIDACIÓN DE ROLES');
-    
+
     const authStorage = localStorage.getItem('auth-storage');
     if (!authStorage) {
         console.error('❌ No hay datos de autenticación');
         console.groupEnd();
         return;
     }
-    
+
     try {
         const parsed = JSON.parse(authStorage);
         const userType = parsed?.state?.user?.user_type;
-        
+
         console.log('👤 Usuario autenticado:', parsed?.state?.user?.email);
         console.log('🎭 Rol del usuario:', userType);
         console.log('🔐 Estado autenticado:', parsed?.state?.isAuthenticated);
-        
+
         // Simular validación de RoleGuard para vendedor
         console.log('\n🔍 SIMULANDO VALIDACIÓN DE ROLEGUARD:');
         console.log('Ruta: /app/vendor-dashboard');
         console.log('Rol requerido: ["VENDEDOR"]');
         console.log('Estrategia: "minimum"');
-        
+
         const roleHierarchy = {
             'COMPRADOR': 1,
             'VENDEDOR': 2,
             'ADMIN': 3,
             'SUPERUSER': 4
         };
-        
+
         const userLevel = roleHierarchy[userType];
         const requiredLevel = roleHierarchy['VENDEDOR'];
-        
+
         console.log(`👤 Nivel del usuario: ${userLevel} (${userType})`);
         console.log(`🎯 Nivel requerido: ${requiredLevel} (VENDEDOR)`);
         console.log(`✅ ¿Acceso permitido?: ${userLevel >= requiredLevel ? 'SÍ' : 'NO'}`);
-        
+
     } catch (e) {
         console.error('❌ Error en test:', e);
     }
-    
+
     console.groupEnd();
 };
 
@@ -140,11 +140,11 @@ window.forceReauth = () => {
 // 8. Función para debug de RoleGuard
 window.debugRoleGuard = () => {
     console.group('🛡️ DEBUG ROLEGUARD');
-    
+
     // Buscar elementos con atributos de RoleGuard
     const roleGuardElements = document.querySelectorAll('[data-role-guard]');
     console.log(`🔍 Elementos RoleGuard encontrados: ${roleGuardElements.length}`);
-    
+
     roleGuardElements.forEach((el, i) => {
         console.log(`Element ${i}:`, {
             element: el,
@@ -152,7 +152,7 @@ window.debugRoleGuard = () => {
             visible: el.style.display !== 'none'
         });
     });
-    
+
     console.groupEnd();
 };
 

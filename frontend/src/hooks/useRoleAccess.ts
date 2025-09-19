@@ -9,7 +9,7 @@ export interface UseRoleAccessReturn {
   isAdmin: boolean;
   isSuperUser: boolean;
   isVendor: boolean;
-  isComprador: boolean;
+  isBuyer: boolean;
   canAccess: (requiredRoles: UserType[], requireAll?: boolean) => boolean;
   getCurrentRole: () => UserType | null;
   getRoleHierarchyLevel: (role: UserType) => number;
@@ -17,8 +17,8 @@ export interface UseRoleAccessReturn {
 
 // Define role hierarchy levels (higher number = more permissions)
 const ROLE_HIERARCHY: Record<UserType, number> = {
-  [UserType.COMPRADOR]: 1,
-  [UserType.VENDEDOR]: 2,
+  [UserType.BUYER]: 1,
+  [UserType.VENDOR]: 2,
   [UserType.ADMIN]: 3,
   [UserType.SUPERUSER]: 4,
 };
@@ -34,6 +34,16 @@ export const useRoleAccess = (): UseRoleAccessReturn => {
   const roleAccessUtils = useMemo(() => {
     const currentUserType = user?.user_type || null;
     const currentRoleLevel = currentUserType ? ROLE_HIERARCHY[currentUserType] : 0;
+
+    // DEBUG: Logging detallado
+    console.log('🔍 useRoleAccess DEBUG:');
+    console.log('👤 user:', user);
+    console.log('🎭 currentUserType:', currentUserType);
+    console.log('🎯 typeof currentUserType:', typeof currentUserType);
+    console.log('📊 currentRoleLevel:', currentRoleLevel);
+    console.log('🏗️ ROLE_HIERARCHY:', ROLE_HIERARCHY);
+    console.log('🔑 ROLE_HIERARCHY keys:', Object.keys(ROLE_HIERARCHY));
+    console.log('🎯 ROLE_HIERARCHY[currentUserType]:', ROLE_HIERARCHY[currentUserType as UserType]);
 
     return {
       /**
@@ -104,8 +114,8 @@ export const useRoleAccess = (): UseRoleAccessReturn => {
       // Convenience boolean properties
       isAdmin: currentUserType === UserType.ADMIN,
       isSuperUser: currentUserType === UserType.SUPERUSER,
-      isVendor: currentUserType === UserType.VENDEDOR,
-      isComprador: currentUserType === UserType.COMPRADOR,
+      isVendor: currentUserType === UserType.VENDOR,
+      isBuyer: currentUserType === UserType.BUYER,
     };
   }, [user, isAuthenticated]);
 
@@ -126,10 +136,10 @@ export const createRoleHook = (allowedRoles: UserType[]) => {
  * Predefined role hooks for common use cases
  */
 export const useIsAdminOrHigher = createRoleHook([UserType.ADMIN, UserType.SUPERUSER]);
-export const useIsVendorOrHigher = createRoleHook([UserType.VENDEDOR, UserType.ADMIN, UserType.SUPERUSER]);
+export const useIsVendorOrHigher = createRoleHook([UserType.VENDOR, UserType.ADMIN, UserType.SUPERUSER]);
 export const useCanManageUsers = createRoleHook([UserType.ADMIN, UserType.SUPERUSER]);
-export const useCanManageInventory = createRoleHook([UserType.VENDEDOR, UserType.ADMIN, UserType.SUPERUSER]);
-export const useCanViewReports = createRoleHook([UserType.VENDEDOR, UserType.ADMIN, UserType.SUPERUSER]);
+export const useCanManageInventory = createRoleHook([UserType.VENDOR, UserType.ADMIN, UserType.SUPERUSER]);
+export const useCanViewReports = createRoleHook([UserType.VENDOR, UserType.ADMIN, UserType.SUPERUSER]);
 export const useCanAccessAdmin = createRoleHook([UserType.ADMIN, UserType.SUPERUSER]);
 
 /**
@@ -137,8 +147,8 @@ export const useCanAccessAdmin = createRoleHook([UserType.ADMIN, UserType.SUPERU
  */
 export const getRoleDisplayName = (role: UserType): string => {
   const roleNames: Record<UserType, string> = {
-    [UserType.COMPRADOR]: 'Comprador',
-    [UserType.VENDEDOR]: 'Vendedor',
+    [UserType.BUYER]: 'Comprador',
+    [UserType.VENDOR]: 'Vendedor',
     [UserType.ADMIN]: 'Administrador',
     [UserType.SUPERUSER]: 'Super Usuario',
   };
@@ -150,12 +160,12 @@ export const getRoleDisplayName = (role: UserType): string => {
  */
 export const getRolePermissions = (role: UserType): string[] => {
   const permissions: Record<UserType, string[]> = {
-    [UserType.COMPRADOR]: [
+    [UserType.BUYER]: [
       'Ver productos disponibles',
       'Realizar compras',
       'Gestionar perfil personal',
     ],
-    [UserType.VENDEDOR]: [
+    [UserType.VENDOR]: [
       'Gestionar inventario',
       'Procesar pedidos',
       'Ver reportes de ventas',

@@ -118,7 +118,7 @@ def get_database_url():
                 return resolved_url
         
         # Fallback to environment variable or settings
-        database_url = os.getenv('DATABASE_URL', settings.DATABASE_URL)
+        database_url = 'sqlite:///./mestore_production.db' # FORZADO PARA ALEMBIC
         print(f"⚠️ Fallback to environment/settings")
         print(f"🔗 DATABASE_URL: {database_url[:50]}...")
         return database_url
@@ -126,7 +126,7 @@ def get_database_url():
     except Exception as e:
         print(f"❌ Error reading alembic section: {e}")
         # Final fallback to settings
-        database_url = settings.DATABASE_URL
+        database_url = 'sqlite:///./mestore_production.db' # FORZADO PARA ALEMBIC
         print(f"🚨 Final fallback to settings")
         print(f"🔗 DATABASE_URL: {database_url[:50]}...")
         return database_url

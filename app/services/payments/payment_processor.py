@@ -10,6 +10,7 @@ from app.models.order import Order, Transaction, PaymentMethod, PaymentStatus, O
 from app.models.payment import Payment, PaymentIntent, WebhookEvent, WebhookEventType, WebhookEventStatus
 from app.models.user import User
 from app.services.payments.wompi_service import get_wompi_service
+from app.services.payments.fraud_detection_service import FraudDetectionService, FraudAction
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +18,7 @@ class PaymentProcessor:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.wompi = get_wompi_service()
+        self.fraud_detector = FraudDetectionService(db)
 
     async def create_payment_intent(
         self,

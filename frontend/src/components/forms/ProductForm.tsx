@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { X, CheckCircle, AlertTriangle } from 'lucide-react';
@@ -87,7 +87,48 @@ const ProductForm: React.FC<ProductFormProps> = ({
   const precioVenta = watch('precio_venta');
   const precioCosto = watch('precio_costo');
   const watchedName = watch('name');
+  const watchedDescription = watch('description');
+  const watchedCategory = watch('category');
+  const watchedPrecioVenta = watch('precio_venta');
+  const watchedPrecioCosto = watch('precio_costo');
+  const watchedStock = watch('stock');
+  const watchedPeso = watch('peso');
   const watchedDimensions = watch(['largo', 'ancho', 'alto', 'peso']);
+
+  // Cálculo de validación personalizado (consistente con checklist)
+  const isFormValid = useMemo(() => {
+    const requiredFields = [
+      { name: 'name', value: watchedName, minLength: 3 },
+      { name: 'description', value: watchedDescription, minLength: 10 },
+      { name: 'category', value: watchedCategory },
+      { name: 'precio_venta', value: watchedPrecioVenta, minValue: 1000 },
+      { name: 'precio_costo', value: watchedPrecioCosto, minValue: 1 },
+      { name: 'stock', value: watchedStock, minValue: 0 },
+      { name: 'peso', value: watchedPeso, minValue: 0.01 }
+    ];
+
+    const allFieldsValid = requiredFields.every(field => {
+      if (errors[field.name]) return false;
+      if (!field.value && field.value !== 0) return false;
+      if (field.minLength && field.value.length < field.minLength) return false;
+      if (field.minValue && field.value < field.minValue) return false;
+      return true;
+    });
+
+    // Validación adicional: precio_costo debe ser menor que precio_venta
+    const pricesValid = watchedPrecioCosto && watchedPrecioVenta && watchedPrecioCosto < watchedPrecioVenta;
+
+    return allFieldsValid && pricesValid;
+  }, [
+    errors,
+    watchedName,
+    watchedDescription,
+    watchedCategory,
+    watchedPrecioVenta,
+    watchedPrecioCosto,
+    watchedStock,
+    watchedPeso
+  ]);
 
   // Validación asíncrona de nombre único
   const checkNameAvailability = useCallback(
@@ -354,18 +395,37 @@ const ProductForm: React.FC<ProductFormProps> = ({
   const categoryOptions = getCategoryOptions();
 
   return (
-    <div className='product-form'>
-      <div className='form-header mb-6'>
-        <h2 className='text-2xl font-bold text-gray-900 dark:text-white'>
+    <div className='product-form bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 min-h-screen p-6 rounded-xl'>
+      <div className='form-header mb-8'>
+        <h2 className='text-2xl font-bold text-white'>
           {mode === 'create' ? 'Crear Nuevo Producto' : 'Editar Producto'}
         </h2>
+        <p className='text-slate-200 mt-2'>
+          {mode === 'create'
+            ? 'Completa la información para agregar un producto a tu catálogo'
+            : 'Actualiza la información de tu producto'
+          }
+        </p>
       </div>
 
       {message && (
-        <div className='p-4 rounded-lg mb-6 bg-green-50 border border-green-200 text-green-800'>
-          <div className='flex'>
-            <div className='flex-1'>{message.text}</div>
-            <button onClick={clearMessage} className='ml-2'>
+        <div className={`p-4 rounded-lg mb-6 border transition-all duration-300 ${
+          message.type === 'success'
+            ? 'bg-emerald-50 border-emerald-200 text-emerald-800 shadow-emerald-100'
+            : message.type === 'error'
+              ? 'bg-red-50 border-red-200 text-red-800 shadow-red-100'
+              : 'bg-blue-50 border-blue-200 text-blue-800 shadow-blue-100'
+        } shadow-lg`}>
+          <div className='flex items-center'>
+            <div className='flex-1 font-medium'>{message.text}</div>
+            <button
+              onClick={clearMessage}
+              className={`ml-3 text-lg hover:scale-110 transition-transform ${
+                message.type === 'success' ? 'text-emerald-600 hover:text-emerald-800'
+                : message.type === 'error' ? 'text-red-600 hover:text-red-800'
+                : 'text-blue-600 hover:text-blue-800'
+              }`}
+            >
               ×
             </button>
           </div>
@@ -385,16 +445,20 @@ const ProductForm: React.FC<ProductFormProps> = ({
             helpText="Nombre único y descriptivo del producto"
           />
           {validationState.nameAvailable === false && (
-            <p className="text-sm text-amber-600 flex items-center animate-fade-in">
-              <AlertTriangle className="w-4 h-4 mr-1" />
-              Este nombre ya está en uso
-            </p>
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-2">
+              <p className="text-sm text-amber-700 flex items-center animate-fade-in font-medium">
+                <AlertTriangle className="w-4 h-4 mr-2 text-amber-500" />
+                Este nombre ya está en uso. Intenta con una variación.
+              </p>
+            </div>
           )}
           {validationState.nameAvailable === true && (
-            <p className="text-sm text-green-600 flex items-center animate-fade-in">
-              <CheckCircle className="w-4 h-4 mr-1" />
-              Nombre disponible
-            </p>
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 mt-2">
+              <p className="text-sm text-emerald-700 flex items-center animate-fade-in font-medium">
+                <CheckCircle className="w-4 h-4 mr-2 text-emerald-500" />
+                ¡Perfecto! Este nombre está disponible.
+              </p>
+            </div>
           )}
         </div>
 
@@ -444,28 +508,34 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
         {/* Indicador de margen de ganancia */}
         {precioVenta && precioCosto && (
-          <div className="bg-gray-50 p-4 rounded-lg border">
-            <h4 className="text-sm font-medium text-gray-700 mb-2">Análisis de Precio</h4>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-600">Margen de ganancia:</span>
-                <span className={`text-sm font-medium ${
-                  validationState.marginHealthy ? 'text-green-600' : 'text-amber-600'
+          <div className="bg-gradient-to-br from-slate-50 to-blue-50 p-5 rounded-xl border border-slate-200 shadow-sm">
+            <h4 className="text-base font-semibold text-slate-800 mb-3 flex items-center">
+              💰 Análisis de Rentabilidad
+            </h4>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-slate-100">
+                <span className="text-sm font-medium text-slate-700">Margen de ganancia:</span>
+                <span className={`text-lg font-bold ${
+                  validationState.marginHealthy
+                    ? 'text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full'
+                    : 'text-amber-600 bg-amber-50 px-3 py-1 rounded-full'
                 }`}>
                   {(((precioVenta - precioCosto) / precioVenta) * 100).toFixed(1)}%
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-600">Ganancia por unidad:</span>
-                <span className="text-sm font-medium text-gray-900">
+              <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-slate-100">
+                <span className="text-sm font-medium text-slate-700">Ganancia por unidad:</span>
+                <span className="text-lg font-bold text-blue-600">
                   ${(precioVenta - precioCosto).toLocaleString()} COP
                 </span>
               </div>
               {!validationState.marginHealthy && (
-                <p className="text-sm text-amber-600 flex items-center">
-                  <AlertTriangle className="w-4 h-4 mr-1" />
-                  Margen recomendado entre 10% y 80%
-                </p>
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                  <p className="text-sm text-amber-700 flex items-center font-medium">
+                    <AlertTriangle className="w-4 h-4 mr-2 text-amber-500" />
+                    Recomendación: Margen saludable entre 10% y 80%
+                  </p>
+                </div>
               )}
             </div>
           </div>
@@ -501,7 +571,9 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
         {/* Campos de dimensiones físicas */}
         <div className="space-y-4">
-          <h3 className="text-lg font-medium text-gray-900">Dimensiones y Peso</h3>
+          <h3 className="text-lg font-semibold text-white flex items-center">
+            📦 Dimensiones y Peso
+          </h3>
           <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
             <NumberField
               label="Largo"
@@ -551,15 +623,27 @@ const ProductForm: React.FC<ProductFormProps> = ({
           
           {/* Validación de coherencia de dimensiones */}
           {watchedDimensions.every(val => val && val > 0) && (
-            <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-              <p className="text-sm text-blue-800">
-                <strong>Volumen calculado:</strong> {(watchedDimensions[0] * watchedDimensions[1] * watchedDimensions[2]).toLocaleString()} cm³
-              </p>
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-blue-800">
+                    📐 Volumen calculado: <span className="font-bold">{(watchedDimensions[0] * watchedDimensions[1] * watchedDimensions[2]).toLocaleString()} cm³</span>
+                  </p>
+                  <p className="text-xs text-blue-600 mt-1">
+                    Densidad: {((watchedDimensions[3] || 0) / ((watchedDimensions[0] * watchedDimensions[1] * watchedDimensions[2]) / 1000000)).toFixed(2)} kg/m³
+                  </p>
+                </div>
+                {validationState.dimensionsValid === true && (
+                  <CheckCircle className="w-5 h-5 text-emerald-500" />
+                )}
+              </div>
               {validationState.dimensionsValid === false && (
-                <p className="text-sm text-amber-600 flex items-center mt-1">
-                  <AlertTriangle className="w-4 h-4 mr-1" />
-                  Las dimensiones y peso parecen inconsistentes
-                </p>
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-3">
+                  <p className="text-sm text-amber-700 flex items-center font-medium">
+                    <AlertTriangle className="w-4 h-4 mr-2 text-amber-500" />
+                    Las dimensiones y peso parecen inconsistentes. Verifica los datos.
+                  </p>
+                </div>
               )}
             </div>
           )}
@@ -567,7 +651,9 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
         {/* Image Upload Section */}
         <div className="space-y-4">
-          <h3 className="text-lg font-medium text-gray-900">Imágenes del Producto</h3>
+          <h3 className="text-lg font-semibold text-white flex items-center">
+            🖼️ Imágenes del Producto
+          </h3>
 
           {/* Show existing images in edit mode */}
           {mode === 'edit' && (
@@ -579,8 +665,8 @@ const ProductForm: React.FC<ProductFormProps> = ({
                 </div>
               ) : existingImages.length > 0 ? (
                 <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-3">
-                    Imágenes actuales ({existingImages.length})
+                  <h4 className="text-sm font-semibold text-slate-200 mb-3 bg-slate-700 rounded-lg px-3 py-2">
+                    📸 Imágenes actuales ({existingImages.length})
                   </h4>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
                     {existingImages.map((image) => (
@@ -606,15 +692,18 @@ const ProductForm: React.FC<ProductFormProps> = ({
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-gray-500 mb-4">No hay imágenes existentes</p>
+                <div className="text-center py-8 border-2 border-dashed border-slate-300 rounded-lg">
+                  <p className="text-sm text-slate-400 mb-2">📷 No hay imágenes existentes</p>
+                  <p className="text-xs text-slate-500">Las imágenes ayudan a aumentar las ventas hasta un 65%</p>
+                </div>
               )}
             </div>
           )}
 
           {/* Upload new images */}
           <div>
-            <h4 className="text-sm font-medium text-gray-700 mb-3">
-              {mode === 'edit' ? 'Agregar nuevas imágenes' : 'Imágenes del producto'}
+            <h4 className="text-sm font-semibold text-slate-200 mb-3 bg-slate-700 rounded-lg px-3 py-2">
+              {mode === 'edit' ? '➕ Agregar nuevas imágenes' : '🖼️ Imágenes del producto'}
             </h4>
             <ImageUpload
               onImageUpload={handleImageUpload}
@@ -630,8 +719,8 @@ const ProductForm: React.FC<ProductFormProps> = ({
           {/* Preview of selected new images */}
           {selectedImages.length > 0 && (
             <div className="mt-4">
-              <h4 className="text-sm font-medium text-gray-700 mb-3">
-                Nuevas imágenes seleccionadas ({selectedImages.length})
+              <h4 className="text-sm font-semibold text-slate-200 mb-3 bg-emerald-700 rounded-lg px-3 py-2">
+                ✨ Nuevas imágenes seleccionadas ({selectedImages.length})
               </h4>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {selectedImages.map((imageFile, index) => (
@@ -658,15 +747,21 @@ const ProductForm: React.FC<ProductFormProps> = ({
             </div>
           )}
 
-          <p className="text-sm text-gray-500">
-            Máximo 5 imágenes total (JPG, PNG, WebP, GIF). Máximo 5MB por imagen.
-            {existingImages.length > 0 && (
-              <span className="block">
-                Tienes {existingImages.length} imagen(es) existente(s). 
-                Puedes agregar {5 - existingImages.length} más.
-              </span>
-            )}
-          </p>
+          <div className="bg-slate-800 p-4 rounded-lg border border-slate-600">
+            <p className="text-sm text-slate-300 font-medium">
+              📋 Requisitos de imágenes:
+            </p>
+            <ul className="text-xs text-slate-400 mt-2 space-y-1">
+              <li>• Máximo 5 imágenes total (JPG, PNG, WebP, GIF)</li>
+              <li>• Máximo 5MB por imagen</li>
+              <li>• Resolución recomendada: 800x800px o superior</li>
+              {existingImages.length > 0 && (
+                <li className="text-blue-300">
+                  • Tienes {existingImages.length} imagen(es) existente(s). Puedes agregar {5 - existingImages.length} más.
+                </li>
+              )}
+            </ul>
+          </div>
         </div>
 
         {/* SKU Field */}
@@ -678,23 +773,280 @@ const ProductForm: React.FC<ProductFormProps> = ({
           placeholder="Ej: PROD-001"
           helpText="Código único de producto"
         />
-        <div className='flex gap-3 pt-6'>
+
+        {/* Sección de Ayuda y Requerimientos - DINÁMICO EN TIEMPO REAL */}
+        <div className='mt-6 p-6 bg-gradient-to-br from-slate-800 via-slate-700 to-slate-800 border border-slate-600 rounded-xl shadow-xl'>
+          <h4 className='text-base font-bold text-white mb-4 flex items-center'>
+            🎯 Progreso del Formulario ({(() => {
+              // Cálculo correcto de campos completados
+              const requiredFields = [
+                { name: 'name', value: watchedName, minLength: 3 },
+                { name: 'description', value: watchedDescription, minLength: 10 },
+                { name: 'category', value: watchedCategory },
+                { name: 'precio_venta', value: watchedPrecioVenta, minValue: 1000 },
+                { name: 'precio_costo', value: watchedPrecioCosto, minValue: 1 },
+                { name: 'stock', value: watchedStock, minValue: 0 },
+                { name: 'peso', value: watchedPeso, minValue: 0.01 }
+              ];
+
+              const completedCount = requiredFields.filter(field => {
+                if (errors[field.name]) return false;
+                if (!field.value && field.value !== 0) return false;
+                if (field.minLength && field.value.length < field.minLength) return false;
+                if (field.minValue && field.value < field.minValue) return false;
+                return true;
+              }).length;
+
+              return completedCount;
+            })()}/7 completados)
+          </h4>
+
+          {/* Barra de progreso dinámica */}
+          <div className='mb-6'>
+            <div className='flex justify-between items-center mb-3'>
+              <span className='text-sm font-medium text-slate-300'>Completado</span>
+              <span className='text-sm font-bold text-emerald-400'>
+                {Math.round(((() => {
+                  const requiredFields = [
+                    { name: 'name', value: watchedName, minLength: 3 },
+                    { name: 'description', value: watchedDescription, minLength: 10 },
+                    { name: 'category', value: watchedCategory },
+                    { name: 'precio_venta', value: watchedPrecioVenta, minValue: 1000 },
+                    { name: 'precio_costo', value: watchedPrecioCosto, minValue: 1 },
+                    { name: 'stock', value: watchedStock, minValue: 0 },
+                    { name: 'peso', value: watchedPeso, minValue: 0.01 }
+                  ];
+
+                  const completedCount = requiredFields.filter(field => {
+                    if (errors[field.name]) return false;
+                    if (!field.value && field.value !== 0) return false;
+                    if (field.minLength && field.value.length < field.minLength) return false;
+                    if (field.minValue && field.value < field.minValue) return false;
+                    return true;
+                  }).length;
+
+                  return (completedCount / 7) * 100;
+                })()))}%
+              </span>
+            </div>
+            <div className='w-full bg-slate-600 rounded-full h-3 shadow-inner'>
+              <div
+                className='bg-gradient-to-r from-emerald-500 via-blue-500 to-emerald-500 h-3 rounded-full transition-all duration-700 ease-out shadow-lg'
+                style={{
+                  width: `${(() => {
+                    const requiredFields = [
+                      { name: 'name', value: watchedName, minLength: 3 },
+                      { name: 'description', value: watchedDescription, minLength: 10 },
+                      { name: 'category', value: watchedCategory },
+                      { name: 'precio_venta', value: watchedPrecioVenta, minValue: 1000 },
+                      { name: 'precio_costo', value: watchedPrecioCosto, minValue: 1 },
+                      { name: 'stock', value: watchedStock, minValue: 0 },
+                      { name: 'peso', value: watchedPeso, minValue: 0.01 }
+                    ];
+
+                    const completedCount = requiredFields.filter(field => {
+                      if (errors[field.name]) return false;
+                      if (!field.value && field.value !== 0) return false;
+                      if (field.minLength && field.value.length < field.minLength) return false;
+                      if (field.minValue && field.value < field.minValue) return false;
+                      return true;
+                    }).length;
+
+                    return (completedCount / 7) * 100;
+                  })()}%`
+                }}
+              ></div>
+            </div>
+          </div>
+
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-3 text-sm'>
+            {/* Nombre del producto */}
+            <div className={`flex items-center space-x-3 p-3 rounded-lg border transition-all duration-300 ${
+              !errors.name && watchedName?.length >= 3
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-800 shadow-emerald-100'
+                : errors.name
+                  ? 'bg-red-50 border-red-200 text-red-800 shadow-red-100'
+                  : 'bg-slate-100 border-slate-300 text-slate-600'
+            } shadow-sm`}>
+              <span className='text-xl'>
+                {!errors.name && watchedName?.length >= 3 ? '✅' : errors.name ? '❌' : '⏳'}
+              </span>
+              <div className='flex-1'>
+                <span className='font-medium'>Nombre del producto</span>
+                {watchedName && (
+                  <div className='text-xs opacity-75 mt-1'>Longitud: {watchedName.length}/100 caracteres</div>
+                )}
+              </div>
+            </div>
+
+            {/* Descripción */}
+            <div className={`flex items-center space-x-3 p-3 rounded-lg border transition-all duration-300 ${
+              !errors.description && watch('description')?.length >= 10
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-800 shadow-emerald-100'
+                : errors.description
+                  ? 'bg-red-50 border-red-200 text-red-800 shadow-red-100'
+                  : 'bg-slate-100 border-slate-300 text-slate-600'
+            } shadow-sm`}>
+              <span className='text-xl'>
+                {!errors.description && watch('description')?.length >= 10 ? '✅' : errors.description ? '❌' : '⏳'}
+              </span>
+              <div className='flex-1'>
+                <span className='font-medium'>Descripción</span>
+                {watch('description') && (
+                  <div className='text-xs opacity-75 mt-1'>Longitud: {watch('description').length}/1000 caracteres</div>
+                )}
+              </div>
+            </div>
+
+            {/* Precio de venta */}
+            <div className={`flex items-center space-x-3 p-3 rounded-lg border transition-all duration-300 ${
+              !errors.precio_venta && precioVenta >= 1000
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-800 shadow-emerald-100'
+                : errors.precio_venta
+                  ? 'bg-red-50 border-red-200 text-red-800 shadow-red-100'
+                  : 'bg-slate-100 border-slate-300 text-slate-600'
+            } shadow-sm`}>
+              <span className='text-xl'>
+                {!errors.precio_venta && precioVenta >= 1000 ? '✅' : errors.precio_venta ? '❌' : '⏳'}
+              </span>
+              <div className='flex-1'>
+                <span className='font-medium'>Precio de venta</span>
+                {precioVenta > 0 && (
+                  <div className='text-xs opacity-75 mt-1'>${precioVenta.toLocaleString()} COP</div>
+                )}
+              </div>
+            </div>
+
+            {/* Precio de costo */}
+            <div className={`flex items-center space-x-3 p-3 rounded-lg border transition-all duration-300 ${
+              !errors.precio_costo && precioCosto > 0 && precioCosto < precioVenta
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-800 shadow-emerald-100'
+                : errors.precio_costo
+                  ? 'bg-red-50 border-red-200 text-red-800 shadow-red-100'
+                  : 'bg-slate-100 border-slate-300 text-slate-600'
+            } shadow-sm`}>
+              <span className='text-xl'>
+                {!errors.precio_costo && precioCosto > 0 && precioCosto < precioVenta ? '✅' : errors.precio_costo ? '❌' : '⏳'}
+              </span>
+              <div className='flex-1'>
+                <span className='font-medium'>Precio de costo</span>
+                {precioCosto > 0 && (
+                  <div className='text-xs opacity-75 mt-1'>${precioCosto.toLocaleString()} COP</div>
+                )}
+              </div>
+            </div>
+
+            {/* Stock */}
+            <div className={`flex items-center space-x-3 p-3 rounded-lg border transition-all duration-300 ${
+              !errors.stock && watch('stock') >= 0
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-800 shadow-emerald-100'
+                : errors.stock
+                  ? 'bg-red-50 border-red-200 text-red-800 shadow-red-100'
+                  : 'bg-slate-100 border-slate-300 text-slate-600'
+            } shadow-sm`}>
+              <span className='text-xl'>
+                {!errors.stock && watch('stock') >= 0 ? '✅' : errors.stock ? '❌' : '⏳'}
+              </span>
+              <div className='flex-1'>
+                <span className='font-medium'>Stock inicial</span>
+                <div className='text-xs opacity-75 mt-1'>{watch('stock') || 0} unidades disponibles</div>
+              </div>
+            </div>
+
+            {/* Categoría */}
+            <div className={`flex items-center space-x-3 p-3 rounded-lg border transition-all duration-300 ${
+              !errors.category && watch('category')
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-800 shadow-emerald-100'
+                : errors.category
+                  ? 'bg-red-50 border-red-200 text-red-800 shadow-red-100'
+                  : 'bg-slate-100 border-slate-300 text-slate-600'
+            } shadow-sm`}>
+              <span className='text-xl'>
+                {!errors.category && watch('category') ? '✅' : errors.category ? '❌' : '⏳'}
+              </span>
+              <div className='flex-1'>
+                <span className='font-medium'>Categoría</span>
+                {watch('category') && (
+                  <div className='text-xs opacity-75 mt-1 capitalize'>{watch('category')}</div>
+                )}
+              </div>
+            </div>
+
+            {/* SKU */}
+            <div className={`flex items-center space-x-3 p-3 rounded-lg border transition-all duration-300 ${
+              !errors.sku && watch('sku')?.length >= 3
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-800 shadow-emerald-100'
+                : errors.sku
+                  ? 'bg-red-50 border-red-200 text-red-800 shadow-red-100'
+                  : 'bg-slate-100 border-slate-300 text-slate-600'
+            } shadow-sm`}>
+              <span className='text-xl'>
+                {!errors.sku && watch('sku')?.length >= 3 ? '✅' : errors.sku ? '❌' : '⏳'}
+              </span>
+              <div className='flex-1'>
+                <span className='font-medium'>SKU único</span>
+                {watch('sku') && (
+                  <div className='text-xs opacity-75 mt-1 font-mono'>{watch('sku')}</div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Barra de progreso adicional */}
+          <div className='mt-6 pt-4 border-t border-slate-600'>
+            <div className='flex justify-between text-sm text-slate-300 mb-2'>
+              <span className='font-medium'>Validación de errores</span>
+              <span className='font-bold text-emerald-400'>{Math.round(((7 - Object.keys(errors).length) / 7) * 100)}%</span>
+            </div>
+            <div className='w-full bg-slate-600 rounded-full h-2 shadow-inner'>
+              <div
+                className='bg-gradient-to-r from-emerald-500 to-green-400 h-2 rounded-full transition-all duration-500 shadow-sm'
+                style={{ width: `${((7 - Object.keys(errors).length) / 7) * 100}%` }}
+              ></div>
+            </div>
+          </div>
+
+          {isFormValid && (
+            <div className='mt-4 p-4 bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 rounded-xl text-emerald-800 text-sm text-center shadow-lg'>
+              <div className='flex items-center justify-center space-x-2'>
+                <span className='text-2xl'>🎉</span>
+                <span className='font-bold'>¡Formulario completo!</span>
+              </div>
+              <p className='mt-1 text-emerald-600'>El botón "Crear Producto" está habilitado y listo para usar.</p>
+            </div>
+          )}
+        </div>
+
+        <div className='flex gap-4 pt-8'>
           <button
             type='submit'
-            disabled={loading || uploadingImages || !isValid}
-            className='flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg disabled:bg-gray-300 flex items-center justify-center'
+            disabled={loading || uploadingImages || !isFormValid}
+            className={`flex-1 px-8 py-4 rounded-xl font-bold text-lg flex items-center justify-center transition-all duration-300 transform ${
+              loading || uploadingImages || !isFormValid
+                ? 'bg-slate-400 text-slate-200 cursor-not-allowed opacity-60 shadow-none'
+                : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-xl hover:shadow-2xl hover:scale-105 hover:from-blue-700 hover:to-blue-800 active:scale-95'
+            }`}
           >
             {uploadingImages ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Subiendo imágenes...
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                💾 Subiendo imágenes...
               </>
             ) : loading ? (
-              'Procesando...'
+              <>
+                <div className="animate-pulse mr-2">⏳</div>
+                Procesando...
+              </>
             ) : mode === 'create' ? (
-              'Crear Producto'
+              <>
+                <span className="mr-2">✨</span>
+                Crear Producto
+              </>
             ) : (
-              'Actualizar Producto'
+              <>
+                <span className="mr-2">🔄</span>
+                Actualizar Producto
+              </>
             )}
           </button>
 
@@ -702,8 +1054,13 @@ const ProductForm: React.FC<ProductFormProps> = ({
             type='button'
             onClick={handleCancel}
             disabled={loading || uploadingImages}
-            className='px-6 py-3 border text-gray-700 rounded-lg disabled:opacity-50'
+            className={`px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 transform ${
+              loading || uploadingImages
+                ? 'border-slate-400 text-slate-400 opacity-50 cursor-not-allowed'
+                : 'border-2 border-slate-300 text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-400 hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl'
+            }`}
           >
+            <span className="mr-2">❌</span>
             Cancelar
           </button>
         </div>

@@ -44,7 +44,7 @@ from pydantic import BaseModel, Field, EmailStr
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User, UserType, VendorStatus
-from app.models.admin_permission import AdminPermission, PermissionScope, PermissionAction, ResourceType
+from app.models.admin_permission import AdminPermission, PermissionScope, PermissionAction, ResourceType, admin_user_permissions
 from app.models.admin_activity_log import AdminActivityLog, AdminActionType, ActionResult, RiskLevel
 from app.services.admin_permission_service import admin_permission_service, PermissionDeniedError
 from app.schemas.user import UserResponse, UserCreate

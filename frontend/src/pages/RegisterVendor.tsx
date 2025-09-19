@@ -282,15 +282,16 @@ const RegisterVendor: React.FC = () => {
     setLoading(true);
     try {
       const finalData = {
-        ...basicFormData,
-        ...specificData,
-        ...step3Data,
-        user_type: selectedRole,
+        email: basicFormData.email,
         password: 'temp123', // En producción, agregar campo de password
-        confirmPassword: 'temp123'
+        nombre: basicFormData.nombre,
+        telefono: basicFormData.telefono,
+        user_type: selectedRole,
+        ...specificData,
+        ...step3Data
       };
 
-      const response = await fetch('/api/v1/vendedores/registro', {
+      const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

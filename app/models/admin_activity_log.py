@@ -133,16 +133,16 @@ class AdminActivityLog(BaseModel):
 
     # === PRIMARY KEY ===
     id = Column(
-        UUID(),
+        String(36),
         primary_key=True,
-        default=uuid.uuid4,
+        default=lambda: str(uuid.uuid4()),
         index=True,
         comment="Unique activity log identifier"
     )
 
     # === ADMIN USER INFORMATION ===
     admin_user_id = Column(
-        UUID(),
+        String(36),
         ForeignKey('users.id', ondelete='SET NULL'),
         nullable=True,
         index=True,

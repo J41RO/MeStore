@@ -27,7 +27,7 @@ Este módulo contiene:
 """
 
 from sqlalchemy import Column, String, ForeignKey, DateTime, Text, Enum as SQLEnum, Integer, Boolean
-from sqlalchemy.dialects.postgresql import UUID
+# UUID import removed for SQLite compatibility
 from sqlalchemy.orm import relationship, validates
 from sqlalchemy.sql import func
 from enum import Enum
@@ -128,7 +128,7 @@ class IncomingProductQueue(BaseModel):
     
     # Relación con Product existente
     product_id = Column(
-        UUID(as_uuid=True),
+        String(36),
         ForeignKey('products.id'),
         nullable=False,
         index=True,
@@ -137,7 +137,7 @@ class IncomingProductQueue(BaseModel):
     
     # Vendor que envía el producto
     vendor_id = Column(
-        UUID(as_uuid=True),
+        String(36),
         ForeignKey('users.id'),
         nullable=False,
         index=True,
@@ -178,7 +178,7 @@ class IncomingProductQueue(BaseModel):
     
     # Asignación de tarea
     assigned_to = Column(
-        UUID(as_uuid=True),
+        String(36),
         ForeignKey('users.id'),
         nullable=True,
         index=True,
@@ -358,7 +358,7 @@ class IncomingProductQueue(BaseModel):
         }
         return priority_map.get(self.priority, str(self.priority))
     
-    def assign_to_user(self, user_id: UUID, notes: Optional[str] = None):
+    def assign_to_user(self, user_id: str, notes: Optional[str] = None):
         """Asignar producto a un verificador"""
         self.assigned_to = user_id
         self.assigned_at = now_utc()

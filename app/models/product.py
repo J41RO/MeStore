@@ -28,7 +28,7 @@ Este módulo contiene el modelo SQLAlchemy para la entidad Product:
 - Product: Modelo principal con campos básicos (sku, name, description)
 - Campos de pricing: precio_venta, precio_costo, comision_mestocker
 - Campos de fulfillment: peso, dimensiones, categoria, tags
-- Herencia de BaseModel: UUID, timestamps automáticos y soft delete
+- Herencia de BaseModel: str, timestamps automáticos y soft delete
 - Métodos personalizados: __repr__, __str__, to_dict()
 - Métodos de negocio: calcular_margen(), calcular_porcentaje_margen()
 - Métodos de fulfillment: calcular_volumen(), tiene_tag()
@@ -37,7 +37,11 @@ Este módulo contiene el modelo SQLAlchemy para la entidad Product:
 
 from datetime import datetime, timedelta
 from enum import Enum as PyEnum
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.models.category import Category
+    from app.models.inventory import Inventory
 
 from sqlalchemy import (
     DECIMAL,
@@ -51,7 +55,7 @@ from sqlalchemy import (
     func,
     text,
 )
-from sqlalchemy.dialects.postgresql import JSON, UUID
+import json
 from sqlalchemy.orm import relationship, validates
 
 from app.models.base import BaseModel
@@ -79,7 +83,7 @@ class Product(BaseModel):
     Modelo Product para gestión de productos del marketplace.
 
     Hereda de BaseModel los campos:
-    - id: UUID primary key
+    - id: str primary key
     - created_at: Timestamp de creación
     - updated_at: Timestamp de última actualización
     - deleted_at: Timestamp de soft delete (nullable)
@@ -319,7 +323,7 @@ class Product(BaseModel):
                 secondary_cats.append(association.category)
         return secondary_cats
 
-    def add_category(self, category: "Category", is_primary: bool = False, sort_order: int = 0, assigned_by_id: Optional[UUID] = None) -> None:
+    def add_category(self, category: "Category", is_primary: bool = False, sort_order: int = 0, assigned_by_id: Optional[str] = None) -> None:
         """
         Agregar categoría al producto.
 
@@ -364,7 +368,7 @@ class Product(BaseModel):
                 return True
         return False
 
-    def set_primary_category(self, category: "Category", assigned_by_id: Optional[UUID] = None) -> None:
+    def set_primary_category(self, category: "Category", assigned_by_id: Optional[str] = None) -> None:
         """
         Establecer categoría principal del producto.
 
@@ -441,7 +445,7 @@ class Product(BaseModel):
             breadcrumbs.append(category_breadcrumb)
         return breadcrumbs
 
-    def migrate_from_old_categoria(self, session, assigned_by_id: Optional[UUID] = None) -> None:
+    def migrate_from_old_categoria(self, session, assigned_by_id: Optional[str] = None) -> None:
         """
         Migrar del campo categoria string al nuevo sistema de categorías.
 
@@ -487,7 +491,7 @@ class Product(BaseModel):
 
     # Relationship con User (vendedor)
     vendedor_id = Column(
-        UUID(as_uuid=True),
+        String(36),
         ForeignKey("users.id"),
         nullable=True,
         index=True,
@@ -496,14 +500,14 @@ class Product(BaseModel):
 
     # Tracking de cambios
     created_by_id = Column(
-        UUID(as_uuid=True),
+        String(36),
         ForeignKey("users.id"),
         nullable=True,
         comment="ID del usuario que creó el producto",
     )
 
     updated_by_id = Column(
-        UUID(as_uuid=True),
+        String(36),
         ForeignKey("users.id"),
         nullable=True,
         comment="ID del usuario que actualizó por última vez",
@@ -574,9 +578,9 @@ class Product(BaseModel):
     )
 
     dimensiones = Column(
-        JSON,
+        Text,
         nullable=True,
-        comment="Dimensiones del producto: {largo, ancho, alto} en cm",
+        comment="Dimensiones del producto: {largo, ancho, alto} en cm - JSON serializado",
     )
 
     categoria = Column(
@@ -587,7 +591,7 @@ class Product(BaseModel):
     )
 
     tags = Column(
-        JSON, nullable=True, comment="Tags del producto como array JSON para búsquedas"
+        Text, nullable=True, comment="Tags del producto como array JSON serializado para búsquedas"
     )
 
     # Índices adicionales para optimización
@@ -640,7 +644,7 @@ class Product(BaseModel):
             raise ValueError("Nombre no puede exceder 200 caracteres")
         return name.strip()
 
-    def set_vendedor(self, user_id: UUID) -> None:
+    def set_vendedor(self, user_id: str) -> None:
         """Asignar vendedor al producto"""
         self.vendedor_id = user_id
         self.increment_version()
@@ -652,12 +656,12 @@ class Product(BaseModel):
         else:
             self.version += 1
 
-    def update_tracking(self, user_id: UUID) -> None:
+    def update_tracking(self, user_id: str) -> None:
         """Actualizar tracking de cambios"""
         self.updated_by_id = user_id
         self.increment_version()
 
-    def is_vendido_por(self, user_id: UUID) -> bool:
+    def is_vendido_por(self, user_id: str) -> bool:
         """Verificar si producto es vendido por usuario específico"""
         return self.vendedor_id == user_id
 

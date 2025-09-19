@@ -66,7 +66,7 @@ MAX_AVATAR_SIZE = 5 * 1024 * 1024  # 5MB
 
 def get_current_vendor(current_user: User = Depends(get_current_user)) -> User:
     """Verificar que el usuario actual es un vendor."""
-    if current_user.user_type not in [UserType.VENDEDOR, UserType.ADMIN, UserType.SUPERUSER]:
+    if current_user.user_type not in [UserType.VENDOR, UserType.ADMIN, UserType.SUPERUSER]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Acceso denegado: Se requieren permisos de vendor"

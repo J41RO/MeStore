@@ -13,7 +13,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const { logout, user } = useAuthStore();
 
   const navigationItems = [
-    { name: 'Dashboard', href: '/app/dashboard' },
+    { name: 'Dashboard', href: '/app/vendor-dashboard' },
     { name: 'Productos', href: '/app/productos' },
     { name: 'Órdenes', href: '/app/ordenes' },
     { name: 'Reportes', href: '/app/reportes' },

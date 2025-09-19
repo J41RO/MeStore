@@ -1,1 +1,0 @@
-{list.filter().map().reduce(

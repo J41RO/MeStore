@@ -12,7 +12,7 @@ asociadas a los productos con relación 1:N.
 """
 
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Index, Boolean, Text
-from sqlalchemy.dialects.postgresql import UUID
+# UUID import removed for SQLite compatibility
 from sqlalchemy.orm import relationship
 
 from app.models.base import BaseModel
@@ -30,7 +30,7 @@ class ProductImage(BaseModel):
     
     # Relación con producto
     product_id = Column(
-        UUID(as_uuid=True),
+        String(36),
         ForeignKey("products.id", ondelete="CASCADE"),
         nullable=False,
         index=True,

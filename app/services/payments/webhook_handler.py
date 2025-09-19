@@ -10,14 +10,16 @@ from app.models.order import Transaction
 from app.models.payment import WebhookEvent, WebhookEventType, WebhookEventStatus, Payment
 from app.services.payments.wompi_service import WompiService
 from app.services.payments.payment_processor import PaymentProcessor
+from app.services.payments.payment_commission_service import PaymentCommissionService
 
 logger = logging.getLogger(__name__)
 
-class WebhookHandler:
+class WompiWebhookHandler:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.wompi = WompiService()
         self.payment_processor = PaymentProcessor(db)
+        self.commission_service = PaymentCommissionService(db)
 
     async def process_webhook(
         self, 
@@ -165,19 +167,46 @@ class WebhookHandler:
             
             # Update transaction status
             updated_transaction = await self.payment_processor.update_transaction_status(
-                transaction.id, 
-                status, 
+                transaction.id,
+                status,
                 data
             )
-            
+
             logger.info(f"Updated transaction {transaction.id} status to {status}")
-            
-            return {
+
+            # Trigger commission calculation for approved payments
+            commission_result = None
+            if status == "APPROVED":
+                try:
+                    commission_result = await self.commission_service.process_payment_approval(
+                        transaction_id=transaction.id,
+                        payment_data=data,
+                        webhook_event_id=webhook_event.id
+                    )
+                    logger.info(
+                        f"Commission processing completed for transaction {transaction.id}",
+                        extra={
+                            "commission_success": commission_result.get("success"),
+                            "commission_id": commission_result.get("commission_id")
+                        }
+                    )
+                except Exception as e:
+                    logger.error(f"Commission processing failed for transaction {transaction.id}: {e}")
+                    # Don't fail the webhook processing if commission calculation fails
+                    commission_result = {"success": False, "error": str(e)}
+
+            response_data = {
                 "message": "Transaction updated successfully",
                 "transaction_id": transaction.id,
                 "new_status": status,
                 "processed": True
             }
+
+            # Include commission result if commission was processed
+            if commission_result:
+                response_data["commission"] = commission_result
+
+            return response_data
             
         except Exception as e:
             logger.error(f"Error handling transaction update: {e}")
@@ -268,16 +297,37 @@ class WebhookHandler:
         return await self._handle_transaction_updated(webhook_event, data)
 
     async def _handle_payment_refunded(
-        self, 
-        webhook_event: WebhookEvent, 
+        self,
+        webhook_event: WebhookEvent,
         data: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Handle payment refund"""
+        """Handle payment refund with commission adjustments"""
         try:
-            # This would involve creating refund records and updating order status
-            # For now, just update the transaction status
-            return await self._handle_transaction_updated(webhook_event, data)
-            
+            # First update the transaction status
+            transaction_result = await self._handle_transaction_updated(webhook_event, data)
+
+            # If transaction update was successful, process commission refund
+            if transaction_result.get("processed"):
+                try:
+                    commission_refund_result = await self.commission_service.process_payment_refund(
+                        transaction_id=transaction_result.get("transaction_id"),
+                        refund_data=data,
+                        webhook_event_id=webhook_event.id
+                    )
+                    logger.info(
+                        f"Commission refund processing completed for transaction {transaction_result.get('transaction_id')}",
+                        extra={
+                            "refund_success": commission_refund_result.get("success"),
+                            "refund_commission_id": commission_refund_result.get("refund_commission_id")
+                        }
+                    )
+                    transaction_result["commission_refund"] = commission_refund_result
+                except Exception as e:
+                    logger.error(f"Commission refund processing failed: {e}")
+                    transaction_result["commission_refund"] = {"success": False, "error": str(e)}
+
+            return transaction_result
+
         except Exception as e:
             logger.error(f"Error handling payment refund: {e}")
             return {"error": str(e), "processed": False}
@@ -330,3 +380,6 @@ class WebhookHandler:
             await self.db.rollback()
             logger.error(f"Error retrying failed webhooks: {e}")
             return {"error": str(e)}
+
+# Alias for backward compatibility
+WebhookHandler = WompiWebhookHandler

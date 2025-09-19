@@ -5,10 +5,11 @@ This script fixes the database connection issues by properly setting up the data
 """
 
 import asyncio
-import sys
 import os
 import subprocess
+import sys
 from pathlib import Path
+
 
 async def setup_postgresql():
     """Set up PostgreSQL database and user"""
@@ -38,7 +39,9 @@ async def setup_postgresql():
 
             # Test connection first
             test_cmd = cmd_base + ["-c", "SELECT version();"]
-            result = subprocess.run(test_cmd, capture_output=True, text=True, timeout=10)
+            result = subprocess.run(
+                test_cmd, capture_output=True, text=True, timeout=10
+            )
 
             if result.returncode == 0:
                 print(f"✅ Connection successful with: {' '.join(cmd_base)}")
@@ -49,7 +52,9 @@ async def setup_postgresql():
                     print(f"🔄 Executing: {sql_cmd}")
                     exec_cmd = cmd_base + ["-c", sql_cmd]
 
-                    exec_result = subprocess.run(exec_cmd, capture_output=True, text=True, timeout=10)
+                    exec_result = subprocess.run(
+                        exec_cmd, capture_output=True, text=True, timeout=10
+                    )
 
                     if exec_result.returncode == 0:
                         print(f"✅ Success: {sql_cmd}")
@@ -61,14 +66,30 @@ async def setup_postgresql():
                             print(f"⚠️ Error: {error_msg}")
 
                 # Test the new connection
-                test_new_conn = ["psql", "-U", "test_user", "-d", "test_mestocker", "-c", "SELECT current_database();"]
-                test_result = subprocess.run(test_new_conn, capture_output=True, text=True, timeout=10, env={**os.environ, "PGPASSWORD": "secure_test_pass_123"})
+                test_new_conn = [
+                    "psql",
+                    "-U",
+                    "test_user",
+                    "-d",
+                    "test_mestocker",
+                    "-c",
+                    "SELECT current_database();",
+                ]
+                test_result = subprocess.run(
+                    test_new_conn,
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                    env={**os.environ, "PGPASSWORD": "secure_test_pass_123"},
+                )
 
                 if test_result.returncode == 0:
                     print("✅ New database connection test successful!")
                     return True
                 else:
-                    print(f"❌ New database connection test failed: {test_result.stderr.strip()}")
+                    print(
+                        f"❌ New database connection test failed: {test_result.stderr.strip()}"
+                    )
 
             else:
                 print(f"❌ Connection failed: {result.stderr.strip()}")
@@ -85,20 +106,28 @@ async def setup_postgresql():
         # Create user
         print("🔄 Creating user with createuser...")
         create_user_cmd = ["createuser", "--no-password", "test_user"]
-        result = subprocess.run(create_user_cmd, capture_output=True, text=True, timeout=30)
+        result = subprocess.run(
+            create_user_cmd, capture_output=True, text=True, timeout=30
+        )
 
         if result.returncode == 0 or "already exists" in result.stderr:
             print("✅ User created or already exists")
 
             # Set password
             print("🔄 Setting password...")
-            set_pass_cmd = ["psql", "-c", "ALTER USER test_user WITH PASSWORD 'secure_test_pass_123';"]
+            set_pass_cmd = [
+                "psql",
+                "-c",
+                "ALTER USER test_user WITH PASSWORD 'secure_test_pass_123';",
+            ]
             subprocess.run(set_pass_cmd, capture_output=True, text=True, timeout=10)
 
             # Create database
             print("🔄 Creating database with createdb...")
             create_db_cmd = ["createdb", "-O", "test_user", "test_mestocker"]
-            db_result = subprocess.run(create_db_cmd, capture_output=True, text=True, timeout=30)
+            db_result = subprocess.run(
+                create_db_cmd, capture_output=True, text=True, timeout=30
+            )
 
             if db_result.returncode == 0 or "already exists" in db_result.stderr:
                 print("✅ Database created or already exists")
@@ -114,6 +143,7 @@ async def setup_postgresql():
 
     return False
 
+
 async def test_application_connection():
     """Test if the application can connect with the fixed database"""
 
@@ -122,7 +152,9 @@ async def test_application_connection():
 
     try:
         # Set environment for testing
-        os.environ["DATABASE_URL"] = "postgresql+asyncpg://test_user:secure_test_pass_123@localhost/test_mestocker"
+        os.environ["DATABASE_URL"] = (
+            "postgresql+asyncpg://test_user:secure_test_pass_123@localhost/test_mestocker"
+        )
 
         # Import after setting environment
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -130,9 +162,13 @@ async def test_application_connection():
         print("🔄 Testing async connection...")
         import asyncpg
 
-        conn = await asyncpg.connect("postgresql://test_user:secure_test_pass_123@localhost/test_mestocker")
+        conn = await asyncpg.connect(
+            "postgresql://test_user:secure_test_pass_123@localhost/test_mestocker"
+        )
         result = await conn.fetch("SELECT current_database(), current_user")
-        print(f"✅ Database: {result[0]['current_database']}, User: {result[0]['current_user']}")
+        print(
+            f"✅ Database: {result[0]['current_database']}, User: {result[0]['current_user']}"
+        )
         await conn.close()
 
         print("🔄 Testing application database module...")
@@ -144,6 +180,7 @@ async def test_application_connection():
 
         print("🔄 Testing database initialization...")
         from app.core.database import init_db
+
         await init_db()
         print("✅ Database tables created successfully!")
 
@@ -153,6 +190,7 @@ async def test_application_connection():
         print(f"❌ Application connection test failed: {e}")
         return False
 
+
 async def create_superuser_in_db():
     """Create the superuser in the properly configured database"""
 
@@ -161,10 +199,11 @@ async def create_superuser_in_db():
 
     try:
         # Import application modules
+        from sqlalchemy import select
+
         from app.core.database import AsyncSessionLocal
         from app.models.user import User, UserType
         from app.utils.password import hash_password
-        from sqlalchemy import select
 
         async with AsyncSessionLocal() as db:
             # Check if superuser already exists
@@ -191,7 +230,7 @@ async def create_superuser_in_db():
                     nombre="Super",
                     apellido="Admin",
                     is_active=True,
-                    email_verified=True
+                    email_verified=True,
                 )
                 db.add(new_user)
                 print("✅ New superuser created with password: 123456")
@@ -218,6 +257,7 @@ async def create_superuser_in_db():
     except Exception as e:
         print(f"❌ Error creating superuser: {e}")
         return False
+
 
 async def main():
     """Main function to fix the database setup"""
@@ -261,6 +301,7 @@ async def main():
     else:
         print("\n❌ Database setup incomplete")
         return False
+
 
 if __name__ == "__main__":
     success = asyncio.run(main())

@@ -292,18 +292,18 @@ export interface ProductFormData {
   _dimensionsWeight?: any;
 }
 
-// Valores por defecto para el formulario
+// Valores por defecto para el formulario (mejorados para UX)
 export const defaultProductValues: Partial<ProductFormData> = {
   name: '',
   description: '',
   category: undefined,
-  precio_venta: 0,
-  precio_costo: 0,
-  stock: 0,
-  peso: 0,
-  largo: 0,
-  ancho: 0,
-  alto: 0,
+  precio_venta: 1000, // Valor mínimo aceptable
+  precio_costo: 800,  // Precio de costo menor que venta
+  stock: 1,           // Stock inicial positivo
+  peso: 0.1,          // Peso positivo inicial
+  largo: 10,          // Dimensiones básicas
+  ancho: 10,
+  alto: 5,
   sku: '',
   tags: [],
   marca: '',

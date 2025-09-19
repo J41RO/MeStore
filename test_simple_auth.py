@@ -1,188 +1,121 @@
 #!/usr/bin/env python3
 """
-Simple direct authentication test to verify the superuser works
+Simple authentication test to isolate the login issue
 """
 
 import asyncio
-import aiosqlite
-from passlib.context import CryptContext
+import sys
+sys.path.append('.')
+
+from app.utils.password import verify_password
+from app.core.security import create_access_token, decode_access_token
+from app.database import get_db
+from app.models.user import User
+from sqlalchemy import select
+import sqlite3
 
 async def test_simple_auth():
-    """Test authentication directly with the database"""
+    """Test authentication with direct database queries"""
 
-    print("🔄 Testing Direct Authentication")
-    print("=" * 40)
+    # Test 1: Check password verification
+    print("=== PASSWORD VERIFICATION TEST ===")
+    conn = sqlite3.connect('mestore_production.db')
+    cursor = conn.cursor()
+    cursor.execute('SELECT email, password_hash FROM users WHERE email = ?', ('admin@test.com',))
+    result = cursor.fetchone()
+    conn.close()
 
+    if result:
+        email, stored_hash = result
+        password_valid = await verify_password('admin123', stored_hash)
+        print(f"Password for {email}: {password_valid}")
+    else:
+        print("Admin user not found!")
+        return
+
+    # Test 2: Direct user lookup with SQLAlchemy
+    print("\n=== DIRECT USER LOOKUP TEST ===")
+    db_gen = get_db()
+    db = next(db_gen)
     try:
-        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-        # Connect to the database
-        async with aiosqlite.connect("./mestore_auth_test.db") as db:
-            # Query the user
-            cursor = await db.execute(
-                "SELECT password_hash, user_type, is_active FROM users WHERE email = ?",
-                ("super@mestore.com",)
-            )
-            user_data = await cursor.fetchone()
-
-            if not user_data:
-                print("❌ User not found")
-                return False
-
-            password_hash, user_type, is_active = user_data
+        # Find user by email
+        user = db.query(User).filter(User.email == 'admin@test.com').first()
+        if user:
+            print(f"User found: {user.email}, Type: {user.user_type}, Active: {user.is_active}")
 
             # Test password verification
-            if pwd_context.verify("123456", password_hash):
-                print("✅ Authentication successful!")
-                print(f"   Email: super@mestore.com")
-                print(f"   Type: {user_type}")
-                print(f"   Active: {bool(is_active)}")
-                return True
-            else:
-                print("❌ Password verification failed")
-                return False
+            password_valid = await verify_password('admin123', user.password_hash)
+            print(f"Password valid: {password_valid}")
+
+            if password_valid:
+                # Test 3: Token creation and verification
+                print("\n=== TOKEN CREATION TEST ===")
+                token_data = {"sub": str(user.id)}
+                access_token = create_access_token(token_data)
+                print(f"Created token: {access_token[:50]}...")
+
+                # Verify token
+                decoded = decode_access_token(access_token)
+                print(f"Decoded token: {decoded}")
+
+                return {
+                    'user_found': True,
+                    'password_valid': password_valid,
+                    'token_created': bool(access_token),
+                    'token_decoded': bool(decoded),
+                    'user_id': str(user.id),
+                    'user_type': str(user.user_type)
+                }
+        else:
+            print("User not found in database!")
+            return {'user_found': False}
 
     except Exception as e:
-        print(f"❌ Authentication test failed: {e}")
-        return False
+        print(f"Error during user lookup: {e}")
+        return {'error': str(e)}
+    finally:
+        db.close()
 
-async def create_simple_login_api():
-    """Create a simple FastAPI app with just the login endpoint"""
+async def test_curl_simulation():
+    """Simulate the exact curl request to identify the issue"""
+    import json
+    from fastapi.testclient import TestClient
+    from app.main import app
 
-    print("\n🔄 Creating Simple Login API")
-    print("=" * 40)
+    print("\n=== FASTAPI TEST CLIENT SIMULATION ===")
 
-    try:
-        # Create a simple FastAPI app
-        simple_app_code = '''
-from fastapi import FastAPI, HTTPException
-from passlib.context import CryptContext
-import aiosqlite
-from pydantic import BaseModel
+    client = TestClient(app)
 
-app = FastAPI()
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-class LoginRequest(BaseModel):
-    email: str
-    password: str
-
-class LoginResponse(BaseModel):
-    success: bool
-    message: str
-    user_type: str = None
-
-@app.post("/simple-login", response_model=LoginResponse)
-async def simple_login(login_data: LoginRequest):
-    """Simple authentication endpoint without complex dependencies"""
+    # Test the login endpoint
+    login_data = {
+        "email": "admin@test.com",
+        "password": "admin123"
+    }
 
     try:
-        async with aiosqlite.connect("./mestore_auth_test.db") as db:
-            cursor = await db.execute(
-                "SELECT password_hash, user_type, is_active FROM users WHERE email = ?",
-                (login_data.email,)
-            )
-            user_data = await cursor.fetchone()
-
-            if not user_data:
-                raise HTTPException(status_code=401, detail="User not found")
-
-            password_hash, user_type, is_active = user_data
-
-            if not is_active:
-                raise HTTPException(status_code=401, detail="User not active")
-
-            if pwd_context.verify(login_data.password, password_hash):
-                return LoginResponse(
-                    success=True,
-                    message="Authentication successful",
-                    user_type=user_type
-                )
-            else:
-                raise HTTPException(status_code=401, detail="Invalid password")
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Authentication error: {str(e)}")
-
-@app.get("/health")
-async def health():
-    return {"status": "healthy", "service": "Simple MeStore Auth"}
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8001)
-'''
-
-        with open("simple_auth_app.py", "w") as f:
-            f.write(simple_app_code)
-
-        print("✅ Simple auth app created: simple_auth_app.py")
-
-        # Test the simple app
-        from fastapi import FastAPI
-        from fastapi.testclient import TestClient
-
-        # Import and test the simple app
-        import sys
-        sys.path.insert(0, ".")
-
-        # Create test client for the simple app
-        exec(simple_app_code)
-        client = TestClient(app)
-
-        # Test health endpoint
-        response = client.get("/health")
-        print(f"📊 Health endpoint: {response.status_code}")
-
-        # Test login endpoint
-        login_data = {
-            "email": "super@mestore.com",
-            "password": "123456"
-        }
-
-        response = client.post("/simple-login", json=login_data)
-        print(f"📊 Simple login: {response.status_code}")
-        print(f"📊 Response: {response.json()}")
+        response = client.post("/api/v1/auth/login", json=login_data)
+        print(f"Status Code: {response.status_code}")
+        print(f"Response Headers: {dict(response.headers)}")
+        print(f"Response Body: {response.text}")
 
         if response.status_code == 200:
-            print("✅ Simple authentication API working!")
-            return True
+            print("✅ Login successful!")
+            return response.json()
         else:
-            print("❌ Simple authentication API failed")
-            return False
+            print("❌ Login failed!")
+            return {"error": response.text, "status_code": response.status_code}
 
     except Exception as e:
-        print(f"❌ Simple API creation failed: {e}")
-        return False
-
-async def main():
-    print("🎯 SIMPLE AUTHENTICATION TEST")
-    print("=" * 60)
-
-    # Test 1: Direct authentication
-    auth_success = await test_simple_auth()
-
-    # Test 2: Simple API
-    api_success = await create_simple_login_api()
-
-    print("\n" + "=" * 60)
-    print("📋 SIMPLE AUTH TEST SUMMARY")
-    print("=" * 60)
-    print(f"Direct Authentication: {'✅ Success' if auth_success else '❌ Failed'}")
-    print(f"Simple API Test: {'✅ Success' if api_success else '❌ Failed'}")
-
-    if auth_success and api_success:
-        print("\n🎉 SIMPLE AUTHENTICATION WORKING!")
-        print("📧 Credentials: super@mestore.com / 123456")
-        print("🚀 Start simple server: python simple_auth_app.py")
-        print("🌐 Test at: http://localhost:8001/simple-login")
-        return True
-    else:
-        print("\n❌ Authentication test failed")
-        return False
+        print(f"Error during test client request: {e}")
+        return {"error": str(e)}
 
 if __name__ == "__main__":
-    success = asyncio.run(main())
-    sys.exit(0 if success else 1)
+    print("Starting simple authentication tests...")
+
+    # Run async tests
+    result = asyncio.run(test_simple_auth())
+    print(f"\nDirect Auth Test Result: {result}")
+
+    # Run FastAPI test client simulation
+    result2 = asyncio.run(test_curl_simulation())
+    print(f"\nFastAPI Test Result: {result2}")

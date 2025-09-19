@@ -36,7 +36,7 @@ from datetime import datetime
 from typing import Optional, Dict, List, Any
 from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text, JSON, ForeignKey, Enum as SQLEnum
 from sqlalchemy import Index, Table, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID
+# UUID import removed for SQLite compatibility
 from sqlalchemy.orm import relationship, validates
 from sqlalchemy.sql import func
 from enum import Enum as PyEnum
@@ -137,9 +137,9 @@ class ResourceType(str, PyEnum):
 admin_user_permissions = Table(
     'admin_user_permissions',
     BaseModel.metadata,
-    Column('user_id', UUID(as_uuid=True), ForeignKey('users.id'), primary_key=True),
-    Column('permission_id', UUID(as_uuid=True), ForeignKey('admin_permissions.id'), primary_key=True),
-    Column('granted_by_id', UUID(as_uuid=True), ForeignKey('users.id')),
+    Column('user_id', String(36), ForeignKey('users.id'), primary_key=True),
+    Column('permission_id', String(36), ForeignKey('admin_permissions.id'), primary_key=True),
+    Column('granted_by_id', String(36), ForeignKey('users.id')),
     Column('granted_at', DateTime(timezone=True), server_default=func.now()),
     Column('expires_at', DateTime(timezone=True), nullable=True),
     Column('is_active', Boolean, default=True, nullable=False),
@@ -165,9 +165,9 @@ class AdminPermission(BaseModel):
 
     # === PRIMARY KEY ===
     id = Column(
-        UUID(as_uuid=True),
+        String(36),
         primary_key=True,
-        default=uuid.uuid4,
+        default=lambda: str(uuid.uuid4()),
         index=True,
         comment="Unique permission identifier"
     )

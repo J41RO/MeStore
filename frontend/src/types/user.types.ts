@@ -19,6 +19,8 @@
 //
 // ---------------------------------------------------------------------------------------------
 
+import type { EntityId, BaseEntity } from './core.types';
+
 /**
  * Tipos específicos para vendedores y usuarios
  *
@@ -30,8 +32,8 @@
  */
 
 // Tipos específicos para vendedores y usuarios
-export interface BaseUser {
-  id: string;
+export interface BaseUser extends BaseEntity {
+  id: EntityId;
   email: string;
   name?: string;
   role?: string;
@@ -39,7 +41,7 @@ export interface BaseUser {
 
 export interface VendorProfile {
   // Información básica del vendedor
-  userId: string;
+  userId: EntityId;
   storeName: string;
   storeDescription: string;
   storeSlug: string;

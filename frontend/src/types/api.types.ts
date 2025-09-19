@@ -1,8 +1,9 @@
-// Tipos base para respuestas API
-export interface ApiResponse<T> {
-  data: T;
-  message?: string;
-  status: number;
+import type { EntityId, Timestamp, BaseEntity, StandardResponse, PaginatedResponse } from './core.types';
+
+// Legacy tipos base para respuestas API - migrating to StandardResponse
+export interface ApiResponse<T> extends StandardResponse<T> {
+  // Deprecated: Use StandardResponse instead
+  status: number; // Legacy field, will be removed
 }
 
 export interface ApiError {
@@ -31,13 +32,12 @@ export interface AuthResponse {
 }
 
 // Tipos de usuario
-export interface UserProfile {
-  id: string;
+export interface UserProfile extends BaseEntity {
+  id: EntityId;
   email: string;
   name: string;
   role: 'admin' | 'vendedor' | 'cliente';
-  createdAt: string;
-  updatedAt: string;
+  // createdAt/updatedAt handled by BaseEntity timestamps
 }
 
 export interface UpdateUserData {
@@ -47,9 +47,9 @@ export interface UpdateUserData {
 }
 
 // Tipos de productos
-export interface ProductImage {
-  id: string;
-  product_id: string;
+export interface ProductImage extends BaseEntity {
+  id: EntityId;
+  product_id: EntityId;
   filename: string;
   original_filename: string;
   file_path: string;
@@ -58,13 +58,13 @@ export interface ProductImage {
   width?: number;
   height?: number;
   order_index: number;
-  created_at: string;
-  updated_at: string;
   public_url: string;
+  // created_at, updated_at inherited from BaseEntity
 }
 
-export interface Product {
-  id: string;
+export interface Product extends BaseEntity {
+  id: EntityId;
+  vendor_id?: EntityId; // Foreign key to user (vendor)
   name: string;
   description: string;
   price: number;
@@ -73,8 +73,7 @@ export interface Product {
   imageUrl?: string; // Legacy field - keeping for backward compatibility
   images?: ProductImage[]; // New field for multiple images
   main_image_url?: string; // First image URL for convenience
-  createdAt: string;
-  updatedAt: string;
+  // createdAt/updatedAt handled by BaseEntity timestamps
 }
 
 export interface CreateProductData {
@@ -90,11 +89,11 @@ export interface CreateProductData {
 }
 
 export interface UpdateProductData extends Partial<CreateProductData> {
-  id: number;
+  id: EntityId;
 }
 
-// Tipos para paginación
-export interface PaginatedResponse<T> {
+// Legacy pagination - use core.types.PaginatedResponse instead
+export interface LegacyPaginatedResponse<T> {
   data: T[];
   pagination: {
     page: number;

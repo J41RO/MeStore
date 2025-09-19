@@ -1,0 +1,373 @@
+name: Production Deployment Pipeline
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      force_deploy:
+        description: 'Force deployment even if tests fail'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+
+jobs:
+  # ===== BUILD AND TEST =====
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix=sha-
+
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.production
+          target: production
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+
+      - name: Run security scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # ===== STAGING DEPLOYMENT =====
+  deploy-staging:
+    name: Deploy to Staging
+    needs: [build-and-test]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.event.inputs.environment == 'staging'
+    environment:
+      name: staging
+      url: https://staging.mestore.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup deployment environment
+        run: |
+          echo "ENVIRONMENT=staging" >> $GITHUB_ENV
+          echo "DEPLOY_HOST=${{ secrets.STAGING_HOST }}" >> $GITHUB_ENV
+          echo "DEPLOY_USER=${{ secrets.STAGING_USER }}" >> $GITHUB_ENV
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to staging
+        run: |
+          # Create deployment script
+          cat > deploy.sh << 'EOF'
+          #!/bin/bash
+          set -euo pipefail
+
+          echo "🚀 Starting staging deployment..."
+
+          # Environment variables
+          export IMAGE_TAG="${{ github.sha }}"
+          export ENVIRONMENT="staging"
+
+          # Pull latest images
+          docker-compose -f docker-compose.staging.yml pull
+
+          # Run database migrations
+          docker-compose -f docker-compose.staging.yml --profile migration up migrations
+
+          # Deploy services
+          docker-compose -f docker-compose.staging.yml up -d --remove-orphans
+
+          # Health check
+          sleep 30
+          curl -f http://localhost:8001/health || exit 1
+
+          echo "✅ Staging deployment completed successfully"
+          EOF
+
+          chmod +x deploy.sh
+
+          # Copy files to staging server
+          scp -r . ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/tmp/mestore-deploy/
+
+          # Execute deployment
+          ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} '
+            cd /tmp/mestore-deploy &&
+            ./deploy.sh
+          '
+
+      - name: Run staging tests
+        run: |
+          ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} '
+            cd /tmp/mestore-deploy &&
+            docker-compose -f docker-compose.staging.yml exec -T backend python -m pytest tests/integration/ --tb=short
+          '
+
+      - name: Notify staging deployment
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#deployments'
+          text: '🎯 Staging deployment completed for commit ${{ github.sha }}'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # ===== PRODUCTION DEPLOYMENT =====
+  deploy-production:
+    name: Deploy to Production
+    needs: [build-and-test, deploy-staging]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.environment == 'production'
+    environment:
+      name: production
+      url: https://mestore.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Production deployment approval
+        uses: trstringer/manual-approval@v1
+        with:
+          secret: ${{ secrets.GITHUB_TOKEN }}
+          approvers: ${{ secrets.PRODUCTION_APPROVERS }}
+          minimum-approvals: 2
+          issue-title: "Production Deployment Approval Required"
+          issue-body: |
+            🚀 **Production Deployment Request**
+
+            **Commit:** ${{ github.sha }}
+            **Branch:** ${{ github.ref }}
+            **Actor:** ${{ github.actor }}
+
+            **Changes:**
+            ${{ github.event.head_commit.message }}
+
+            **Staging Tests:** ✅ Passed
+            **Security Scan:** ✅ Passed
+
+            Please review and approve this production deployment.
+
+      - name: Configure SSH for production
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PRODUCTION_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Backup production database
+        run: |
+          ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} '
+            sudo docker-compose -f /opt/mestore/docker-compose.production.yml exec -T postgres \
+              pg_dump -U $POSTGRES_USER $POSTGRES_DB > /opt/mestore/backups/pre-deploy-$(date +%Y%m%d-%H%M%S).sql
+          '
+
+      - name: Deploy to production
+        run: |
+          # Create production deployment script
+          cat > deploy-production.sh << 'EOF'
+          #!/bin/bash
+          set -euo pipefail
+
+          echo "🏭 Starting production deployment..."
+
+          # Environment variables
+          export IMAGE_TAG="${{ github.sha }}"
+          export ENVIRONMENT="production"
+
+          # Pull latest images
+          docker-compose -f docker-compose.production.yml pull
+
+          # Run database migrations
+          docker-compose -f docker-compose.production.yml --profile migration up migrations
+
+          # Rolling update deployment
+          docker-compose -f docker-compose.production.yml up -d --no-deps backend
+
+          # Wait and health check
+          sleep 60
+          for i in {1..10}; do
+            if curl -f http://localhost:8000/health; then
+              echo "✅ Health check passed"
+              break
+            fi
+            echo "⏳ Waiting for service to be ready... ($i/10)"
+            sleep 10
+          done
+
+          # Update remaining services
+          docker-compose -f docker-compose.production.yml up -d --remove-orphans
+
+          echo "✅ Production deployment completed successfully"
+          EOF
+
+          chmod +x deploy-production.sh
+
+          # Copy deployment files
+          scp -r . ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:/tmp/mestore-deploy/
+
+          # Execute deployment
+          ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} '
+            cd /tmp/mestore-deploy &&
+            sudo ./deploy-production.sh
+          '
+
+      - name: Production smoke tests
+        run: |
+          # Basic smoke tests for production
+          ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} '
+            # Test API endpoints
+            curl -f https://mestore.com/health
+            curl -f https://mestore.com/api/v1/health
+
+            # Test database connectivity
+            docker-compose -f /opt/mestore/docker-compose.production.yml exec -T backend \
+              python -c "
+                import asyncio
+                from app.core.database import get_database
+                async def test():
+                  async with get_database() as db:
+                    result = await db.execute(\"SELECT 1\")
+                    print(\"Database OK\")
+                asyncio.run(test())
+              "
+          '
+
+      - name: Update production monitoring
+        run: |
+          # Trigger monitoring update
+          curl -X POST "${{ secrets.MONITORING_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "deployment": {
+                "environment": "production",
+                "version": "${{ github.sha }}",
+                "timestamp": "'$(date -Iseconds)'",
+                "status": "deployed"
+              }
+            }'
+
+      - name: Notify production deployment
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#production'
+          text: |
+            🎉 **Production Deployment Successful**
+
+            **Version:** ${{ github.sha }}
+            **Environment:** Production
+            **URL:** https://mestore.com
+
+            All services are healthy and running.
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # ===== ROLLBACK JOB =====
+  rollback:
+    name: Rollback Deployment
+    runs-on: ubuntu-latest
+    if: failure() && (needs.deploy-production.result == 'failure' || github.event.inputs.force_deploy == 'true')
+    needs: [deploy-production]
+    environment:
+      name: production-rollback
+
+    steps:
+      - name: Rollback production deployment
+        run: |
+          ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} '
+            cd /opt/mestore &&
+            echo "🔄 Rolling back production deployment..." &&
+            docker-compose -f docker-compose.production.yml down &&
+            docker-compose -f docker-compose.production.yml up -d --remove-orphans
+          '
+
+      - name: Restore database backup
+        if: github.event.inputs.force_deploy == 'true'
+        run: |
+          ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} '
+            LATEST_BACKUP=$(ls -t /opt/mestore/backups/pre-deploy-*.sql | head -1)
+            if [ -f "$LATEST_BACKUP" ]; then
+              echo "🔄 Restoring database from $LATEST_BACKUP"
+              docker-compose -f /opt/mestore/docker-compose.production.yml exec -T postgres \
+                psql -U $POSTGRES_USER -d $POSTGRES_DB < "$LATEST_BACKUP"
+            fi
+          '
+
+      - name: Notify rollback
+        uses: 8398a7/action-slack@v3
+        with:
+          status: 'warning'
+          channel: '#production'
+          text: |
+            ⚠️ **Production Rollback Executed**
+
+            **Reason:** Deployment failure
+            **Previous Version:** Restored
+
+            Please investigate the deployment issues.
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

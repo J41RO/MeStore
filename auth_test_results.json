@@ -1,0 +1,135 @@
+{
+  "summary": {
+    "total_tests": 9,
+    "successful": 6,
+    "failed": 3,
+    "errors": 0,
+    "success_rate": "66.7%",
+    "test_timestamp": "2025-09-18T02:49:27.548869"
+  },
+  "detailed_results": [
+    {
+      "timestamp": "2025-09-18T02:49:26.452752",
+      "test": "BACKEND_AVAILABILITY",
+      "status": "SUCCESS",
+      "details": {
+        "status_code": 200,
+        "url": "http://localhost:8000/",
+        "accessible": true
+      }
+    },
+    {
+      "timestamp": "2025-09-18T02:49:26.511611",
+      "test": "FRONTEND_AVAILABILITY",
+      "status": "SUCCESS",
+      "details": {
+        "status_code": 200,
+        "url": "http://localhost:5174/",
+        "accessible": true
+      }
+    },
+    {
+      "timestamp": "2025-09-18T02:49:26.514448",
+      "test": "DATABASE_USER_CHECK",
+      "status": "SUCCESS",
+      "details": {
+        "total_users": 3,
+        "users": [
+          {
+            "email": "admin@test.com",
+            "type": "admin",
+            "active": true,
+            "verified": true
+          },
+          {
+            "email": "buyer@test.com",
+            "type": "buyer",
+            "active": true,
+            "verified": true
+          },
+          {
+            "email": "vendor@test.com",
+            "type": "vendor",
+            "active": true,
+            "verified": true
+          }
+        ]
+      }
+    },
+    {
+      "timestamp": "2025-09-18T02:49:27.042135",
+      "test": "API_LOGIN_vendor@test.com",
+      "status": "SUCCESS",
+      "details": {
+        "email": "vendor@test.com",
+        "status_code": 200,
+        "has_token": true,
+        "token_preview": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkN...",
+        "user_type": null,
+        "user_id": null,
+        "expected_role": "VENDEDOR",
+        "role_match": false
+      }
+    },
+    {
+      "timestamp": "2025-09-18T02:49:27.046176",
+      "test": "PROTECTED_ENDPOINT_vendor@test.com",
+      "status": "FAILED",
+      "details": {
+        "email": "vendor@test.com",
+        "status_code": 404,
+        "error": "{\"status\":\"error\",\"timestamp\":\"2025-09-18T07:49:27.045251Z\",\"message\":\"HTTP error 404 at /api/v1/users/me\",\"version\":\"1.0.0\",\"error_code\":\"NOT_FOUND\",\"error_message\":\"Not Found\",\"details\":[],\"request_id\":\"req_53b5b15c\"}"
+      }
+    },
+    {
+      "timestamp": "2025-09-18T02:49:27.293408",
+      "test": "API_LOGIN_admin@test.com",
+      "status": "SUCCESS",
+      "details": {
+        "email": "admin@test.com",
+        "status_code": 200,
+        "has_token": true,
+        "token_preview": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0M...",
+        "user_type": null,
+        "user_id": null,
+        "expected_role": "ADMIN",
+        "role_match": false
+      }
+    },
+    {
+      "timestamp": "2025-09-18T02:49:27.297694",
+      "test": "PROTECTED_ENDPOINT_admin@test.com",
+      "status": "FAILED",
+      "details": {
+        "email": "admin@test.com",
+        "status_code": 404,
+        "error": "{\"status\":\"error\",\"timestamp\":\"2025-09-18T07:49:27.296851Z\",\"message\":\"HTTP error 404 at /api/v1/users/me\",\"version\":\"1.0.0\",\"error_code\":\"NOT_FOUND\",\"error_message\":\"Not Found\",\"details\":[],\"request_id\":\"req_c653b1b3\"}"
+      }
+    },
+    {
+      "timestamp": "2025-09-18T02:49:27.542884",
+      "test": "API_LOGIN_buyer@test.com",
+      "status": "SUCCESS",
+      "details": {
+        "email": "buyer@test.com",
+        "status_code": 200,
+        "has_token": true,
+        "token_preview": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiN...",
+        "user_type": null,
+        "user_id": null,
+        "expected_role": "COMPRADOR",
+        "role_match": false
+      }
+    },
+    {
+      "timestamp": "2025-09-18T02:49:27.548507",
+      "test": "PROTECTED_ENDPOINT_buyer@test.com",
+      "status": "FAILED",
+      "details": {
+        "email": "buyer@test.com",
+        "status_code": 404,
+        "error": "{\"status\":\"error\",\"timestamp\":\"2025-09-18T07:49:27.547277Z\",\"message\":\"HTTP error 404 at /api/v1/users/me\",\"version\":\"1.0.0\",\"error_code\":\"NOT_FOUND\",\"error_message\":\"Not Found\",\"details\":[],\"request_id\":\"req_c3259c78\"}"
+      }
+    }
+  ]
+}

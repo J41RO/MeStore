@@ -25,6 +25,22 @@ from app.core.logger import get_logger
 logger = get_logger(__name__)
 
 
+class AlertType(str, Enum):
+    """Alert type enumeration for fraud detection."""
+    FRAUD_DETECTION = "fraud_detection"
+    SUSPICIOUS_LOGIN = "suspicious_login"
+    IP_ANOMALY = "ip_anomaly"
+    DEVICE_ANOMALY = "device_anomaly"
+
+
+class AlertSeverity(str, Enum):
+    """Alert severity enumeration."""
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+
 class RiskLevel(str, Enum):
     """Risk level enumeration."""
     LOW = "low"
@@ -611,3 +627,10 @@ class EnterpriseFraudDetectionService:
 
         except Exception as e:
             logger.error("Error initializing device tracking", error=str(e))
+# Factory function for service creation
+def get_fraud_detection_service(redis_client=None):
+    """Get fraud detection service instance."""
+    return EnterpriseFraudDetectionService(redis_client)
+
+# Default instance (will be replaced with proper Redis client in production)
+FraudDetectionService = None

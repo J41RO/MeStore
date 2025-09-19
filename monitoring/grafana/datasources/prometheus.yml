@@ -1,0 +1,41 @@
+# ~/monitoring/grafana/datasources/prometheus.yml
+# ---------------------------------------------------------------------------------------------
+# MESTORE - Grafana Prometheus Datasource Configuration
+# Copyright (c) 2025 Jairo. Todos los derechos reservados.
+# Licensed under the proprietary license detailed in a LICENSE file in the root of this project.
+# ---------------------------------------------------------------------------------------------
+
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+    jsonData:
+      httpMethod: POST
+      timeInterval: 15s
+      queryTimeout: 60s
+      defaultRegion: us-east-1
+      customQueryParameters: ''
+      manageAlerts: true
+      alertmanagerUid: alertmanager
+    secureJsonData: {}
+    version: 1
+
+  - name: Prometheus-Business
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: false
+    editable: true
+    jsonData:
+      httpMethod: POST
+      timeInterval: 60s
+      queryTimeout: 120s
+      exemplarTraceIdDestinations:
+        - name: trace_id
+          datasourceUid: jaeger
+    version: 1

@@ -1,1 +1,0 @@
-print('Verificación Python OK')

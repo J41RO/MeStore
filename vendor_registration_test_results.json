@@ -1,0 +1,118 @@
+{
+  "test_execution_time": "2025-09-18T21:13:15.863179",
+  "total_tests": 8,
+  "passed_tests": 3,
+  "failed_tests": 5,
+  "success_rate": 37.5,
+  "detailed_results": {
+    "Server Health Check": {
+      "success": true,
+      "timestamp": "2025-09-18T21:13:11.322014",
+      "details": {
+        "status_code": 200,
+        "response_time_ms": 5546.522999999999
+      }
+    },
+    "Email Service Configuration": {
+      "success": true,
+      "timestamp": "2025-09-18T21:13:11.822385",
+      "details": {
+        "sendgrid_configured": false,
+        "from_email_configured": false,
+        "sendgrid_api_key_length": 0,
+        "from_email": "Not configured"
+      }
+    },
+    "SMS Service Configuration": {
+      "success": true,
+      "timestamp": "2025-09-18T21:13:12.322595",
+      "details": {
+        "twilio_account_sid_configured": false,
+        "twilio_auth_token_configured": false,
+        "twilio_from_number_configured": false,
+        "simulation_mode": true
+      }
+    },
+    "Basic Auth Register (Vendor)": {
+      "success": false,
+      "timestamp": "2025-09-18T21:13:13.344587",
+      "details": {
+        "status_code": 500,
+        "request_data": {
+          "email": "auth.vendor@mestore.com",
+          "password": "AuthTest123!",
+          "user_type": "VENDOR"
+        },
+        "response_data": {
+          "status": "error",
+          "timestamp": "2025-09-19T02:13:13.343231Z",
+          "message": "HTTP error 500 at /api/v1/auth/register",
+          "version": "1.0.0",
+          "error_code": "INTERNAL_SERVER_ERROR",
+          "error_message": "Error interno del servidor",
+          "details": [],
+          "request_id": "req_72ff272c"
+        }
+      }
+    },
+    "Vendor Specific Registration": {
+      "success": false,
+      "timestamp": "2025-09-18T21:13:13.851662",
+      "details": {
+        "status_code": 404,
+        "request_data": {
+          "email": "test.vendor@mestore.com",
+          "password": "VendorTest123!",
+          "nombre": "Juan Carlos",
+          "apellido": "Rodriguez Perez",
+          "cedula": "12345678",
+          "telefono": "+573001234567",
+          "ciudad": "Bogot\u00e1",
+          "empresa": "MiTienda SAS",
+          "direccion": "Calle 123 #45-67"
+        },
+        "response_data": {
+          "status": "error",
+          "timestamp": "2025-09-19T02:13:13.850131Z",
+          "message": "HTTP error 404 at /api/v1/vendedores/registro",
+          "version": "1.0.0",
+          "error_code": "NOT_FOUND",
+          "error_message": "Not Found",
+          "details": [],
+          "request_id": "req_1bbb1a31"
+        }
+      }
+    },
+    "Vendor Login": {
+      "success": false,
+      "timestamp": "2025-09-18T21:13:14.362456",
+      "details": {
+        "status_code": 401,
+        "response_data": {
+          "status": "error",
+          "timestamp": "2025-09-19T02:13:14.360961Z",
+          "message": "HTTP error 401 at /api/v1/auth/login",
+          "version": "1.0.0",
+          "error_code": "UNAUTHORIZED",
+          "error_message": "Email o contrase\u00f1a incorrectos",
+          "details": [],
+          "request_id": "req_b37a08ba"
+        }
+      }
+    },
+    "Authenticated User Info": {
+      "success": false,
+      "timestamp": "2025-09-18T21:13:14.862704",
+      "details": {
+        "error": "No access token available"
+      }
+    },
+    "Vendor Specific Endpoints": {
+      "success": false,
+      "timestamp": "2025-09-18T21:13:15.362991",
+      "details": {
+        "error": "No access token available"
+      }
+    }
+  }
+}

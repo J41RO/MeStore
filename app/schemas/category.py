@@ -34,7 +34,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 from uuid import UUID
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, validator, ConfigDict, field_validator
 
 
 class CategoryBase(BaseModel):
@@ -233,7 +233,10 @@ class CategoryBulkCreate(BaseModel):
         description="Lista de categorías a crear (máximo 100)"
     )
 
-    @validator('categories')
+    @field_validator('categories')
+
+
+    @classmethod
     def validate_categories(cls, v):
         """Validar que no hay slugs duplicados en el lote."""
         slugs = [cat.slug for cat in v if cat.slug]
@@ -256,8 +259,11 @@ class ProductCategoryAssignment(BaseModel):
         description="ID de la categoría principal (debe estar en category_ids)"
     )
 
-    @validator('primary_category_id')
-    def validate_primary_category(cls, v, values):
+    @field_validator('primary_category_id')
+
+
+    @classmethod
+    def validate_primary_category(cls, v):
         """Validar que la categoría principal esté en la lista de categorías."""
         if v is not None and 'category_ids' in values:
             if v not in values['category_ids']:

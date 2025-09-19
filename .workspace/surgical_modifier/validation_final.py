@@ -1,1 +1,0 @@
-print('Sistema reparado')

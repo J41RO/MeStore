@@ -32,8 +32,7 @@ Proporciona:
 
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, DateTime, text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, DateTime, String, text
 
 from app.database import Base
 
@@ -43,11 +42,11 @@ class BaseModel(Base):
     
     __abstract__ = True
 
-    # Primary key UUID para mejor performance
+    # Primary key UUID para mejor performance - SQLite compatible
     id = Column(
-        UUID(as_uuid=True),
+        String(36),
         primary_key=True,
-        default=uuid.uuid4,
+        default=lambda: str(uuid.uuid4()),
         index=True,
         comment="ID único del registro",
     )

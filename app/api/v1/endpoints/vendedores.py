@@ -36,6 +36,7 @@ Este módulo contiene endpoints especializados para:
 """
 
 import logging
+import os
 from datetime import datetime, date
 from decimal import Decimal
 from typing import Dict, Any, Optional, List
@@ -206,7 +207,7 @@ async def registrar_vendedor(
             password_hash=password_hash,
             nombre=vendedor_data.nombre,
             apellido=vendedor_data.apellido,
-            user_type=UserType.VENDEDOR,  # Forzar tipo VENDEDOR
+            user_type=UserType.VENDOR,  # Forzar tipo VENDEDOR
             cedula=vendedor_data.cedula,
             telefono=vendedor_data.telefono,
             ciudad=vendedor_data.ciudad,
@@ -309,7 +310,7 @@ async def login_vendedor(
             )
 
         # Verificar que el usuario sea tipo VENDEDOR
-        if user.user_type != UserType.VENDEDOR:
+        if user.user_type != UserType.VENDOR:
             logger.warning(f"Login vendedor fallido - tipo incorrecto: {login_data.email}, tipo: {user.user_type.value}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -359,7 +360,7 @@ async def get_dashboard_resumen(
 ) -> VendedorDashboardResumen:
     """Obtener KPIs principales del vendedor para dashboard."""
     # Verificar que el usuario es vendedor
-    if current_user.user_type != UserType.VENDEDOR:
+    if current_user.user_type != UserType.VENDOR:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Solo vendedores pueden acceder al dashboard"
@@ -462,7 +463,7 @@ async def get_dashboard_ventas(
 ) -> DashboardVentasResponse:
     """Obtener datos de ventas agrupados por período para gráficos del dashboard."""
     # Verificar permisos de vendedor (reutilizar patrón)
-    if current_user.user_type != UserType.VENDEDOR:
+    if current_user.user_type != UserType.VENDOR:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Solo vendedores pueden acceder al dashboard de ventas"
@@ -652,7 +653,7 @@ async def get_dashboard_productos_top(
 ) -> DashboardProductosTopResponse:
     """Obtener ranking de productos top del vendedor."""
     # Verificar permisos de vendedor (reutilizar patrón exacto)
-    if current_user.user_type != UserType.VENDEDOR:
+    if current_user.user_type != UserType.VENDOR:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Solo vendedores pueden acceder al dashboard de productos"
@@ -826,7 +827,7 @@ async def get_dashboard_comisiones(
 ) -> DashboardComisionesResponse:
     """Obtener detalle de comisiones y earnings del vendedor."""
     # Verificar permisos de vendedor (reutilizar patrón exacto)
-    if current_user.user_type != UserType.VENDEDOR:
+    if current_user.user_type != UserType.VENDOR:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Solo vendedores pueden acceder al dashboard de comisiones"
@@ -1056,7 +1057,7 @@ async def get_dashboard_inventario(
 ) -> DashboardInventarioResponse:
     """Obtener métricas de inventario y stock del vendedor."""
     # Verificar permisos de vendedor (reutilizar patrón exacto)
-    if current_user.user_type != UserType.VENDEDOR:
+    if current_user.user_type != UserType.VENDOR:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Solo vendedores pueden acceder al dashboard de inventario"
@@ -1165,7 +1166,7 @@ async def get_dashboard_exportar(
 ) -> ExportResponse:
     """Exportar reportes del dashboard en PDF o Excel."""
     # Verificar permisos de vendedor
-    if current_user.user_type != UserType.VENDEDOR:
+    if current_user.user_type != UserType.VENDOR:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Solo vendedores pueden exportar reportes"
@@ -1202,7 +1203,7 @@ async def get_vendor_list(
     
     try:
         # Construir query base para vendedores
-        query = select(User).where(User.user_type == UserType.VENDEDOR)
+        query = select(User).where(User.user_type == UserType.VENDOR)
         
         # Aplicar filtros si están presentes
         if filters.estado:
@@ -1279,7 +1280,7 @@ async def aprobar_vendedor(
         )
     
     # Buscar el vendedor
-    query = select(User).where(User.id == vendedor_id, User.user_type == UserType.VENDEDOR)
+    query = select(User).where(User.id == vendedor_id, User.user_type == UserType.VENDOR)
     result = await db.execute(query)
     vendedor = result.scalar_one_or_none()
     
@@ -1355,7 +1356,7 @@ async def rechazar_vendedor(
         )
     
     # Buscar el vendedor
-    query = select(User).where(User.id == vendedor_id, User.user_type == UserType.VENDEDOR)
+    query = select(User).where(User.id == vendedor_id, User.user_type == UserType.VENDOR)
     result = await db.execute(query)
     vendedor = result.scalar_one_or_none()
     
@@ -1410,7 +1411,7 @@ async def get_dashboard_ordenes(
 ) -> Dict[str, Any]:
     """Obtener órdenes recientes del vendedor para el dashboard."""
     # Verificar permisos de vendedor
-    if current_user.user_type != UserType.VENDEDOR:
+    if current_user.user_type != UserType.VENDOR:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Solo vendedores pueden acceder a sus órdenes"
@@ -1561,7 +1562,7 @@ async def get_vendor_notes(
         # Verificar que el vendedor existe
         vendor_query = select(User).where(
             User.id == vendedor_id, 
-            User.user_type == UserType.VENDEDOR
+            User.user_type == UserType.VENDOR
         )
         vendor_result = await db.execute(vendor_query)
         vendor = vendor_result.scalar_one_or_none()
@@ -1633,7 +1634,7 @@ async def create_vendor_note(
         # Verificar que el vendedor existe
         vendor_query = select(User).where(
             User.id == vendedor_id, 
-            User.user_type == UserType.VENDEDOR
+            User.user_type == UserType.VENDOR
         )
         vendor_result = await db.execute(vendor_query)
         vendor = vendor_result.scalar_one_or_none()
@@ -1706,7 +1707,7 @@ async def bulk_approve_vendors(
         failed_items = []
         
         for vendor_id in request.vendor_ids:
-            vendor = db.query(User).filter(User.id == vendor_id, User.user_type == UserType.VENDEDOR).first()
+            vendor = db.query(User).filter(User.id == vendor_id, User.user_type == UserType.VENDOR).first()
             if vendor:
                 vendor.is_verified = True
                 success_count += 1
@@ -1736,7 +1737,7 @@ async def bulk_suspend_vendors(
         failed_items = []
         
         for vendor_id in request.vendor_ids:
-            vendor = db.query(User).filter(User.id == vendor_id, User.user_type == UserType.VENDEDOR).first()
+            vendor = db.query(User).filter(User.id == vendor_id, User.user_type == UserType.VENDOR).first()
             if vendor:
                 vendor.is_active = False
                 success_count += 1
@@ -1763,7 +1764,7 @@ async def bulk_email_vendors(
 ):
     '''Enviar email a múltiples vendedores'''
     try:
-        vendors = db.query(User).filter(User.id.in_(request.vendor_ids), User.user_type == UserType.VENDEDOR).all()
+        vendors = db.query(User).filter(User.id.in_(request.vendor_ids), User.user_type == UserType.VENDOR).all()
         
         success_count = 0
         failed_items = []
@@ -1811,7 +1812,7 @@ async def get_vendor_audit_log(
         # Verificar que el vendedor existe
         vendor_query = select(User).where(
             User.id == vendedor_id, 
-            User.user_type == UserType.VENDEDOR
+            User.user_type == UserType.VENDOR
         )
         vendor_result = await db.execute(vendor_query)
         vendor = vendor_result.scalar_one_or_none()
@@ -1884,7 +1885,7 @@ async def upload_vendor_document(
     
     Solo vendors pueden subir sus propios documentos.
     """
-    if current_user.user_type != UserType.VENDEDOR:
+    if current_user.user_type != UserType.VENDOR:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Solo vendedores pueden subir documentos"
@@ -2019,8 +2020,8 @@ async def get_vendor_documents(
     Los admins pueden ver documentos de cualquier vendor.
     """
     # Validar permisos
-    if (current_user.user_type == UserType.VENDEDOR and str(current_user.id) != vendor_id) or \
-       (current_user.user_type not in [UserType.VENDEDOR, UserType.ADMIN]):
+    if (current_user.user_type == UserType.VENDOR and str(current_user.id) != vendor_id) or \
+       (current_user.user_type not in [UserType.VENDOR, UserType.ADMIN]):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="No tienes permisos para ver estos documentos"
@@ -2030,7 +2031,7 @@ async def get_vendor_documents(
         # Verificar que el vendor existe
         vendor_query = select(User).where(
             User.id == vendor_id,
-            User.user_type == UserType.VENDEDOR
+            User.user_type == UserType.VENDOR
         )
         vendor_result = await db.execute(vendor_query)
         vendor = vendor_result.scalar_one_or_none()
@@ -2186,8 +2187,8 @@ async def delete_vendor_document(
             )
         
         # Validar permisos
-        if (current_user.user_type == UserType.VENDEDOR and document.vendor_id != current_user.id) or \
-           (current_user.user_type not in [UserType.VENDEDOR, UserType.ADMIN]):
+        if (current_user.user_type == UserType.VENDOR and document.vendor_id != current_user.id) or \
+           (current_user.user_type not in [UserType.VENDOR, UserType.ADMIN]):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="No tienes permisos para eliminar este documento"

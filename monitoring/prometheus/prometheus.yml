@@ -1,0 +1,174 @@
+# ~/monitoring/prometheus/prometheus.yml
+# ---------------------------------------------------------------------------------------------
+# MESTORE - Prometheus Production Configuration
+# Copyright (c) 2025 Jairo. Todos los derechos reservados.
+# Licensed under the proprietary license detailed in a LICENSE file in the root of this project.
+# ---------------------------------------------------------------------------------------------
+#
+# Nombre del Archivo: prometheus.yml
+# Ruta: ~/monitoring/prometheus/prometheus.yml
+# Autor: DevOps Integration AI
+# Fecha de Creación: 2025-09-17
+# Última Actualización: 2025-09-17
+# Versión: 1.0.0
+# Propósito: Configuración Prometheus para monitoreo de producción
+#            Métricas de aplicación, infraestructura y negocio
+#
+# Modificaciones:
+# 2025-09-17 - Configuración inicial de monitoreo
+#
+# ---------------------------------------------------------------------------------------------
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'mestore-production'
+    environment: 'production'
+
+# ===== RULE FILES =====
+rule_files:
+  - "alert_rules.yml"
+  - "recording_rules.yml"
+
+# ===== ALERTING =====
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+# ===== SCRAPE CONFIGURATIONS =====
+scrape_configs:
+  # ===== PROMETHEUS SELF-MONITORING =====
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 15s
+    metrics_path: /metrics
+
+  # ===== MESTORE BACKEND APPLICATION =====
+  - job_name: 'mestore-backend'
+    static_configs:
+      - targets: ['backend:8000']
+    scrape_interval: 10s
+    metrics_path: /metrics
+    honor_labels: true
+    params:
+      format: [prometheus]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'mestore-backend'
+
+  # ===== NODE EXPORTER (Sistema) =====
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 15s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'production-server'
+
+  # ===== POSTGRES EXPORTER =====
+  - job_name: 'postgres-exporter'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    scrape_interval: 30s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'postgres-production'
+
+  # ===== REDIS EXPORTER =====
+  - job_name: 'redis-exporter'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    scrape_interval: 30s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'redis-production'
+
+  # ===== NGINX EXPORTER =====
+  - job_name: 'nginx-exporter'
+    static_configs:
+      - targets: ['nginx-exporter:9113']
+    scrape_interval: 30s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'nginx-production'
+
+  # ===== DOCKER CONTAINER METRICS =====
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    scrape_interval: 30s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'docker-containers'
+
+  # ===== BLACKBOX EXPORTER (External monitoring) =====
+  - job_name: 'blackbox-http'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - https://mestore.com
+          - https://api.mestore.com/health
+          - https://mestore.com/api/v1/health
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  # ===== CUSTOM APPLICATION METRICS =====
+  - job_name: 'mestore-business-metrics'
+    static_configs:
+      - targets: ['backend:8000']
+    scrape_interval: 60s
+    metrics_path: /metrics/business
+    honor_labels: true
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'business-metrics'
+
+  # ===== SSL CERTIFICATE MONITORING =====
+  - job_name: 'ssl-expiry'
+    metrics_path: /probe
+    params:
+      module: [ssl_expiry]
+    static_configs:
+      - targets:
+          - mestore.com:443
+          - api.mestore.com:443
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+# ===== REMOTE WRITE (para almacenamiento a largo plazo) =====
+# remote_write:
+#   - url: "https://prometheus-remote-storage.com/write"
+#     basic_auth:
+#       username: "mestore"
+#       password: "secure_password"
+
+# ===== STORAGE CONFIGURATION =====
+storage:
+  tsdb:
+    retention.time: 30d
+    retention.size: 10GB
+    path: /prometheus
+    wal-compression: true

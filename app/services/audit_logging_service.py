@@ -593,3 +593,7 @@ class EnterpriseAuditLoggingService:
         except Exception as e:
             logger.error("Error generating compliance report", error=str(e))
             return {"error": str(e)}
+
+
+# Create a singleton instance for easy import
+AuditLoggingService = EnterpriseAuditLoggingService()

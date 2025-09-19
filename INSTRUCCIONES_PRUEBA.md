@@ -79,7 +79,7 @@ console.log('Auth Storage:', localStorage.getItem('auth-storage'));
 ## ✅ Estado Actual
 
 - ✅ Backend: Autenticación funciona
-- ✅ Backend: Roles se serializan correctamente  
+- ✅ Backend: Roles se serializan correctamente
 - ✅ Frontend: Store de autenticación mejorado
 - ✅ Frontend: AuthGuard protege rutas correctamente
 - ✅ Frontend: RoleGuard valida permisos correctamente

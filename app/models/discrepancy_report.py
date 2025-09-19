@@ -27,7 +27,7 @@ Este módulo contiene:
 """
 
 from sqlalchemy import Column, String, Integer, DateTime, Float, Text, Boolean, ForeignKey, Enum as SQLEnum, JSON
-from sqlalchemy.dialects.postgresql import UUID
+# UUID import removed for SQLite compatibility
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from enum import Enum
@@ -112,11 +112,11 @@ class DiscrepancyReport(Base):
     
     __tablename__ = "discrepancy_reports"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     
     # Relación con InventoryAudit existente
     audit_id = Column(
-        UUID(as_uuid=True),
+        String(36),
         ForeignKey('inventory_audits.id'),
         nullable=False,
         index=True,
@@ -145,7 +145,7 @@ class DiscrepancyReport(Base):
     
     # Usuario que generó el reporte
     generated_by_id = Column(
-        UUID(as_uuid=True),
+        String(36),
         ForeignKey('users.id'),
         nullable=False,
         index=True,

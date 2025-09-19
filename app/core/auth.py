@@ -34,43 +34,50 @@ class AuthService:
         """Hash de contraseña usando función centralizada"""
         return await hash_password(password)
 
-    async def authenticate_user(self, email: str, password: str):
+    async def authenticate_user(self, email: str, password: str, db=None):
         """
         Autenticar usuario con email y contraseña.
 
         Args:
             email: Email del usuario
             password: Contraseña en texto plano
+            db: Database session (optional)
 
         Returns:
             Usuario si credenciales son válidas, None si son inválidas
         """
-        from app.database import AsyncSessionLocal
         from app.models.user import User
-        from sqlalchemy import select
+        from app.core.database import get_db
 
-        # Obtener sesión de base de datos
-        async with AsyncSessionLocal() as db:
-            try:
-                # Buscar usuario por email
-                stmt = select(User).where(User.email == email)
-                result = await db.execute(stmt)
-                user = result.scalar_one_or_none()
+        # Use provided db session or get a new one
+        if db is None:
+            db_gen = get_db()
+            db = next(db_gen)
+            should_close = True
+        else:
+            should_close = False
 
-                if not user:
-                    return None
+        try:
+            # Buscar usuario por email usando sync query (compatible with get_db)
+            user = db.query(User).filter(User.email == email).first()
 
-                # Verificar contraseña
-                if not await self.verify_password(password, user.password_hash):
-                    return None
-
-                return user
-
-            except Exception as e:
-                # Log error pero no revelar detalles por seguridad
-                import logging
-                logging.error(f"Error en authenticate_user: {str(e)}")
+            if not user:
                 return None
+
+            # Verificar contraseña
+            if not await self.verify_password(password, user.password_hash):
+                return None
+
+            return user
+
+        except Exception as e:
+            # Log error pero no revelar detalles por seguridad
+            import logging
+            logging.error(f"Error en authenticate_user: {str(e)}")
+            return None
+        finally:
+            if should_close:
+                db.close()
 
     def create_access_token(self, user_id: str, expires_delta: Optional[timedelta] = None):
         """Crear access token JWT para usuario"""
@@ -179,7 +186,7 @@ def require_user_type(*allowed_types: str):
     Decorator para requerir tipos específicos de usuario.
 
     Args:
-        allowed_types: Tipos de usuario permitidos (ej: "VENDEDOR", "COMPRADOR")
+        allowed_types: Tipos de usuario permitidos (ej: "vendor", "buyer")
     """
     def decorator(func):
         async def wrapper(*args, **kwargs):

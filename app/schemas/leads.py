@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import BaseModel, EmailStr, Field, validator, ConfigDict, field_validator
 from typing import Optional, Literal
 from datetime import datetime
 
@@ -10,7 +10,8 @@ class LeadCreateSchema(BaseModel):
     empresa: Optional[str] = Field(None, max_length=200, description="Nombre de la empresa")
     source: Optional[str] = Field("landing", max_length=50, description="Fuente de captación del lead")
 
-    @validator('telefono')
+    @field_validator('telefono')
+    @classmethod
     def validate_telefono(cls, v):
         if v and v.strip():
             # Basic phone validation - allow numbers, spaces, +, -, ()
@@ -20,19 +21,21 @@ class LeadCreateSchema(BaseModel):
             return v.strip()
         return None
 
-    @validator('nombre')
+    @field_validator('nombre')
+    @classmethod
     def validate_nombre(cls, v):
         if not v or not v.strip():
             raise ValueError('Nombre es requerido')
         return v.strip().title()
 
-    @validator('empresa')
+    @field_validator('empresa')
+    @classmethod
     def validate_empresa(cls, v):
         if v and v.strip():
             return v.strip()
         return None
 
-    class Config:
+    model_config = ConfigDict(
         json_schema_extra = {
             "example": {
                 "email": "juan.perez@miempresa.com",
@@ -43,6 +46,7 @@ class LeadCreateSchema(BaseModel):
                 "source": "landing"
             }
         }
+    )
 
 class LeadResponseSchema(BaseModel):
     id: int
@@ -55,8 +59,7 @@ class LeadResponseSchema(BaseModel):
     created_at: datetime
     status: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class LeadStatsSchema(BaseModel):
     total_leads: int

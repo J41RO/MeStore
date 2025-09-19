@@ -394,6 +394,29 @@ docker-compose.override.yml
 .workspace/temp/
 .workspace/cache/
 
+# === BACKUPS Y DUPLICADOS ===
+# Directorios de backup
+*_backup_*/
+*.backup.*
+.backup/
+.surgical_backups/
+*surgical_backups*/
+*backup*/
+
+# Archivos duplicados
+*.backup
+*.bak
+*.old
+main.py.backup*
+docker-compose.yml.backup*
+requirements.txt.backup*
+
+# Frontend duplicado
+frontend/frontend/
+
+# Archive directory
+/archive/
+
 # === ENTORNO VIRTUAL - EXCLUSIÓN COMPLETA ===
 venv/
 .venv/

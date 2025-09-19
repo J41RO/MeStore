@@ -1,1 +1,0 @@
-const Demo = () => <div>React demo</div>

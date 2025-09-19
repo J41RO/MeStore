@@ -1,6 +1,6 @@
 # ~/app/schemas/payout_request.py
-from pydantic import BaseModel, Field
-from pydantic import validator
+from pydantic import BaseModel, Field, ConfigDict, field_validator
+from pydantic import validator, ConfigDict, field_validator
 from decimal import Decimal
 from datetime import datetime
 from typing import Optional
@@ -28,21 +28,30 @@ class PayoutRequestCreate(BaseModel):
     class Config:
         from_attributes = True
 
-    @validator('numero_cuenta')
+    @field_validator('numero_cuenta')
+
+
+    @classmethod
     def validar_numero_cuenta(cls, v):
         """Validar que el número de cuenta sea numérico."""
         if not v.isdigit():
             raise ValueError('El número de cuenta debe contener solo dígitos')
         return v
 
-    @validator('banco')
+    @field_validator('banco')
+
+
+    @classmethod
     def validar_banco(cls, v):
         """Validar nombre del banco."""
         if not v.strip():
             raise ValueError('El nombre del banco es obligatorio')
         return v.strip().title()
 
-    @validator('monto_solicitado')
+    @field_validator('monto_solicitado')
+
+
+    @classmethod
     def validar_monto_colombia(cls, v):
         """Validar límites de monto para Colombia."""
         if v > 50000000:  # 50 millones COP

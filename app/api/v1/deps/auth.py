@@ -1,24 +1,33 @@
 from datetime import datetime
 import uuid
 import os
+from typing import List, Callable
+from functools import wraps
 """
 Dependencias de autenticación para endpoints de FastAPI
 
 Este módulo contiene las dependencias centralizadas para autenticación:
 - oauth2_scheme: Esquema OAuth2 para extracción de tokens
 - get_current_user: Dependencia principal para obtener usuario autenticado
+- require_roles: Función para validar roles específicos
+- require_admin, require_vendor, require_buyer: Funciones de autorización por rol
 """
 
 from fastapi import Depends, HTTPException, status, Request
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordBearer, HTTPBearer, HTTPAuthorizationCredentials
 
 from app.core.auth import auth_service
 from app.schemas.user import UserRead
 from app.core.redis import get_redis_sessions
+from app.core.security import decode_access_token
+from app.models.user import User, UserType
 
 
 # OAuth2 scheme para extracción de tokens del header Authorization
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+
+# HTTP Bearer scheme para compatibilidad con tests que usan HTTPAuthorizationCredentials
+security = HTTPBearer()
 
 
 async def get_current_user(
@@ -50,10 +59,16 @@ async def get_current_user(
             return {"user": current_user.email}
     """
     try:
-        # Verificar token JWT usando el servicio centralizado
-        payload = auth_service.verify_token(token)
-        user_id: str = payload.get("sub")
+        # Verificar token JWT usando las funciones centralizadas de seguridad
+        payload = decode_access_token(token)
+        if payload is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token inválido o expirado",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
+        user_id: str = payload.get("sub")
         if user_id is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -150,10 +165,12 @@ async def get_current_user_optional(
 
         token = auth_header.replace("Bearer ", "")
 
-        # Verificar token JWT usando el servicio centralizado
-        payload = auth_service.verify_token(token)
-        user_id: str = payload.get("sub")
+        # Verificar token JWT usando las funciones centralizadas de seguridad
+        payload = decode_access_token(token)
+        if payload is None:
+            return None
 
+        user_id: str = payload.get("sub")
         if user_id is None:
             return None
 
@@ -184,3 +201,216 @@ async def get_current_user_optional(
 
     except Exception:
         return None
+
+
+def require_roles(allowed_roles: List[UserType]) -> Callable:
+    """
+    Crea una dependencia que requiere que el usuario tenga uno de los roles especificados.
+
+    Args:
+        allowed_roles: Lista de tipos de usuario permitidos
+
+    Returns:
+        Función dependencia que valida el rol del usuario
+
+    Usage:
+        @router.get("/admin-only")
+        async def admin_endpoint(user: UserRead = Depends(require_roles([UserType.SUPERUSER]))):
+            return {"message": "Admin access granted"}
+    """
+    def role_checker(current_user: UserRead = Depends(get_current_user)) -> UserRead:
+        if not allowed_roles:  # Si la lista está vacía, permite todos los usuarios
+            return current_user
+
+        if current_user.user_type is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User type not defined"
+            )
+
+        # Convertir string a UserType enum si es necesario
+        user_type_value = current_user.user_type
+        if isinstance(user_type_value, str):
+            try:
+                user_type_enum = UserType(user_type_value)
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Invalid user type"
+                )
+        else:
+            user_type_enum = user_type_value
+
+        if user_type_enum not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient permissions"
+            )
+
+        return current_user
+
+    return role_checker
+
+
+def require_admin(current_user: UserRead = Depends(get_current_user)) -> UserRead:
+    """
+    Dependencia que requiere que el usuario sea administrador (SUPERUSER).
+
+    Args:
+        current_user: Usuario actual obtenido de get_current_user
+
+    Returns:
+        UserRead: Usuario con permisos de administrador
+
+    Raises:
+        HTTPException 403: Si el usuario no es administrador
+
+    Usage:
+        @router.get("/admin-dashboard")
+        async def admin_dashboard(admin_user: UserRead = Depends(require_admin)):
+            return {"message": "Welcome admin"}
+    """
+    user_type_value = current_user.user_type
+    if isinstance(user_type_value, str):
+        try:
+            user_type_enum = UserType(user_type_value)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Invalid user type"
+            )
+    else:
+        user_type_enum = user_type_value
+
+    if user_type_enum != UserType.SUPERUSER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required"
+        )
+
+    return current_user
+
+
+def require_vendor(current_user: UserRead = Depends(get_current_user)) -> UserRead:
+    """
+    Dependencia que requiere que el usuario sea vendedor o administrador.
+
+    Args:
+        current_user: Usuario actual obtenido de get_current_user
+
+    Returns:
+        UserRead: Usuario con permisos de vendedor
+
+    Raises:
+        HTTPException 403: Si el usuario no es vendedor ni administrador
+
+    Usage:
+        @router.get("/vendor-dashboard")
+        async def vendor_dashboard(vendor_user: UserRead = Depends(require_vendor)):
+            return {"message": "Welcome vendor"}
+    """
+    user_type_value = current_user.user_type
+    if isinstance(user_type_value, str):
+        try:
+            user_type_enum = UserType(user_type_value)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Invalid user type"
+            )
+    else:
+        user_type_enum = user_type_value
+
+    if user_type_enum not in [UserType.VENDOR, UserType.SUPERUSER]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Vendor access required"
+        )
+
+    return current_user
+
+
+def require_buyer(current_user: UserRead = Depends(get_current_user)) -> UserRead:
+    """
+    Dependencia que requiere que el usuario sea comprador o administrador.
+
+    Args:
+        current_user: Usuario actual obtenido de get_current_user
+
+    Returns:
+        UserRead: Usuario con permisos de comprador
+
+    Raises:
+        HTTPException 403: Si el usuario no es comprador ni administrador
+
+    Usage:
+        @router.get("/buyer-dashboard")
+        async def buyer_dashboard(buyer_user: UserRead = Depends(require_buyer)):
+            return {"message": "Welcome buyer"}
+    """
+    user_type_value = current_user.user_type
+    if isinstance(user_type_value, str):
+        try:
+            user_type_enum = UserType(user_type_value)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Invalid user type"
+            )
+    else:
+        user_type_enum = user_type_value
+
+    if user_type_enum not in [UserType.BUYER, UserType.SUPERUSER]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Buyer access required"
+        )
+
+    return current_user
+
+
+async def get_current_vendor(current_user: UserRead = Depends(get_current_user)) -> UserRead:
+    """
+    Dependencia específica para obtener el usuario vendedor actual.
+
+    Esta función combina autenticación y autorización para endpoints
+    que requieren específicamente permisos de vendedor.
+
+    Args:
+        current_user: Usuario actual obtenido de get_current_user
+
+    Returns:
+        UserRead: Usuario con permisos de vendedor
+
+    Raises:
+        HTTPException 403: Si el usuario no es vendedor ni administrador
+
+    Usage:
+        @router.post("/products")
+        async def create_product(
+            product_data: ProductCreate,
+            current_vendor: UserRead = Depends(get_current_vendor)
+        ):
+            return await create_product_logic(product_data, current_vendor.id)
+    """
+    user_type_value = current_user.user_type
+    if isinstance(user_type_value, str):
+        try:
+            user_type_enum = UserType(user_type_value)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Invalid user type"
+            )
+    else:
+        user_type_enum = user_type_value
+
+    if user_type_enum not in [UserType.VENDOR, UserType.SUPERUSER]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Vendor access required - only vendors can perform this operation"
+        )
+
+    return current_user
+
+

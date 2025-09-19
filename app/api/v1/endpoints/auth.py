@@ -9,24 +9,27 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from fastapi import Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-# IMPORTS CORREGIDOS - Solo del AuthService correcto
-from app.services.auth_service import AuthService
+# IMPORTS INTEGRADOS - Usando IntegratedAuthService para seguridad mejorada
+from app.core.integrated_auth import integrated_auth_service
+from app.services.auth_service import AuthService  # Fallback legacy
 from app.core.database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user import User
-from app.services.audit_service import AuditService
+from app.services.audit_logging_service import EnterpriseAuditLoggingService
 from app.core.security import decode_access_token, decode_refresh_token, create_access_token, create_refresh_token
+from app.core.id_validation import IDValidator, normalize_uuid_string
 from app.schemas.auth import (
     PasswordResetRequest,
     PasswordResetConfirm,
     PasswordResetResponse,
     OTPSendRequest,
-    OTPVerifyRequest, 
+    OTPVerifyRequest,
     OTPResponse,
     UserVerificationStatus,
-    LoginRequest, 
-    TokenResponse, 
-    RefreshTokenRequest, 
+    LoginRequest,
+    RegisterRequest,
+    TokenResponse,
+    RefreshTokenRequest,
     LogoutRequest,
     AuthResponse
 )
@@ -40,71 +43,139 @@ security = HTTPBearer()
 
 
 # Función auxiliar para get_current_user sin conflictos
-async def get_current_user_clean(token: str = Depends(HTTPBearer())) -> User:
+async def get_current_user_clean(
+    token: HTTPAuthorizationCredentials = Depends(HTTPBearer()),
+    db: AsyncSession = Depends(get_db)
+) -> User:
     """Obtener usuario actual sin conflictos de AuthService"""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    
+
     try:
+        # Use the centralized decode function for consistency
         payload = decode_access_token(token.credentials)
+        if payload is None:
+            logger.warning("Token validation failed - payload is None")
+            raise credentials_exception
+
         user_id: str = payload.get("sub")
         if user_id is None:
+            logger.warning("Token validation failed - missing sub claim")
             raise credentials_exception
-    except Exception:
+    except Exception as e:
+        logger.warning(f"Token decode error: {str(e)}")
         raise credentials_exception
-    
-    # Obtener usuario de la base de datos
-    db_gen = get_db()
-    db = next(db_gen)
+
+    # Obtener usuario de la base de datos usando async session
     try:
-        user = db.query(User).filter(User.id == user_id).first()
+        from sqlalchemy import select
+        from app.models.user import UserType
+
+        result = await db.execute(select(User).where(User.id == user_id))
+        user = result.scalar_one_or_none()
         if user is None:
             raise credentials_exception
+
+        # Fix user_type enum - handle both lowercase and uppercase values from database
+        if hasattr(user, 'user_type') and isinstance(user.user_type, str):
+            try:
+                # First try direct conversion (for uppercase values)
+                user.user_type = UserType(user.user_type)
+                logger.debug(f"User type converted successfully: {user.user_type}")
+            except ValueError:
+                # Handle lowercase values from database - map to uppercase enum
+                user_type_mapping = {
+                    'buyer': UserType.BUYER,
+                    'vendor': UserType.VENDOR,
+                    'admin': UserType.ADMIN,
+                    'superuser': UserType.SUPERUSER,
+                    'system': UserType.SYSTEM
+                }
+
+                mapped_type = user_type_mapping.get(user.user_type.lower())
+                if mapped_type:
+                    user.user_type = mapped_type
+                    logger.info(f"User type mapped from '{user.user_type}' to '{mapped_type}'")
+                else:
+                    # Set a default value if mapping fails
+                    user.user_type = UserType.BUYER
+                    logger.warning(f"Unknown user_type '{user.user_type}', defaulting to BUYER")
+
         return user
-    finally:
-        db.close()
+    except Exception as e:
+        logger.error(f"Database error in get_current_user_clean: {str(e)}")
+        raise credentials_exception
 
 
-def get_auth_service() -> AuthService:
-    """Crear instancia del AuthService correcto sin conflictos."""
+def get_auth_service():
+    """Obtener servicio de autenticación integrado con características de seguridad mejoradas."""
+    return integrated_auth_service
+
+def get_legacy_auth_service() -> AuthService:
+    """Fallback al AuthService legacy si es necesario."""
     return AuthService()
 
 
 @router.post("/login", response_model=TokenResponse, status_code=status.HTTP_200_OK)
 async def login(
     login_data: LoginRequest,
+    request: Request,
     db: AsyncSession = Depends(get_db)
 ) -> TokenResponse:
     """
-    Endpoint de autenticación con email y contraseña.
+    Endpoint de autenticación con email y contraseña con seguridad mejorada.
+    Incluye protección contra ataques de fuerza bruta y logging de seguridad.
     """
-    logger.info("Intento de login", email=login_data.email)
+    logger.info("Intento de login con seguridad integrada", email=login_data.email)
     auth_service = get_auth_service()
 
+    # Extraer información de seguridad
+    ip_address = request.client.host if request.client else None
+    user_agent = request.headers.get("User-Agent", "Unknown")
+
     try:
-        # Validar credenciales usando AuthService correcto
+        # Verificar protección contra fuerza bruta
+        if not await auth_service.check_brute_force_protection(login_data.email, ip_address):
+            logger.warning("Login bloqueado por protección de fuerza bruta",
+                         email=login_data.email, ip=ip_address)
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Demasiados intentos fallidos. Cuenta temporalmente bloqueada."
+            )
+
+        # Validar credenciales usando IntegratedAuthService
         user = await auth_service.authenticate_user(
-            db=db,
             email=login_data.email,
-            password=login_data.password
+            password=login_data.password,
+            db=db,
+            ip_address=ip_address,
+            user_agent=user_agent
         )
 
         if not user:
-            logger.warning("Login fallido - credenciales inválidas", email=login_data.email)
+            logger.warning("Login fallido - credenciales inválidas",
+                         email=login_data.email, ip=ip_address)
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Email o contraseña incorrectos",
                 headers={"WWW-Authenticate": "Bearer"}
             )
 
-        # Generar tokens JWT (sin almacenar en Redis por ahora)
-        access_token = create_access_token(data={"sub": str(user.id)})
-        refresh_token = create_refresh_token(data={"sub": str(user.id)})
+        # Generar tokens JWT usando IntegratedAuthService con seguridad mejorada
+        access_token, refresh_token = await auth_service.create_user_session(
+            user=user,
+            ip_address=ip_address,
+            user_agent=user_agent
+        )
 
-        logger.info("Login exitoso", user_id=str(user.id), email=user.email)
+        # Ensure consistent ID format in token
+        normalized_id = normalize_uuid_string(user.id)
+
+        logger.info("Login exitoso con sesión segura",
+                   user_id=normalized_id, email=user.email, ip=ip_address)
 
         return TokenResponse(
             access_token=access_token,
@@ -151,16 +222,28 @@ async def admin_login(
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
-        # Verificación específica de rol admin
+        # Verificación específica de rol admin (uppercase values)
+        # Ensure user_type is an enum first
+        from app.models.user import UserType
+        if isinstance(user.user_type, str):
+            try:
+                user.user_type = UserType(user.user_type)
+            except ValueError:
+                user.user_type = UserType.BUYER
+
         if user.user_type.value not in ["ADMIN", "SUPERUSER"]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Acceso denegado: Se requieren privilegios administrativos"
             )
         
-        # Generar tokens
-        access_token = create_access_token(data={"sub": str(user.id)})
-        refresh_token = create_refresh_token(data={"sub": str(user.id)})
+        # Generar tokens with consistent ID format
+        normalized_id = normalize_uuid_string(user.id)
+        if normalized_id is None:
+            logger.warning(f"Admin user {user.email} has null ID, using email as fallback")
+            normalized_id = user.email
+        access_token = create_access_token(data={"sub": normalized_id})
+        refresh_token = create_refresh_token(data={"sub": normalized_id})
         
         return TokenResponse(
             access_token=access_token,
@@ -178,6 +261,7 @@ async def admin_login(
         )
 
 
+
 @router.get("/me", response_model=dict, status_code=status.HTTP_200_OK)
 async def get_current_user_info(
     current_user: User = Depends(get_current_user_clean)
@@ -186,11 +270,21 @@ async def get_current_user_info(
     Obtener información del usuario actual autenticado.
     """
     try:
+        # DEBUG: Log user info to debug null ID issue
+        logger.debug(f"get_current_user_info DEBUG: current_user.id = {current_user.id}")
+        logger.debug(f"get_current_user_info DEBUG: current_user.email = {current_user.email}")
+
+        # TEMPORARY FIX: Handle null ID gracefully
+        user_id = normalize_uuid_string(current_user.id)
+        if user_id is None:
+            logger.warning(f"User {current_user.email} has null ID, using email as fallback")
+            user_id = current_user.email
+
         return {
-            "id": str(current_user.id),
+            "id": user_id,
             "email": current_user.email,
             "nombre": getattr(current_user, 'nombre', current_user.email.split('@')[0]),
-            "user_type": str(current_user.user_type),
+            "user_type": current_user.user_type.value if hasattr(current_user.user_type, 'value') else str(current_user.user_type),
             "email_verified": getattr(current_user, 'email_verified', False),
             "phone_verified": getattr(current_user, 'phone_verified', False),
             "is_active": getattr(current_user, 'is_active', True)
@@ -207,25 +301,31 @@ async def get_current_user_info(
 # Endpoints adicionales simplificados para funcionalidad básica
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 async def register(
-    user_data: LoginRequest,
+    user_data: RegisterRequest,
     db: AsyncSession = Depends(get_db)
 ) -> TokenResponse:
-    """Registrar nuevo usuario."""
+    """Registrar nuevo usuario con tipo específico."""
     auth_service = get_auth_service()
-    
+
     try:
-        # Crear nuevo usuario  
+        # Crear nuevo usuario con datos adicionales
         new_user = await auth_service.create_user(
             db=db,
             email=user_data.email,
-            password=user_data.password
+            password=user_data.password,
+            user_type=user_data.user_type.value if user_data.user_type else "BUYER",
+            nombre=user_data.nombre,
+            telefono=user_data.telefono
         )
         
-        # Generar token para el nuevo usuario
-        access_token = create_access_token(data={"sub": str(new_user.id)})
-        
+        # Generar tokens para el nuevo usuario with consistent ID format
+        normalized_id = normalize_uuid_string(new_user.id)
+        access_token = create_access_token(data={"sub": normalized_id})
+        refresh_token = create_refresh_token(data={"sub": normalized_id})
+
         return TokenResponse(
             access_token=access_token,
+            refresh_token=refresh_token,
             token_type="bearer",
             expires_in=3600
         )
@@ -328,17 +428,20 @@ async def refresh_token(
                 detail="Token inválido"
             )
         
-        # Verificar usuario existe
-        user = db.query(User).filter(User.id == user_id).first()
+        # Verificar usuario existe usando async session
+        from sqlalchemy import select
+        result = await db.execute(select(User).where(User.id == user_id))
+        user = result.scalar_one_or_none()
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Usuario no encontrado"
             )
         
-        # Generar nuevos tokens
-        access_token = create_access_token(data={"sub": str(user.id)})
-        new_refresh_token = create_refresh_token(data={"sub": str(user.id)})
+        # Generar nuevos tokens with consistent ID format
+        normalized_id = normalize_uuid_string(user.id)
+        access_token = create_access_token(data={"sub": normalized_id})
+        new_refresh_token = create_refresh_token(data={"sub": normalized_id})
         
         return TokenResponse(
             access_token=access_token,
@@ -365,7 +468,7 @@ async def logout(
     Endpoint para logout/cierre de sesión.
     """
     try:
-        logger.info("Logout exitoso", user_id=str(current_user.id), email=current_user.email)
+        logger.info("Logout exitoso", user_id=normalize_uuid_string(current_user.id), email=current_user.email)
         
         return AuthResponse(
             success=True,

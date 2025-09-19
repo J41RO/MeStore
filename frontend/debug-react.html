@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>React Debug Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            margin: 0;
+            background: #f0f0f0;
+        }
+        .debug-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .test-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .test-result {
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-container">
+        <h1>MeStore React Debug Test</h1>
+        <p>This page tests if React application can load properly and identifies any issues.</p>
+
+        <div class="test-section">
+            <div class="test-title">🔍 Environment Check</div>
+            <div id="env-test"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">📡 API Connectivity Test</div>
+            <button onclick="testAPI()">Test Backend API</button>
+            <div id="api-test"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">⚛️ React App Loading Test</div>
+            <button onclick="testReactApp()">Test React App</button>
+            <div id="react-test"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">🔐 Authentication Test</div>
+            <button onclick="testAuth()">Test Login API</button>
+            <div id="auth-test"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">📋 Console Logs</div>
+            <button onclick="clearLogs()">Clear Logs</button>
+            <div id="console-logs"></div>
+        </div>
+    </div>
+
+    <script>
+        let logs = [];
+
+        // Capture console logs
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+
+        console.log = function(...args) {
+            logs.push({type: 'log', message: args.join(' '), timestamp: new Date().toISOString()});
+            updateLogs();
+            originalLog.apply(console, args);
+        };
+
+        console.error = function(...args) {
+            logs.push({type: 'error', message: args.join(' '), timestamp: new Date().toISOString()});
+            updateLogs();
+            originalError.apply(console, args);
+        };
+
+        console.warn = function(...args) {
+            logs.push({type: 'warn', message: args.join(' '), timestamp: new Date().toISOString()});
+            updateLogs();
+            originalWarn.apply(console, args);
+        };
+
+        function updateLogs() {
+            const logsDiv = document.getElementById('console-logs');
+            const recentLogs = logs.slice(-10); // Show last 10 logs
+            logsDiv.innerHTML = recentLogs.map(log =>
+                `<div class="test-result ${log.type === 'error' ? 'error' : log.type === 'warn' ? 'info' : 'success'}">
+                    <strong>[${log.type.toUpperCase()}]</strong> ${log.message}
+                    <br><small>${log.timestamp}</small>
+                </div>`
+            ).join('');
+        }
+
+        function clearLogs() {
+            logs = [];
+            updateLogs();
+        }
+
+        function showResult(elementId, type, message) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="test-result ${type}">${message}</div>`;
+        }
+
+        // Environment Check
+        function checkEnvironment() {
+            const env = {
+                userAgent: navigator.userAgent,
+                url: window.location.href,
+                apiUrl: 'http://192.168.1.137:8000/api/v1',
+                frontendUrl: 'http://192.168.1.137:5173'
+            };
+
+            showResult('env-test', 'info', `
+                <strong>Current Environment:</strong><br>
+                <pre>${JSON.stringify(env, null, 2)}</pre>
+            `);
+        }
+
+        // API Test
+        async function testAPI() {
+            try {
+                showResult('api-test', 'info', 'Testing API connection...');
+
+                const response = await fetch('http://192.168.1.137:8000/api/v1/auth/me', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.status === 405) {
+                    showResult('api-test', 'success', 'API is responding (405 Method Not Allowed is expected for unauthenticated GET request)');
+                } else {
+                    const data = await response.text();
+                    showResult('api-test', response.ok ? 'success' : 'error',
+                        `API Response: Status ${response.status}<br><pre>${data}</pre>`);
+                }
+            } catch (error) {
+                showResult('api-test', 'error', `API Test Failed: ${error.message}`);
+            }
+        }
+
+        // React App Test
+        async function testReactApp() {
+            try {
+                showResult('react-test', 'info', 'Testing React app loading...');
+
+                const response = await fetch('http://192.168.1.137:5173/auth/login');
+                const html = await response.text();
+
+                if (html.includes('root') && html.includes('src="/src/main.tsx"')) {
+                    showResult('react-test', 'success', 'React app HTML is loading correctly. Check browser console for JavaScript errors.');
+                } else {
+                    showResult('react-test', 'error', 'React app HTML structure issue detected.');
+                }
+            } catch (error) {
+                showResult('react-test', 'error', `React App Test Failed: ${error.message}`);
+            }
+        }
+
+        // Auth Test
+        async function testAuth() {
+            try {
+                showResult('auth-test', 'info', 'Testing authentication endpoint...');
+
+                const response = await fetch('http://192.168.1.137:8000/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'test@test.com',
+                        password: 'wrongpassword'
+                    })
+                });
+
+                const data = await response.text();
+                showResult('auth-test', response.status === 422 || response.status === 401 ? 'success' : 'error',
+                    `Auth endpoint is ${response.status === 422 || response.status === 401 ? 'working' : 'not working'}: Status ${response.status}<br><pre>${data}</pre>`);
+            } catch (error) {
+                showResult('auth-test', 'error', `Auth Test Failed: ${error.message}`);
+            }
+        }
+
+        // Run environment check on load
+        window.onload = function() {
+            console.log('Debug page loaded');
+            checkEnvironment();
+        };
+    </script>
+</body>
+</html>

@@ -39,7 +39,7 @@ Este módulo contiene:
 
 from sqlalchemy import Column, String, Integer, ForeignKey, Index, UniqueConstraint, DateTime, Enum, Text
 from enum import Enum as PyEnum
-from sqlalchemy.dialects.postgresql import UUID
+# UUID import removed for SQLite compatibility
 from sqlalchemy.orm import relationship
 from typing import Optional, List
 
@@ -106,7 +106,7 @@ class Inventory(BaseModel):
 
     # Relationship con Product
     product_id = Column(
-        UUID(as_uuid=True),
+        String(36),
         ForeignKey('products.id'),
         nullable=False,
         index=True,
@@ -173,7 +173,7 @@ class Inventory(BaseModel):
 
     # Tracking de cambios
     updated_by_id = Column(
-        UUID(as_uuid=True),
+        String(36),
         ForeignKey('users.id'),
         nullable=True,
         comment="ID del usuario que actualizó el inventario"
@@ -183,7 +183,7 @@ class Inventory(BaseModel):
     # Esto es útil si se maneja un sistema de almacenamiento más complejo
     # como múltiples almacenes o ubicaciones físicas
     storage_id = Column(
-        UUID(as_uuid=True),
+        String(36),
         ForeignKey('storages.id'),
         nullable=True,
         comment='FK hacia Storage - ubicación física del inventario'
@@ -294,14 +294,14 @@ class Inventory(BaseModel):
         delta = datetime.utcnow() - self.fecha_ultimo_movimiento
         return delta.days
 
-    def actualizar_fecha_movimiento(self, user_id: Optional[UUID] = None) -> None:
+    def actualizar_fecha_movimiento(self, user_id: Optional[str] = None) -> None:
         """Actualizar fecha del último movimiento"""
         self.fecha_ultimo_movimiento = datetime.utcnow()
         if user_id:
             self.updated_by_id = user_id
 
     # Métodos de transición de estado
-    def reservar_inventario(self, user_id: Optional[UUID] = None) -> bool:
+    def reservar_inventario(self, user_id: Optional[str] = None) -> bool:
         """Transición a estado RESERVADO"""
         if self.status == InventoryStatus.DISPONIBLE and self.cantidad_disponible() > 0:
             self.status = InventoryStatus.RESERVADO
@@ -309,7 +309,7 @@ class Inventory(BaseModel):
             return True
         return False
 
-    def iniciar_picking(self, user_id: Optional[UUID] = None) -> bool:
+    def iniciar_picking(self, user_id: Optional[str] = None) -> bool:
         """Transición a estado EN_PICKING"""
         if self.status == InventoryStatus.RESERVADO:
             self.status = InventoryStatus.EN_PICKING
@@ -317,7 +317,7 @@ class Inventory(BaseModel):
             return True
         return False
 
-    def completar_despacho(self, user_id: Optional[UUID] = None) -> bool:
+    def completar_despacho(self, user_id: Optional[str] = None) -> bool:
         """Transición a estado DESPACHADO"""
         if self.status == InventoryStatus.EN_PICKING:
             self.status = InventoryStatus.DESPACHADO
@@ -325,7 +325,7 @@ class Inventory(BaseModel):
             return True
         return False
 
-    def liberar_a_disponible(self, user_id: Optional[UUID] = None) -> bool:
+    def liberar_a_disponible(self, user_id: Optional[str] = None) -> bool:
         """Volver a estado DISPONIBLE (cancelación)"""
         if self.status in [InventoryStatus.RESERVADO, InventoryStatus.EN_PICKING]:
             self.status = InventoryStatus.DISPONIBLE
@@ -421,7 +421,7 @@ class Inventory(BaseModel):
         }
         return niveles.get(self.condicion_producto, 0)
 
-    def agregar_nota_almacen(self, nota: str, user_id: Optional[UUID] = None) -> None:
+    def agregar_nota_almacen(self, nota: str, user_id: Optional[str] = None) -> None:
         """Agregar o actualizar nota del almacén"""
         fecha_actual = datetime.utcnow().strftime("%Y-%m-%d %H:%M")
         nueva_nota = f"[{fecha_actual}] {nota}"
@@ -474,7 +474,7 @@ class Inventory(BaseModel):
         """Calcular cantidad disponible (total - reservada)."""
         return max(0, self.cantidad - self.cantidad_reservada)
 
-    def actualizar_stock(self, nueva_cantidad: int, user_id: Optional[UUID] = None) -> None:
+    def actualizar_stock(self, nueva_cantidad: int, user_id: Optional[str] = None) -> None:
         """
         Actualizar stock total manteniendo reservas
 
@@ -488,7 +488,7 @@ class Inventory(BaseModel):
         self.cantidad = nueva_cantidad
         self.actualizar_fecha_movimiento(user_id)
 
-    def ajustar_stock(self, diferencia: int, user_id: Optional[UUID] = None) -> None:
+    def ajustar_stock(self, diferencia: int, user_id: Optional[str] = None) -> None:
         """
         Ajustar stock con diferencia (+/-)
 
@@ -510,7 +510,7 @@ class Inventory(BaseModel):
         """Verificar si puede satisfacer una cantidad requerida"""
         return self.cantidad_disponible() >= cantidad_requerida
 
-    def reservar_cantidad(self, cantidad: int, user_id: Optional[UUID] = None) -> bool:
+    def reservar_cantidad(self, cantidad: int, user_id: Optional[str] = None) -> bool:
         """
         Reservar cantidad específica.
 
@@ -534,7 +534,7 @@ class Inventory(BaseModel):
             return True
         return False
 
-    def liberar_reserva(self, cantidad: int, user_id: Optional[UUID] = None) -> None:
+    def liberar_reserva(self, cantidad: int, user_id: Optional[str] = None) -> None:
         """
         Liberar cantidad reservada.
 

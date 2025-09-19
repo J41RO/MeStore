@@ -1,0 +1,172 @@
+{
+  "timestamp": "2025-09-18T01:21:17.342841",
+  "summary": {
+    "total_tests": 8,
+    "passed_tests": 7,
+    "failed_tests": 1,
+    "success_rate": 87.5,
+    "total_duration": 29.356163501739502
+  },
+  "test_results": [
+    {
+      "test_name": "Service Health and Connectivity",
+      "status": "FAIL",
+      "duration": 10.013934850692749,
+      "details": {},
+      "error_message": "HTTPConnectionPool(host='192.168.1.137', port=8000): Read timed out. (read timeout=10)"
+    },
+    {
+      "test_name": "API Endpoints Validation",
+      "status": "PASS",
+      "duration": 19.200657606124878,
+      "details": {
+        "POST /api/v1/auth/login": {
+          "accessible": false,
+          "error": "HTTPConnectionPool(host='192.168.1.137', port=8000): Read timed out. (read timeout=5)"
+        },
+        "GET /api/v1/productos/": {
+          "accessible": false,
+          "error": "HTTPConnectionPool(host='192.168.1.137', port=8000): Read timed out. (read timeout=5)"
+        },
+        "GET /api/v1/categories": {
+          "accessible": false,
+          "error": "HTTPConnectionPool(host='192.168.1.137', port=8000): Read timed out. (read timeout=5)"
+        },
+        "GET /api/v1/users/me": {
+          "status_code": 404,
+          "accessible": true,
+          "response_time": 3.805378
+        },
+        "GET /docs": {
+          "status_code": 200,
+          "accessible": true,
+          "response_time": 0.001791
+        },
+        "GET /openapi.json": {
+          "status_code": 200,
+          "accessible": true,
+          "response_time": 0.365878
+        }
+      },
+      "error_message": ""
+    },
+    {
+      "test_name": "Authentication Flow",
+      "status": "PASS",
+      "duration": 0.011890649795532227,
+      "details": {
+        "invalid_login": {
+          "status_code": 401,
+          "expected_unauthorized": true
+        },
+        "registration_test": {
+          "status_code": 500,
+          "endpoint_available": true
+        }
+      },
+      "error_message": ""
+    },
+    {
+      "test_name": "Frontend Navigation",
+      "status": "PASS",
+      "duration": 0.043076515197753906,
+      "details": {
+        "route_/": {
+          "status_code": 200,
+          "accessible": true,
+          "content_length": 3312
+        },
+        "route_/login": {
+          "status_code": 200,
+          "accessible": true,
+          "content_length": 3312
+        },
+        "route_/register": {
+          "status_code": 200,
+          "accessible": true,
+          "content_length": 3312
+        },
+        "route_/products": {
+          "status_code": 200,
+          "accessible": true,
+          "content_length": 3312
+        },
+        "route_/admin": {
+          "status_code": 200,
+          "accessible": true,
+          "content_length": 3312
+        }
+      },
+      "error_message": ""
+    },
+    {
+      "test_name": "CORS Configuration",
+      "status": "PASS",
+      "duration": 0.003058910369873047,
+      "details": {
+        "cors_preflight": {
+          "status_code": 400,
+          "allowed_origin": null,
+          "allowed_methods": "GET, POST, PUT, DELETE, OPTIONS",
+          "allowed_headers": "Accept, Accept-Language, Authorization, Cache-Control, Content-Language, Content-Type, X-API-Key, X-Requested-With"
+        }
+      },
+      "error_message": ""
+    },
+    {
+      "test_name": "Basic Performance Testing",
+      "status": "PASS",
+      "duration": 0.06098747253417969,
+      "details": {
+        "performance_health": {
+          "avg_response_time": 0.00340886116027832,
+          "min_response_time": 0.0027091503143310547,
+          "max_response_time": 0.00400090217590332,
+          "requests_tested": 5
+        },
+        "performance_root": {
+          "avg_response_time": 0.004153299331665039,
+          "min_response_time": 0.002973794937133789,
+          "max_response_time": 0.0056307315826416016,
+          "requests_tested": 5
+        }
+      },
+      "error_message": ""
+    },
+    {
+      "test_name": "Concurrent Request Handling",
+      "status": "PASS",
+      "duration": 0.01764702796936035,
+      "details": {
+        "concurrent_test": {
+          "total_requests": 10,
+          "successful_requests": 10,
+          "success_rate": 1.0,
+          "total_duration": 0.016878843307495117,
+          "requests_per_second": 592.457659439226
+        }
+      },
+      "error_message": ""
+    },
+    {
+      "test_name": "Error Handling and Recovery",
+      "status": "PASS",
+      "duration": 0.004910469055175781,
+      "details": {
+        "404_handling": {
+          "status_code": 404,
+          "proper_404": true
+        },
+        "malformed_request": {
+          "status_code": 422,
+          "proper_error_handling": true
+        }
+      },
+      "error_message": ""
+    }
+  ],
+  "endpoints": {
+    "backend_base_url": "http://192.168.1.137:8000",
+    "frontend_base_url": "http://192.168.1.137:5174"
+  }
+}

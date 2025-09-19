@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID as SQLAlchemyUUID
+# UUID import removed for SQLite compatibility as SQLAlchemyUUID
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.models.base import BaseModel
@@ -13,12 +13,12 @@ class PayoutHistory(BaseModel):
     __tablename__ = "payout_history"
     
     id = Column(Integer, primary_key=True, index=True)
-    payout_request_id = Column(SQLAlchemyUUID(as_uuid=True), ForeignKey("payout_requests.id"), nullable=False, index=True)
+    payout_request_id = Column(String(36), ForeignKey("payout_requests.id"), nullable=False, index=True)
     estado_anterior = Column(String(50), nullable=True)  # None para el primer estado
     estado_nuevo = Column(String(50), nullable=False)
     fecha_cambio = Column(DateTime, default=datetime.utcnow, nullable=False)
     observaciones = Column(Text, nullable=True)
-    usuario_responsable = Column(SQLAlchemyUUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    usuario_responsable = Column(String(36), ForeignKey("users.id"), nullable=True)
     
     # Relationships
     payout_request = relationship("PayoutRequest", back_populates="history")

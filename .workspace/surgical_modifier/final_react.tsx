@@ -1,1 +1,0 @@
-const Final = () => <div>SUCCESSFUL React Validation</div>

@@ -12,11 +12,11 @@
 
 ---
 
-### 🏪 **VENDEDOR**  
+### 🏪 **VENDEDOR**
 - **Email**: `vendor@mestore.com`
 - **Password**: `123456` (por defecto)
 - **Tipo**: VENDEDOR
-- **Redirección**: `/app/vendor-dashboard` (VendorDashboard)  
+- **Redirección**: `/app/vendor-dashboard` (VendorDashboard)
 - **Layout**: DashboardLayout
 - **Permisos**: Productos, órdenes de venta, comisiones, reportes
 
@@ -37,7 +37,7 @@
 - **Password**: `123456` (por defecto)
 - **Tipo**: SUPERUSER
 - **Redirección**: `/admin-secure-portal/dashboard` (AdminDashboard)
-- **Layout**: AdminLayout  
+- **Layout**: AdminLayout
 - **Permisos**: Acceso completo, configuración sistema
 
 ---
@@ -50,14 +50,14 @@ El componente `RoleBasedRedirect` en `/app` redirige automáticamente según el 
 switch (user.user_type) {
   case UserType.COMPRADOR:
     return <Navigate to="/app/dashboard" replace />;
-    
+
   case UserType.VENDEDOR:
     return <Navigate to="/app/vendor-dashboard" replace />;
-    
+
   case UserType.ADMIN:
   case UserType.SUPERUSER:
     return <Navigate to="/admin-secure-portal/dashboard" replace />;
-    
+
   default:
     return <Navigate to="/marketplace/home" replace />;
 }

@@ -1,5 +1,5 @@
 from sqlalchemy import Column, String, Integer, DateTime, Float, Text, Boolean, ForeignKey, Enum as SQLEnum
-from sqlalchemy.dialects.postgresql import UUID
+# UUID import removed for SQLite compatibility
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from enum import Enum
@@ -21,7 +21,7 @@ class DiscrepancyType(str, Enum):
 class InventoryAudit(Base):
     __tablename__ = "inventory_audits"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     nombre = Column(String(200), nullable=False)
     descripcion = Column(Text)
     status = Column(SQLEnum(AuditStatus), default=AuditStatus.INICIADA)
@@ -31,7 +31,7 @@ class InventoryAudit(Base):
     fecha_fin = Column(DateTime(timezone=True), nullable=True)
     
     # Usuario que realiza la auditoría
-    auditor_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
+    auditor_id = Column(String(36), ForeignKey('users.id'), nullable=False)
     auditor = relationship("User", back_populates="auditorias_realizadas")
     # Tipo de auditoría y métricas
     audit_type = Column(String(50), default="physical")  # physical, system, cycle_count
@@ -71,9 +71,9 @@ class InventoryAudit(Base):
 class InventoryAuditItem(Base):
     __tablename__ = "inventory_audit_items"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    audit_id = Column(UUID(as_uuid=True), ForeignKey('inventory_audits.id'), nullable=False)
-    inventory_id = Column(UUID(as_uuid=True), ForeignKey('inventory.id'), nullable=False)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    audit_id = Column(String(36), ForeignKey('inventory_audits.id'), nullable=False)
+    inventory_id = Column(String(36), ForeignKey('inventory.id'), nullable=False)
     
     # Datos del sistema (antes del conteo)
     cantidad_sistema = Column(Integer, nullable=False)

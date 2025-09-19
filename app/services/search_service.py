@@ -517,7 +517,7 @@ class SearchService:
             if request.include_vendors:
                 vendor_query = session.query(User.full_name, User.id).filter(
                     User.full_name.ilike(f"%{query_lower}%"),
-                    User.user_type == "vendor",
+                    User.user_type == "VENDOR",
                     User.is_active == True
                 )
 

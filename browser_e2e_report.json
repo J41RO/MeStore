@@ -1,0 +1,118 @@
+{
+  "timestamp": "2025-09-18T01:23:15.836983",
+  "summary": {
+    "total_tests": 4,
+    "passed_tests": 4,
+    "failed_tests": 0,
+    "skipped_tests": 0,
+    "success_rate": 100.0,
+    "total_duration": 38.53678750991821
+  },
+  "test_results": [
+    {
+      "test_name": "Frontend Accessibility",
+      "browser": "chromium",
+      "status": "PASS",
+      "duration": 25.321613073349,
+      "screenshots": [
+        "screenshot_chromium_main_1758176581.png",
+        "screenshot_chromium_mobile_1758176581.png",
+        "screenshot_chromium_tablet_1758176582.png"
+      ],
+      "details": {
+        "page_title": "MeStocker - Tu Almac\u00e9n Virtual en Bucaramanga | Fulfillment Inteligente",
+        "navigation_elements": 1,
+        "responsive_test": true,
+        "viewports_tested": [
+          "desktop",
+          "mobile",
+          "tablet"
+        ]
+      },
+      "error_message": ""
+    },
+    {
+      "test_name": "UI Elements Testing",
+      "browser": "chromium",
+      "status": "PASS",
+      "duration": 2.4808335304260254,
+      "screenshots": [
+        "screenshot_chromium_ui_1758176584.png"
+      ],
+      "details": {
+        "buttons_found": 9,
+        "links_found": 17,
+        "forms_found": 1,
+        "input_elements": 8,
+        "aria_labels": 0,
+        "images_with_alt": 0
+      },
+      "error_message": ""
+    },
+    {
+      "test_name": "Navigation Flow",
+      "browser": "chromium",
+      "status": "PASS",
+      "duration": 6.3327412605285645,
+      "screenshots": [
+        "screenshot_chromium_route__login_1758176588.png",
+        "screenshot_chromium_route__register_1758176589.png",
+        "screenshot_chromium_route__products_1758176590.png",
+        "screenshot_chromium_route__admin_1758176591.png"
+      ],
+      "details": {
+        "navigation_results": {
+          "/login": {
+            "accessible": true,
+            "final_url": "http://192.168.1.137:5174/login",
+            "page_title": "MeStocker - Tu Almac\u00e9n Virtual en Bucaramanga | Fulfillment Inteligente"
+          },
+          "/register": {
+            "accessible": true,
+            "final_url": "http://192.168.1.137:5174/register",
+            "page_title": "MeStocker - Tu Almac\u00e9n Virtual en Bucaramanga | Fulfillment Inteligente"
+          },
+          "/products": {
+            "accessible": true,
+            "final_url": "http://192.168.1.137:5174/products",
+            "page_title": "MeStocker - Tu Almac\u00e9n Virtual en Bucaramanga | Fulfillment Inteligente"
+          },
+          "/admin": {
+            "accessible": true,
+            "final_url": "http://192.168.1.137:5174/admin",
+            "page_title": "MeStocker - Tu Almac\u00e9n Virtual en Bucaramanga | Fulfillment Inteligente"
+          }
+        },
+        "routes_tested": 4,
+        "successful_routes": 4
+      },
+      "error_message": ""
+    },
+    {
+      "test_name": "Form Interactions",
+      "browser": "chromium",
+      "status": "PASS",
+      "duration": 4.401599645614624,
+      "screenshots": [
+        "screenshot_chromium_form_filled_1758176593.png",
+        "screenshot_chromium_form_result_1758176595.png"
+      ],
+      "details": {
+        "login_form_elements": {
+          "email_field": true,
+          "password_field": true,
+          "submit_button": true
+        },
+        "form_submission_tested": true
+      },
+      "error_message": ""
+    }
+  ],
+  "endpoints": {
+    "frontend_url": "http://192.168.1.137:5174",
+    "backend_url": "http://192.168.1.137:8000"
+  },
+  "browsers_tested": [
+    "chromium"
+  ]
+}

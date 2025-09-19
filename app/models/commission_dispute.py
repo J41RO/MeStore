@@ -15,7 +15,7 @@ Este módulo contiene:
 """
 
 from sqlalchemy import Column, String, Text, Enum as SQLEnum, ForeignKey, Index
-from sqlalchemy.dialects.postgresql import UUID as SQLAlchemyUUID
+# UUID import removed for SQLite compatibility as SQLAlchemyUUID
 from sqlalchemy.orm import relationship
 from enum import Enum as PyEnum
 from app.models.base import BaseModel
@@ -41,7 +41,7 @@ class ComissionDispute(BaseModel):
 
     # FK a la transacción disputada
     transaction_id = Column(
-        SQLAlchemyUUID(as_uuid=True), 
+        String(36), 
         ForeignKey("transactions.id"), 
         nullable=False,
         index=True,
@@ -50,7 +50,7 @@ class ComissionDispute(BaseModel):
 
     # FK al usuario que reporta la disputa
     usuario_id = Column(
-        SQLAlchemyUUID(as_uuid=True), 
+        String(36), 
         ForeignKey("users.id"), 
         nullable=False,
         index=True,

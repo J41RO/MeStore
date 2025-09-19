@@ -37,7 +37,7 @@ from decimal import Decimal
 from enum import Enum
 from typing import List, Optional
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, ConfigDict
 
 from app.models.user import UserType
 from app.schemas.user import UserCreate, UserRead
@@ -119,7 +119,7 @@ class VendedorCreate(UserCreate):
 
     # Campo automático - no enviado por cliente
     user_type: UserType = Field(
-        default=UserType.VENDEDOR, description="Tipo fijo: VENDEDOR"
+        default=UserType.VENDOR, description="Tipo fijo: VENDOR"
     )
 
     @field_validator("telefono")
@@ -133,8 +133,9 @@ class VendedorCreate(UserCreate):
         """
         return validate_celular_colombiano(v)
 
-    class Config(UserCreate.Config):
-        json_schema_extra = {
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
             "example": {
                 "email": "juan.vendedor@email.com",
                 "password": "MiPassword123",
@@ -147,6 +148,7 @@ class VendedorCreate(UserCreate):
                 "direccion": "Calle 123 #45-67, Bogotá",
             }
         }
+    )
 
 
 class VendedorResponse(BaseModel):
@@ -161,9 +163,9 @@ class VendedorResponse(BaseModel):
     message: str = Field(..., description="Mensaje descriptivo del resultado")
     vendedor: UserRead = Field(..., description="Datos del vendedor registrado")
 
-    class Config:
-        from_attributes = True
-        json_schema_extra = {
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
             "example": {
                 "success": True,
                 "message": "Vendedor registrado exitosamente",
@@ -172,7 +174,7 @@ class VendedorResponse(BaseModel):
                     "email": "juan.vendedor@email.com",
                     "nombre": "Juan Carlos",
                     "apellido": "Pérez García",
-                    "user_type": "VENDEDOR",
+                    "user_type": "vendor",
                     "cedula": "12345678",
                     "telefono": "+57 300 123 4567",
                     "ciudad": "Bogotá",
@@ -183,6 +185,7 @@ class VendedorResponse(BaseModel):
                 },
             }
         }
+    )
 
 
 class VendedorErrorResponse(BaseModel):
@@ -204,13 +207,14 @@ class VendedorErrorResponse(BaseModel):
 
     details: Optional[str] = Field(None, description="Detalles adicionales del error")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "error": "Email ya registrado",
                 "details": "Un vendedor con este email ya existe",
             }
         }
+    )
 
 
 class VendedorLogin(BaseModel):
@@ -219,13 +223,14 @@ class VendedorLogin(BaseModel):
     email: EmailStr = Field(..., description="Email del vendedor")
     password: str = Field(..., min_length=6, description="Contraseña del vendedor")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "email": "vendedor@empresa.com",
                 "password": "mi_password_seguro",
             }
         }
+    )
 
 
 # =============================================================================
@@ -383,10 +388,11 @@ class KPIComparison(BaseModel):
     variacion_porcentual: Decimal = Field(..., description="Variación porcentual entre períodos")
     tendencia: TendenciaKPI = Field(..., description="Tendencia del KPI basada en la variación")
 
-    class Config:
-        json_encoders = {
+    model_config = ConfigDict(
+        json_encoders={
             Decimal: str
         }
+    )
 
 
 class DashboardComparativoResponse(BaseModel):
@@ -402,11 +408,12 @@ class DashboardComparativoResponse(BaseModel):
     periodo_anterior: str = Field(..., description="Descripción del período anterior (ej: 'Diciembre 2024')")
     fecha_calculo: datetime = Field(..., description="Timestamp del cálculo de la comparativa")
 
-    class Config:
-        json_encoders = {
+    model_config = ConfigDict(
+        json_encoders={
             Decimal: str,
             datetime: lambda v: v.isoformat()
         }
+    )
 # =============================================================================
 # EXPORTS
 # =============================================================================
@@ -446,10 +453,11 @@ class VendorItem(BaseModel):
     tipo_cuenta: TipoCuentaVendedor = Field(..., description="Tipo de cuenta del vendedor")
     fecha_registro: datetime = Field(..., description="Fecha de registro del vendedor")
     
-    class Config:
-        json_encoders = {
+    model_config = ConfigDict(
+        json_encoders={
             datetime: lambda v: v.isoformat()
         }
+    )
 
 class VendorListResponse(BaseModel):
     """Respuesta del listado de vendedores."""
@@ -458,10 +466,11 @@ class VendorListResponse(BaseModel):
     limit: int = Field(..., description="Límite aplicado")
     offset: int = Field(..., description="Número de offset aplicado")
     
-    class Config:
-        json_encoders = {
+    model_config = ConfigDict(
+        json_encoders={
             datetime: lambda v: v.isoformat()
         }
+    )
 
 
 
@@ -581,11 +590,12 @@ class VendorNoteResponse(BaseModel):
     vendor_name: Optional[str] = Field(None, description="Nombre del vendedor")
     admin_name: Optional[str] = Field(None, description="Nombre del administrador")
     
-    class Config:
-        from_attributes = True
-        json_encoders = {
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_encoders={
             datetime: lambda v: v.isoformat()
         }
+    )
 
 class AuditLogResponse(BaseModel):
     """Schema para respuesta de log de auditoría."""
@@ -600,11 +610,12 @@ class AuditLogResponse(BaseModel):
     vendor_name: Optional[str] = Field(None, description="Nombre del vendedor")
     admin_name: Optional[str] = Field(None, description="Nombre del administrador")
     
-    class Config:
-        from_attributes = True
-        json_encoders = {
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_encoders={
             datetime: lambda v: v.isoformat()
         }
+    )
 
 class VendorNotesListResponse(BaseModel):
     """Schema para lista de notas de un vendedor."""

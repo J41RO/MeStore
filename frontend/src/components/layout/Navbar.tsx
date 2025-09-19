@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../../contexts/AuthContext';
+import { UserType } from '../../types';
 
 interface NavbarProps {
   className?: string;
@@ -27,9 +28,9 @@ const Navbar: React.FC<NavbarProps> = ({ className = '' }) => {
   };
 
   const handleDashboardRedirect = () => {
-    if (user?.user_type === "ADMIN") {
+    if (user?.user_type === UserType.ADMIN) {
       navigate('/admin');
-    } else if (user?.user_type === "VENDEDOR") {
+    } else if (user?.user_type === UserType.VENDOR) {
       navigate('/dashboard/vendedor');
     } else {
       navigate('/dashboard');

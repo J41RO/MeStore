@@ -1,5 +1,5 @@
 from sqlalchemy import Column, String, DateTime, Boolean, Integer, ForeignKey, Text, Enum as SQLEnum
-from sqlalchemy.dialects.postgresql import UUID
+# UUID import removed for SQLite compatibility
 from sqlalchemy.orm import relationship
 from app.database import Base
 import uuid
@@ -21,8 +21,8 @@ class DocumentStatus(str, Enum):
 class VendorDocument(Base):
     __tablename__ = "vendor_documents"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    vendor_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()), index=True)
+    vendor_id = Column(String(36), ForeignKey("users.id"), nullable=False)
     document_type = Column(SQLEnum(DocumentType), nullable=False)
     
     # Información del archivo
@@ -33,7 +33,7 @@ class VendorDocument(Base):
     
     # Estado de verificación
     status = Column(SQLEnum(DocumentStatus), default=DocumentStatus.PENDING, nullable=False)
-    verified_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    verified_by = Column(String(36), ForeignKey("users.id"), nullable=True)
     verification_notes = Column(Text, nullable=True)
     
     # Timestamps

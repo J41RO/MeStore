@@ -1,1 +1,0 @@
-const simple = "test active";

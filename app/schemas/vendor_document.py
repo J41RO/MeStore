@@ -1,4 +1,4 @@
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, validator, ConfigDict, field_validator
 from typing import Optional, List
 from datetime import datetime
 from uuid import UUID
@@ -16,14 +16,20 @@ class VendorDocumentCreate(VendorDocumentBase):
     vendor_id: UUID
     file_path: str
     
-    @validator('file_size')
+    @field_validator('file_size')
+
+    
+    @classmethod
     def validate_file_size(cls, v):
         max_size = 5 * 1024 * 1024  # 5MB
         if v > max_size:
             raise ValueError(f'File size must be less than {max_size} bytes')
         return v
     
-    @validator('mime_type')
+    @field_validator('mime_type')
+
+    
+    @classmethod
     def validate_mime_type(cls, v):
         allowed_types = [
             'image/jpeg', 'image/png', 'image/webp',
@@ -84,14 +90,20 @@ class DocumentVerificationRequest(BaseModel):
     status: DocumentStatus
     verification_notes: Optional[str] = None
     
-    @validator('status')
+    @field_validator('status')
+
+    
+    @classmethod
     def validate_status(cls, v):
         if v not in [DocumentStatus.VERIFIED, DocumentStatus.REJECTED]:
             raise ValueError('Status must be either VERIFIED or REJECTED')
         return v
     
-    @validator('verification_notes')
-    def validate_notes_on_rejection(cls, v, values):
+    @field_validator('verification_notes')
+
+    
+    @classmethod
+    def validate_notes_on_rejection(cls, v):
         if values.get('status') == DocumentStatus.REJECTED and not v:
             raise ValueError('Verification notes are required when rejecting a document')
         return v

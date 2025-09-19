@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 from enum import Enum
@@ -12,8 +12,8 @@ class StepExecutionRequest(BaseModel):
     issues: List[str] = Field(default_factory=list, description="Lista de problemas encontrados")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Datos adicionales específicos del paso")
     
-    class Config:
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "step": "initial_inspection",
                 "passed": True,
@@ -25,6 +25,7 @@ class StepExecutionRequest(BaseModel):
                 }
             }
         }
+    )
 
 class VerificationStepResponse(BaseModel):
     """Response detallada de un paso del workflow"""
@@ -36,8 +37,8 @@ class VerificationStepResponse(BaseModel):
     order: int = Field(..., description="Orden del paso en el workflow")
     result: Optional[StepResult] = Field(None, description="Resultado del paso si ya fue ejecutado")
     
-    class Config:
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "step": "initial_inspection",
                 "title": "Inspección Inicial",
@@ -48,6 +49,7 @@ class VerificationStepResponse(BaseModel):
                 "result": None
             }
         }
+    )
 
 class WorkflowStatusResponse(BaseModel):
     """Response completa del estado del workflow de verificación"""

@@ -64,7 +64,7 @@ async def protected_endpoint(current_user: dict = Depends(get_current_user)):
 
 @router.get("/sellers-only")
 async def sellers_only_endpoint(
-    current_user: dict = Depends(require_user_type("VENDEDOR"))
+    current_user: dict = Depends(require_user_type("vendor"))
 ):
     """
     Endpoint solo para vendedores.

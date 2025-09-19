@@ -43,3 +43,11 @@ class RedisSessionManager(RedisManager):
         return self._redis
 
 
+# Global session manager instance
+_session_manager = RedisSessionManager()
+
+async def get_redis_sessions() -> redis.Redis:
+    """Get Redis sessions connection."""
+    return await _session_manager.connect()
+
+

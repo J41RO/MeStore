@@ -25,14 +25,14 @@ window.$RefreshSig$ = () => (type) => type;</script>
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <title>MeStocker - Tu Almacén Virtual en Bucaramanga | Fulfillment Inteligente</title>
-    
+
     <!-- SEO Meta Tags -->
     <meta name="description" content="Plataforma de fulfillment inteligente en Bucaramanga. Conecta vendedores y compradores con IA, automatiza tu inventario y reduce costos hasta 40%. Setup en 5 minutos.">
     <meta name="keywords" content="fulfillment bucaramanga, almacén virtual, marketplace colombia, inventario automatizado, vendedores bucaramanga, marketplace local, IA inventario">
     <meta name="author" content="MeStocker">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://mestocker.com">
-    
+
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://mestocker.com">
@@ -40,24 +40,24 @@ window.$RefreshSig$ = () => (type) => type;</script>
     <meta property="og:description" content="Automatiza tu inventario con IA. Conecta con 500+ compradores locales. ROI positivo desde el primer mes.">
     <meta property="og:site_name" content="MeStocker">
     <meta property="og:locale" content="es_CO">
-    
+
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="https://mestocker.com">
     <meta property="twitter:title" content="MeStocker - Tu Almacén Virtual en Bucaramanga">
     <meta property="twitter:description" content="Automatiza tu inventario con IA. Conecta con 500+ compradores locales. ROI positivo desde el primer mes.">
-    
+
     <!-- Additional SEO -->
     <meta name="theme-color" content="#3b82f6">
     <meta name="application-name" content="MeStocker">
-    
+
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-PLACEHOLDER"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-      
+
       // Get GA_MEASUREMENT_ID from environment or use placeholder
       const GA_MEASUREMENT_ID = window.ENV?.GA_MEASUREMENT_ID || 'G-PLACEHOLDER';
       gtag('config', GA_MEASUREMENT_ID, {
@@ -113,4 +113,3 @@ ec75dce3 feat(pipeline-validation): Complete pipeline validation and testing sys
 02005beb feat(product-images): Complete CRUD system with multiple image support
 5020097e feat(vendor-profile): Complete vendor profile and configuration system implementation
 26430556 fix(tests): Complete backend test suite fixes - all tests now passing
-

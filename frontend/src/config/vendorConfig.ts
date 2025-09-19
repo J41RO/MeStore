@@ -26,30 +26,30 @@ interface VendorConfig {
 
 // PRODUCTION_READY: Configuración dinámica por entorno
 const getVendorConfig = (): VendorConfig => {
-  const isDevelopment = process.env.NODE_ENV === 'development';
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isDevelopment = import.meta.env.MODE === 'development';
+  const isProduction = import.meta.env.MODE === 'production';
 
   // TODO_HOSTING: Variables críticas para despliegue
-  const baseUrl = process.env.REACT_APP_API_URL ||
+  const baseUrl = import.meta.env.VITE_API_BASE_URL ||
     (isProduction
-      ? process.env.REACT_APP_PROD_API_URL || 'https://api.tudominio.com'
-      : `http://${process.env.REACT_APP_HOST || 'localhost'}:${process.env.REACT_APP_PORT || '8001'}`
+      ? import.meta.env.VITE_PROD_API_URL || 'https://api.tudominio.com'
+      : `http://${import.meta.env.VITE_HOST || 'localhost'}:${import.meta.env.VITE_PORT || '8001'}`
     );
 
-  const wsUrl = process.env.REACT_APP_WEBSOCKET_URL ||
+  const wsUrl = import.meta.env.VITE_WEBSOCKET_URL ||
     (isProduction
       ? 'wss://ws.tudominio.com'
-      : `ws://${process.env.REACT_APP_HOST || 'localhost'}:${process.env.REACT_APP_PORT || '8001'}/ws`
+      : `ws://${import.meta.env.VITE_HOST || 'localhost'}:${import.meta.env.VITE_PORT || '8001'}/ws`
     );
 
   return {
     API_BASE_URL: baseUrl,
-    ORDER_REFRESH_INTERVAL: parseInt(process.env.REACT_APP_ORDER_REFRESH || '30000'),
-    ORDERS_PER_PAGE: parseInt(process.env.REACT_APP_ORDERS_PER_PAGE || '20'),
-    ENABLE_REALTIME: process.env.REACT_APP_ENABLE_REALTIME !== 'false',
-    API_TIMEOUT: parseInt(process.env.REACT_APP_API_TIMEOUT || '10000'),
-    RETRY_ATTEMPTS: parseInt(process.env.REACT_APP_RETRY_ATTEMPTS || '3'),
-    CACHE_DURATION: parseInt(process.env.REACT_APP_CACHE_DURATION || '300000'), // 5 minutes
+    ORDER_REFRESH_INTERVAL: parseInt(import.meta.env.VITE_ORDER_REFRESH || '30000'),
+    ORDERS_PER_PAGE: parseInt(import.meta.env.VITE_ORDERS_PER_PAGE || '20'),
+    ENABLE_REALTIME: import.meta.env.VITE_ENABLE_REALTIME !== 'false',
+    API_TIMEOUT: parseInt(import.meta.env.VITE_API_TIMEOUT || '10000'),
+    RETRY_ATTEMPTS: parseInt(import.meta.env.VITE_RETRY_ATTEMPTS || '3'),
+    CACHE_DURATION: parseInt(import.meta.env.VITE_CACHE_DURATION || '300000'), // 5 minutes
     WEBSOCKET_URL: wsUrl,
   };
 };

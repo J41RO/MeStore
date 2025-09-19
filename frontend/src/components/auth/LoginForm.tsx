@@ -1,189 +1,282 @@
 import React, { useState } from 'react';
+import { useAuthStore } from '../../stores/authStore';
+import type { LoginFormProps, ApiError } from '../../types';
 
 /**
- * Componente LoginForm con validación completa
+ * Production LoginForm Component
+ * React Specialist AI Implementation
  *
  * Características:
- * - Validación en tiempo real de email y password
- * - Integración con API /api/v1/auth/login
- * - Manejo de estados loading/success/error
- * - Callback opcional onLoginSuccess
+ * - Integración completa con FastAPI backend
+ * - Validación en tiempo real con feedback visual
+ * - Manejo robusto de errores de API
+ * - Estados de loading y success/error optimizados
+ * - TypeScript completo para type safety
  *
  * @component
- * @example
- *
  */
-// Interface para props del componente
-export interface LoginFormProps {
-  onLoginSuccess?: (data: any) => void;
-  className?: string;
-}
 
-// Interface para respuesta de la API
-interface ApiResponse {
-  success: boolean;
-  message: string;
-  data?: any;
-  error?: string;
-}
-
-// Componente funcional LoginForm
 export const LoginForm: React.FC<LoginFormProps> = ({
   onLoginSuccess,
+  onLoginError,
   className = '',
+  redirectPath,
+  showRememberMe = false,
 }) => {
-  // Estados locales
+  // Zustand auth store
+  const { login, isLoading, error: authError, clearError } = useAuthStore();
+
+  // Estados locales del formulario
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false);
-  const [message, setMessage] = useState<string>('');
-  const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
+  const [rememberMe, setRememberMe] = useState<boolean>(false);
+  const [touched, setTouched] = useState<{ email: boolean; password: boolean }>({
+    email: false,
+    password: false,
+  });
 
-  // Funciones de validación
-  const validateEmail = (email: string): boolean => {
+  // Funciones de validación mejoradas
+  const validateEmail = (email: string): { isValid: boolean; message?: string } => {
+    if (!email) return { isValid: false, message: 'Email es requerido' };
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+    return emailRegex.test(email)
+      ? { isValid: true }
+      : { isValid: false, message: 'Formato de email inválido' };
   };
 
-  const validatePassword = (password: string): boolean => {
-    // Mínimo 8 caracteres, al menos 1 número, 1 mayúscula
-    const passwordRegex =
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/;
-    return passwordRegex.test(password);
+  const validatePassword = (password: string): { isValid: boolean; message?: string } => {
+    if (!password) return { isValid: false, message: 'Contraseña es requerida' };
+    if (password.length < 6) {
+      return { isValid: false, message: 'Mínimo 6 caracteres' };
+    }
+    return { isValid: true };
   };
 
-  // Estado de validación del formulario
-  const isFormValid = validateEmail(email) && validatePassword(password);
+  // Validación del formulario
+  const emailValidation = validateEmail(email);
+  const passwordValidation = validatePassword(password);
+  const isFormValid = emailValidation.isValid && passwordValidation.isValid;
 
-  // Función handleSubmit con integración API
+  // Limpia errores cuando el usuario empieza a escribir
+  React.useEffect(() => {
+    if (authError && (email || password)) {
+      clearError();
+    }
+  }, [email, password, authError, clearError]);
+
+  // Manejo del submit del formulario
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
+    // Marcar campos como tocados para mostrar errores
+    setTouched({ email: true, password: true });
+
     // Validar formulario antes de enviar
     if (!isFormValid) {
-      setMessage('Por favor corrige los errores antes de enviar');
-      setMessageType('error');
       return;
     }
-
-    setLoading(true);
-
-    // 🔧 CREDENCIALES FICTICIAS PARA DESARROLLO
-    if (email === 'test@mestore.com' && password === '123456') {
-      const fakeUser = {
-        id: 'dev-user-001',
-        email: 'test@mestore.com',
-        name: 'Usuario de Prueba',
-        roles: ['vendedor', 'comprador', 'admin', 'superusuario'],
-      };
-      const fakeToken = 'dev-token-' + Date.now();
-
-      setMessage('✅ Login exitoso con credenciales de desarrollo');
-      setMessageType('success');
-      setLoading(false);
-
-      if (onLoginSuccess) {
-        onLoginSuccess({ user: fakeUser, token: fakeToken });
-      }
-      return;
-    }
-    setMessage('');
 
     try {
-      const response = await fetch('/api/v1/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: email.trim(),
-          password: password,
-        }),
-      });
+      // Usar el store de Zustand para login
+      const success = await login(email.trim(), password);
 
-      const data: ApiResponse = await response.json();
-
-      if (data.success) {
-        setMessage('Inicio de sesión exitoso');
-        setMessageType('success');
-
-        // Llamar callback si se proporciona
+      if (success) {
+        // Login exitoso
         if (onLoginSuccess) {
-          onLoginSuccess(data.data);
+          onLoginSuccess({ email: email.trim() });
+        }
+
+        // Redireccionar si se especifica
+        if (redirectPath) {
+          window.location.href = redirectPath;
         }
 
         // Limpiar formulario
         setEmail('');
         setPassword('');
+        setTouched({ email: false, password: false });
       } else {
-        setMessage(data.message || 'Error al iniciar sesión');
-        setMessageType('error');
+        // Error manejado por el store
+        if (onLoginError) {
+          onLoginError({
+            message: authError || 'Error al iniciar sesión',
+            status: 401
+          });
+        }
       }
     } catch (error) {
-      console.error('Error en login:', error);
-      setMessage('Error de conexión. Intenta nuevamente.');
-      setMessageType('error');
-    } finally {
-      setLoading(false);
+      console.error('Error en handleSubmit:', error);
+      if (onLoginError) {
+        onLoginError({
+          message: 'Error inesperado durante el login',
+          status: 500
+        });
+      }
     }
   };
 
+  // Manejadores de eventos
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEmail(e.target.value);
+    if (touched.email && authError) {
+      clearError();
+    }
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPassword(e.target.value);
+    if (touched.password && authError) {
+      clearError();
+    }
+  };
+
+  const handleBlur = (field: 'email' | 'password') => {
+    setTouched(prev => ({ ...prev, [field]: true }));
+  };
+
   return (
-    <div className={`login-form ${className}`}>
-      <form onSubmit={handleSubmit}>
-        <div className='form-group'>
-          <label htmlFor='email'>Email:</label>
-          <input
-            type='email'
-            id='email'
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-          />
-          {email.length > 0 && !validateEmail(email) && (
-            <span
-              className='error-message'
-              style={{
-                color: 'red',
-                fontSize: '12px',
-                display: 'block',
-                marginTop: '4px',
-              }}
-            >
-              Por favor ingresa un email válido
-            </span>
+    <div className={`w-full max-w-md mx-auto ${className}`}>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Email Field */}
+        <div>
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
+            Email *
+          </label>
+          <div className="relative">
+            <input
+              type="email"
+              id="email"
+              value={email}
+              onChange={handleEmailChange}
+              onBlur={() => handleBlur('email')}
+              className={`w-full px-4 py-3 rounded-lg border ${
+                touched.email && !emailValidation.isValid
+                  ? 'border-red-300 focus:border-red-500'
+                  : emailValidation.isValid && touched.email
+                  ? 'border-green-300 focus:border-green-500'
+                  : 'border-gray-300 focus:border-blue-500'
+              } focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white`}
+              placeholder="tu@email.com"
+              autoComplete="email"
+            />
+            {/* Validation Icon */}
+            {touched.email && (
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                {emailValidation.isValid ? (
+                  <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                )}
+              </div>
+            )}
+          </div>
+          {touched.email && !emailValidation.isValid && (
+            <p className="mt-1 text-sm text-red-600">{emailValidation.message}</p>
           )}
         </div>
 
-        <div className='form-group'>
-          <label htmlFor='password'>Password:</label>
-          <input
-            type='password'
-            id='password'
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            required
-          />
-          {password.length > 0 && !validatePassword(password) && (
-            <span
-              className='error-message'
-              style={{
-                color: 'red',
-                fontSize: '12px',
-                display: 'block',
-                marginTop: '4px',
-              }}
-            >
-              Mínimo 8 caracteres, 1 mayúscula y 1 número
-            </span>
+        {/* Password Field */}
+        <div>
+          <label
+            htmlFor="password"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
+            Contraseña *
+          </label>
+          <div className="relative">
+            <input
+              type="password"
+              id="password"
+              value={password}
+              onChange={handlePasswordChange}
+              onBlur={() => handleBlur('password')}
+              className={`w-full px-4 py-3 rounded-lg border ${
+                touched.password && !passwordValidation.isValid
+                  ? 'border-red-300 focus:border-red-500'
+                  : passwordValidation.isValid && touched.password
+                  ? 'border-green-300 focus:border-green-500'
+                  : 'border-gray-300 focus:border-blue-500'
+              } focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white`}
+              placeholder="Tu contraseña"
+              autoComplete="current-password"
+            />
+            {/* Validation Icon */}
+            {touched.password && (
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                {passwordValidation.isValid ? (
+                  <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                )}
+              </div>
+            )}
+          </div>
+          {touched.password && !passwordValidation.isValid && (
+            <p className="mt-1 text-sm text-red-600">{passwordValidation.message}</p>
           )}
         </div>
 
-        <button type='submit' disabled={loading || !isFormValid}>
-          {loading ? 'Logging in...' : 'Login'}
+        {/* Remember Me Checkbox (opcional) */}
+        {showRememberMe && (
+          <div className="flex items-center">
+            <input
+              id="remember-me"
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+              Recordar sesión
+            </label>
+          </div>
+        )}
+
+        {/* Error Message */}
+        {authError && (
+          <div className="p-4 rounded-lg bg-red-100 border border-red-200">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-sm text-red-800">{authError}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Submit Button */}
+        <button
+          type="submit"
+          disabled={isLoading || !isFormValid}
+          className={`w-full py-3 px-4 rounded-lg font-medium text-white transition-all duration-200 ${
+            !isLoading && isFormValid
+              ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
+              : 'bg-gray-400 cursor-not-allowed'
+          }`}
+        >
+          {isLoading ? (
+            <div className="flex items-center justify-center">
+              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Iniciando sesión...
+            </div>
+          ) : (
+            'Iniciar Sesión'
+          )}
         </button>
-
-        {message && <div className={`message ${messageType}`}>{message}</div>}
       </form>
     </div>
   );

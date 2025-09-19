@@ -1,5 +1,6 @@
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode, useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
+import { authService } from '../services/authService';
 
 // Importamos el tipo User desde authStore
 import type { User } from '../stores/authStore';
@@ -10,16 +11,18 @@ interface AuthContextType {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  error: string | null;
 
-  // Métodos principales
-  login: (token: string, user: User) => Promise<void>;
+  // Métodos principales REAL
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
-  checkAuth: () => boolean;
+  checkAuth: () => Promise<boolean>;
 
   // Métodos adicionales para JWT
   getToken: () => string | null;
   refreshToken: () => Promise<boolean>;
   isTokenValid: () => boolean;
+  validateSession: () => Promise<boolean>;
 }
 
 interface AuthProviderProps {
@@ -29,22 +32,30 @@ interface AuthProviderProps {
 // Crear contexto
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Provider que actúa como wrapper sobre Zustand
+/**
+ * AuthProvider real - conectado con FastAPI backend
+ * Frontend Security AI Implementation
+ *
+ * Proporciona contexto de autenticación real sin mocks
+ */
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  // Usar Zustand store internamente
+  // Usar Zustand store real
   const {
     user,
     token,
     isAuthenticated,
-    login: zustandLogin,
-    logout: zustandLogout,
-    checkAuth: zustandCheckAuth,
+    isLoading,
+    error,
+    login: storeLogin,
+    logout: storeLogout,
+    checkAuth: storeCheckAuth,
+    validateSession: storeValidateSession,
   } = useAuthStore();
 
   // Listener para logout automático desde interceptores
-  React.useEffect(() => {
+  useEffect(() => {
     const handleAutoLogout = () => {
-      logout();
+      storeLogout();
     };
 
     window.addEventListener('auth:logout', handleAutoLogout);
@@ -52,23 +63,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => {
       window.removeEventListener('auth:logout', handleAutoLogout);
     };
-  }, []);
+  }, [storeLogout]);
 
-  // Wrapper methods para agregar funcionalidad adicional
-  const login = async (token: string, user: User): Promise<void> => {
+  // Verificar autenticación al cargar la aplicación
+  useEffect(() => {
+    const verifyAuth = async () => {
+      const token = authService.getToken();
+      if (token) {
+        await storeCheckAuth();
+      }
+    };
+
+    verifyAuth();
+  }, [storeCheckAuth]);
+
+  // Wrapper methods conectados con API real
+  const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      // Validar token antes de guardar
-      if (!token || token.trim() === '') {
-        throw new Error('Token inválido');
+      if (!email || !password) {
+        throw new Error('Email y contraseña son requeridos');
       }
 
-      // Usar método de Zustand
-      zustandLogin(token, user);
+      const success = await storeLogin(email, password);
 
-      // Lógica adicional
-      console.log('Usuario autenticado:', user.email);
+      if (success) {
+        console.log('Usuario autenticado exitosamente:', email);
+      }
+
+      return success;
     } catch (error) {
-      console.error('Error en login:', error);
+      console.error('Error en login context:', error);
       throw error;
     }
   };
@@ -76,46 +100,79 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async (): Promise<void> => {
     try {
       console.log('Cerrando sesión...');
-      zustandLogout();
+      await storeLogout();
     } catch (error) {
-      console.error('Error en logout:', error);
+      console.error('Error en logout context:', error);
       throw error;
     }
   };
 
-  const checkAuth = (): boolean => {
-    return zustandCheckAuth();
+  const checkAuth = async (): Promise<boolean> => {
+    try {
+      return await storeCheckAuth();
+    } catch (error) {
+      console.error('Error verificando autenticación:', error);
+      return false;
+    }
   };
 
-  // Métodos adicionales para JWT management
+  // Métodos adicionales para JWT management real
   const getToken = (): string | null => {
-    return token || localStorage.getItem('auth_token');
+    return authService.getToken();
   };
 
   const refreshToken = async (): Promise<boolean> => {
-    console.log('Token refresh - pendiente implementación');
-    return false;
+    try {
+      const refreshTokenValue = authService.getRefreshToken();
+      if (!refreshTokenValue) {
+        return false;
+      }
+
+      await authService.refreshToken(refreshTokenValue);
+      return true;
+    } catch (error) {
+      console.error('Error refrescando token:', error);
+      return false;
+    }
   };
 
   const isTokenValid = (): boolean => {
     const currentToken = getToken();
     if (!currentToken) return false;
-    return currentToken.length > 10;
+
+    try {
+      // Verificar si el token no está expirado
+      const payload = JSON.parse(atob(currentToken.split('.')[1]));
+      const currentTime = Math.floor(Date.now() / 1000);
+      return payload.exp > currentTime;
+    } catch (error) {
+      console.error('Error validando token:', error);
+      return false;
+    }
   };
 
-  const isLoading = false;
+  const validateSession = async (): Promise<boolean> => {
+    try {
+      return await storeValidateSession();
+    } catch (error) {
+      console.error('Error validando sesión:', error);
+      return false;
+    }
+  };
 
   const contextValue: AuthContextType = {
     user,
     token,
     isAuthenticated,
     isLoading,
+    error,
     login,
     logout,
     checkAuth,
     getToken,
     refreshToken,
     isTokenValid,
+    validateSession,
   };
 
   return (

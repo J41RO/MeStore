@@ -91,7 +91,7 @@ async def solicitar_pago_comisiones(
     """
 
     # Verificar que el usuario es vendedor o superior
-    if current_user.user_type not in ["VENDEDOR", "ADMIN", "SUPERUSER"]:
+    if current_user.user_type not in ["vendor", "admin", "superuser"]:
         raise HTTPException(
             status_code=403,
             detail="Solo los vendedores pueden solicitar pagos de comisiones",
@@ -175,7 +175,7 @@ async def reportar_disputa_comision(
     """
 
     # Verificar que el usuario puede reportar disputas
-    if current_user.user_type not in ["VENDEDOR", "ADMIN", "SUPERUSER"]:
+    if current_user.user_type not in ["vendor", "admin", "superuser"]:
         raise HTTPException(
             status_code=403,
             detail="Solo vendedores pueden reportar disputas de comisiones"
@@ -200,7 +200,7 @@ async def reportar_disputa_comision(
         )
 
     # Verificar que el usuario es el vendedor de la transacción (excepto admins)
-    if current_user.user_type == "VENDEDOR" and str(transaction.vendedor_id) != current_user.id:
+    if current_user.user_type == "vendor" and str(transaction.vendedor_id) != current_user.id:
         raise HTTPException(
             status_code=403,
             detail="Solo puedes disputar tus propias transacciones"

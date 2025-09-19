@@ -36,7 +36,7 @@ from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator, model_validator, UUID4, computed_field
+from pydantic import BaseModel, Field, field_validator, model_validator, UUID4, computed_field, ConfigDict
 
 # Importar enums desde models
 from app.models.inventory import InventoryStatus, CondicionProducto
@@ -120,13 +120,14 @@ class InventoryBase(BaseModel):
 class InventoryCreate(InventoryBase):
     """Schema para crear inventario con validaciones business"""
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 
 class MovimientoResponse(BaseModel):
     """Schema para respuesta de movimientos de stock"""
+
+    model_config = ConfigDict(from_attributes=True)
 
     success: bool = Field(..., description="Indica si el movimiento fue exitoso")
     message: str = Field(..., description="Mensaje de confirmación")
@@ -134,33 +135,45 @@ class MovimientoResponse(BaseModel):
     cantidad_anterior: int = Field(..., ge=0, description="Cantidad antes del movimiento")
     cantidad_nueva: int = Field(..., ge=0, description="Cantidad después del movimiento")
 
-    class Config:
-        from_attributes = True
-
 
 class ReservaStockCreate(BaseModel):
     """Schema para crear reserva de stock"""
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
+            "example": {
+                "inventory_id": "123e4567-e89b-12d3-a456-426614174000",
+                "cantidad": 5,
+                "user_id": "123e4567-e89b-12d3-a456-426614174001",
+                "motivo": "Reserva para pre-venta cliente premium"
+            }
+        }
+    )
 
     inventory_id: UUID4 = Field(..., description="ID del inventario a reservar")
     cantidad: int = Field(..., ge=1, le=10000, description="Cantidad a reservar")
     user_id: UUID4 = Field(..., description="ID del usuario que realiza la reserva")
     motivo: Optional[str] = Field(None, max_length=500, description="Motivo de la reserva")
 
-    class Config:
-        from_attributes = True
-        json_schema_extra = {
-            "example": {
-                "inventory_id": "123e4567-e89b-12d3-a456-426614174000",
-                "cantidad": 5,
-                "user_id": "123e4567-e89b-12d3-a456-426614174001",
-"motivo": "Reserva para pre-venta cliente premium"
-            }
-        }
-
 
 class ReservaResponse(BaseModel):
     """Schema para respuesta de reserva de stock"""
-    
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
+            "example": {
+                "success": True,
+                "message": "Reserva realizada exitosamente",
+                "inventory_id": "123e4567-e89b-12d3-a456-426614174000",
+                "cantidad_reservada": 25,
+                "cantidad_disponible": 75,
+                "cantidad_solicitada": 5,
+                "user_id": "123e4567-e89b-12d3-a456-426614174001",
+                "fecha_reserva": "2025-08-06T10:30:00Z"
+            }
+        }
+    )
+
     success: bool = Field(..., description="Indica si la reserva fue exitosa")
     message: str = Field(..., description="Mensaje de confirmación")
     inventory_id: UUID4 = Field(..., description="ID del inventario reservado")
@@ -169,60 +182,6 @@ class ReservaResponse(BaseModel):
     cantidad_solicitada: int = Field(..., ge=0, description="Cantidad que se solicitó reservar")
     user_id: UUID4 = Field(..., description="ID del usuario que realizó la reserva")
     fecha_reserva: datetime = Field(..., description="Fecha y hora de la reserva")
-    
-    class Config:
-        from_attributes = True
-        json_schema_extra = {
-            "example": {
-                "success": True,
-                "message": "Reserva realizada exitosamente",
-                "inventory_id": "123e4567-e89b-12d3-a456-426614174000",
-                "cantidad_reservada": 25,
-                "cantidad_disponible": 75,
-                "cantidad_solicitada": 5,
-                "user_id": "123e4567-e89b-12d3-a456-426614174001",
-                "fecha_reserva": "2025-08-06T10:30:00Z"
-            }
-        }
-    
-
-    class Config:
-        from_attributes = True
-        json_schema_extra = {
-            "example": {
-                "success": True,
-                "message": "Reserva realizada exitosamente",
-                "inventory_id": "123e4567-e89b-12d3-a456-426614174000",
-                "cantidad_reservada": 25,
-                "cantidad_disponible": 75,
-                "cantidad_solicitada": 5,
-                "user_id": "123e4567-e89b-12d3-a456-426614174001",
-                "fecha_reserva": "2025-08-06T10:30:00Z"
-            }
-        }
-        
-    """Schema para respuesta de movimientos."""
-
-    success: bool = Field(..., description="Indica si el movimiento fue exitoso")
-    message: str = Field(..., description="Mensaje de confirmación")
-    inventory_id: UUID4 = Field(..., description="ID del inventario actualizado")
-    cantidad_disponible: int = Field(..., ge=0, description="Cantidad disponible actual")
-
-    class Config:
-        from_attributes = True
-        json_schema_extra = {
-            "example": {
-                "product_id": "123e4567-e89b-12d3-a456-426614174000",
-                "zona": "A",
-                "estante": "001",
-                "posicion": "01",
-                "cantidad": 100,
-                "cantidad_reservada": 20,
-                "status": "DISPONIBLE",
-                "condicion_producto": "NUEVO",
-                "notas_almacen": "Producto verificado, sin observaciones"
-            }
-        }
 
 
 class InventoryUpdate(BaseModel):
@@ -269,8 +228,7 @@ class InventoryUpdate(BaseModel):
 
         return self
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class InventoryRead(InventoryBase):
     """Schema para respuestas API con campos completos"""
@@ -378,9 +336,9 @@ class InventoryRead(InventoryBase):
             return (datetime.now() - self.fecha_ultimo_movimiento).days
         return 0
 
-    class Config:
-        from_attributes = True
-        json_schema_extra = {
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
             "example": {
                 "id": "123e4567-e89b-12d3-a456-426614174000",
                 "product_id": "123e4567-e89b-12d3-a456-426614174001",
@@ -409,6 +367,7 @@ class InventoryRead(InventoryBase):
                 "dias_desde_ultimo_movimiento": 0
             }
         }
+    )
 
 
 class InventoryResponse(InventoryRead):
@@ -432,9 +391,9 @@ class MovimientoStockCreate(MovimientoStockBase):
     
     user_id: Optional[UUID4] = Field(None, description="Usuario que realizó el movimiento")
 
-    class Config:
-        from_attributes = True
-        json_schema_extra = {
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
             "example": {
                 "inventory_id": "123e4567-e89b-12d3-a456-426614174000",
                 "tipo_movimiento": "INGRESO",
@@ -444,6 +403,7 @@ class MovimientoStockCreate(MovimientoStockBase):
                 "user_id": "123e4567-e89b-12d3-a456-426614174002"
             }
         }
+    )
 
 
 class MovimientoStockRead(MovimientoStockBase):
@@ -477,9 +437,9 @@ class MovimientoStockRead(MovimientoStockBase):
         }
         return descripciones.get(self.tipo_movimiento.value, 'Movimiento desconocido')
 
-    class Config:
-        from_attributes = True
-        json_schema_extra = {
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
             "example": {
                 "id": "123e4567-e89b-12d3-a456-426614174003",
                 "inventory_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -494,6 +454,7 @@ class MovimientoStockRead(MovimientoStockBase):
                 "tipo_descripcion": "Ingreso de stock"
             }
         }
+    )
 
 class AlertasMetadata(BaseModel):
     """Metadata para response de alertas"""
@@ -510,8 +471,7 @@ class AlertasResponse(BaseModel):
     alertas: List[InventoryResponse] = Field(..., description="Lista de inventario con alertas")
     metadata: AlertasMetadata = Field(..., description="Metadatos de las alertas")
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class LocationUpdateRequest(BaseModel):
@@ -547,8 +507,8 @@ class LocationUpdateRequest(BaseModel):
             raise ValueError("Posición debe contener solo números, letras y guiones")
         return v.upper()
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "zona": "A",
                 "estante": "A1",
@@ -556,6 +516,7 @@ class LocationUpdateRequest(BaseModel):
                 "observaciones": "Reubicación por reorganización de almacén"
             }
         }
+    )
 
 
 # Schemas para Incidentes de Inventario
@@ -568,8 +529,8 @@ class IncidenteCreate(BaseModel):
     descripcion: str = Field(..., min_length=10, max_length=1000, description="Descripción detallada del incidente")
     fecha_incidente: Optional[datetime] = Field(None, description="Fecha estimada cuando ocurrió el incidente")
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "inventory_id": "123e4567-e89b-12d3-a456-426614174000",
                 "tipo_incidente": "PERDIDO",
@@ -577,6 +538,7 @@ class IncidenteCreate(BaseModel):
                 "fecha_incidente": "2025-01-15T10:30:00Z"
             }
         }
+    )
 
 class IncidenteResponse(BaseModel):
     """Schema para respuesta de incidentes"""
@@ -590,9 +552,9 @@ class IncidenteResponse(BaseModel):
     created_at: datetime = Field(..., description="Fecha de creación del reporte")
     updated_at: datetime = Field(..., description="Fecha de última actualización")
     
-    class Config:
-        from_attributes = True
-        json_schema_extra = {
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
             "example": {
                 "id": "123e4567-e89b-12d3-a456-426614174004",
                 "inventory_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -605,6 +567,7 @@ class IncidenteResponse(BaseModel):
                 "updated_at": "2025-01-15T14:30:00Z"
             }
         }
+    )
 
 
 # Schemas para MovementTracker
@@ -630,8 +593,7 @@ class MovementTrackerCreate(MovementTrackerBase):
     location_to: Optional[dict] = Field(None, description="Ubicación destino")
     batch_id: Optional[UUID4] = Field(None, description="ID de lote")
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class MovementTrackerResponse(MovementTrackerBase):
@@ -654,8 +616,7 @@ class MovementTrackerResponse(MovementTrackerBase):
     is_update_action: bool = Field(default=False, description="Es acción de actualización")
     has_location_change: bool = Field(default=False, description="Hubo cambio de ubicación")
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Schemas para Analytics
@@ -684,8 +645,7 @@ class MovementAnalyticsResponse(BaseModel):
     analytics: MovementAnalytics
     metadata: dict = Field(default_factory=dict, description="Metadata adicional")
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Schemas para IncomingProductQueue
@@ -762,8 +722,7 @@ class IncomingProductQueueResponse(IncomingProductQueueBase):
     status_display: str = Field(default="", description="Texto legible del estado")
     priority_display: str = Field(default="", description="Texto legible de la prioridad")
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class QueueAssignmentRequest(BaseModel):

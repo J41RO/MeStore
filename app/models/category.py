@@ -49,7 +49,7 @@ from sqlalchemy import (
     func,
     text,
 )
-from sqlalchemy.dialects.postgresql import JSON, UUID
+import json
 from sqlalchemy.orm import relationship, validates
 from sqlalchemy.ext.hybrid import hybrid_property
 
@@ -126,7 +126,7 @@ class Category(BaseModel):
 
     # Jerarquía
     parent_id = Column(
-        UUID(as_uuid=True),
+        String(36),
         ForeignKey("categories.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
@@ -206,11 +206,11 @@ class Category(BaseModel):
         comment="URL del banner de la categoría"
     )
 
-    # Configuración frontend
+    # Configuración frontend - SQLite compatible
     display_config = Column(
-        JSON,
+        Text,
         nullable=True,
-        comment="Configuración JSON para display frontend"
+        comment="Configuración JSON serializada para display frontend"
     )
 
     # Estadísticas de uso
@@ -688,7 +688,7 @@ class ProductCategory(BaseModel):
 
     # Foreign keys
     product_id = Column(
-        UUID(as_uuid=True),
+        String(36),
         ForeignKey("products.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -696,7 +696,7 @@ class ProductCategory(BaseModel):
     )
 
     category_id = Column(
-        UUID(as_uuid=True),
+        String(36),
         ForeignKey("categories.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -721,7 +721,7 @@ class ProductCategory(BaseModel):
 
     # Tracking de asignación
     assigned_by_id = Column(
-        UUID(as_uuid=True),
+        String(36),
         ForeignKey("users.id"),
         nullable=True,
         comment="Usuario que asignó la categoría"

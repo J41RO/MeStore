@@ -11,8 +11,8 @@ jest.mock('../../hooks/useRoleAccess', () => ({
   useRoleAccess: () => mockUseRoleAccess(),
   getRoleDisplayName: (role: UserType) => {
     const names = {
-      [UserType.COMPRADOR]: 'Comprador',
-      [UserType.VENDEDOR]: 'Vendedor', 
+      [UserType.BUYER]: 'Comprador',
+      [UserType.VENDOR]: 'Vendedor',
       [UserType.ADMIN]: 'Administrador',
       [UserType.SUPERUSER]: 'Super Usuario'
     };
@@ -60,16 +60,16 @@ describe('RoleGuard', () => {
 
     it('should render children when user has any of required roles', () => {
       mockUseRoleAccess.mockReturnValue({
-        hasRole: (role: UserType) => role === UserType.VENDEDOR,
-        hasAnyRole: (roles: UserType[]) => roles.includes(UserType.VENDEDOR),
+        hasRole: (role: UserType) => role === UserType.VENDOR,
+        hasAnyRole: (roles: UserType[]) => roles.includes(UserType.VENDOR),
         hasAllRoles: (roles: UserType[]) => false,
         hasMinimumRole: (minRole: UserType) => true,
-        getCurrentRole: () => UserType.VENDEDOR,
+        getCurrentRole: () => UserType.VENDOR,
       });
 
       render(
         <TestWrapper>
-          <RoleGuard roles={[UserType.ADMIN, UserType.VENDEDOR]} strategy="any">
+          <RoleGuard roles={[UserType.ADMIN, UserType.VENDOR]} strategy="any">
             <div data-testid="protected-content">Protected Content</div>
           </RoleGuard>
         </TestWrapper>
@@ -89,7 +89,7 @@ describe('RoleGuard', () => {
 
       render(
         <TestWrapper>
-          <RoleGuard roles={[UserType.VENDEDOR]} strategy="minimum">
+          <RoleGuard roles={[UserType.VENDOR]} strategy="minimum">
             <div data-testid="protected-content">Protected Content</div>
           </RoleGuard>
         </TestWrapper>
@@ -106,7 +106,7 @@ describe('RoleGuard', () => {
         hasAnyRole: (roles: UserType[]) => false,
         hasAllRoles: (roles: UserType[]) => false,
         hasMinimumRole: (minRole: UserType) => false,
-        getCurrentRole: () => UserType.COMPRADOR,
+        getCurrentRole: () => UserType.BUYER,
       });
 
       render(
@@ -127,7 +127,7 @@ describe('RoleGuard', () => {
         hasAnyRole: (roles: UserType[]) => false,
         hasAllRoles: (roles: UserType[]) => false,
         hasMinimumRole: (minRole: UserType) => false,
-        getCurrentRole: () => UserType.COMPRADOR,
+        getCurrentRole: () => UserType.BUYER,
       });
 
       render(
@@ -152,7 +152,7 @@ describe('RoleGuard', () => {
         hasAnyRole: (roles: UserType[]) => false,
         hasAllRoles: (roles: UserType[]) => false,
         hasMinimumRole: (minRole: UserType) => false,
-        getCurrentRole: () => UserType.COMPRADOR,
+        getCurrentRole: () => UserType.BUYER,
       });
 
       render(
@@ -179,7 +179,7 @@ describe('RoleGuard', () => {
         hasAnyRole: (roles: UserType[]) => false,
         hasAllRoles: (roles: UserType[]) => false,
         hasMinimumRole: (minRole: UserType) => false,
-        getCurrentRole: () => UserType.COMPRADOR,
+        getCurrentRole: () => UserType.BUYER,
       });
 
       // Mock console.warn to verify it's called
@@ -205,14 +205,14 @@ describe('RoleGuard', () => {
         hasAnyRole: (roles: UserType[]) => false,
         hasAllRoles: (roles: UserType[]) => false,
         hasMinimumRole: (minRole: UserType) => false,
-        getCurrentRole: () => UserType.COMPRADOR,
+        getCurrentRole: () => UserType.BUYER,
       });
 
       const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
       render(
         <TestWrapper>
-          <RoleGuard roles={[UserType.ADMIN, UserType.VENDEDOR]} strategy="minimum">
+          <RoleGuard roles={[UserType.ADMIN, UserType.VENDOR]} strategy="minimum">
             <div data-testid="protected-content">Protected Content</div>
           </RoleGuard>
         </TestWrapper>
@@ -230,7 +230,7 @@ describe('RoleGuard', () => {
         hasAnyRole: (roles: UserType[]) => false,
         hasAllRoles: (roles: UserType[]) => false,
         hasMinimumRole: (minRole: UserType) => false,
-        getCurrentRole: () => UserType.COMPRADOR,
+        getCurrentRole: () => UserType.BUYER,
       });
 
       const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});

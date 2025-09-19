@@ -33,7 +33,7 @@ Este módulo contiene los schemas para:
 from datetime import datetime
 from typing import Dict, Optional
 from uuid import UUID
-from pydantic import BaseModel, Field, HttpUrl, validator
+from pydantic import BaseModel, Field, HttpUrl, validator, ConfigDict, field_validator
 import re
 
 
@@ -79,7 +79,10 @@ class VendorProfileBase(BaseModel):
         description="Política de devoluciones"
     )
 
-    @validator('business_hours')
+    @field_validator('business_hours')
+
+
+    @classmethod
     def validate_business_hours(cls, v):
         """Validar formato de horarios de negocio."""
         if v is None:
@@ -96,7 +99,10 @@ class VendorProfileBase(BaseModel):
         
         return v
 
-    @validator('social_media_links')
+    @field_validator('social_media_links')
+
+
+    @classmethod
     def validate_social_media_links(cls, v):
         """Validar enlaces de redes sociales."""
         if v is None:
@@ -156,7 +162,10 @@ class VendorBankingInfo(BaseModel):
         description="Tipo de cuenta: AHORROS o CORRIENTE"
     )
 
-    @validator('account_number')
+    @field_validator('account_number')
+
+
+    @classmethod
     def validate_account_number(cls, v):
         """Validar número de cuenta colombiano."""
         if v is None:
@@ -171,7 +180,10 @@ class VendorBankingInfo(BaseModel):
         
         return v
 
-    @validator('tipo_cuenta')
+    @field_validator('tipo_cuenta')
+
+
+    @classmethod
     def validate_account_type(cls, v):
         """Validar tipo de cuenta."""
         if v is None:

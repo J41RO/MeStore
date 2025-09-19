@@ -20,7 +20,7 @@ from typing import Optional
 from uuid import UUID
 from datetime import datetime
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 # Imports de enums desde el modelo
 from app.models.transaction import (

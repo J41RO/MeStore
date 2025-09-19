@@ -32,7 +32,7 @@ Este módulo contiene:
 
 from sqlalchemy import Column, String, DECIMAL, DateTime, Enum as SQLEnum, ForeignKey
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.dialects.postgresql import UUID as SQLAlchemyUUID
+# UUID import removed for SQLite compatibility as SQLAlchemyUUID
 from sqlalchemy.orm import relationship
 from enum import Enum as PyEnum
 from app.models.base import BaseModel
@@ -50,7 +50,7 @@ class PayoutRequest(BaseModel):
     __tablename__ = "payout_requests"
     
     # FK al vendedor
-    vendedor_id = Column(SQLAlchemyUUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    vendedor_id = Column(String(36), ForeignKey("users.id"), nullable=False)
     monto_solicitado = Column(DECIMAL(12, 2), nullable=False)
     estado = Column(SQLEnum(EstadoPayout), default=EstadoPayout.SOLICITADO)
     

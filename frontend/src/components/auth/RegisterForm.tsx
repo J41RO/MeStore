@@ -2,32 +2,48 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
+import { useAuthStore } from '../../stores/authStore';
+import { UserType } from '../../types';
+import type { RegisterFormProps } from '../../types';
 
-// Schema de validación Yup para campos colombianos
+// Schema de validación actualizado para integración con backend
 const registerSchema = yup.object({
   nombre: yup
     .string()
     .required('Nombre completo es requerido')
-    .test(
-      'palabras-minimas',
-      'Debe tener al menos 2 nombres y solo letras',
-      value => {
-        const words = value?.trim().split(/\s+/) || [];
-        return words.length >= 2 && /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(value || '');
-      }
-    ),
+    .min(2, 'Mínimo 2 caracteres')
+    .matches(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/, 'Solo se permiten letras y espacios'),
   email: yup
     .string()
     .required('Correo electrónico es requerido')
     .email('Formato de email inválido'),
+  password: yup
+    .string()
+    .required('Contraseña es requerida')
+    .min(6, 'Mínimo 6 caracteres')
+    .matches(
+      /^(?=.*[a-zA-Z])(?=.*\d)/,
+      'Debe contener al menos una letra y un número'
+    ),
+  confirmPassword: yup
+    .string()
+    .required('Confirmación de contraseña es requerida')
+    .oneOf([yup.ref('password')], 'Las contraseñas no coinciden'),
+  // Campos opcionales para información adicional
+  apellido: yup.string().optional(),
+  telefono: yup
+    .string()
+    .optional()
+    .matches(/^\d{3}\s\d{3}\s\d{4}$/, 'Formato: 300 123 4567'),
   cedula: yup
     .string()
-    .required('Cédula es requerida')
+    .optional()
     .test(
       'cedula-colombiana',
       'Cédula debe tener entre 8-10 dígitos numéricos',
       value => {
-        const numericValue = value?.replace(/\D/g, '') || '';
+        if (!value) return true; // Campo opcional
+        const numericValue = value.replace(/\D/g, '');
         return (
           numericValue.length >= 8 &&
           numericValue.length <= 10 &&
@@ -35,35 +51,20 @@ const registerSchema = yup.object({
         );
       }
     ),
-  telefono: yup
-    .string()
-    .required('Teléfono es requerido')
-    .matches(/^\d{3}\s\d{3}\s\d{4}$/, 'Formato: 300 123 4567'),
-  password: yup
-    .string()
-    .required('Contraseña es requerida')
-    .min(8, 'Mínimo 8 caracteres')
-    .matches(
-      /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-      'Mínimo 8 caracteres con mayúscula, minúscula y número'
-    ),
-  confirmPassword: yup
-    .string()
-    .required('Confirmación de contraseña es requerida')
-    .oneOf([yup.ref('password')], 'Las contraseñas no coinciden'),
 });
 
-interface RegisterFormProps {
-  onSuccess?: (data: any) => void;
-  onValidationChange?: (isValid: boolean) => void;
-  showValidationFeedback?: boolean;
-}
+// Interface ya definida en types, removemos la duplicada
 
-const RegisterForm: React.FC<RegisterFormProps> = ({ 
-  onSuccess, 
+const RegisterForm: React.FC<RegisterFormProps> = ({
+  onRegisterSuccess,
+  onRegisterError,
   onValidationChange,
-  showValidationFeedback = false 
+  showValidationFeedback = false,
+  userType = UserType.VENDOR // Default para vendors
 }) => {
+  // Zustand auth store
+  const { register: registerUser, isLoading, error: authError, clearError } = useAuthStore();
+
   const {
     register,
     handleSubmit,
@@ -75,7 +76,6 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
     mode: 'onChange',
   });
 
-  const [loading, setLoading] = useState<boolean>(false);
   const [message, setMessage] = useState<string>('');
   const [messageType, setMessageType] = useState<'success' | 'error'>('error');
 
@@ -88,6 +88,13 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
       onValidationChange(isValid);
     }
   }, [isValid, onValidationChange]);
+
+  // Clear auth errors when user starts typing
+  useEffect(() => {
+    if (authError && Object.keys(watchedFields).some(key => watchedFields[key])) {
+      clearError();
+    }
+  }, [watchedFields, authError, clearError]);
 
   // Helper function to get field validation status
   const getFieldStatus = (fieldName: string) => {
@@ -149,36 +156,55 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
   };
 
   const onSubmit = async (data: any) => {
-    setLoading(true);
     setMessage('');
 
     try {
-      const response = await fetch('/api/v1/vendedores/registro', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
+      // Preparar datos para el backend con tipo de usuario
+      const registerData = {
+        email: data.email.trim(),
+        password: data.password,
+        nombre: data.nombre.trim(),
+        user_type: userType,
+        // Campos opcionales
+        ...(data.apellido && { apellido: data.apellido.trim() }),
+        ...(data.telefono && { telefono: data.telefono }),
+        ...(data.cedula && { cedula: data.cedula }),
+      };
 
-      if (response.ok) {
-        setMessage('¡Registro exitoso! Redirigiendo...');
+      // Usar el store de Zustand para registro
+      const success = await registerUser(registerData.email, registerData.password);
+
+      if (success) {
+        setMessage('¡Registro exitoso! Bienvenido a MeStore');
         setMessageType('success');
         reset();
-        
-        if (onSuccess) {
-          setTimeout(() => onSuccess(data), 1500);
+
+        if (onRegisterSuccess) {
+          setTimeout(() => onRegisterSuccess({ email: registerData.email }), 1500);
         }
       } else {
-        const errorData = await response.json();
-        setMessage(errorData.message || 'Error en registro');
+        setMessage(authError || 'Error en el registro');
         setMessageType('error');
+
+        if (onRegisterError) {
+          onRegisterError({
+            message: authError || 'Error en el registro',
+            status: 400
+          });
+        }
       }
     } catch (error) {
-      setMessage('Error de conexión');
+      console.error('Error en onSubmit:', error);
+      const errorMessage = 'Error inesperado durante el registro';
+      setMessage(errorMessage);
       setMessageType('error');
-    } finally {
-      setLoading(false);
+
+      if (onRegisterError) {
+        onRegisterError({
+          message: errorMessage,
+          status: 500
+        });
+      }
     }
   };
 
@@ -329,28 +355,40 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
         )}
       </div>
 
-      {/* Mensaje de estado */}
-      {message && (
+      {/* Error Message from Auth Store */}
+      {authError && (
+        <div className="p-4 rounded-lg bg-red-100 border border-red-200">
+          <div className="flex items-center">
+            <svg className="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-sm text-red-800">{authError}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Local Message */}
+      {message && !authError && (
         <div className={`p-4 rounded-lg text-sm text-center ${
-          messageType === 'success' 
-            ? 'bg-green-100 text-green-800 border border-green-200' 
+          messageType === 'success'
+            ? 'bg-green-100 text-green-800 border border-green-200'
             : 'bg-red-100 text-red-800 border border-red-200'
         }`}>
           {message}
         </div>
       )}
 
-      {/* Botón de registro */}
+      {/* Submit Button */}
       <button
         type="submit"
-        disabled={loading || !isValid}
+        disabled={isLoading || !isValid}
         className={`w-full py-3 px-4 rounded-lg font-medium text-white transition-all duration-200 ${
-          !loading && isValid
+          !isLoading && isValid
             ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
             : 'bg-gray-400 cursor-not-allowed'
         }`}
       >
-        {loading ? (
+        {isLoading ? (
           <div className="flex items-center justify-center">
             <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

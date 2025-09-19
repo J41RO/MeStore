@@ -6,17 +6,20 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 import os
 
-# Database URL from environment
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://mestocker_user:mestocker_pass@localhost/mestocker_dev")
-ASYNC_DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
+# Database URL from environment - SQLite for development
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./mestore_production.db")
+# SQLite doesn't support async, so we use synchronous for both
+ASYNC_DATABASE_URL = DATABASE_URL
 
-# Create engines
+# Create engines - SQLite doesn't support async properly
 engine = create_engine(DATABASE_URL)
-async_engine = create_async_engine(ASYNC_DATABASE_URL)
+# For SQLite, we use the same synchronous engine
+async_engine = None
 
-# Session makers
+# Session makers - SQLite compatible
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-AsyncSessionLocal = sessionmaker(async_engine, class_=AsyncSession, expire_on_commit=False)
+# For SQLite, use synchronous sessions
+AsyncSessionLocal = SessionLocal
 
 # Base for models
 Base = declarative_base()
@@ -30,5 +33,9 @@ def get_db():
         db.close()
 
 async def get_async_db():
-    async with AsyncSessionLocal() as session:
-        yield session
+    # For SQLite, use synchronous session
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

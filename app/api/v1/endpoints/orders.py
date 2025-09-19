@@ -8,13 +8,17 @@ import uuid
 from decimal import Decimal
 from datetime import datetime
 
+from app.core.id_validation import validate_order_id, validate_product_id, IDValidator, normalize_uuid_string
+from app.api.v1.deps.database import get_order_or_404
+from app.schemas.order import OrderCreate, OrderUpdate, OrderResponse, OrderSummary
+
 from app.database import get_db
 from app.models.user import User
 from app.models.order import Order, OrderItem, OrderStatus, Transaction
 from app.models.product import Product
 from app.core.auth import get_current_user
 from app.services.order_tracking_service import order_tracking_service
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +26,14 @@ router = APIRouter()
 
 # Request/Response Models
 class OrderItemRequest(BaseModel):
-    product_id: int
+    product_id: str = Field(..., min_length=36, max_length=36, description="Product UUID")
     quantity: int
     variant_attributes: Optional[Dict[str, str]] = None
+
+    @field_validator("product_id")
+    @classmethod
+    def validate_product_id(cls, v):
+        return IDValidator.validate_uuid_string(v, "product_id")
 
 class CreateOrderRequest(BaseModel):
     items: List[OrderItemRequest]
@@ -38,8 +47,8 @@ class CreateOrderRequest(BaseModel):
     notes: Optional[str] = None
 
 class OrderItemResponse(BaseModel):
-    id: int
-    product_id: int
+    id: str = Field(..., min_length=36, max_length=36, description="Order item UUID")
+    product_id: str = Field(..., min_length=36, max_length=36, description="Product UUID")
     product_name: str
     product_sku: str
     product_image_url: Optional[str]
@@ -49,7 +58,7 @@ class OrderItemResponse(BaseModel):
     variant_attributes: Optional[Dict[str, str]]
 
 class OrderResponse(BaseModel):
-    id: int
+    id: str = Field(..., min_length=36, max_length=36, description="Order UUID")
     order_number: str
     status: str
     subtotal: float
@@ -67,7 +76,7 @@ class OrderResponse(BaseModel):
     payment_status: Optional[str]
 
 class OrderSummary(BaseModel):
-    id: int
+    id: str = Field(..., min_length=36, max_length=36, description="Order UUID")
     order_number: str
     status: str
     total_amount: float
@@ -306,7 +315,7 @@ async def get_user_orders(
 
 @router.get("/{order_id}", response_model=OrderResponse)
 async def get_order(
-    order_id: int,
+    order_id: str = Depends(validate_order_id),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -376,7 +385,7 @@ async def get_order(
 
 @router.patch("/{order_id}/cancel")
 async def cancel_order(
-    order_id: int,
+    order_id: str = Depends(validate_order_id),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -491,8 +500,8 @@ async def get_all_orders(
 
 @router.patch("/{order_id}/status")
 async def update_order_status(
-    order_id: int,
     new_status: str,
+    order_id: str = Depends(validate_order_id),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):

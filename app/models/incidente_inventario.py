@@ -1,5 +1,5 @@
 from sqlalchemy import Column, String, DateTime, Text, ForeignKey, Enum as SQLEnum
-from sqlalchemy.dialects.postgresql import UUID
+# UUID import removed for SQLite compatibility
 from sqlalchemy.orm import relationship
 from app.models.base import BaseModel
 from enum import Enum
@@ -17,7 +17,7 @@ class EstadoIncidente(str, Enum):
 class IncidenteInventario(BaseModel):
     __tablename__ = "incidentes_inventario"
     
-    inventory_id = Column(UUID(as_uuid=True), ForeignKey("inventory.id"), nullable=False)
+    inventory_id = Column(String(36), ForeignKey("inventory.id"), nullable=False)
     tipo_incidente = Column(SQLEnum(TipoIncidente), nullable=False)
     estado = Column(SQLEnum(EstadoIncidente), default=EstadoIncidente.REPORTADO)
     descripcion = Column(Text, nullable=False)

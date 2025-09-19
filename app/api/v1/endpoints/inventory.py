@@ -1,6 +1,6 @@
 from typing import List, Optional
 from uuid import UUID
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Query, status, Path, Body
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,7 +25,7 @@ from app.models.movimiento_stock import MovimientoStock, TipoMovimiento as TipoM
 from app.models.movement_tracker import MovementTracker
 from app.models.discrepancy_report import DiscrepancyReport, ReportType, ExportFormat, ReportStatus
 from app.models.incoming_product_queue import IncomingProductQueue, QueuePriority, VerificationStatus, DelayReason
-from app.schemas.inventory import InventoryResponse, MovimientoStockCreate, TipoMovimiento, MovimientoResponse, InventoryUpdate, AlertasResponse, ReservaStockCreate, ReservaResponse, LocationUpdateRequest, IncidenteCreate, IncidenteResponse, MovementTrackerResponse, DateRange, MovementAnalyticsResponse, IncomingProductQueueCreate, IncomingProductQueueUpdate, IncomingProductQueueResponse, QueueAssignmentRequest, QueueProcessingRequest, QueueCompletionRequest, QueueDelayRequest, QueueStatsResponse, QueueAnalyticsResponse
+from app.schemas.inventory import InventoryResponse, MovimientoStockCreate, TipoMovimiento, MovimientoResponse, InventoryUpdate, AlertasResponse, AlertasMetadata, ReservaStockCreate, ReservaResponse, LocationUpdateRequest, IncidenteCreate, IncidenteResponse, MovementTrackerResponse, DateRange, MovementAnalyticsResponse, IncomingProductQueueCreate, IncomingProductQueueUpdate, IncomingProductQueueResponse, QueueAssignmentRequest, QueueProcessingRequest, QueueCompletionRequest, QueueDelayRequest, QueueStatsResponse, QueueAnalyticsResponse
 from app.models.inventory_audit import InventoryAudit, InventoryAuditItem, AuditStatus
 from app.schemas.inventory_audit import (
     InventoryAuditCreate, InventoryAuditResponse, InventoryAuditDetailResponse,

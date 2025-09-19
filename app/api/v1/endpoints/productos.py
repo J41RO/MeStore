@@ -44,6 +44,8 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 from uuid import UUID
+from app.core.id_validation import validate_product_id, IDValidator
+from app.api.v1.deps.database import get_product_or_404
 
 import aiofiles
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
@@ -51,7 +53,7 @@ from PIL import Image
 from sqlalchemy import and_, asc, desc, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_async_db as get_db
+from app.core.database import get_db
 from app.models.product import Product
 from app.models.user import User
 from app.models.product_image import ProductImage
@@ -255,7 +257,8 @@ async def get_productos(
     tags=["productos"],
 )
 async def get_producto_by_id(
-    producto_id: UUID, db: AsyncSession = Depends(get_db)
+    producto_id: str = Depends(validate_product_id),
+    db: AsyncSession = Depends(get_db)
 ) -> ProductResponse:
     """
     Obtener un producto específico por su ID.
@@ -274,20 +277,8 @@ async def get_producto_by_id(
     try:
         logger.info(f"Buscando producto con ID: {producto_id}")
 
-        # Buscar producto por ID
-        stmt = select(Product).where(
-            Product.id == producto_id,
-            Product.deleted_at.is_(None)  # Excluir productos eliminados
-        )
-        result = await db.execute(stmt)
-        producto = result.scalar_one_or_none()
-
-        if not producto:
-            logger.warning(f"Producto no encontrado: ID={producto_id}")
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Producto con ID {producto_id} no encontrado",
-            )
+        # Get product using validation helper
+        producto = await get_product_or_404(producto_id, db)
 
         logger.info(f"Producto encontrado: SKU={producto.sku}, ID={producto.id}")
 
@@ -296,7 +287,6 @@ async def get_producto_by_id(
     except HTTPException:
         raise
     except Exception as e:
-        await db.rollback()
         logger.error(f"Error al obtener producto {producto_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -313,8 +303,8 @@ async def get_producto_by_id(
     tags=["productos"],
 )
 async def update_producto(
-    producto_id: UUID, 
-    producto_data: ProductUpdate, 
+    producto_id: str = Depends(validate_product_id),
+    producto_data: ProductUpdate = ...,
     db: AsyncSession = Depends(get_db)
 ) -> ProductResponse:
     """
@@ -407,8 +397,8 @@ async def update_producto(
     tags=["productos"],
 )
 async def patch_producto(
-    producto_id: UUID, 
-    producto_data: ProductPatch, 
+    producto_id: str = Depends(validate_product_id),
+    producto_data: ProductPatch = ...,
     db: AsyncSession = Depends(get_db)
 ) -> ProductResponse:
     """
@@ -478,7 +468,7 @@ async def patch_producto(
     tags=["productos"]
 )
 async def delete_producto(
-    producto_id: UUID,
+    producto_id: str = Depends(validate_product_id),
     db: AsyncSession = Depends(get_db)
 ) -> ProductResponse:
     """
@@ -539,7 +529,7 @@ async def delete_producto(
     tags=["productos"]
 )
 async def upload_producto_imagenes(
-    producto_id: UUID,
+    producto_id: str = Depends(validate_product_id),
     files: List[UploadFile] = File(
         ...,
         description="Lista de archivos de imagen (JPEG, PNG, WebP, GIF)"
@@ -706,7 +696,7 @@ async def upload_producto_imagenes(
     tags=["productos"]
 )
 async def get_producto_imagenes(
-    producto_id: UUID,
+    producto_id: str = Depends(validate_product_id),
     db: AsyncSession = Depends(get_db)
 ) -> List[ProductImageResponse]:
     """
@@ -769,7 +759,7 @@ async def get_producto_imagenes(
     tags=["productos"]
 )
 async def delete_producto_imagen(
-    imagen_id: UUID,
+    imagen_id: str = Depends(validate_product_id),
     db: AsyncSession = Depends(get_db)
 ):
     """Eliminar imagen de producto."""
