@@ -188,14 +188,36 @@ class SecureTokenManager:
 
     def __init__(self):
         self.algorithm = self._validate_algorithm()
-        self.key_pair = self._initialize_key_pair() if self.algorithm.startswith('RS') else None
         self.security_level = self._determine_security_level()
+        self.key_pair = self._initialize_key_pair() if self.algorithm.startswith('RS') else None
 
     def _validate_algorithm(self) -> str:
-        """Validate and potentially upgrade JWT algorithm for production."""
+        """Validate JWT algorithm for all environments with strict security controls."""
         current_algo = settings.ALGORITHM
 
-        # Production security validation
+        # CRITICAL SECURITY: Block dangerous algorithms in ALL environments
+        # The 'none' algorithm completely bypasses signature verification
+        dangerous_algorithms = ["none", "None", "NONE"]
+        if current_algo in dangerous_algorithms:
+            logger.error(
+                "CRITICAL SECURITY VIOLATION: Dangerous algorithm detected",
+                algorithm=current_algo,
+                environment=settings.ENVIRONMENT
+            )
+            raise ValueError(f"Unsupported JWT algorithm: {current_algo}. The 'none' algorithm is never allowed.")
+
+        # Validate against allowed secure algorithms in ALL environments
+        allowed_algorithms = ["HS256", "RS256", "ES256"]
+        if current_algo not in allowed_algorithms:
+            logger.error(
+                "Unsupported algorithm detected",
+                algorithm=current_algo,
+                environment=settings.ENVIRONMENT,
+                allowed=allowed_algorithms
+            )
+            raise ValueError(f"Unsupported JWT algorithm: {current_algo}. Allowed algorithms: {allowed_algorithms}")
+
+        # Production-specific warnings for less secure algorithms
         if settings.ENVIRONMENT == "production":
             if current_algo == "HS256":
                 logger.warning(
@@ -203,11 +225,6 @@ class SecureTokenManager:
                     algorithm=current_algo,
                     environment=settings.ENVIRONMENT
                 )
-
-            # Prevent algorithm downgrade attacks
-            if current_algo not in ["HS256", "RS256", "ES256"]:
-                logger.error("Unsupported algorithm detected", algorithm=current_algo)
-                raise ValueError(f"Unsupported JWT algorithm: {current_algo}")
 
         return current_algo
 
@@ -797,7 +814,7 @@ def validate_token_security(token: str) -> Dict[str, Any]:
 
     try:
         # Decode without verification first to check structure
-        unverified_payload = jwt.decode(token, options={"verify_signature": False})
+        unverified_payload = jwt.decode(token, key="", options={"verify_signature": False, "verify_aud": False, "verify_exp": False})
 
         # Check algorithm
         header = jwt.get_unverified_header(token)
