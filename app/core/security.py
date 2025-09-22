@@ -101,7 +101,9 @@ class EncryptionManager:
         """Initialize encryption with master key derivation."""
         try:
             # Generate or load salt for key derivation
-            self._salt = self._get_or_create_salt()
+            # Only generate new salt if one doesn't exist (preserves salt from key rotation)
+            if self._salt is None:
+                self._salt = self._get_or_create_salt()
 
             # Derive master key from SECRET_KEY using PBKDF2
             kdf = PBKDF2HMAC(
