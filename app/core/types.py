@@ -56,5 +56,5 @@ class UUID(TypeDecorator):
 
 
 def generate_uuid():
-    """Generate a new UUID for use as default in models."""
-    return uuid.uuid4()
+    """Generate a new UUID as string for use as default in models."""
+    return str(uuid.uuid4())

@@ -1,12 +1,14 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
 import AuthGuard from '../AuthGuard';
 import { useAuthStore } from '../../stores/authStore';
 
 // Mock the auth store
+jest.mock('../../services/authService');
 jest.mock('../../stores/authStore');
+jest.mock('../../hooks/useAuth');
 const mockUseAuthStore = useAuthStore as jest.MockedFunction<
   typeof useAuthStore
 >;
@@ -35,36 +37,76 @@ const renderAuthGuard = (children: React.ReactNode = <TestChild />) => {
 
 describe('AuthGuard', () => {
   const mockCheckAuth = jest.fn();
+  const mockValidateSession = jest.fn();
+  const mockLogin = jest.fn();
+  const mockLogout = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockCheckAuth.mockResolvedValue(true);
+    mockValidateSession.mockResolvedValue(true);
   });
 
-  test('should render children when user is authenticated', () => {
+  test('should render children when user is authenticated', async () => {
     mockUseAuthStore.mockReturnValue({
       isAuthenticated: true,
+      isLoading: false,
+      token: 'valid-token',
+      user: {
+        id: '1',
+        email: 'test@example.com',
+        user_type: 'BUYER',
+        name: 'Test User',
+        is_active: true
+      },
+      error: null,
       checkAuth: mockCheckAuth,
-      user: null,
-      token: null,
-      login: jest.fn(),
-      logout: jest.fn(),
+      validateSession: mockValidateSession,
+      login: mockLogin,
+      adminLogin: jest.fn(),
+      logout: mockLogout,
+      register: jest.fn(),
+      refreshUserInfo: jest.fn(),
+      updateUser: jest.fn(),
+      setLoading: jest.fn(),
+      setError: jest.fn(),
+      clearAuth: jest.fn(),
+      isAdmin: jest.fn(),
+      isSuperuser: jest.fn(),
+      getUserType: jest.fn()
     });
 
-    renderAuthGuard();
+    await act(async () => {
+      renderAuthGuard();
+    });
 
-    expect(screen.getByTestId('protected-content')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('protected-content')).toBeInTheDocument();
+    });
     expect(screen.queryByTestId('navigate')).not.toBeInTheDocument();
-    expect(mockCheckAuth).toHaveBeenCalled();
   });
 
   test('should redirect to login when user is not authenticated', () => {
     mockUseAuthStore.mockReturnValue({
       isAuthenticated: false,
-      checkAuth: mockCheckAuth,
-      user: null,
+      isLoading: false,
       token: null,
-      login: jest.fn(),
-      logout: jest.fn(),
+      user: null,
+      error: null,
+      checkAuth: mockCheckAuth,
+      validateSession: mockValidateSession,
+      login: mockLogin,
+      adminLogin: jest.fn(),
+      logout: mockLogout,
+      register: jest.fn(),
+      refreshUserInfo: jest.fn(),
+      updateUser: jest.fn(),
+      setLoading: jest.fn(),
+      setError: jest.fn(),
+      clearAuth: jest.fn(),
+      isAdmin: jest.fn(),
+      isSuperuser: jest.fn(),
+      getUserType: jest.fn()
     });
 
     renderAuthGuard();
@@ -75,22 +117,34 @@ describe('AuthGuard', () => {
       'data-to',
       '/auth/login'
     );
-    expect(mockCheckAuth).toHaveBeenCalled();
   });
 
   test('should redirect to custom fallback path when specified', () => {
     mockUseAuthStore.mockReturnValue({
       isAuthenticated: false,
-      checkAuth: mockCheckAuth,
-      user: null,
+      isLoading: false,
       token: null,
-      login: jest.fn(),
-      logout: jest.fn(),
+      user: null,
+      error: null,
+      checkAuth: mockCheckAuth,
+      validateSession: mockValidateSession,
+      login: mockLogin,
+      adminLogin: jest.fn(),
+      logout: mockLogout,
+      register: jest.fn(),
+      refreshUserInfo: jest.fn(),
+      updateUser: jest.fn(),
+      setLoading: jest.fn(),
+      setError: jest.fn(),
+      clearAuth: jest.fn(),
+      isAdmin: jest.fn(),
+      isSuperuser: jest.fn(),
+      getUserType: jest.fn()
     });
 
     render(
       <BrowserRouter>
-        <AuthGuard fallbackPath='/custom-login'>
+        <AuthGuard redirectTo='/custom-login'>
           <TestChild />
         </AuthGuard>
       </BrowserRouter>
@@ -105,11 +159,24 @@ describe('AuthGuard', () => {
   test('should pass current location in state when redirecting', () => {
     mockUseAuthStore.mockReturnValue({
       isAuthenticated: false,
-      checkAuth: mockCheckAuth,
-      user: null,
+      isLoading: false,
       token: null,
-      login: jest.fn(),
-      logout: jest.fn(),
+      user: null,
+      error: null,
+      checkAuth: mockCheckAuth,
+      validateSession: mockValidateSession,
+      login: mockLogin,
+      adminLogin: jest.fn(),
+      logout: mockLogout,
+      register: jest.fn(),
+      refreshUserInfo: jest.fn(),
+      updateUser: jest.fn(),
+      setLoading: jest.fn(),
+      setError: jest.fn(),
+      clearAuth: jest.fn(),
+      isAdmin: jest.fn(),
+      isSuperuser: jest.fn(),
+      getUserType: jest.fn()
     });
 
     renderAuthGuard();

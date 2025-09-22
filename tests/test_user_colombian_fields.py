@@ -14,7 +14,7 @@ def test_user_creation_with_colombian_fields():
         'password_hash': 'hashed_password',
         'nombre': 'Juan',
         'apellido': 'Pérez',
-        'user_type': UserType.COMPRADOR,
+        'user_type': UserType.BUYER,
         'cedula': '12345678',
         'telefono': '+57 300 123 4567',
         'ciudad': 'Bogotá'
@@ -36,7 +36,7 @@ def test_user_creation_without_colombian_fields():
         'password_hash': 'hashed_password',
         'nombre': 'María',
         'apellido': 'García',
-        'user_type': UserType.VENDEDOR
+        'user_type': UserType.VENDOR
     }
 
     user = User(**user_data)
@@ -55,7 +55,7 @@ def test_user_to_dict_includes_colombian_fields():
         'password_hash': 'hashed_password',
         'nombre': 'Carlos',
         'apellido': 'López',
-        'user_type': UserType.COMPRADOR,
+        'user_type': UserType.BUYER,
         'cedula': '87654321',
         'telefono': '+57 301 987 6543',
         'ciudad': 'Medellín'

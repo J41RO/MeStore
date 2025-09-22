@@ -10,11 +10,12 @@ class TestWorkingUtilities:
     def test_user_creation_basic(self, test_db_session: Session):
         """Test básico de creación de usuario"""
         user = User(
+            id="a9d82938-ab82-4a9c-a018-ab3c652d99c8",  # Provide string UUID for SQLite compatibility
             nombre="Test",
-            apellido="Working", 
+            apellido="Working",
             email="test.working@example.com",
             password_hash="hash123",
-            user_type=UserType.COMPRADOR
+            user_type=UserType.BUYER
         )
         
         test_db_session.add(user)
@@ -23,7 +24,7 @@ class TestWorkingUtilities:
         
         assert user.id is not None
         assert user.nombre == "Test"
-        assert user.user_type == UserType.COMPRADOR
+        assert user.user_type == UserType.BUYER
         assert user.deleted_at is None
         
     def test_basemodel_methods(self):
@@ -33,7 +34,7 @@ class TestWorkingUtilities:
             apellido="Test",
             email="methods.test@example.com", 
             password_hash="hash123",
-            user_type=UserType.VENDEDOR
+            user_type=UserType.VENDOR
         )
         
         assert hasattr(user, 'deleted_at')
@@ -57,7 +58,7 @@ class TestWorkingUtilities:
             apellido="Ready",
             email="system.ready@example.com",
             password_hash="hash123",
-            user_type=UserType.VENDEDOR
+            user_type=UserType.VENDOR
         )
         
         assert hasattr(user, 'deleted_at')

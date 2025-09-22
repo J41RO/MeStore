@@ -303,8 +303,8 @@ class AuthErrorHelper:
 
     @staticmethod
     def invalid_credentials() -> StandardHTTPException:
-        """Invalid email or password"""
-        return ErrorHelper.unauthorized("Invalid email or password")
+        """Invalid credentials provided"""
+        return ErrorHelper.unauthorized("Invalid credentials provided")
 
     @staticmethod
     def token_expired() -> StandardHTTPException:

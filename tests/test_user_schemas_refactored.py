@@ -41,7 +41,7 @@ class TestUserUpdate:
         user_update = UserUpdate(
             nombre="Juan Carlos",
             apellido="Pérez González", 
-            user_type=UserType.VENDEDOR,
+            user_type=UserType.VENDOR,
             cedula="87654321",
             telefono="3009876543",
             ciudad="Medellín",
@@ -50,7 +50,7 @@ class TestUserUpdate:
             is_verified=True
         )
         assert user_update.nombre == "Juan Carlos"
-        assert user_update.user_type == UserType.VENDEDOR
+        assert user_update.user_type == UserType.VENDOR
         assert user_update.is_verified is True
 
 
@@ -165,7 +165,7 @@ class TestUserResponseAlias:
             "email": "test@test.com",
             "nombre": "Test",
             "apellido": "User",
-            "user_type": UserType.COMPRADOR,
+            "user_type": UserType.BUYER,
             "is_active": True,
             "is_verified": True,
             "created_at": datetime.now(),
@@ -190,7 +190,7 @@ class TestUUIDCompatibility:
             "email": "test@test.com", 
             "nombre": "Test",
             "apellido": "User",
-            "user_type": UserType.COMPRADOR,
+            "user_type": UserType.BUYER,
             "is_active": True,
             "is_verified": True,
             "created_at": datetime.now(),
@@ -208,7 +208,7 @@ class TestUUIDCompatibility:
             "email": "test@test.com",
             "nombre": "Test", 
             "apellido": "User",
-            "user_type": UserType.COMPRADOR,
+            "user_type": UserType.BUYER,
             "is_active": True,
             "is_verified": True,
             "created_at": datetime.now(),

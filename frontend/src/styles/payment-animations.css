@@ -1,0 +1,331 @@
+/* Payment Notification Animations */
+
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-out-right {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-down {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scale-in {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-success {
+  0%, 100% {
+    background-color: rgb(34, 197, 94);
+  }
+  50% {
+    background-color: rgb(22, 163, 74);
+  }
+}
+
+@keyframes pulse-error {
+  0%, 100% {
+    background-color: rgb(239, 68, 68);
+  }
+  50% {
+    background-color: rgb(220, 38, 38);
+  }
+}
+
+@keyframes pulse-warning {
+  0%, 100% {
+    background-color: rgb(245, 158, 11);
+  }
+  50% {
+    background-color: rgb(217, 119, 6);
+  }
+}
+
+@keyframes bounce-in {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Animation Classes */
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out forwards;
+}
+
+.animate-slide-out-right {
+  animation: slide-out-right 0.3s ease-in forwards;
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 0.3s ease-out forwards;
+}
+
+.animate-slide-in-up {
+  animation: slide-in-up 0.3s ease-out forwards;
+}
+
+.animate-slide-in-down {
+  animation: slide-in-down 0.3s ease-out forwards;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.3s ease-out forwards;
+}
+
+.animate-bounce-in {
+  animation: bounce-in 0.5s ease-out forwards;
+}
+
+.animate-pulse-success {
+  animation: pulse-success 2s infinite;
+}
+
+.animate-pulse-error {
+  animation: pulse-error 2s infinite;
+}
+
+.animate-pulse-warning {
+  animation: pulse-warning 2s infinite;
+}
+
+/* Payment Status Indicators */
+.payment-status-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.payment-status-pending {
+  background-color: rgb(245, 158, 11);
+  animation: pulse-warning 2s infinite;
+}
+
+.payment-status-processing {
+  background-color: rgb(59, 130, 246);
+  animation: pulse 2s infinite;
+}
+
+.payment-status-approved {
+  background-color: rgb(34, 197, 94);
+}
+
+.payment-status-declined {
+  background-color: rgb(239, 68, 68);
+}
+
+.payment-status-error {
+  background-color: rgb(239, 68, 68);
+  animation: pulse-error 2s infinite;
+}
+
+/* Loading Spinner for Payment Processing */
+.payment-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Payment Card Animation */
+.payment-card-hover {
+  transition: all 0.3s ease;
+}
+
+.payment-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Payment Method Selection Animation */
+.payment-method-option {
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.payment-method-option:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.payment-method-selected {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
+/* Progress Bar Animation */
+.payment-progress-bar {
+  transition: width 0.5s ease-in-out;
+}
+
+.payment-progress-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Success Checkmark Animation */
+.success-checkmark {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: draw-checkmark 0.8s ease-out forwards;
+}
+
+@keyframes draw-checkmark {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Error X Animation */
+.error-x {
+  stroke-dasharray: 20;
+  stroke-dashoffset: 20;
+  animation: draw-x 0.6s ease-out forwards;
+}
+
+@keyframes draw-x {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Responsive Animations */
+@media (max-width: 768px) {
+  .animate-slide-in-right {
+    animation: slide-in-up 0.3s ease-out forwards;
+  }
+
+  .animate-slide-out-right {
+    animation: slide-out-right 0.3s ease-in forwards;
+  }
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .animate-slide-in-right,
+  .animate-slide-out-right,
+  .animate-slide-in-left,
+  .animate-slide-in-up,
+  .animate-slide-in-down,
+  .animate-fade-in,
+  .animate-scale-in,
+  .animate-bounce-in,
+  .payment-card-hover,
+  .payment-method-option {
+    animation: none;
+    transition: none;
+  }
+
+  .animate-pulse-success,
+  .animate-pulse-error,
+  .animate-pulse-warning,
+  .payment-status-pending,
+  .payment-status-processing,
+  .payment-status-error,
+  .payment-spinner,
+  .payment-progress-bar::after {
+    animation: none;
+  }
+}

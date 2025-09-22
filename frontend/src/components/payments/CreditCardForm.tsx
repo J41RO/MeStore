@@ -15,6 +15,7 @@ interface CardData {
   cvc: string;
   cardHolder: string;
   installments: number;
+  email: string;
 }
 
 const CreditCardForm: React.FC<CreditCardFormProps> = ({
@@ -28,7 +29,8 @@ const CreditCardForm: React.FC<CreditCardFormProps> = ({
     expYear: '',
     cvc: '',
     cardHolder: '',
-    installments: 1
+    installments: 1,
+    email: ''
   });
 
   const [errors, setErrors] = useState<Partial<CardData>>({});
@@ -149,6 +151,16 @@ const CreditCardForm: React.FC<CreditCardFormProps> = ({
     // Cardholder name
     if (!formData.cardHolder.trim()) {
       newErrors.cardHolder = 'Nombre del titular es requerido';
+    }
+
+    // Email validation
+    if (!formData.email.trim()) {
+      newErrors.email = 'Correo electrónico es requerido';
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        newErrors.email = 'Correo electrónico inválido';
+      }
     }
 
     setErrors(newErrors);
@@ -309,6 +321,29 @@ const CreditCardForm: React.FC<CreditCardFormProps> = ({
           <p className="mt-1 text-sm text-red-600 flex items-center">
             <AlertCircle className="w-4 h-4 mr-1" />
             {errors.cardHolder}
+          </p>
+        )}
+      </div>
+
+      {/* Email */}
+      <div>
+        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+          Correo electrónico
+        </label>
+        <input
+          id="email"
+          type="email"
+          value={formData.email}
+          onChange={(e) => handleInputChange('email', e.target.value)}
+          placeholder="tu@email.com"
+          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+            errors.email ? 'border-red-500' : 'border-gray-300'
+          }`}
+        />
+        {errors.email && (
+          <p className="mt-1 text-sm text-red-600 flex items-center">
+            <AlertCircle className="w-4 h-4 mr-1" />
+            {errors.email}
           </p>
         )}
       </div>

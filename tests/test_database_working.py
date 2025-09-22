@@ -23,7 +23,7 @@ def test_create_user_with_all_required_fields(test_db_session: Session):
         password_hash="$2b$12$fake_hashed_password_for_testing",
         nombre="Test",
         apellido="User"
-        # user_type tiene default=UserType.COMPRADOR
+        # user_type tiene default=UserType.BUYER
         # is_active tiene default=True
         # created_at y updated_at son automáticos
     )
@@ -38,7 +38,7 @@ def test_create_user_with_all_required_fields(test_db_session: Session):
     assert test_user.email == "test@example.com"
     assert test_user.nombre == "Test"
     assert test_user.apellido == "User"
-    assert test_user.user_type == UserType.COMPRADOR  # Default
+    assert test_user.user_type == UserType.BUYER  # Default
     assert test_user.is_active is True  # Default
     assert test_user.created_at is not None
     assert test_user.updated_at is not None
@@ -57,7 +57,7 @@ def test_create_user_with_specific_type(test_db_session: Session):
         password_hash="$2b$12$vendedor_hash",
         nombre="Vendedor",
         apellido="Test",
-        user_type=UserType.VENDEDOR
+        user_type=UserType.VENDOR
     )
     
     # Crear usuario ADMIN
@@ -66,7 +66,7 @@ def test_create_user_with_specific_type(test_db_session: Session):
         password_hash="$2b$12$admin_hash",
         nombre="Admin",
         apellido="Test",
-        user_type=UserType.VENDEDOR
+        user_type=UserType.VENDOR
     )
     
     test_db_session.add(vendedor)
@@ -74,8 +74,8 @@ def test_create_user_with_specific_type(test_db_session: Session):
     test_db_session.commit()
     
     # Verificar tipos
-    assert vendedor.user_type == UserType.VENDEDOR
-    assert admin.user_type == UserType.VENDEDOR
+    assert vendedor.user_type == UserType.VENDOR
+    assert admin.user_type == UserType.VENDOR
     
     print(f"✅ Vendedor creado: {vendedor.email} - {vendedor.user_type.value}")
     print(f"✅ Admin creado: {admin.email} - {admin.user_type.value}")
@@ -112,7 +112,7 @@ def test_query_users_from_test_db(test_db_session: Session):
     assert user1.apellido == "One"
     
     # Consultar por tipo (todos deberían ser COMPRADOR por default)
-    compradores = test_db_session.query(User).filter(User.user_type == UserType.COMPRADOR).all()
+    compradores = test_db_session.query(User).filter(User.user_type == UserType.BUYER).all()
     assert len(compradores) == 3
     
     print(f"✅ {total_users} usuarios consultados exitosamente")
@@ -137,7 +137,7 @@ def test_update_user_in_test_db(test_db_session: Session):
     # Actualizar usuario
     user.nombre = "Updated"
     user.apellido = "Name"
-    user.user_type = UserType.VENDEDOR
+    user.user_type = UserType.VENDOR
     test_db_session.commit()
     test_db_session.refresh(user)
     
@@ -145,7 +145,7 @@ def test_update_user_in_test_db(test_db_session: Session):
     updated_user = test_db_session.query(User).filter(User.id == user_id).first()
     assert updated_user.nombre == "Updated"
     assert updated_user.apellido == "Name"
-    assert updated_user.user_type == UserType.VENDEDOR
+    assert updated_user.user_type == UserType.VENDOR
     # assert updated_user.updated_at != original_updated_at  # Timestamp actualizado - Comentado por problema de onupdate
     
     print(f"✅ Usuario actualizado: {updated_user.full_name}")
@@ -216,7 +216,7 @@ def test_user_model_methods(test_db_session: Session):
         password_hash="$2b$12$methods_hash",
         nombre="Methods",
         apellido="Test",
-        user_type=UserType.VENDEDOR
+        user_type=UserType.VENDOR
     )
     test_db_session.add(user)
     test_db_session.commit()
@@ -230,7 +230,7 @@ def test_user_model_methods(test_db_session: Session):
     assert user_dict["email"] == "methods_test@example.com"
     assert user_dict["nombre"] == "Methods"
     assert user_dict["apellido"] == "Test"
-    assert user_dict["user_type"] == "VENDEDOR"
+    assert user_dict["user_type"] == "VENDOR"
     assert "password_hash" not in user_dict  # No debe incluir password
     assert "id" in user_dict
     assert "created_at" in user_dict

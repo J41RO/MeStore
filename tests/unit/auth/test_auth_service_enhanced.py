@@ -137,7 +137,7 @@ class TestAuthServiceUserAuthentication:
                 "user_id_123",
                 email,
                 password_hash,
-                "COMPRADOR",
+                "BUYER",
                 True,  # is_active
                 "Test",
                 "User"
@@ -149,7 +149,7 @@ class TestAuthServiceUserAuthentication:
             # ASSERT
             assert user is not None
             assert user.email == email
-            assert user.user_type.value == "COMPRADOR"
+            assert user.user_type.value == "BUYER"
             assert user.is_active is True
 
     @pytest.mark.asyncio
@@ -191,7 +191,7 @@ class TestAuthServiceUserAuthentication:
                 "user_id_123",
                 email,
                 password_hash,
-                "COMPRADOR",
+                "BUYER",
                 False,  # is_active = False
                 "Test",
                 "User"
@@ -222,7 +222,7 @@ class TestAuthServiceUserAuthentication:
                 "user_id_123",
                 email,
                 password_hash,
-                "COMPRADOR",
+                "BUYER",
                 True,
                 "Test",
                 "User"

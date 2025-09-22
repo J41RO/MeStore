@@ -1,0 +1,129 @@
+{
+  "timestamp": "2025-09-19T14:52:03.451594",
+  "summary": {
+    "total_tests": 6,
+    "passed_tests": 0,
+    "success_rate": 0.0,
+    "mvp_status": "\ud83d\udd34 NOT READY (Critical Issues)"
+  },
+  "detailed_results": [
+    {
+      "timestamp": "2025-09-19T14:51:57.645764",
+      "test": "Frontend Accessibility",
+      "status": "FAIL",
+      "duration_ms": 12.95,
+      "details": {
+        "status_code": 200
+      }
+    },
+    {
+      "timestamp": "2025-09-19T14:52:03.377199",
+      "test": "Backend Health Check",
+      "status": "FAIL",
+      "duration_ms": 5744.83,
+      "details": {
+        "status_code": 404,
+        "response": {
+          "status": "error",
+          "timestamp": "2025-09-19T19:52:03.376029Z",
+          "message": "HTTP error 404 at /api/v1/health",
+          "version": "1.0.0",
+          "error_code": "NOT_FOUND",
+          "error_message": "Not Found",
+          "details": [],
+          "request_id": "req_fc126690"
+        }
+      }
+    },
+    {
+      "timestamp": "2025-09-19T14:52:03.425515",
+      "test": "WebSocket Connection",
+      "status": "FAIL",
+      "duration_ms": 5791.47,
+      "details": {
+        "error": "403, message='Invalid response status', url='ws://192.168.1.137:8000/api/v1/ws/vendor/analytics'"
+      }
+    },
+    {
+      "timestamp": "2025-09-19T14:52:03.450259",
+      "test": "API Endpoints",
+      "status": "FAIL",
+      "duration_ms": 5816.5,
+      "details": {
+        "results": [
+          {
+            "endpoint": "Payment Methods",
+            "status_code": 401,
+            "duration": "5779.3ms",
+            "success": false
+          },
+          {
+            "endpoint": "Orders List",
+            "status_code": 403,
+            "duration": "19.4ms",
+            "success": false
+          },
+          {
+            "endpoint": "Products List",
+            "status_code": 401,
+            "duration": "10.5ms",
+            "success": false
+          },
+          {
+            "endpoint": "Vendor Profile",
+            "status_code": 404,
+            "duration": "7.2ms",
+            "success": false
+          }
+        ]
+      }
+    },
+    {
+      "timestamp": "2025-09-19T14:52:03.451084",
+      "test": "Performance Benchmarks",
+      "status": "FAIL",
+      "duration_ms": 5816.79,
+      "details": {
+        "total_requests": 12,
+        "successful_requests": 3,
+        "average_response_time": "26.3ms",
+        "test_duration": "5.82s"
+      }
+    },
+    {
+      "timestamp": "2025-09-19T14:52:03.451521",
+      "test": "Authentication Flow",
+      "status": "FAIL",
+      "duration_ms": 5818.14,
+      "details": {
+        "results": [
+          {
+            "user": "admin@mestore.com",
+            "status": "FAILED",
+            "error": "Email o contrase\u00f1a incorrectos",
+            "duration": "5791.0ms"
+          },
+          {
+            "user": "vendor@mestore.com",
+            "status": "FAILED",
+            "error": "Email o contrase\u00f1a incorrectos",
+            "duration": "15.1ms"
+          },
+          {
+            "user": "buyer@mestore.com",
+            "status": "FAILED",
+            "error": "Email o contrase\u00f1a incorrectos",
+            "duration": "12.0ms"
+          }
+        ]
+      }
+    }
+  ],
+  "assessment": {
+    "frontend_backend_integration": "\u274c",
+    "authentication_working": "\u274c",
+    "api_connectivity": "\u274c",
+    "realtime_features": "\u274c",
+    "performance_acceptable": "\u274c"
+  }
+}

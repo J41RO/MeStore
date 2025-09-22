@@ -320,7 +320,13 @@ async def register(
         
         # Generar tokens para el nuevo usuario with consistent ID format
         normalized_id = normalize_uuid_string(new_user.id)
-        access_token = create_access_token(data={"sub": normalized_id})
+        token_data = {
+            "sub": normalized_id,
+            "user_id": normalized_id,
+            "user_type": new_user.user_type.value,
+            "email": new_user.email
+        }
+        access_token = create_access_token(data=token_data)
         refresh_token = create_refresh_token(data={"sub": normalized_id})
 
         return TokenResponse(

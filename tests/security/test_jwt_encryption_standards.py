@@ -242,7 +242,7 @@ class TestPayloadEncryption:
         from jose import jwt
 
         # Decode without verification to check payload
-        unverified = jwt.decode(token, options={"verify_signature": False})
+        unverified = jwt.decode(token, key="", options={"verify_signature": False, "verify_aud": False, "verify_exp": False})
 
         assert "sub" not in unverified  # Plain text should not be present
         assert "sub_enc" in unverified  # Encrypted version should be present
@@ -278,7 +278,7 @@ class TestPayloadEncryption:
 
         # Decode and modify
         header = jwt.get_unverified_header(token)
-        payload = jwt.decode(token, options={"verify_signature": False})
+        payload = jwt.decode(token, key="", options={"verify_signature": False, "verify_aud": False, "verify_exp": False})
         payload["sub_enc"] = "corrupted_encrypted_data"
 
         # Re-encode with corrupted data (for testing purposes)
@@ -366,7 +366,7 @@ class TestColombianCompliance:
         reset_token = create_secure_password_reset_token("user@example.com")
 
         from jose import jwt
-        payload = jwt.decode(reset_token, options={"verify_signature": False})
+        payload = jwt.decode(reset_token, key="", options={"verify_signature": False, "verify_aud": False, "verify_exp": False})
 
         # Password reset tokens should expire in 1 hour max
         exp_time = datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
@@ -496,7 +496,7 @@ class TestPasswordResetSecurity:
 
         # Should be encrypted
         from jose import jwt
-        unverified = jwt.decode(token, options={"verify_signature": False})
+        unverified = jwt.decode(token, key="", options={"verify_signature": False, "verify_aud": False, "verify_exp": False})
         assert unverified.get("encrypted") is True
         assert unverified.get("typ") == "reset_password"
 
@@ -514,7 +514,7 @@ class TestPasswordResetSecurity:
         token = create_secure_password_reset_token(email)
 
         from jose import jwt
-        payload = jwt.decode(token, options={"verify_signature": False})
+        payload = jwt.decode(token, key="", options={"verify_signature": False, "verify_aud": False, "verify_exp": False})
 
         exp_time = datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
         issued_time = datetime.fromtimestamp(payload["iat"], tz=timezone.utc)
@@ -533,7 +533,7 @@ class TestEmailVerificationSecurity:
         token = create_email_verification_token(email)
 
         from jose import jwt
-        unverified = jwt.decode(token, options={"verify_signature": False})
+        unverified = jwt.decode(token, key="", options={"verify_signature": False, "verify_aud": False, "verify_exp": False})
         assert unverified.get("typ") == "email_verification"
 
     def test_email_verification_token_verification(self):
@@ -550,7 +550,7 @@ class TestEmailVerificationSecurity:
         token = create_email_verification_token(email)
 
         from jose import jwt
-        payload = jwt.decode(token, options={"verify_signature": False})
+        payload = jwt.decode(token, key="", options={"verify_signature": False, "verify_aud": False, "verify_exp": False})
 
         exp_time = datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
         issued_time = datetime.fromtimestamp(payload["iat"], tz=timezone.utc)
@@ -571,7 +571,7 @@ class TestRefreshTokenSecurity:
         )
 
         from jose import jwt
-        unverified = jwt.decode(token, options={"verify_signature": False})
+        unverified = jwt.decode(token, key="", options={"verify_signature": False, "verify_aud": False, "verify_exp": False})
         assert unverified.get("typ") == "refresh"
         assert unverified.get("encrypted") is True
 

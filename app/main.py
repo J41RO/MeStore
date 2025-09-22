@@ -211,10 +211,11 @@ async def global_exception_handler(request, exc):
         },
     )
 
-    return {
-        "error": "Internal server error",
-        "message": "Ha ocurrido un error interno del servidor",
-    }
+    return ResponseUtils.error(
+        error_code="INTERNAL_SERVER_ERROR",
+        message="Ha ocurrido un error interno del servidor",
+        status_code=500
+    )
 
 
 @app.get("/")
@@ -322,6 +323,37 @@ async def get_users_test(db: AsyncSession = Depends(get_db)):
             message=f"Error querying users: {str(e)}",
             status_code=500
         )
+
+
+@app.get("/test-token")
+async def get_test_token():
+    """Generar token de prueba para testing de endpoints."""
+    from app.core.security import create_access_token
+    from datetime import timedelta
+
+    # Crear token de prueba con datos básicos
+    token_data = {
+        "sub": "test@example.com",
+        "user_id": "550e8400-e29b-41d4-a716-446655440000",  # UUID válido
+        "user_type": "BUYER",  # Enum value en mayúsculas
+        "exp": timedelta(hours=24)
+    }
+
+    access_token = create_access_token(data=token_data)
+
+    return ResponseUtils.success(
+        data={
+            "access_token": access_token,
+            "token_type": "bearer",
+            "expires_in": 86400,
+            "user": {
+                "email": "test@example.com",
+                "id": "550e8400-e29b-41d4-a716-446655440000",
+                "user_type": "BUYER"
+            }
+        },
+        message="Test token generated successfully"
+    )
 
 
 if __name__ == "__main__":

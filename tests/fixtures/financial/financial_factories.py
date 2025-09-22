@@ -48,7 +48,7 @@ class BuyerUserFactory(factory.alchemy.SQLAlchemyModelFactory):
     email = factory.Sequence(lambda n: f"buyer{n}@mestore-test.com")
     nombre = factory.Faker('first_name')
     apellido = factory.Faker('last_name')
-    user_type = UserType.COMPRADOR
+    user_type = UserType.BUYER
     is_active = True
     password_hash = "$2b$12$test.hash.for.financial.testing"
     is_verified = True
@@ -68,7 +68,7 @@ class VendorUserFactory(factory.alchemy.SQLAlchemyModelFactory):
     email = factory.Sequence(lambda n: f"vendor{n}@mestore-test.com")
     nombre = factory.Faker('first_name')
     apellido = factory.Faker('last_name')
-    user_type = UserType.VENDEDOR
+    user_type = UserType.VENDOR
     is_active = True
     password_hash = "$2b$12$test.hash.for.financial.testing"
     is_verified = True
@@ -356,7 +356,7 @@ class FinancialScenarioFactory:
             email=f"test_buyer_{uuid4().hex[:8]}@mestore-test.com",
             nombre=fake.first_name(),
             apellido=fake.last_name(),
-            user_type=UserType.COMPRADOR,
+            user_type=UserType.BUYER,
             is_active=True,
             password_hash="$2b$12$test.hash.for.testing",
             is_verified=True,
@@ -369,7 +369,7 @@ class FinancialScenarioFactory:
             email=f"test_vendor_{uuid4().hex[:8]}@mestore-test.com",
             nombre=fake.first_name(),
             apellido=fake.last_name(),
-            user_type=UserType.VENDEDOR,
+            user_type=UserType.VENDOR,
             is_active=True,
             password_hash="$2b$12$test.hash.for.testing",
             is_verified=True,

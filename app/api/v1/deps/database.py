@@ -5,15 +5,54 @@ This module provides standardized database session dependencies
 for all API endpoints, consolidating session management in a single location.
 """
 
-from typing import AsyncGenerator, Optional
+from typing import AsyncGenerator, Optional, Type, TypeVar, Union
 from uuid import UUID
+import logging
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from fastapi import HTTPException, status
 
 from app.core.database import AsyncSessionLocal
-from app.core.id_validation import IDValidator
+from app.core.id_validation import IDValidator, IDValidationError
+# Import models at module level for better performance
+from app.models.user import User
+from app.models.product import Product
+from app.models.order import Order
+from app.models.commission import Commission
+
+# Type variable for generic entity validation
+T = TypeVar('T')
+
+# Configure logger for database operations
+logger = logging.getLogger(__name__)
+
+
+async def _create_database_session() -> AsyncGenerator[AsyncSession, None]:
+    """
+    Internal session factory for database dependencies.
+
+    This is the core session management logic that all public
+    database dependencies should use to ensure consistency.
+
+    Yields:
+        AsyncSession: Database session with transaction management
+
+    Note:
+        This is an internal function. Use get_db() for public API.
+    """
+    async with AsyncSessionLocal() as session:
+        try:
+            logger.debug("Database session created")
+            yield session
+        except Exception as e:
+            logger.error(f"Database session error: {str(e)}")
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
+            logger.debug("Database session closed")
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
@@ -33,14 +72,8 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             # Use db session here
             pass
     """
-    async with AsyncSessionLocal() as session:
-        try:
-            yield session
-        except Exception:
-            await session.rollback()
-            raise
-        finally:
-            await session.close()
+    async for session in _create_database_session():
+        yield session
 
 
 async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
@@ -48,15 +81,10 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
     Alias for get_db() for backwards compatibility.
 
     Note: Prefer using get_db() directly for new code.
+    This function delegates to the standard session factory.
     """
-    async with AsyncSessionLocal() as session:
-        try:
-            yield session
-        except Exception:
-            await session.rollback()
-            raise
-        finally:
-            await session.close()
+    async for session in _create_database_session():
+        yield session
 
 
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
@@ -64,20 +92,91 @@ async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     Alias for get_db() for async session dependency.
 
     This is an alternative name for get_db() that makes it clear
-    we're working with async sessions.
+    we're working with async sessions. Delegates to standard factory.
     """
-    async with AsyncSessionLocal() as session:
-        try:
-            yield session
-        except Exception:
-            await session.rollback()
-            raise
-        finally:
-            await session.close()
+    async for session in _create_database_session():
+        yield session
+
+
+# Generic entity validation factory
+async def _validate_entity_by_id(
+    entity_id: str,
+    entity_model: Type[T],
+    entity_name: str,
+    db: AsyncSession,
+    additional_filters: Optional[list] = None
+) -> T:
+    """
+    Generic entity validation function that follows DRY principle.
+
+    Args:
+        entity_id: UUID string of the entity
+        entity_model: SQLAlchemy model class
+        entity_name: Human-readable entity name for error messages
+        db: Database session
+        additional_filters: Additional WHERE clauses (e.g., soft-delete filters)
+
+    Returns:
+        T: Entity object if found
+
+    Raises:
+        HTTPException: 400 for validation errors, 404 if entity not found
+    """
+    # Validate ID format - convert IDValidationError to HTTPException
+    try:
+        validated_id = IDValidator.validate_uuid_string(entity_id, f"{entity_name.lower()}_id")
+        logger.debug(f"Validated {entity_name} ID: {validated_id}")
+    except IDValidationError as e:
+        logger.warning(f"Invalid {entity_name} ID format: {entity_id}")
+        # Ensure validation errors return 400, not 500
+        status_code = 400 if e.status_code == 500 else e.status_code
+        raise HTTPException(
+            status_code=status_code,
+            detail=e.message
+        )
+
+    try:
+        # Build query with optional additional filters
+        stmt = select(entity_model).where(entity_model.id == validated_id)
+        if additional_filters:
+            for filter_condition in additional_filters:
+                stmt = stmt.where(filter_condition)
+
+        result = await db.execute(stmt)
+        entity = result.scalar_one_or_none()
+        logger.debug(f"Database query executed for {entity_name}: {entity is not None}")
+    except SQLAlchemyError as e:
+        logger.error(f"Database error when fetching {entity_name} {entity_id}: {str(e)}")
+        # Handle database errors with proper classification
+        if "connection" in str(e).lower():
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Database connection error"
+            )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database error occurred"
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error when fetching {entity_name} {entity_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error"
+        )
+
+    if not entity:
+        logger.info(f"{entity_name} not found: {entity_id}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"{entity_name} with ID {entity_id} not found"
+        )
+
+    logger.debug(f"Successfully retrieved {entity_name}: {entity_id}")
+    return entity
 
 
 # Database entity validation dependencies
-async def get_user_or_404(user_id: str, db: AsyncSession):
+async def get_user_or_404(user_id: str, db: AsyncSession) -> User:
     """
     Get user by ID or raise 404 if not found.
 
@@ -89,27 +188,17 @@ async def get_user_or_404(user_id: str, db: AsyncSession):
         User: User object if found
 
     Raises:
-        HTTPException: 404 if user not found
+        HTTPException: 400 for validation errors, 404 if user not found
     """
-    from app.models.user import User
-
-    # Validate ID format
-    validated_id = IDValidator.validate_uuid_string(user_id, "user_id")
-
-    stmt = select(User).where(User.id == validated_id)
-    result = await db.execute(stmt)
-    user = result.scalar_one_or_none()
-
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User with ID {user_id} not found"
-        )
-
-    return user
+    return await _validate_entity_by_id(
+        entity_id=user_id,
+        entity_model=User,
+        entity_name="User",
+        db=db
+    )
 
 
-async def get_product_or_404(product_id: str, db: AsyncSession):
+async def get_product_or_404(product_id: str, db: AsyncSession) -> Product:
     """
     Get product by ID or raise 404 if not found.
 
@@ -121,30 +210,18 @@ async def get_product_or_404(product_id: str, db: AsyncSession):
         Product: Product object if found
 
     Raises:
-        HTTPException: 404 if product not found
+        HTTPException: 400 for validation errors, 404 if product not found
     """
-    from app.models.product import Product
-
-    # Validate ID format
-    validated_id = IDValidator.validate_uuid_string(product_id, "product_id")
-
-    stmt = select(Product).where(
-        Product.id == validated_id,
-        Product.deleted_at.is_(None)  # Exclude soft-deleted products
+    return await _validate_entity_by_id(
+        entity_id=product_id,
+        entity_model=Product,
+        entity_name="Product",
+        db=db,
+        additional_filters=[Product.deleted_at.is_(None)]  # Exclude soft-deleted products
     )
-    result = await db.execute(stmt)
-    product = result.scalar_one_or_none()
-
-    if not product:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Product with ID {product_id} not found"
-        )
-
-    return product
 
 
-async def get_order_or_404(order_id: str, db: AsyncSession):
+async def get_order_or_404(order_id: str, db: AsyncSession) -> Order:
     """
     Get order by ID or raise 404 if not found.
 
@@ -156,27 +233,17 @@ async def get_order_or_404(order_id: str, db: AsyncSession):
         Order: Order object if found
 
     Raises:
-        HTTPException: 404 if order not found
+        HTTPException: 400 for validation errors, 404 if order not found
     """
-    from app.models.order import Order
-
-    # Validate ID format
-    validated_id = IDValidator.validate_uuid_string(order_id, "order_id")
-
-    stmt = select(Order).where(Order.id == validated_id)
-    result = await db.execute(stmt)
-    order = result.scalar_one_or_none()
-
-    if not order:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Order with ID {order_id} not found"
-        )
-
-    return order
+    return await _validate_entity_by_id(
+        entity_id=order_id,
+        entity_model=Order,
+        entity_name="Order",
+        db=db
+    )
 
 
-async def get_commission_or_404(commission_id: str, db: AsyncSession):
+async def get_commission_or_404(commission_id: str, db: AsyncSession) -> Commission:
     """
     Get commission by ID or raise 404 if not found.
 
@@ -188,24 +255,14 @@ async def get_commission_or_404(commission_id: str, db: AsyncSession):
         Commission: Commission object if found
 
     Raises:
-        HTTPException: 404 if commission not found
+        HTTPException: 400 for validation errors, 404 if commission not found
     """
-    from app.models.commission import Commission
-
-    # Validate ID format
-    validated_id = IDValidator.validate_uuid_string(commission_id, "commission_id")
-
-    stmt = select(Commission).where(Commission.id == validated_id)
-    result = await db.execute(stmt)
-    commission = result.scalar_one_or_none()
-
-    if not commission:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Commission with ID {commission_id} not found"
-        )
-
-    return commission
+    return await _validate_entity_by_id(
+        entity_id=commission_id,
+        entity_model=Commission,
+        entity_name="Commission",
+        db=db
+    )
 
 
 # Export the main dependency for easy import

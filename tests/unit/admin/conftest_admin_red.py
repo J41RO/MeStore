@@ -141,7 +141,7 @@ async def mock_vendedor_user_red():
     This fixture represents a vendor user attempting to access admin functions.
 
     EXPECTED FAILURES:
-    - UserType.VENDEDOR might not exist
+    - UserType.VENDOR might not exist
     - Vendor should be rejected from admin endpoints
     """
     try:
@@ -153,7 +153,7 @@ async def mock_vendedor_user_red():
             documento="22222222",
             telefono="2222222222",
             is_superuser=False,
-            user_type=UserType.VENDEDOR,  # This WILL FAIL if UserType.VENDEDOR doesn't exist
+            user_type=UserType.VENDOR,  # Corrected enum value
             is_active=True,
             created_at=datetime.now(),
             last_login=datetime.now() - timedelta(minutes=30),

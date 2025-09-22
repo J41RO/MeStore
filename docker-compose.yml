@@ -118,23 +118,38 @@ services:
       timeout: 5s
       retries: 5
 
-  # ===== REDIS SERVICE =====
+  # ===== REDIS SERVICE - SECURITY BACKEND AI SECURE CONFIGURATION =====
   redis:
     image: redis:7-alpine
     container_name: mestocker_redis
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"  # Bind to localhost only for security
     volumes:
       - redis_data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
     networks:
       - mestocker_network
     restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: mestore-redis-secure-password-2025-min-32-chars
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "mestore-redis-secure-password-2025-min-32-chars", "ping"]
       interval: 10s
       timeout: 3s
       retries: 3
-    command: redis-server --appendonly yes --requirepass dev-redis-password
+    command: >
+      redis-server
+      --requirepass mestore-redis-secure-password-2025-min-32-chars
+      --bind 127.0.0.1
+      --protected-mode yes
+      --appendonly yes
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+      --slowlog-log-slower-than 10000
+      --databases 16
 
   # ===== NGINX REVERSE PROXY (OPCIONAL) =====
   nginx:

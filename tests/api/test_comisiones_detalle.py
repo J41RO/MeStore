@@ -14,7 +14,8 @@ async def test_get_comision_detalle_not_found(async_client: AsyncClient):
     fake_uuid = str(uuid.uuid4())  # Generate a valid random UUID
     response = await async_client.get(f"/api/v1/comisiones/detalle/{fake_uuid}")
     assert response.status_code == 404
-    assert "Transacción no encontrada" in response.json()["detail"]
+    # Updated to match actual response structure from custom error handler
+    assert "Transacción no encontrada" in response.json()["error_message"]
 
 
 @pytest.mark.asyncio

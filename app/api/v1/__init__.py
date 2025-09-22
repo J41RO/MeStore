@@ -111,6 +111,10 @@ api_router.include_router(logs_router, prefix="/logs", tags=["logging"])
 api_router.include_router(embeddings_router, prefix="/embeddings", tags=["ai-ml"])
 api_router.include_router(agents_router, prefix="/agents", tags=["ai-agents"])
 
+# Real-time analytics WebSocket
+from app.api.v1.endpoints.websocket_analytics import router as websocket_analytics_router
+api_router.include_router(websocket_analytics_router, prefix="/analytics", tags=["real-time-analytics"])
+
 # Fulfillment operations
 api_router.include_router(fulfillment_router, prefix="/fulfillment", tags=["fulfillment"])
 
@@ -121,9 +125,13 @@ api_router.include_router(perfil_router, prefix="/profile", tags=["profile-legac
 # Adding vendedores router back for testing purposes
 api_router.include_router(vendedores_router, prefix="/vendedores", tags=["vendedores-testing"])
 
+# ===== SPANISH ENDPOINTS FOR TESTING =====
+# Comisiones (Spanish) - restored for testing compatibility
+api_router.include_router(comisiones_router, prefix="/comisiones", tags=["comisiones-testing"])
+
 # ==================================================
 # DEPRECATED ROUTERS (partially restored for testing):
-# - comisiones_router (Spanish) -> Use /commissions
+# - comisiones_router (Spanish) -> Use /commissions (but also available for testing)
 # - pagos_router (Spanish) -> Use /payments
 # - vendedores_router (Spanish) -> Use /vendors (but also available for testing)
 # ==================================================

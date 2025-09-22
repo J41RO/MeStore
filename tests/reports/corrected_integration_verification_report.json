@@ -1,0 +1,200 @@
+{
+  "timestamp": "2025-09-19T14:54:06.366733",
+  "test_environment": {
+    "backend_url": "http://192.168.1.137:8000",
+    "frontend_url": "http://192.168.1.137:5173",
+    "api_version": "v1"
+  },
+  "summary": {
+    "total_tests": 8,
+    "passed_tests": 4,
+    "success_rate": 50.0,
+    "mvp_status": "\ud83d\udd34 NOT READY (Critical Issues)",
+    "readiness_level": "POOR"
+  },
+  "component_status": {
+    "Backend Health": true,
+    "Frontend Access": false,
+    "Authentication": true,
+    "API Integration": true,
+    "Checkout Process": true,
+    "Vendor APIs": true,
+    "Real-time Features": false,
+    "Performance": true
+  },
+  "detailed_results": [
+    {
+      "timestamp": "2025-09-19T14:54:00.097221",
+      "test": "Frontend Accessibility",
+      "status": "FAIL",
+      "duration_ms": 4.77,
+      "details": {
+        "error": "Cannot connect to host 192.168.1.137:5173 ssl:default [Connect call failed ('192.168.1.137', 5173)]"
+      }
+    },
+    {
+      "timestamp": "2025-09-19T14:54:06.299025",
+      "test": "Backend Health Check",
+      "status": "PASS",
+      "duration_ms": 6207.27,
+      "details": {
+        "response_time": "6207.3ms",
+        "environment": "development",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "timestamp": "2025-09-19T14:54:06.302183",
+      "test": "Authentication Token Generation",
+      "status": "PASS",
+      "duration_ms": 6209.44,
+      "details": {
+        "token_type": "bearer",
+        "expires_in": 86400,
+        "user_type": "BUYER",
+        "token_length": 372
+      }
+    },
+    {
+      "timestamp": "2025-09-19T14:54:06.305745",
+      "test": "Authentication Token Generation",
+      "status": "PASS",
+      "duration_ms": 6212.76,
+      "details": {
+        "token_type": "bearer",
+        "expires_in": 86400,
+        "user_type": "BUYER",
+        "token_length": 372
+      }
+    },
+    {
+      "timestamp": "2025-09-19T14:54:06.327960",
+      "test": "Vendor Dashboard APIs",
+      "status": "PASS",
+      "duration_ms": 6234.6,
+      "details": {
+        "tests": [
+          {
+            "test": "Vendors List",
+            "status": 404,
+            "duration": "6221.3ms",
+            "success": true
+          },
+          {
+            "test": "Vendor Profile",
+            "status": 404,
+            "duration": "13.2ms",
+            "success": true
+          }
+        ],
+        "success_rate": "2/2"
+      }
+    },
+    {
+      "timestamp": "2025-09-19T14:54:06.339525",
+      "test": "WebSocket Functionality",
+      "status": "FAIL",
+      "duration_ms": 6245.94,
+      "details": {
+        "error": "403, message='Invalid response status', url='ws://192.168.1.137:8000/ws/vendor/analytics'"
+      }
+    },
+    {
+      "timestamp": "2025-09-19T14:54:06.357578",
+      "test": "Checkout Integration",
+      "status": "PARTIAL",
+      "duration_ms": 6264.41,
+      "details": {
+        "tests": [
+          {
+            "test": "Payment Methods",
+            "status": 401,
+            "duration": "6215.2ms",
+            "success": true
+          },
+          {
+            "test": "Order Creation Endpoint",
+            "status": 200,
+            "duration": "49.2ms",
+            "success": false
+          }
+        ]
+      }
+    },
+    {
+      "timestamp": "2025-09-19T14:54:06.357659",
+      "test": "Performance Benchmarks",
+      "status": "PARTIAL",
+      "duration_ms": 6263.85,
+      "details": {
+        "total_requests": 10,
+        "successful_requests": 10,
+        "average_response_time": "6251.6ms",
+        "test_duration": "6.26s",
+        "concurrent_performance": "acceptable"
+      }
+    },
+    {
+      "timestamp": "2025-09-19T14:54:06.366477",
+      "test": "API Endpoints",
+      "status": "PASS",
+      "duration_ms": 6273.49,
+      "details": {
+        "successful_endpoints": "6/6",
+        "results": [
+          {
+            "endpoint": "Payment Methods",
+            "url": "/payments/methods",
+            "status_code": 401,
+            "duration": "8.4ms",
+            "success": true,
+            "response_type": "dict"
+          },
+          {
+            "endpoint": "Payment Status",
+            "url": "/payments/status/123",
+            "status_code": 401,
+            "duration": "13.9ms",
+            "success": true,
+            "response_type": "dict"
+          },
+          {
+            "endpoint": "Orders List",
+            "url": "/orders",
+            "status_code": 200,
+            "duration": "30.2ms",
+            "success": true,
+            "response_type": "list"
+          },
+          {
+            "endpoint": "Products List",
+            "url": "/products",
+            "status_code": 401,
+            "duration": "3.1ms",
+            "success": true,
+            "response_type": "dict"
+          },
+          {
+            "endpoint": "Vendors List",
+            "url": "/vendedores",
+            "status_code": 404,
+            "duration": "2.3ms",
+            "success": true,
+            "response_type": "dict"
+          },
+          {
+            "endpoint": "Categories",
+            "url": "/categories",
+            "status_code": 404,
+            "duration": "2.4ms",
+            "success": true,
+            "response_type": "dict"
+          }
+        ]
+      }
+    }
+  ],
+  "recommendations": [
+    "\ud83d\udea8 CRITICAL: Success rate below 70%. Immediate attention required."
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "redis_configuration_dependencies": {
+    "application_layer": {
+      "files": [
+        "app/core/config.py",
+        "app/core/redis/base.py",
+        "app/core/logger.py"
+      ],
+      "impact": "HIGH - Direct Redis connection configuration"
+    },
+    "infrastructure_layer": {
+      "files": [
+        "docker-compose.yml",
+        "docker-compose.production.yml",
+        "docker-compose.staging.yml",
+        "docker-compose.secrets.yml"
+      ],
+      "impact": "HIGH - Redis service deployment configuration"
+    },
+    "ci_cd_pipeline": {
+      "files": [
+        ".github/workflows/tdd-ci.yml",
+        ".github/workflows/test.yml"
+      ],
+      "impact": "MEDIUM - Redis health checks and service availability"
+    },
+    "testing_framework": {
+      "files": [
+        "tests/conftest.py",
+        "tests/test_config.py",
+        "tests/core/test_config.py",
+        "tests/tests/unit/utils/test_config.py"
+      ],
+      "impact": "MEDIUM - Redis connectivity tests and mocking"
+    },
+    "security_validation": {
+      "files": [
+        "security_validation_test.py"
+      ],
+      "impact": "HIGH - Security compliance and credential validation"
+    }
+  },
+  "environment_specific_configs": {
+    "development": {
+      "current_state": "Authentication mismatch",
+      "required_action": "Align authentication configuration",
+      "risk_level": "LOW"
+    },
+    "staging": {
+      "current_state": "Environment variable driven",
+      "required_action": "Validate configuration consistency",
+      "risk_level": "MEDIUM"
+    },
+    "production": {
+      "current_state": "Environment variable driven with secrets",
+      "required_action": "Ensure secure credential management",
+      "risk_level": "HIGH"
+    },
+    "testing": {
+      "current_state": "Mock Redis implementation",
+      "required_action": "No changes needed",
+      "risk_level": "NONE"
+    }
+  },
+  "network_dependencies": {
+    "docker_networks": [
+      "mestore_network",
+      "mestore_production_network",
+      "mestore_staging_network"
+    ],
+    "port_mappings": {
+      "redis_default": "6379:6379",
+      "redis_staging": "6380:6379",
+      "redis_production": "6379:6379"
+    },
+    "external_access": {
+      "host_ip": "192.168.1.137",
+      "security_concern": "Direct host network exposure",
+      "mitigation": "Network isolation and firewall rules"
+    }
+  },
+  "secret_management": {
+    "current_approach": "Hardcoded in configuration files",
+    "security_risk": "HIGH - Credentials in source code",
+    "recommended_approach": "Environment variables or secret management system",
+    "rotation_strategy": "Manual - no automated rotation"
+  }
+}

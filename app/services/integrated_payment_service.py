@@ -78,6 +78,86 @@ class IntegratedPaymentService:
         if self.webhook_handler is None:
             self.webhook_handler = WompiWebhookHandler(db)
 
+    async def create_payment_intent(
+        self,
+        amount: int,
+        currency: str,
+        description: Optional[str] = None,
+        user_id: str = None
+    ) -> Dict[str, Any]:
+        """
+        Create a payment intent for processing payments.
+
+        Args:
+            amount: Payment amount in cents
+            currency: Currency code (e.g., COP)
+            description: Payment description
+            user_id: User making the payment
+
+        Returns:
+            Dict with payment intent data
+        """
+        try:
+            logger.info(f"Creating payment intent for amount {amount} {currency}")
+
+            # Generate payment intent ID and client secret
+            payment_intent_id = f"pi_{uuid4().hex[:16]}"
+            client_secret = f"pi_{uuid4().hex[:16]}_secret_{uuid4().hex[:16]}"
+
+            # For now, return a mock payment intent
+            # In production, this would call Wompi's API
+            return {
+                "payment_intent_id": payment_intent_id,
+                "client_secret": client_secret,
+                "amount": amount,
+                "currency": currency,
+                "status": "requires_payment_method"
+            }
+
+        except Exception as e:
+            logger.error(f"Error creating payment intent: {str(e)}")
+            raise PaymentProcessingError(
+                message="Failed to create payment intent",
+                error_code="INTENT_CREATION_FAILED",
+                details={"error": str(e)}
+            )
+
+    async def confirm_payment(
+        self,
+        payment_intent_id: str,
+        payment_method_id: str,
+        user_id: str = None
+    ) -> Dict[str, Any]:
+        """
+        Confirm a payment intent with a payment method.
+
+        Args:
+            payment_intent_id: Payment intent ID to confirm
+            payment_method_id: Payment method ID
+            user_id: User confirming the payment
+
+        Returns:
+            Dict with payment confirmation results
+        """
+        try:
+            logger.info(f"Confirming payment intent {payment_intent_id}")
+
+            # For now, return a mock confirmation
+            # In production, this would call Wompi's API to confirm the payment
+            return {
+                "status": "succeeded",
+                "payment_intent_id": payment_intent_id,
+                "amount": 250000  # Mock amount
+            }
+
+        except Exception as e:
+            logger.error(f"Error confirming payment: {str(e)}")
+            raise PaymentProcessingError(
+                message="Failed to confirm payment",
+                error_code="PAYMENT_CONFIRMATION_FAILED",
+                details={"error": str(e)}
+            )
+
     async def process_order_payment(
         self,
         order_id: int,

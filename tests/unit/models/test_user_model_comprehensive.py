@@ -42,29 +42,29 @@ class TestUserTypeEnum:
     def test_user_type_enum_has_all_required_values(self):
         """TDD: UserType enum should have all required values."""
         # RED: Verify all expected user types exist
-        assert hasattr(UserType, 'COMPRADOR')
-        assert hasattr(UserType, 'VENDEDOR')
+        assert hasattr(UserType, 'BUYER')
+        assert hasattr(UserType, 'VENDOR')
         assert hasattr(UserType, 'ADMIN')
         assert hasattr(UserType, 'SUPERUSER')
     
     def test_user_type_enum_values_are_strings(self):
         """TDD: UserType enum values should be strings."""
-        assert UserType.COMPRADOR.value == "COMPRADOR"
-        assert UserType.VENDEDOR.value == "VENDEDOR"
+        assert UserType.BUYER.value == "BUYER"
+        assert UserType.VENDOR.value == "VENDOR"
         assert UserType.ADMIN.value == "ADMIN"
         assert UserType.SUPERUSER.value == "SUPERUSER"
     
     def test_user_type_enum_is_comparable(self):
         """TDD: UserType enum should support equality comparison."""
-        assert UserType.COMPRADOR == UserType.COMPRADOR
-        assert UserType.VENDEDOR != UserType.COMPRADOR
-        assert UserType.ADMIN != UserType.VENDEDOR
+        assert UserType.BUYER == UserType.BUYER
+        assert UserType.VENDOR != UserType.BUYER
+        assert UserType.ADMIN != UserType.VENDOR
         assert UserType.SUPERUSER != UserType.ADMIN
     
     def test_user_type_enum_can_be_converted_to_string(self):
         """TDD: UserType enum should convert to string properly."""
-        assert str(UserType.COMPRADOR) == "UserType.COMPRADOR"
-        assert UserType.COMPRADOR.value == "COMPRADOR"
+        assert str(UserType.BUYER) == "UserType.BUYER"
+        assert UserType.BUYER.value == "BUYER"
 
 
 class TestVendorStatusEnum:
@@ -123,7 +123,7 @@ class TestUserModelCreation:
             'password_hash': '$2b$12$complete.hash.for.testing',
             'nombre': 'Test',
             'apellido': 'User',
-            'user_type': UserType.VENDEDOR,
+            'user_type': UserType.VENDOR,
             'vendor_status': VendorStatus.DRAFT,
             'is_active': True,
             'is_verified': False,
@@ -134,15 +134,17 @@ class TestUserModelCreation:
             'direccion': 'Calle 123 #45-67'
         }
     
-    def test_user_creation_with_minimal_data_succeeds(self, minimal_user_data):
+    def test_user_creation_with_minimal_data_succeeds(self, minimal_user_data, test_db_session):
         """TDD: User should be created with minimal required data."""
         user = User(**minimal_user_data)
-        
+        test_db_session.add(user)
+        test_db_session.flush()  # Apply defaults without committing
+
         assert user.email == minimal_user_data['email']
         assert user.password_hash == minimal_user_data['password_hash']
-        
-        # Verify defaults are applied
-        assert user.user_type == UserType.COMPRADOR
+
+        # Verify defaults are applied (after database flush)
+        assert user.user_type == UserType.BUYER
         assert user.is_active is True
         assert user.is_verified is False
         assert user.email_verified is False
@@ -181,10 +183,12 @@ class TestUserModelCreation:
         user = User(**invalid_data)
         assert user.password_hash is None  # Will fail database constraint
     
-    def test_user_id_is_generated_automatically(self, minimal_user_data):
+    def test_user_id_is_generated_automatically(self, minimal_user_data, test_db_session):
         """TDD: User ID should be generated automatically."""
         user = User(**minimal_user_data)
-        
+        test_db_session.add(user)
+        test_db_session.flush()  # Generate ID without committing
+
         # ID should be generated (UUID format)
         assert user.id is not None
         assert isinstance(user.id, str)
@@ -308,7 +312,7 @@ class TestUserModelToDictSerialization:
             password_hash='$2b$12$test.hash',
             nombre='Serialize',
             apellido='Test',
-            user_type=UserType.VENDEDOR,
+            user_type=UserType.VENDOR,
             is_active=True,
             is_verified=True,
             email_verified=True,
@@ -377,7 +381,7 @@ class TestUserModelToDictSerialization:
         """TDD: to_dict should serialize enum fields to their values."""
         result = user_for_serialization.to_dict()
         
-        assert result['user_type'] == 'VENDEDOR'
+        assert result['user_type'] == 'VENDOR'
         assert not isinstance(result['user_type'], UserType)
     
     def test_to_dict_includes_computed_properties(self, user_for_serialization):
@@ -387,10 +391,13 @@ class TestUserModelToDictSerialization:
         assert result['full_name'] == 'Serialize Test'
         assert result['full_name'] == user_for_serialization.full_name
     
-    def test_to_dict_converts_uuid_to_string(self, user_for_serialization):
+    def test_to_dict_converts_uuid_to_string(self, user_for_serialization, test_db_session):
         """TDD: to_dict should convert UUID to string."""
+        test_db_session.add(user_for_serialization)
+        test_db_session.flush()  # Generate ID without committing
+
         result = user_for_serialization.to_dict()
-        
+
         assert isinstance(result['id'], str)
         assert len(result['id']) == 36  # UUID string length
 
@@ -710,15 +717,15 @@ class TestUserModelEdgeCases:
         user = User(
             email='enum@example.com',
             password_hash='$2b$12$test.hash',
-            user_type=UserType.VENDEDOR,
+            user_type=UserType.VENDOR,
             vendor_status=VendorStatus.APPROVED
         )
         
-        assert user.user_type == UserType.VENDEDOR
+        assert user.user_type == UserType.VENDOR
         assert user.vendor_status == VendorStatus.APPROVED
         
         # Verify enum comparison works
-        assert user.user_type != UserType.COMPRADOR
+        assert user.user_type != UserType.BUYER
         assert user.vendor_status != VendorStatus.DRAFT
 
 
@@ -730,7 +737,7 @@ class TestUserModelBusinessLogic:
         vendor = User(
             email='vendor@example.com',
             password_hash='$2b$12$test.hash',
-            user_type=UserType.VENDEDOR,
+            user_type=UserType.VENDOR,
             vendor_status=VendorStatus.DRAFT
         )
         
@@ -797,13 +804,13 @@ class TestUserModelBusinessLogic:
         buyer = User(
             email='buyer@example.com',
             password_hash='$2b$12$test.hash',
-            user_type=UserType.COMPRADOR
+            user_type=UserType.BUYER
         )
         
         vendor = User(
             email='vendor@example.com',
             password_hash='$2b$12$test.hash',
-            user_type=UserType.VENDEDOR
+            user_type=UserType.VENDOR
         )
         
         admin = User(
@@ -819,8 +826,8 @@ class TestUserModelBusinessLogic:
         )
         
         # Verify each has correct type
-        assert buyer.user_type == UserType.COMPRADOR
-        assert vendor.user_type == UserType.VENDEDOR
+        assert buyer.user_type == UserType.BUYER
+        assert vendor.user_type == UserType.VENDOR
         assert admin.user_type == UserType.ADMIN
         assert superuser.user_type == UserType.SUPERUSER
         

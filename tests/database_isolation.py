@@ -239,7 +239,7 @@ class DatabaseIsolationManager:
                 pass
 
     @asynccontextmanager
-    async def _shared_db_isolation(self, test_id: str) -> AsyncGenerator[AsyncSession, None, None]:
+    async def _shared_db_isolation(self, test_id: str) -> AsyncGenerator[AsyncSession, None]:
         """Shared test database with cleanup."""
         # Create shared test engine if not exists
         if not hasattr(self, '_shared_async_engine'):
@@ -349,7 +349,7 @@ class TDDDataSeeder:
             password_hash=await get_password_hash("vendor123"),
             nombre="Test",
             apellido="Vendor",
-            user_type=UserType.VENDEDOR,
+            user_type=UserType.VENDOR,
             is_active=True
         )
         session.add(vendor)
@@ -362,7 +362,7 @@ class TDDDataSeeder:
             password_hash=await get_password_hash("buyer123"),
             nombre="Test",
             apellido="Buyer",
-            user_type=UserType.COMPRADOR,
+            user_type=UserType.BUYER,
             is_active=True
         )
         session.add(buyer)

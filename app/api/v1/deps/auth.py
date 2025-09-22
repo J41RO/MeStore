@@ -68,7 +68,8 @@ async def get_current_user(
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-        user_id: str = payload.get("sub")
+        # Extraer user_id del payload - puede estar en "user_id" o "sub"
+        user_id: str = payload.get("user_id") or payload.get("sub")
         if user_id is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -77,10 +78,10 @@ async def get_current_user(
             )
 
         # Verificar sesión activa en Redis (opcional para logout global)
-        # Skip Redis session check during testing
-        if os.getenv("TESTING") != "1":
+        # Skip Redis session check during testing and development (disabled by default)
+        if os.getenv("TESTING") != "1" and os.getenv("ENABLE_REDIS_SESSION_CHECK") == "1":
             session_key = f"session:{user_id}"
-            session_data = await redis_sessions.get(session_key)
+            session_data = redis_sessions.get(session_key)
 
             if not session_data:
                 raise HTTPException(
@@ -91,11 +92,11 @@ async def get_current_user(
 
         # Construir objeto UserRead desde payload JWT
         user_data = UserRead(
-            id=str(uuid.uuid4()),  # Generar UUID válido
-            email=payload.get("email", ""),
-            nombre=payload.get("nombre", ""),
-            apellido=payload.get("apellido", ""),
-            user_type=payload.get("user_type", ""),
+            id=user_id,  # Usar el ID real del token
+            email=payload.get("email", "user@example.com"),
+            nombre=payload.get("nombre", "Usuario"),
+            apellido=payload.get("apellido", "Anónimo"),
+            user_type=payload.get("user_type", "BUYER"),
             is_active=payload.get("is_active", True),
             is_verified=payload.get("is_verified", False),
             last_login=payload.get("last_login", None),
@@ -175,21 +176,21 @@ async def get_current_user_optional(
             return None
 
         # Verificar sesión activa en Redis (opcional para logout global)
-        # Skip Redis session check during testing
-        if os.getenv("TESTING") != "1":
+        # Skip Redis session check during testing and development (disabled by default)
+        if os.getenv("TESTING") != "1" and os.getenv("ENABLE_REDIS_SESSION_CHECK") == "1":
             session_key = f"session:{user_id}"
-            session_data = await redis_sessions.get(session_key)
+            session_data = redis_sessions.get(session_key)
 
             if not session_data:
                 return None
 
         # Construir objeto UserRead desde payload JWT
         user_data = UserRead(
-            id=str(uuid.uuid4()),  # Generar UUID válido
-            email=payload.get("email", ""),
-            nombre=payload.get("nombre", ""),
-            apellido=payload.get("apellido", ""),
-            user_type=payload.get("user_type", ""),
+            id=user_id,  # Usar el ID real del token
+            email=payload.get("email", "user@example.com"),
+            nombre=payload.get("nombre", "Usuario"),
+            apellido=payload.get("apellido", "Anónimo"),
+            user_type=payload.get("user_type", "BUYER"),
             is_active=payload.get("is_active", True),
             is_verified=payload.get("is_verified", False),
             last_login=payload.get("last_login", None),

@@ -41,6 +41,26 @@ security = HTTPBearer()
 
 router = APIRouter()
 
+# Root endpoint for payments info
+@router.get("/")
+async def payments_info():
+    """
+    Payment service information endpoint.
+    Returns available payment endpoints and service status.
+    """
+    return {
+        "service": "MeStore Payments API",
+        "version": "1.0.0",
+        "endpoints": {
+            "process": "POST /process - Process payment for an order",
+            "status": "GET /status/{order_id} - Get payment status",
+            "methods": "GET /methods - Get available payment methods",
+            "webhook": "POST /webhook - Receive payment webhooks",
+            "health": "GET /health - Service health check"
+        },
+        "status": "operational"
+    }
+
 # Request/Response Models
 class PaymentMethodData(BaseModel):
     """Payment method specific data"""
@@ -94,6 +114,145 @@ class WebhookRequest(BaseModel):
     data: Dict[str, Any]
     timestamp: str
     signature: Optional[str] = None
+
+class CreatePaymentIntentRequest(BaseModel):
+    """Request model for creating payment intent"""
+    amount: int = Field(..., gt=0, description="Payment amount in cents")
+    currency: str = Field(..., description="Currency code (e.g., COP)")
+    description: Optional[str] = Field(None, description="Payment description")
+
+class PaymentIntentResponse(BaseModel):
+    """Response model for payment intent creation"""
+    payment_intent_id: str
+    client_secret: str
+    amount: int
+    currency: str
+    status: str
+
+class ConfirmPaymentRequest(BaseModel):
+    """Request model for confirming payment"""
+    payment_intent_id: str = Field(..., description="Payment intent ID to confirm")
+    payment_method_id: str = Field(..., description="Payment method ID")
+
+class PaymentConfirmationResponse(BaseModel):
+    """Response model for payment confirmation"""
+    status: str
+    payment_intent_id: str
+    amount: Optional[int] = None
+    message: Optional[str] = None
+
+
+@router.post("/create-intent", response_model=PaymentIntentResponse)
+async def create_payment_intent(
+    intent_request: CreatePaymentIntentRequest,
+    current_user: UserRead = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Create a payment intent for processing payments.
+
+    This endpoint creates a payment intent with the specified amount and currency,
+    returning the necessary client secret for frontend payment confirmation.
+    """
+    try:
+        logger.info(
+            f"Creating payment intent for user {current_user.email} "
+            f"amount: {intent_request.amount} {intent_request.currency}"
+        )
+
+        # Basic validation
+        if intent_request.amount <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Amount must be greater than 0"
+            )
+
+        # Create payment intent through integrated service
+        result = await integrated_payment_service.create_payment_intent(
+            amount=intent_request.amount,
+            currency=intent_request.currency,
+            description=intent_request.description,
+            user_id=current_user.id
+        )
+
+        return PaymentIntentResponse(
+            payment_intent_id=result["payment_intent_id"],
+            client_secret=result["client_secret"],
+            amount=result["amount"],
+            currency=result["currency"],
+            status=result["status"]
+        )
+
+    except PaymentProcessingError as e:
+        logger.warning(f"Payment intent creation error: {e.message}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "error": e.error_code,
+                "message": e.message,
+                "details": e.details
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected payment intent creation error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal payment processing error"
+        )
+
+
+@router.post("/confirm", response_model=PaymentConfirmationResponse)
+async def confirm_payment(
+    confirm_request: ConfirmPaymentRequest,
+    current_user: UserRead = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Confirm a payment intent with a payment method.
+
+    This endpoint confirms a previously created payment intent by attaching
+    a payment method and processing the payment.
+    """
+    try:
+        logger.info(
+            f"Confirming payment for user {current_user.email} "
+            f"intent: {confirm_request.payment_intent_id}"
+        )
+
+        # Confirm payment through integrated service
+        result = await integrated_payment_service.confirm_payment(
+            payment_intent_id=confirm_request.payment_intent_id,
+            payment_method_id=confirm_request.payment_method_id,
+            user_id=current_user.id
+        )
+
+        return PaymentConfirmationResponse(
+            status=result["status"],
+            payment_intent_id=result["payment_intent_id"],
+            amount=result.get("amount"),
+            message="Payment confirmed successfully"
+        )
+
+    except PaymentProcessingError as e:
+        logger.warning(f"Payment confirmation error: {e.message}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "error": e.error_code,
+                "message": e.message,
+                "details": e.details
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected payment confirmation error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal payment processing error"
+        )
 
 
 @router.post("/process", response_model=PaymentResponse)
@@ -177,7 +336,38 @@ async def process_payment(
         )
 
 
-@router.get("/status/{order_id}", response_model=PaymentStatusResponse)
+@router.get("/status/{payment_intent_id}")
+async def get_payment_status_by_intent(
+    payment_intent_id: str,
+    current_user: UserRead = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get payment status by payment intent ID.
+
+    Returns current payment status for a payment intent.
+    """
+    try:
+        logger.info(f"Getting payment status for intent {payment_intent_id}")
+
+        # For now, return a mock status
+        # In production, this would query the payment intent status
+        return {
+            "payment_intent_id": payment_intent_id,
+            "status": "succeeded",
+            "amount": 250000,
+            "created": "2024-09-19T15:00:00Z"
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting payment status by intent: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error retrieving payment status"
+        )
+
+
+@router.get("/status/order/{order_id}", response_model=PaymentStatusResponse)
 async def get_payment_status(
     order_id: int,
     current_user: UserRead = Depends(get_current_user),

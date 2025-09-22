@@ -64,11 +64,10 @@ export const useDashboardMetrics = () => {
       setIsLoadingMetrics(true);
       setMetricsError(null);
       
-      const baseUrl = 'http://192.168.1.137:8000';
       const token = localStorage.getItem('access_token') || localStorage.getItem('token');
-      
-      // 🛡️ REDUCIDO A UN SOLO ENDPOINT PARA EVITAR RATE LIMITING
-      const response = await fetch(`${baseUrl}/api/v1/vendedores/dashboard/resumen`, {
+
+      // 🛡️ REDUCIDO A UN SOLO ENDPOINT PARA EVITAR RATE LIMITING - using relative URL for proxy
+      const response = await fetch(`/api/v1/vendedores/dashboard/resumen`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

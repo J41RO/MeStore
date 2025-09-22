@@ -7,14 +7,21 @@ import { UserType } from '../../stores/authStore';
 
 // Mock the useRoleAccess hook
 const mockUseRoleAccess = jest.fn();
+const mockUserTypes = {
+  BUYER: 'buyer',
+  VENDOR: 'vendor',
+  ADMIN: 'admin',
+  SUPERUSER: 'superuser'
+};
+
 jest.mock('../../hooks/useRoleAccess', () => ({
   useRoleAccess: () => mockUseRoleAccess(),
-  getRoleDisplayName: (role: UserType) => {
+  getRoleDisplayName: (role: string) => {
     const names = {
-      [UserType.BUYER]: 'Comprador',
-      [UserType.VENDOR]: 'Vendedor',
-      [UserType.ADMIN]: 'Administrador',
-      [UserType.SUPERUSER]: 'Super Usuario'
+      [mockUserTypes.BUYER]: 'Comprador',
+      [mockUserTypes.VENDOR]: 'Vendedor',
+      [mockUserTypes.ADMIN]: 'Administrador',
+      [mockUserTypes.SUPERUSER]: 'Super Usuario'
     };
     return names[role] || 'Desconocido';
   },
@@ -40,10 +47,10 @@ describe('RoleGuard', () => {
   describe('Access granted scenarios', () => {
     it('should render children when user has exact role', () => {
       mockUseRoleAccess.mockReturnValue({
-        hasRole: (role: UserType) => role === UserType.ADMIN,
-        hasAnyRole: (roles: UserType[]) => roles.includes(UserType.ADMIN),
-        hasAllRoles: (roles: UserType[]) => roles.length === 1 && roles.includes(UserType.ADMIN),
-        hasMinimumRole: (minRole: UserType) => true,
+        hasRole: (role: string) => role === UserType.ADMIN,
+        hasAnyRole: (roles: string[]) => roles.includes(UserType.ADMIN),
+        hasAllRoles: (roles: string[]) => roles.length === 1 && roles.includes(UserType.ADMIN),
+        hasMinimumRole: (minRole: string) => true,
         getCurrentRole: () => UserType.ADMIN,
       });
 
@@ -60,10 +67,10 @@ describe('RoleGuard', () => {
 
     it('should render children when user has any of required roles', () => {
       mockUseRoleAccess.mockReturnValue({
-        hasRole: (role: UserType) => role === UserType.VENDOR,
-        hasAnyRole: (roles: UserType[]) => roles.includes(UserType.VENDOR),
-        hasAllRoles: (roles: UserType[]) => false,
-        hasMinimumRole: (minRole: UserType) => true,
+        hasRole: (role: string) => role === UserType.VENDOR,
+        hasAnyRole: (roles: string[]) => roles.includes(UserType.VENDOR),
+        hasAllRoles: (roles: string[]) => false,
+        hasMinimumRole: (minRole: string) => true,
         getCurrentRole: () => UserType.VENDOR,
       });
 
@@ -80,10 +87,10 @@ describe('RoleGuard', () => {
 
     it('should render children when user has minimum role', () => {
       mockUseRoleAccess.mockReturnValue({
-        hasRole: (role: UserType) => role === UserType.ADMIN,
-        hasAnyRole: (roles: UserType[]) => true,
-        hasAllRoles: (roles: UserType[]) => false,
-        hasMinimumRole: (minRole: UserType) => true,
+        hasRole: (role: string) => role === UserType.ADMIN,
+        hasAnyRole: (roles: string[]) => true,
+        hasAllRoles: (roles: string[]) => false,
+        hasMinimumRole: (minRole: string) => true,
         getCurrentRole: () => UserType.ADMIN,
       });
 
@@ -102,10 +109,10 @@ describe('RoleGuard', () => {
   describe('Access denied scenarios', () => {
     it('should show default fallback when access denied', () => {
       mockUseRoleAccess.mockReturnValue({
-        hasRole: (role: UserType) => false,
-        hasAnyRole: (roles: UserType[]) => false,
-        hasAllRoles: (roles: UserType[]) => false,
-        hasMinimumRole: (minRole: UserType) => false,
+        hasRole: (role: string) => false,
+        hasAnyRole: (roles: string[]) => false,
+        hasAllRoles: (roles: string[]) => false,
+        hasMinimumRole: (minRole: string) => false,
         getCurrentRole: () => UserType.BUYER,
       });
 
@@ -123,10 +130,10 @@ describe('RoleGuard', () => {
 
     it('should show custom fallback when provided', () => {
       mockUseRoleAccess.mockReturnValue({
-        hasRole: (role: UserType) => false,
-        hasAnyRole: (roles: UserType[]) => false,
-        hasAllRoles: (roles: UserType[]) => false,
-        hasMinimumRole: (minRole: UserType) => false,
+        hasRole: (role: string) => false,
+        hasAnyRole: (roles: string[]) => false,
+        hasAllRoles: (roles: string[]) => false,
+        hasMinimumRole: (minRole: string) => false,
         getCurrentRole: () => UserType.BUYER,
       });
 
@@ -148,10 +155,10 @@ describe('RoleGuard', () => {
 
     it('should redirect when redirectTo is provided', () => {
       mockUseRoleAccess.mockReturnValue({
-        hasRole: (role: UserType) => false,
-        hasAnyRole: (roles: UserType[]) => false,
-        hasAllRoles: (roles: UserType[]) => false,
-        hasMinimumRole: (minRole: UserType) => false,
+        hasRole: (role: string) => false,
+        hasAnyRole: (roles: string[]) => false,
+        hasAllRoles: (roles: string[]) => false,
+        hasMinimumRole: (minRole: string) => false,
         getCurrentRole: () => UserType.BUYER,
       });
 
@@ -175,10 +182,10 @@ describe('RoleGuard', () => {
   describe('Strategy validation', () => {
     it('should handle empty roles array', () => {
       mockUseRoleAccess.mockReturnValue({
-        hasRole: (role: UserType) => false,
-        hasAnyRole: (roles: UserType[]) => false,
-        hasAllRoles: (roles: UserType[]) => false,
-        hasMinimumRole: (minRole: UserType) => false,
+        hasRole: (role: string) => false,
+        hasAnyRole: (roles: string[]) => false,
+        hasAllRoles: (roles: string[]) => false,
+        hasMinimumRole: (minRole: string) => false,
         getCurrentRole: () => UserType.BUYER,
       });
 
@@ -201,10 +208,10 @@ describe('RoleGuard', () => {
 
     it('should handle minimum strategy with multiple roles', () => {
       mockUseRoleAccess.mockReturnValue({
-        hasRole: (role: UserType) => false,
-        hasAnyRole: (roles: UserType[]) => false,
-        hasAllRoles: (roles: UserType[]) => false,
-        hasMinimumRole: (minRole: UserType) => false,
+        hasRole: (role: string) => false,
+        hasAnyRole: (roles: string[]) => false,
+        hasAllRoles: (roles: string[]) => false,
+        hasMinimumRole: (minRole: string) => false,
         getCurrentRole: () => UserType.BUYER,
       });
 
@@ -226,10 +233,10 @@ describe('RoleGuard', () => {
 
     it('should handle unknown strategy', () => {
       mockUseRoleAccess.mockReturnValue({
-        hasRole: (role: UserType) => false,
-        hasAnyRole: (roles: UserType[]) => false,
-        hasAllRoles: (roles: UserType[]) => false,
-        hasMinimumRole: (minRole: UserType) => false,
+        hasRole: (role: string) => false,
+        hasAnyRole: (roles: string[]) => false,
+        hasAllRoles: (roles: string[]) => false,
+        hasMinimumRole: (minRole: string) => false,
         getCurrentRole: () => UserType.BUYER,
       });
 

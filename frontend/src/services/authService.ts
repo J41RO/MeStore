@@ -7,9 +7,39 @@
  */
 
 import axios, { AxiosResponse } from 'axios';
+import { getEnvVar } from '../utils/env';
 
-// Create a simple axios client for auth that works with Vite proxy
+// Helper function to determine environment
+const isDevelopment = () => {
+  try {
+    // Check if running in Jest test environment
+    if (typeof global !== 'undefined' && global.importMetaMock) {
+      return global.importMetaMock.env.DEV || false;
+    }
+
+    // Check for Node.js test environment (Jest)
+    if (typeof process !== 'undefined' && process.env.NODE_ENV === 'test') {
+      return false;
+    }
+
+    // In browser environment, check for development
+    if (typeof window !== 'undefined') {
+      const env = (window as any).__VITE_ENV__ || {};
+      return env.DEV || false;
+    }
+  } catch (error) {
+    // Fallback
+  }
+
+  return false;
+};
+
+// Create a robust axios client for auth with environment-aware configuration
 const authClient = axios.create({
+  // In development, use proxy. In production, use direct API URL
+  baseURL: isDevelopment()
+    ? undefined
+    : (getEnvVar('VITE_API_BASE_URL') || 'http://192.168.1.137:8000'),
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -25,7 +55,8 @@ authClient.interceptors.request.use(request => {
     request.headers.Authorization = `Bearer ${token}`;
   }
 
-  console.log('🚀 AUTH REQUEST:', request.method?.toUpperCase(), request.url);
+  const fullUrl = request.baseURL ? `${request.baseURL}${request.url}` : request.url;
+  console.log('🚀 AUTH REQUEST:', request.method?.toUpperCase(), fullUrl);
   console.log('📤 Headers:', JSON.stringify(request.headers, null, 2));
   console.log('📦 Payload:', JSON.stringify(request.data, null, 2));
   return request;
@@ -34,12 +65,19 @@ authClient.interceptors.request.use(request => {
 // Add response interceptor for debugging
 authClient.interceptors.response.use(
   response => {
-    console.log('✅ AUTH SUCCESS:', response.status, response.config.url);
+    const fullUrl = response.config.baseURL ? `${response.config.baseURL}${response.config.url}` : response.config.url;
+    console.log('✅ AUTH SUCCESS:', response.status, fullUrl);
     return response;
   },
   error => {
-    console.log('❌ AUTH ERROR:', error.response?.status, error.config?.url);
+    const fullUrl = error.config?.baseURL ? `${error.config.baseURL}${error.config.url}` : error.config?.url;
+    console.log('❌ AUTH ERROR:', error.response?.status, fullUrl);
     console.log('💥 Error data:', JSON.stringify(error.response?.data, null, 2));
+    console.log('🔍 Request URL details:', {
+      baseURL: error.config?.baseURL,
+      url: error.config?.url,
+      fullUrl: fullUrl
+    });
     return Promise.reject(error);
   }
 );
@@ -80,18 +118,18 @@ class ApiError extends Error implements IApiError {
   }
 }
 
-// Authentication endpoints (use /api prefix for Vite proxy)
+// Authentication endpoints (proxy forwards to backend at target/api with path rewrite)
 const AUTH_ENDPOINTS = {
-  LOGIN: '/api/auth/login',
-  REGISTER: '/api/auth/register',
-  ADMIN_LOGIN: '/api/auth/admin-login',
-  LOGOUT: '/api/auth/logout',
-  REFRESH: '/api/auth/refresh-token',
-  ME: '/api/auth/me',
-  FORGOT_PASSWORD: '/api/auth/forgot-password',
-  RESET_PASSWORD: '/api/auth/reset-password',
-  SEND_OTP: '/api/auth/send-otp',
-  VERIFY_OTP: '/api/auth/verify-otp',
+  LOGIN: '/api/v1/auth/login',
+  REGISTER: '/api/v1/auth/register',
+  ADMIN_LOGIN: '/api/v1/auth/admin-login',
+  LOGOUT: '/api/v1/auth/logout',
+  REFRESH: '/api/v1/auth/refresh-token',
+  ME: '/api/v1/auth/me',
+  FORGOT_PASSWORD: '/api/v1/auth/forgot-password',
+  RESET_PASSWORD: '/api/v1/auth/reset-password',
+  SEND_OTP: '/api/v1/auth/send-otp',
+  VERIFY_OTP: '/api/v1/auth/verify-otp',
 } as const;
 
 /**

@@ -95,6 +95,8 @@ class PermissionAction(str, PyEnum):
     IMPORT = "IMPORT"
     CONFIGURE = "CONFIGURE"
     MONITOR = "MONITOR"
+    GRANT = "GRANT"
+    REVOKE = "REVOKE"
 
 
 class ResourceType(str, PyEnum):
@@ -116,6 +118,7 @@ class ResourceType(str, PyEnum):
         PAYMENTS: Payment gateway management
         STORAGE: Storage location management
         ANALYTICS: Business analytics access
+        PERMISSIONS: Permission system management
     """
     USERS = "USERS"
     VENDORS = "VENDORS"
@@ -131,6 +134,7 @@ class ResourceType(str, PyEnum):
     PAYMENTS = "PAYMENTS"
     STORAGE = "STORAGE"
     ANALYTICS = "ANALYTICS"
+    PERMISSIONS = "PERMISSIONS"
 
 
 # Association table for many-to-many relationship between users and permissions

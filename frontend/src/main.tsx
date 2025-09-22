@@ -8,6 +8,59 @@ import { NotificationProvider } from './contexts/NotificationContext';
 import './index.css';
 import 'leaflet/dist/leaflet.css';
 import App from './App.tsx';
+import { pwaManager } from './utils/pwa';
+import { pushNotificationService } from './services/pushNotificationService';
+import { offlineService } from './services/offlineService';
+
+// Initialize PWA services
+console.log('🇨🇴 Initializing MeStocker PWA for Colombian market');
+
+// Initialize services for Colombian PWA
+const initializePWA = async () => {
+  try {
+    // Log PWA readiness
+    if (pwaManager) {
+      console.log('✅ PWA Manager initialized');
+    }
+
+    if (pushNotificationService) {
+      console.log('✅ Push Notification Service ready');
+    }
+
+    if (offlineService) {
+      console.log('✅ Offline Service initialized');
+    }
+
+    // Check if running as PWA
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      console.log('🚀 Running as installed PWA');
+      document.body.classList.add('pwa-mode');
+    }
+
+    // Setup Colombian-specific PWA features
+    if ('serviceWorker' in navigator) {
+      const registration = await navigator.serviceWorker.ready;
+      console.log('🛠️ Service Worker ready for Colombian features');
+
+      // Store Colombian market configuration
+      registration.active?.postMessage({
+        type: 'INIT_COLOMBIAN_CONFIG',
+        config: {
+          currency: 'COP',
+          locale: 'es-CO',
+          timezone: 'America/Bogota',
+          city: 'Bucaramanga'
+        }
+      });
+    }
+
+  } catch (error) {
+    console.error('❌ Error initializing PWA:', error);
+  }
+};
+
+// Initialize PWA after DOM is ready
+initializePWA();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

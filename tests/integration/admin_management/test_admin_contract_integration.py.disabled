@@ -1,0 +1,805 @@
+# ~/tests/integration/admin_management/test_admin_contract_integration.py
+# ---------------------------------------------------------------------------------------------
+# MeStore - Admin Contract Integration Tests
+# Copyright (c) 2025 Jairo. Todos los derechos reservados.
+# Licensed under the proprietary license detailed in a LICENSE file in the root of this project.
+# ---------------------------------------------------------------------------------------------
+#
+# Nombre del Archivo: test_admin_contract_integration.py
+# Ruta: ~/tests/integration/admin_management/test_admin_contract_integration.py
+# Autor: Integration Testing Specialist
+# Fecha de Creación: 2025-09-21
+# Última Actualización: 2025-09-21
+# Versión: 1.0.0
+# Propósito: Contract testing for admin management system integration
+#
+# Contract Testing Coverage:
+# - API schema contract validation and compliance
+# - Database schema contract enforcement
+# - Service interface contract verification
+# - Event contract validation for async operations
+# - Error contract specification and testing
+# - Version compatibility contract testing
+#
+# ---------------------------------------------------------------------------------------------
+
+"""
+Admin Contract Integration Tests.
+
+Este módulo prueba los contratos de integración del sistema de administración:
+- API request/response schema validation against OpenAPI specification
+- Database constraint contracts and data integrity rules
+- Service interface contracts for proper dependency injection
+- Event publishing and consumption contract validation
+- Error handling contracts for consistent error responses
+- Backward compatibility contracts for API versioning
+"""
+
+import pytest
+import asyncio
+import json
+import uuid
+from datetime import datetime, timedelta
+from typing import List, Dict, Any, Optional
+from httpx import AsyncClient
+from sqlalchemy.orm import Session
+from pydantic import ValidationError
+from jsonschema import validate, ValidationError as JsonSchemaValidationError
+
+from app.main import app
+from app.models.user import User, UserType
+from app.models.admin_permission import AdminPermission, PermissionScope, PermissionAction, ResourceType
+from app.models.admin_activity_log import AdminActivityLog, AdminActionType, ActionResult, RiskLevel
+from app.schemas.user import UserCreate, UserUpdate, UserResponse
+from app.schemas.admin_permission import AdminPermissionCreate, AdminPermissionResponse
+from app.schemas.admin_activity import AdminActivityLogResponse
+from app.core.security import create_access_token
+
+
+class ContractValidator:
+    """Contract validation utilities for testing."""
+
+    @staticmethod
+    def validate_user_response_contract(response_data: Dict[str, Any]) -> bool:
+        """Validate user response against contract."""
+        required_fields = [
+            "id", "email", "nombre", "apellido", "user_type",
+            "is_active", "is_verified", "created_at"
+        ]
+
+        for field in required_fields:
+            if field not in response_data:
+                return False
+
+        # Type validations
+        if not isinstance(response_data["id"], str):
+            return False
+        if not isinstance(response_data["email"], str):
+            return False
+        if not isinstance(response_data["is_active"], bool):
+            return False
+
+        return True
+
+    @staticmethod
+    def validate_permission_response_contract(response_data: Dict[str, Any]) -> bool:
+        """Validate permission response against contract."""
+        required_fields = [
+            "id", "name", "description", "resource_type",
+            "action", "scope", "required_clearance_level"
+        ]
+
+        for field in required_fields:
+            if field not in response_data:
+                return False
+
+        # Enum validations
+        valid_resource_types = ["USERS", "PERMISSIONS", "AUDIT_LOGS", "SYSTEM"]
+        valid_actions = ["CREATE", "READ", "UPDATE", "DELETE", "MANAGE", "GRANT", "REVOKE"]
+        valid_scopes = ["GLOBAL", "DEPARTMENT", "TEAM", "PERSONAL", "SYSTEM"]
+
+        if response_data["resource_type"] not in valid_resource_types:
+            return False
+        if response_data["action"] not in valid_actions:
+            return False
+        if response_data["scope"] not in valid_scopes:
+            return False
+
+        return True
+
+    @staticmethod
+    def validate_audit_log_contract(response_data: Dict[str, Any]) -> bool:
+        """Validate audit log response against contract."""
+        required_fields = [
+            "id", "admin_user_id", "admin_email", "action_type",
+            "action_name", "result", "created_at"
+        ]
+
+        for field in required_fields:
+            if field not in response_data:
+                return False
+
+        # Enum validations
+        valid_action_types = ["USER_MANAGEMENT", "SECURITY", "SYSTEM", "DATA"]
+        valid_results = ["SUCCESS", "FAILURE", "PARTIAL"]
+
+        if response_data["action_type"] not in valid_action_types:
+            return False
+        if response_data["result"] not in valid_results:
+            return False
+
+        return True
+
+    @staticmethod
+    def validate_error_response_contract(response_data: Dict[str, Any]) -> bool:
+        """Validate error response against contract."""
+        # Must have either 'detail' or 'message'
+        if "detail" not in response_data and "message" not in response_data:
+            return False
+
+        # Optional fields
+        optional_fields = ["type", "code", "timestamp", "path"]
+
+        return True
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+@pytest.mark.contract
+class TestAdminContractIntegration:
+    """Test admin system contract compliance and validation."""
+
+    async def test_api_schema_contract_validation(
+        self,
+        async_client: AsyncClient,
+        superuser: User,
+        system_permissions: List[AdminPermission],
+        integration_test_context
+    ):
+        """Test API schema contract validation against OpenAPI specification."""
+        auth_token = create_access_token(
+            data={"sub": str(superuser.id), "email": superuser.email}
+        )
+        headers = {"Authorization": f"Bearer {auth_token}"}
+
+        # Test 1: OpenAPI Schema Availability
+        schema_response = await async_client.get("/openapi.json")
+        assert schema_response.status_code == 200
+        openapi_schema = schema_response.json()
+
+        # Verify required OpenAPI fields
+        assert "openapi" in openapi_schema
+        assert "info" in openapi_schema
+        assert "paths" in openapi_schema
+        assert "components" in openapi_schema
+
+        # Test 2: User List Endpoint Contract
+        users_response = await async_client.get("/api/v1/admin/users", headers=headers)
+        assert users_response.status_code == 200
+        users_data = users_response.json()
+
+        # Validate list response structure
+        assert "users" in users_data
+        assert "total" in users_data
+        assert "page" in users_data
+        assert "size" in users_data
+        assert isinstance(users_data["users"], list)
+        assert isinstance(users_data["total"], int)
+
+        # Validate individual user contracts
+        if users_data["users"]:
+            for user in users_data["users"]:
+                assert ContractValidator.validate_user_response_contract(user)
+
+        # Test 3: User Creation Contract
+        create_user_data = {
+            "email": "contract.test@mestore.com",
+            "password": "contract_password_123",
+            "nombre": "Contract",
+            "apellido": "Test",
+            "user_type": UserType.ADMIN.value,
+            "security_clearance_level": 3
+        }
+
+        create_response = await async_client.post(
+            "/api/v1/admin/users",
+            json=create_user_data,
+            headers=headers
+        )
+
+        assert create_response.status_code == 201
+        created_user = create_response.json()
+        assert ContractValidator.validate_user_response_contract(created_user)
+
+        # Verify created user matches input data
+        assert created_user["email"] == create_user_data["email"]
+        assert created_user["nombre"] == create_user_data["nombre"]
+        assert created_user["user_type"] == create_user_data["user_type"]
+
+        # Test 4: Permission Grant Contract
+        permission = system_permissions[0]
+        grant_data = {
+            "user_id": created_user["id"],
+            "permission_id": str(permission.id)
+        }
+
+        grant_response = await async_client.post(
+            "/api/v1/admin/permissions/grant",
+            json=grant_data,
+            headers=headers
+        )
+
+        assert grant_response.status_code == 200
+        grant_result = grant_response.json()
+        assert "success" in grant_result
+        assert isinstance(grant_result["success"], bool)
+
+        # Test 5: Permission List Contract
+        permissions_response = await async_client.get(
+            f"/api/v1/admin/users/{created_user['id']}/permissions",
+            headers=headers
+        )
+
+        assert permissions_response.status_code == 200
+        permissions_data = permissions_response.json()
+        assert "permissions" in permissions_data
+        assert isinstance(permissions_data["permissions"], list)
+
+        for permission_data in permissions_data["permissions"]:
+            assert ContractValidator.validate_permission_response_contract(permission_data)
+
+        integration_test_context.record_operation("api_schema_contract_validation", 1.0)
+
+    async def test_database_schema_contract_enforcement(
+        self,
+        integration_db_session: Session,
+        superuser: User,
+        integration_test_context
+    ):
+        """Test database schema contract enforcement and constraints."""
+
+        # Test 1: User Model Contract
+        # Valid user creation
+        valid_user = User(
+            id=str(uuid.uuid4()),
+            email="db.contract.test@mestore.com",
+            nombre="Database",
+            apellido="Contract",
+            user_type=UserType.ADMIN,
+            security_clearance_level=3,
+            is_active=True,
+            is_verified=True,
+            password_hash="$2b$12$dummy.hash.for.testing",
+            performance_score=90,
+            habeas_data_accepted=True,
+            data_processing_consent=True
+        )
+
+        integration_db_session.add(valid_user)
+        integration_db_session.commit()
+        integration_db_session.refresh(valid_user)
+
+        # Verify all required fields are populated
+        assert valid_user.id is not None
+        assert valid_user.email is not None
+        assert valid_user.nombre is not None
+        assert valid_user.apellido is not None
+        assert valid_user.user_type is not None
+        assert valid_user.created_at is not None
+        assert valid_user.updated_at is not None
+
+        # Test 2: Constraint Validation
+        # Unique email constraint
+        duplicate_user = User(
+            id=str(uuid.uuid4()),
+            email="db.contract.test@mestore.com",  # Same email
+            nombre="Duplicate",
+            apellido="User",
+            user_type=UserType.ADMIN,
+            security_clearance_level=3,
+            is_active=True,
+            is_verified=True,
+            password_hash="$2b$12$another.hash",
+            performance_score=85,
+            habeas_data_accepted=True,
+            data_processing_consent=True
+        )
+
+        integration_db_session.add(duplicate_user)
+
+        from sqlalchemy.exc import IntegrityError
+        with pytest.raises(IntegrityError):
+            integration_db_session.commit()
+
+        integration_db_session.rollback()
+
+        # Test 3: Permission Model Contract
+        permission = AdminPermission(
+            id=str(uuid.uuid4()),
+            name="contract.test.permission",
+            description="Contract test permission",
+            resource_type=ResourceType.USERS,
+            action=PermissionAction.READ,
+            scope=PermissionScope.GLOBAL,
+            required_clearance_level=3,
+            is_inheritable=True,
+            is_system_permission=False
+        )
+
+        integration_db_session.add(permission)
+        integration_db_session.commit()
+        integration_db_session.refresh(permission)
+
+        # Verify permission constraints
+        assert permission.required_clearance_level >= 1
+        assert permission.required_clearance_level <= 5
+        assert permission.resource_type in ResourceType
+        assert permission.action in PermissionAction
+        assert permission.scope in PermissionScope
+
+        # Test 4: Audit Log Contract
+        audit_log = AdminActivityLog(
+            admin_user_id=superuser.id,
+            admin_email=superuser.email,
+            admin_full_name=superuser.full_name,
+            action_type=AdminActionType.USER_MANAGEMENT,
+            action_name="contract_test",
+            action_description="Testing contract enforcement",
+            target_type="user",
+            target_id=str(valid_user.id),
+            result=ActionResult.SUCCESS,
+            risk_level=RiskLevel.LOW
+        )
+
+        integration_db_session.add(audit_log)
+        integration_db_session.commit()
+        integration_db_session.refresh(audit_log)
+
+        # Verify audit log fields
+        assert audit_log.admin_user_id is not None
+        assert audit_log.admin_email is not None
+        assert audit_log.action_type in AdminActionType
+        assert audit_log.result in ActionResult
+        assert audit_log.risk_level in RiskLevel
+        assert audit_log.created_at is not None
+
+        integration_test_context.record_operation("database_schema_contract_enforcement", 1.0)
+
+    async def test_service_interface_contract_verification(
+        self,
+        integration_db_session: Session,
+        admin_permission_service_with_redis,
+        superuser: User,
+        admin_user: User,
+        system_permissions: List[AdminPermission],
+        integration_test_context
+    ):
+        """Test service interface contracts for proper dependency injection."""
+
+        # Test 1: AdminPermissionService Contract
+        # Verify service has required methods
+        required_methods = [
+            'validate_permission',
+            'grant_permission',
+            'revoke_permission',
+            'get_user_permissions',
+            'get_permission_hierarchy'
+        ]
+
+        for method_name in required_methods:
+            assert hasattr(admin_permission_service_with_redis, method_name), \
+                f"Service missing required method: {method_name}"
+
+        # Test 2: Method Contract Validation
+        permission = system_permissions[0]
+
+        # validate_permission contract
+        result = await admin_permission_service_with_redis.validate_permission(
+            integration_db_session, superuser,
+            permission.resource_type, permission.action, permission.scope
+        )
+        assert isinstance(result, bool)
+
+        # grant_permission contract
+        grant_result = await admin_permission_service_with_redis.grant_permission(
+            integration_db_session, superuser, admin_user, permission
+        )
+        assert isinstance(grant_result, bool)
+
+        # get_user_permissions contract
+        user_permissions = await admin_permission_service_with_redis.get_user_permissions(
+            integration_db_session, admin_user
+        )
+        assert isinstance(user_permissions, list)
+
+        if user_permissions:
+            for perm in user_permissions:
+                assert isinstance(perm, dict)
+                assert "name" in perm
+                assert "resource_type" in perm
+                assert "action" in perm
+                assert "scope" in perm
+
+        # Test 3: Error Contract Validation
+        from app.services.admin_permission_service import PermissionDeniedError, InsufficientClearanceError
+
+        # Test permission denied error contract
+        high_clearance_permission = next(
+            p for p in system_permissions if p.required_clearance_level == 5
+        )
+
+        with pytest.raises(PermissionDeniedError) as exc_info:
+            await admin_permission_service_with_redis.validate_permission(
+                integration_db_session, admin_user,  # Lower clearance
+                high_clearance_permission.resource_type,
+                high_clearance_permission.action,
+                high_clearance_permission.scope
+            )
+
+        # Verify error has required attributes
+        error = exc_info.value
+        assert hasattr(error, 'message') or str(error)
+
+        # Test 4: Dependency Injection Contract
+        assert admin_permission_service_with_redis.redis_client is not None
+        assert admin_permission_service_with_redis.cache_ttl > 0
+        assert admin_permission_service_with_redis.permission_hierarchy is not None
+
+        integration_test_context.record_operation("service_interface_contract_verification", 1.0)
+
+    async def test_event_contract_validation(
+        self,
+        async_client: AsyncClient,
+        integration_db_session: Session,
+        superuser: User,
+        system_permissions: List[AdminPermission],
+        integration_test_context
+    ):
+        """Test event publishing and consumption contract validation."""
+
+        auth_token = create_access_token(
+            data={"sub": str(superuser.id), "email": superuser.email}
+        )
+        headers = {"Authorization": f"Bearer {auth_token}"}
+
+        # Test 1: User Creation Event Contract
+        create_user_data = {
+            "email": "event.contract@mestore.com",
+            "password": "event_password_123",
+            "nombre": "Event",
+            "apellido": "Contract",
+            "user_type": UserType.ADMIN.value,
+            "security_clearance_level": 3
+        }
+
+        create_response = await async_client.post(
+            "/api/v1/admin/users",
+            json=create_user_data,
+            headers=headers
+        )
+
+        assert create_response.status_code == 201
+        created_user = create_response.json()
+
+        # Verify audit event was created (implicit event)
+        audit_logs = integration_db_session.query(AdminActivityLog).filter(
+            AdminActivityLog.target_id == created_user["id"]
+        ).all()
+
+        assert len(audit_logs) >= 1
+        audit_log = audit_logs[0]
+
+        # Verify audit event contract
+        assert ContractValidator.validate_audit_log_contract({
+            "id": str(audit_log.id),
+            "admin_user_id": audit_log.admin_user_id,
+            "admin_email": audit_log.admin_email,
+            "action_type": audit_log.action_type.value,
+            "action_name": audit_log.action_name,
+            "result": audit_log.result.value,
+            "created_at": audit_log.created_at.isoformat()
+        })
+
+        # Test 2: Permission Grant Event Contract
+        permission = system_permissions[0]
+        grant_data = {
+            "user_id": created_user["id"],
+            "permission_id": str(permission.id)
+        }
+
+        grant_response = await async_client.post(
+            "/api/v1/admin/permissions/grant",
+            json=grant_data,
+            headers=headers
+        )
+
+        assert grant_response.status_code == 200
+
+        # Verify permission grant event
+        permission_audit_logs = integration_db_session.query(AdminActivityLog).filter(
+            AdminActivityLog.target_id == created_user["id"],
+            AdminActivityLog.action_name.like("%permission%")
+        ).all()
+
+        assert len(permission_audit_logs) >= 1
+
+        # Test 3: Event Payload Contract
+        # Events should contain standard fields
+        for log in permission_audit_logs:
+            assert log.admin_user_id is not None
+            assert log.admin_email is not None
+            assert log.action_type is not None
+            assert log.action_name is not None
+            assert log.result is not None
+            assert log.created_at is not None
+
+            # Optional but recommended fields
+            if log.additional_context:
+                context = json.loads(log.additional_context)
+                assert isinstance(context, dict)
+
+        integration_test_context.record_operation("event_contract_validation", 1.0)
+
+    async def test_error_contract_specification(
+        self,
+        async_client: AsyncClient,
+        superuser: User,
+        integration_test_context
+    ):
+        """Test error handling contracts for consistent error responses."""
+
+        auth_token = create_access_token(
+            data={"sub": str(superuser.id), "email": superuser.email}
+        )
+        headers = {"Authorization": f"Bearer {auth_token}"}
+
+        # Test 1: Validation Error Contract (400)
+        invalid_user_data = {
+            "email": "invalid-email",  # Invalid email format
+            "password": "123",  # Too short
+            "nombre": "",  # Empty required field
+            "user_type": "INVALID_TYPE"  # Invalid enum
+        }
+
+        validation_response = await async_client.post(
+            "/api/v1/admin/users",
+            json=invalid_user_data,
+            headers=headers
+        )
+
+        assert validation_response.status_code == 422  # Validation error
+        error_data = validation_response.json()
+        assert ContractValidator.validate_error_response_contract(error_data)
+
+        # Pydantic validation errors should have specific structure
+        if "detail" in error_data:
+            assert isinstance(error_data["detail"], list)
+            for error_item in error_data["detail"]:
+                assert "loc" in error_item
+                assert "msg" in error_item
+                assert "type" in error_item
+
+        # Test 2: Authentication Error Contract (401)
+        invalid_headers = {"Authorization": "Bearer invalid_token"}
+        auth_response = await async_client.get(
+            "/api/v1/admin/users",
+            headers=invalid_headers
+        )
+
+        assert auth_response.status_code == 401
+        auth_error = auth_response.json()
+        assert ContractValidator.validate_error_response_contract(auth_error)
+
+        # Test 3: Authorization Error Contract (403)
+        # Create low-privilege user
+        low_user_data = {
+            "email": "low.privilege@mestore.com",
+            "password": "low_password_123",
+            "nombre": "Low",
+            "apellido": "Privilege",
+            "user_type": UserType.ADMIN.value,
+            "security_clearance_level": 1
+        }
+
+        create_response = await async_client.post(
+            "/api/v1/admin/users",
+            json=low_user_data,
+            headers=headers
+        )
+
+        if create_response.status_code == 201:
+            low_user = create_response.json()
+            low_token = create_access_token(
+                data={"sub": low_user["id"], "email": low_user["email"]}
+            )
+            low_headers = {"Authorization": f"Bearer {low_token}"}
+
+            # Try to access high-privilege endpoint
+            privilege_response = await async_client.get(
+                "/api/v1/admin/system/config",  # Hypothetical high-privilege endpoint
+                headers=low_headers
+            )
+
+            if privilege_response.status_code == 403:
+                privilege_error = privilege_response.json()
+                assert ContractValidator.validate_error_response_contract(privilege_error)
+
+        # Test 4: Not Found Error Contract (404)
+        not_found_response = await async_client.get(
+            f"/api/v1/admin/users/{uuid.uuid4()}",
+            headers=headers
+        )
+
+        assert not_found_response.status_code == 404
+        not_found_error = not_found_response.json()
+        assert ContractValidator.validate_error_response_contract(not_found_error)
+
+        # Test 5: Server Error Contract (500)
+        # This is harder to test without actually causing a server error
+        # We can test that if a 500 occurs, it follows the contract
+
+        integration_test_context.record_operation("error_contract_specification", 1.0)
+
+    async def test_version_compatibility_contract(
+        self,
+        async_client: AsyncClient,
+        superuser: User,
+        integration_test_context
+    ):
+        """Test backward compatibility contracts for API versioning."""
+
+        auth_token = create_access_token(
+            data={"sub": str(superuser.id), "email": superuser.email}
+        )
+        headers = {"Authorization": f"Bearer {auth_token}"}
+
+        # Test 1: API Version Header Support
+        versioned_headers = {
+            **headers,
+            "Accept": "application/json",
+            "API-Version": "v1"
+        }
+
+        version_response = await async_client.get(
+            "/api/v1/admin/users",
+            headers=versioned_headers
+        )
+
+        assert version_response.status_code == 200
+
+        # Response should include version information
+        response_headers = version_response.headers
+        # Many APIs include version in response headers
+        # assert "API-Version" in response_headers or "X-API-Version" in response_headers
+
+        # Test 2: Backward Compatible Field Support
+        # Create user with v1 fields
+        v1_user_data = {
+            "email": "v1.compat@mestore.com",
+            "password": "v1_password_123",
+            "nombre": "V1",
+            "apellido": "Compatible",
+            "user_type": UserType.ADMIN.value,
+            "security_clearance_level": 3
+        }
+
+        v1_response = await async_client.post(
+            "/api/v1/admin/users",
+            json=v1_user_data,
+            headers=headers
+        )
+
+        assert v1_response.status_code == 201
+        v1_user = v1_response.json()
+
+        # Verify all v1 fields are present in response
+        v1_required_fields = [
+            "id", "email", "nombre", "apellido", "user_type",
+            "is_active", "created_at"
+        ]
+
+        for field in v1_required_fields:
+            assert field in v1_user, f"V1 compatibility broken: missing field {field}"
+
+        # Test 3: Optional Field Compatibility
+        # Fields added in newer versions should be optional
+        optional_v2_fields = [
+            "department_id", "employee_id", "manager_id",
+            "last_login", "profile_picture_url"
+        ]
+
+        # These fields may or may not be present, but if present should be valid
+        for field in optional_v2_fields:
+            if field in v1_user:
+                assert v1_user[field] is None or isinstance(v1_user[field], (str, dict))
+
+        # Test 4: Deprecated Field Handling
+        # Deprecated fields should still work but may be marked as deprecated
+        # This would be implementation-specific
+
+        # Test 5: Content Negotiation Contract
+        json_headers = {**headers, "Accept": "application/json"}
+        json_response = await async_client.get(
+            "/api/v1/admin/users",
+            headers=json_headers
+        )
+        assert json_response.status_code == 200
+        assert "application/json" in json_response.headers.get("content-type", "")
+
+        integration_test_context.record_operation("version_compatibility_contract", 1.0)
+
+    async def test_pagination_contract_compliance(
+        self,
+        async_client: AsyncClient,
+        superuser: User,
+        multiple_admin_users: List[User],
+        integration_test_context
+    ):
+        """Test pagination contract compliance across list endpoints."""
+
+        auth_token = create_access_token(
+            data={"sub": str(superuser.id), "email": superuser.email}
+        )
+        headers = {"Authorization": f"Bearer {auth_token}"}
+
+        # Test 1: Default Pagination Contract
+        default_response = await async_client.get(
+            "/api/v1/admin/users",
+            headers=headers
+        )
+
+        assert default_response.status_code == 200
+        default_data = default_response.json()
+
+        # Verify pagination structure
+        pagination_fields = ["page", "size", "total", "users"]
+        for field in pagination_fields:
+            assert field in default_data, f"Missing pagination field: {field}"
+
+        assert isinstance(default_data["page"], int)
+        assert isinstance(default_data["size"], int)
+        assert isinstance(default_data["total"], int)
+        assert isinstance(default_data["users"], list)
+        assert default_data["page"] >= 1
+        assert default_data["size"] > 0
+
+        # Test 2: Custom Pagination Parameters
+        custom_response = await async_client.get(
+            "/api/v1/admin/users?page=1&size=5",
+            headers=headers
+        )
+
+        assert custom_response.status_code == 200
+        custom_data = custom_response.json()
+
+        assert custom_data["page"] == 1
+        assert custom_data["size"] == 5
+        assert len(custom_data["users"]) <= 5
+
+        # Test 3: Pagination Boundary Testing
+        # Test page beyond available data
+        high_page_response = await async_client.get(
+            "/api/v1/admin/users?page=9999&size=10",
+            headers=headers
+        )
+
+        assert high_page_response.status_code == 200
+        high_page_data = high_page_response.json()
+        assert high_page_data["users"] == []  # Empty results for out-of-range page
+
+        # Test 4: Invalid Pagination Parameters
+        invalid_page_response = await async_client.get(
+            "/api/v1/admin/users?page=0&size=-1",
+            headers=headers
+        )
+
+        # Should either return 400 or default to valid values
+        assert invalid_page_response.status_code in [200, 400]
+
+        if invalid_page_response.status_code == 200:
+            # If API handles invalid params gracefully
+            invalid_data = invalid_page_response.json()
+            assert invalid_data["page"] >= 1
+            assert invalid_data["size"] > 0
+
+        integration_test_context.record_operation("pagination_contract_compliance", 1.0)

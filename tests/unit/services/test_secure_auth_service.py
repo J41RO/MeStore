@@ -347,7 +347,7 @@ class TestSecureAuthService:
         user.id = 1
         user.email = "test@example.com"
         user.password_hash = "$2b$12$hash"
-        user.user_type = UserType.COMPRADOR
+        user.user_type = UserType.BUYER
         user.is_active = True
         user.failed_login_attempts = 0
         user.locked_until = None
@@ -464,7 +464,7 @@ class TestSecureAuthService:
             "password": "StrongPass123!",
             "nombre": "Test",
             "apellido": "User",
-            "user_type": UserType.COMPRADOR
+            "user_type": UserType.BUYER
         }
 
         with patch.object(auth_service, 'validate_password_strength', return_value=(True, "Valid")):

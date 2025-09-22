@@ -10,7 +10,9 @@ Date: 2025-09-17
 Purpose: API standardization - unified auth patterns
 """
 
-from typing import Optional
+from typing import Optional, Union, List, Set
+import logging
+
 from fastapi import Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,16 +23,30 @@ from app.models.user import User, UserType
 from app.core.responses import AuthErrorHelper, ErrorHelper
 from app.schemas.common import ErrorCode
 
-# Initialize HTTPBearer security scheme
+# Configure logger for authentication operations
+logger = logging.getLogger(__name__)
+
+# Initialize HTTPBearer security scheme with optimized error handling
 security = HTTPBearer(auto_error=False)
+
+# Pre-define role sets for better performance
+ADMIN_ROLES: Set[UserType] = {UserType.ADMIN, UserType.SUPERUSER}
+VENDOR_OR_ADMIN_ROLES: Set[UserType] = {UserType.VENDOR, UserType.ADMIN, UserType.SUPERUSER}
+
+# Type aliases for better code readability
+UserRoleType = Union[UserType, None]
+AuthCredentials = Optional[HTTPAuthorizationCredentials]
 
 
 async def get_current_user(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    credentials: AuthCredentials = Depends(security),
     db: AsyncSession = Depends(get_db)
 ) -> User:
     """
     Standard authentication dependency for all protected endpoints.
+
+    This function provides comprehensive authentication validation with
+    proper error handling and security logging.
 
     Args:
         credentials: HTTPBearer credentials from Authorization header
@@ -43,37 +59,50 @@ async def get_current_user(
         StandardHTTPException: 401 if authentication fails
     """
     if not credentials:
+        logger.warning("Authentication failed: No credentials provided")
         raise AuthErrorHelper.invalid_credentials()
 
     try:
         # Decode and validate JWT token
         payload = decode_access_token(credentials.credentials)
-        user_id: str = payload.get("sub")
-
-        if user_id is None:
-            raise AuthErrorHelper.invalid_credentials()
-
-    except Exception:
+        if payload is None:
+            logger.warning("Authentication failed: Token decode returned None")
+            raise AuthErrorHelper.token_expired()
+    except Exception as e:
+        logger.warning(f"Authentication failed: Token decode exception: {str(e)}")
         raise AuthErrorHelper.token_expired()
+
+    # Validate user_id from token payload
+    user_id: str = payload.get("sub")
+    if not user_id or not isinstance(user_id, str) or user_id.strip() == "":
+        logger.warning("Authentication failed: Invalid user_id in token payload")
+        raise AuthErrorHelper.invalid_credentials()
 
     # Get user from database
     user = await db.get(User, user_id)
     if user is None:
+        logger.warning(f"Authentication failed: User not found in database: {user_id}")
         raise AuthErrorHelper.invalid_credentials()
 
     # Check if user account is active
     if not user.is_active:
+        logger.warning(f"Authentication failed: User account disabled: {user_id}")
         raise AuthErrorHelper.account_disabled()
 
+    logger.debug(f"Authentication successful: {user_id} ({user.user_type.value})")
     return user
 
 
 async def get_current_user_optional(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    credentials: AuthCredentials = Depends(security),
     db: AsyncSession = Depends(get_db)
 ) -> Optional[User]:
     """
     Optional authentication dependency for endpoints that work with or without auth.
+
+    This function gracefully handles authentication failures and returns None
+    instead of raising exceptions, making it suitable for public endpoints
+    with optional authentication.
 
     Args:
         credentials: Optional HTTPBearer credentials
@@ -83,12 +112,55 @@ async def get_current_user_optional(
         Optional[User]: Authenticated user if valid token, None otherwise
     """
     if not credentials:
+        logger.debug("Optional authentication: No credentials provided")
         return None
 
     try:
-        return await get_current_user(credentials, db)
-    except Exception:
+        user = await get_current_user(credentials, db)
+        logger.debug(f"Optional authentication successful: {user.id}")
+        return user
+    except Exception as e:
+        logger.debug(f"Optional authentication failed gracefully: {str(e)}")
         return None
+
+
+# Centralized role validation helper
+def _validate_user_role(
+    user: User,
+    allowed_roles: Set[UserType],
+    operation_description: str
+) -> None:
+    """
+    Centralized role validation helper following DRY principle.
+
+    Args:
+        user: Authenticated user object
+        allowed_roles: Set of allowed user types
+        operation_description: Human-readable description for error messages
+
+    Raises:
+        HTTPException: 403 if user doesn't have required permissions
+    """
+    if user.user_type not in allowed_roles:
+        logger.warning(
+            f"Authorization failed: User {user.id} ({user.user_type.value}) "
+            f"attempted {operation_description}"
+        )
+
+        role_names = [role.value for role in allowed_roles]
+        raise ErrorHelper.forbidden(
+            operation_description,
+            details={
+                "required_roles": role_names,
+                "user_role": user.user_type.value,
+                "user_id": str(user.id)
+            }
+        )
+
+    logger.debug(
+        f"Authorization successful: User {user.id} ({user.user_type.value}) "
+        f"for {operation_description}"
+    )
 
 
 async def require_admin(
@@ -106,12 +178,11 @@ async def require_admin(
     Raises:
         StandardHTTPException: 403 if insufficient permissions
     """
-    if current_user.user_type not in [UserType.ADMIN, UserType.SUPERUSER]:
-        raise ErrorHelper.forbidden(
-            "Administrator permissions required",
-            details={"required_roles": ["admin", "superuser"], "user_role": current_user.user_type.value}
-        )
-
+    _validate_user_role(
+        user=current_user,
+        allowed_roles=ADMIN_ROLES,
+        operation_description="Administrator permissions required"
+    )
     return current_user
 
 
@@ -130,12 +201,11 @@ async def require_superuser(
     Raises:
         StandardHTTPException: 403 if insufficient permissions
     """
-    if current_user.user_type != UserType.SUPERUSER:
-        raise ErrorHelper.forbidden(
-            "Superuser permissions required",
-            details={"required_role": "superuser", "user_role": current_user.user_type.value}
-        )
-
+    _validate_user_role(
+        user=current_user,
+        allowed_roles={UserType.SUPERUSER},
+        operation_description="Superuser permissions required"
+    )
     return current_user
 
 
@@ -154,12 +224,11 @@ async def require_vendor(
     Raises:
         StandardHTTPException: 403 if insufficient permissions
     """
-    if current_user.user_type != UserType.VENDOR:
-        raise ErrorHelper.forbidden(
-            "Vendor permissions required",
-            details={"required_role": "vendor", "user_role": current_user.user_type.value}
-        )
-
+    _validate_user_role(
+        user=current_user,
+        allowed_roles={UserType.VENDOR},
+        operation_description="Vendor permissions required"
+    )
     return current_user
 
 
@@ -178,12 +247,11 @@ async def require_buyer(
     Raises:
         StandardHTTPException: 403 if insufficient permissions
     """
-    if current_user.user_type != UserType.BUYER:
-        raise ErrorHelper.forbidden(
-            "Buyer permissions required",
-            details={"required_role": "buyer", "user_role": current_user.user_type.value}
-        )
-
+    _validate_user_role(
+        user=current_user,
+        allowed_roles={UserType.BUYER},
+        operation_description="Buyer permissions required"
+    )
     return current_user
 
 
@@ -202,16 +270,11 @@ async def require_vendor_or_admin(
     Raises:
         StandardHTTPException: 403 if insufficient permissions
     """
-    allowed_roles = [UserType.VENDOR, UserType.ADMIN, UserType.SUPERUSER]
-    if current_user.user_type not in allowed_roles:
-        raise ErrorHelper.forbidden(
-            "Vendor or administrator permissions required",
-            details={
-                "required_roles": ["vendor", "admin", "superuser"],
-                "user_role": current_user.user_type.value
-            }
-        )
-
+    _validate_user_role(
+        user=current_user,
+        allowed_roles=VENDOR_OR_ADMIN_ROLES,
+        operation_description="Vendor or administrator permissions required"
+    )
     return current_user
 
 
@@ -221,6 +284,9 @@ async def require_admin_or_self(
 ) -> User:
     """
     Require admin permissions or access to own resources.
+
+    This function allows users to access their own resources or requires
+    admin privileges for accessing other users' resources.
 
     Args:
         target_user_id: ID of the user being accessed
@@ -232,10 +298,14 @@ async def require_admin_or_self(
     Raises:
         StandardHTTPException: 403 if insufficient permissions
     """
-    is_admin = current_user.user_type in [UserType.ADMIN, UserType.SUPERUSER]
+    is_admin = current_user.user_type in ADMIN_ROLES
     is_self = str(current_user.id) == target_user_id
 
     if not (is_admin or is_self):
+        logger.warning(
+            f"Access denied: User {current_user.id} ({current_user.user_type.value}) "
+            f"attempted to access user {target_user_id} resources"
+        )
         raise ErrorHelper.forbidden(
             "Can only access own resources or admin permissions required",
             details={
@@ -245,6 +315,11 @@ async def require_admin_or_self(
             }
         )
 
+    access_type = "admin" if is_admin else "self"
+    logger.debug(
+        f"Access granted ({access_type}): User {current_user.id} "
+        f"accessing user {target_user_id} resources"
+    )
     return current_user
 
 
@@ -254,6 +329,9 @@ async def require_vendor_ownership(
 ) -> User:
     """
     Require vendor to own the resource or admin permissions.
+
+    This function enforces that only the vendor who owns a resource
+    or administrators can access vendor-specific resources.
 
     Args:
         vendor_id: ID of the vendor who owns the resource
@@ -265,10 +343,17 @@ async def require_vendor_ownership(
     Raises:
         StandardHTTPException: 403 if insufficient permissions
     """
-    is_admin = current_user.user_type in [UserType.ADMIN, UserType.SUPERUSER]
-    is_owner = str(current_user.id) == vendor_id and current_user.user_type == UserType.VENDOR
+    is_admin = current_user.user_type in ADMIN_ROLES
+    is_owner = (
+        str(current_user.id) == vendor_id and
+        current_user.user_type == UserType.VENDOR
+    )
 
     if not (is_admin or is_owner):
+        logger.warning(
+            f"Vendor access denied: User {current_user.id} ({current_user.user_type.value}) "
+            f"attempted to access vendor {vendor_id} resources"
+        )
         raise ErrorHelper.forbidden(
             "Can only access own vendor resources or admin permissions required",
             details={
@@ -278,6 +363,11 @@ async def require_vendor_ownership(
             }
         )
 
+    access_type = "admin" if is_admin else "owner"
+    logger.debug(
+        f"Vendor access granted ({access_type}): User {current_user.id} "
+        f"accessing vendor {vendor_id} resources"
+    )
     return current_user
 
 

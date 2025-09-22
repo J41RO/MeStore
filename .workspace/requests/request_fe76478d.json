@@ -1,0 +1,20 @@
+{
+  "id": "fe76478d",
+  "timestamp": "2025-09-22T11:54:59.889523",
+  "requesting_agent": "tdd-specialist",
+  "target_file": "app/models/user.py",
+  "reason": "URGENTE: Tests CR\u00cdTICO NIVEL 2 bloqueados por campos faltantes en tabla users. Necesito sincronizar modelo con DB para continuar validaci\u00f3n sistem\u00e1tica. Ver reporte en .workspace/reports/testing-issue-user-model-fields-missing.md",
+  "status": "pending",
+  "contacted_agents": [
+    {
+      "timestamp": "2025-09-22T11:54:59.889764",
+      "agent": "database-architect-ai",
+      "type": "primary_contact",
+      "message": "Solicitud de tdd-specialist para modificar app/models/user.py",
+      "deadline": "2025-09-22T11:59:59.889533"
+    }
+  ],
+  "responses": [],
+  "escalation_level": 1,
+  "deadline": "2025-09-22T11:59:59.889533"
+}

@@ -1,0 +1,22 @@
+# 📋 TEMPLATE OBLIGATORIO DE COMMIT MESTORE
+
+# tipo(área): descripción breve en inglés
+#
+# Workspace-Check: ✅ Consultado
+# Archivo: ruta/del/archivo.py
+# Agente: nombre-del-agente
+# Protocolo: [SEGUIDO/CONSULTA_PREVIA/APROBACIÓN_OBTENIDA]
+# Tests: [PASSED/FAILED/NO_EJECUTADOS]
+# Responsable: agente-que-aprobó (si aplica)
+#
+# Cambios realizados:
+# - Qué se modificó exactamente
+# - Por qué era necesario
+# - Qué se probó después
+#
+# ⚠️ REQUERIDO PARA ARCHIVOS PROTEGIDOS:
+# - app/main.py, docker-compose.yml, frontend/vite.config.ts
+# - app/api/v1/deps/auth.py, app/models/user.py
+# - tests/conftest.py (NO crear usuarios duplicados)
+#
+# 🚨 CONSECUENCIAS: Commits sin template serán rechazados

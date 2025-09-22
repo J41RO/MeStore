@@ -9,6 +9,7 @@ Focus on WORKING functionality over perfect architecture.
 import asyncio
 import pytest
 import httpx
+from httpx import AsyncClient, ASGITransport
 from app.main import app
 import time
 
@@ -19,12 +20,16 @@ class TestFoundationSimple:
     @pytest.mark.asyncio
     async def test_application_startup_foundation(self):
         """CRITICAL: Verify application starts without errors."""
-        async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.get("/health")
             assert response.status_code == 200
 
             data = response.json()
-            assert data.get("status") in ["healthy", "ok"]
+            assert data.get("status") in ["healthy", "ok", "success"]
+            # Also check nested status if present
+            if "data" in data and isinstance(data["data"], dict):
+                assert data["data"].get("status") == "healthy"
 
     @pytest.mark.asyncio
     async def test_critical_endpoints_availability(self):
@@ -33,11 +38,12 @@ class TestFoundationSimple:
         critical_endpoints = [
             ("/health", "GET"),
             ("/api/v1/auth/login", "POST"),
-            ("/api/v1/productos", "GET"),
+            ("/api/v1/productos/", "GET"),
             ("/docs", "GET"),  # API documentation
         ]
 
-        async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
             for endpoint, method in critical_endpoints:
                 if method == "GET":
                     response = await client.get(endpoint)
@@ -54,7 +60,8 @@ class TestFoundationSimple:
     @pytest.mark.asyncio
     async def test_api_documentation_available(self):
         """FOUNDATION: API documentation is accessible."""
-        async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
             # Test Swagger UI
             response = await client.get("/docs")
             assert response.status_code == 200
@@ -71,9 +78,10 @@ class TestFoundationSimple:
     @pytest.mark.asyncio
     async def test_products_endpoint_basic_functionality(self):
         """FOUNDATION: Products endpoint works for basic operations."""
-        async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
             # Test GET products (should work without auth)
-            response = await client.get("/api/v1/productos")
+            response = await client.get("/api/v1/productos/")
             assert response.status_code in [200, 401]  # Either works or needs auth
 
             if response.status_code == 200:
@@ -83,7 +91,8 @@ class TestFoundationSimple:
     @pytest.mark.asyncio
     async def test_auth_endpoint_structure(self):
         """FOUNDATION: Authentication endpoint has correct structure."""
-        async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
             # Test login endpoint with invalid data (should return 422, not 500)
             response = await client.post("/api/v1/auth/login", json={})
             assert response.status_code in [400, 422], "Auth endpoint should validate input"
@@ -100,7 +109,8 @@ class TestFoundationSimple:
         """FOUNDATION: System performs adequately under basic load."""
 
         async def make_request():
-            async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
                 start = time.time()
                 response = await client.get("/health")
                 end = time.time()
@@ -123,7 +133,8 @@ class TestFoundationSimple:
     @pytest.mark.asyncio
     async def test_error_handling_foundation(self):
         """FOUNDATION: System handles errors gracefully."""
-        async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
             # Test non-existent endpoint
             response = await client.get("/api/v1/nonexistent")
             assert response.status_code == 404
@@ -137,7 +148,8 @@ class TestFoundationSimple:
     @pytest.mark.asyncio
     async def test_basic_security_headers(self):
         """FOUNDATION: Check for basic security awareness."""
-        async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.get("/health")
             assert response.status_code == 200
 
@@ -180,7 +192,8 @@ class TestFoundationSimple:
     @pytest.mark.asyncio
     async def test_comprehensive_health_check(self):
         """FOUNDATION: Comprehensive health check validation."""
-        async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
             # Test basic health
             response = await client.get("/health")
             assert response.status_code == 200
@@ -200,7 +213,8 @@ class TestFoundationSimple:
     @pytest.mark.asyncio
     async def test_marketplace_foundation_readiness(self):
         """FOUNDATION: Validate marketplace-specific readiness."""
-        async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
             # Test that Colombian marketplace features are structurally ready
 
             # Products endpoint should exist for marketplace functionality

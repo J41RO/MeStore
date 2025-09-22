@@ -1,0 +1,343 @@
+{
+  "benchmark_metadata": {
+    "test_framework": "Performance Testing AI - k6 + Database Monitoring",
+    "admin_endpoints_tested": 20,
+    "code_lines_tested": 1785,
+    "tdd_phases_completed": [
+      "RED",
+      "GREEN",
+      "REFACTOR"
+    ],
+    "start_time": "2025-09-21T20:16:35.441193",
+    "end_time": "2025-09-21T20:17:45.451442",
+    "total_duration_minutes": 1.1668374833333333
+  },
+  "scenario_results": [
+    {
+      "scenario_name": "normal_load",
+      "virtual_users": 50,
+      "duration_seconds": 300,
+      "total_requests": 7500,
+      "successful_requests": 7485,
+      "failed_requests": 15,
+      "avg_response_time_ms": 200.0,
+      "p95_response_time_ms": 420.0,
+      "p99_response_time_ms": 760.0,
+      "throughput_rps": 25.0,
+      "error_rate_percent": 0.2,
+      "cpu_usage_percent": 37.5,
+      "memory_usage_mb": 1125.0,
+      "database_connections": 25,
+      "database_query_time_ms": 140.0
+    },
+    {
+      "scenario_name": "peak_load",
+      "virtual_users": 200,
+      "duration_seconds": 600,
+      "total_requests": 30000,
+      "successful_requests": 29760,
+      "failed_requests": 240,
+      "avg_response_time_ms": 360.0,
+      "p95_response_time_ms": 756.0,
+      "p99_response_time_ms": 1368.0,
+      "throughput_rps": 50.0,
+      "error_rate_percent": 0.8,
+      "cpu_usage_percent": 60.0,
+      "memory_usage_mb": 1500.0,
+      "database_connections": 40,
+      "database_query_time_ms": 251.99999999999997
+    },
+    {
+      "scenario_name": "stress_load",
+      "virtual_users": 500,
+      "duration_seconds": 900,
+      "total_requests": 75000,
+      "successful_requests": 73125,
+      "failed_requests": 1875,
+      "avg_response_time_ms": 640.0,
+      "p95_response_time_ms": 1344.0,
+      "p99_response_time_ms": 2432.0,
+      "throughput_rps": 83.33333333333333,
+      "error_rate_percent": 2.5,
+      "cpu_usage_percent": 95,
+      "memory_usage_mb": 2250.0,
+      "database_connections": 70,
+      "database_query_time_ms": 448.0
+    },
+    {
+      "scenario_name": "spike_load",
+      "virtual_users": 1000,
+      "duration_seconds": 120,
+      "total_requests": 150000,
+      "successful_requests": 141300,
+      "failed_requests": 8700,
+      "avg_response_time_ms": 1100.0,
+      "p95_response_time_ms": 2310.0,
+      "p99_response_time_ms": 4180.0,
+      "throughput_rps": 1250.0,
+      "error_rate_percent": 5.8,
+      "cpu_usage_percent": 95,
+      "memory_usage_mb": 3500.0,
+      "database_connections": 100,
+      "database_query_time_ms": 770.0
+    },
+    {
+      "scenario_name": "endurance_load",
+      "virtual_users": 100,
+      "duration_seconds": 28800,
+      "total_requests": 15000,
+      "successful_requests": 14820,
+      "failed_requests": 180,
+      "avg_response_time_ms": 420.0,
+      "p95_response_time_ms": 882.0,
+      "p99_response_time_ms": 1596.0,
+      "throughput_rps": 0.5208333333333334,
+      "error_rate_percent": 1.2,
+      "cpu_usage_percent": 45.0,
+      "memory_usage_mb": 1250.0,
+      "database_connections": 30,
+      "database_query_time_ms": 294.0
+    }
+  ],
+  "endpoint_performance": {
+    "normal_load": [
+      "EndpointMetrics(endpoint='GET /api/v1/admins', method='GET', requests_count=300, avg_response_time_ms=150.0, p95_response_time_ms=270.0, success_rate_percent=99.5, throughput_rps=1.0)",
+      "EndpointMetrics(endpoint='POST /api/v1/admins', method='POST', requests_count=150, avg_response_time_ms=250.0, p95_response_time_ms=450.0, success_rate_percent=99.5, throughput_rps=0.5)",
+      "EndpointMetrics(endpoint='GET /api/v1/admins/{id}', method='GET', requests_count=300, avg_response_time_ms=80.0, p95_response_time_ms=144.0, success_rate_percent=99.5, throughput_rps=1.0)",
+      "EndpointMetrics(endpoint='PUT /api/v1/admins/{id}', method='PUT', requests_count=50, avg_response_time_ms=180.0, p95_response_time_ms=324.0, success_rate_percent=99.5, throughput_rps=0.16666666666666666)",
+      "EndpointMetrics(endpoint='GET /api/v1/admins/{id}/permissions', method='GET', requests_count=300, avg_response_time_ms=120.0, p95_response_time_ms=216.0, success_rate_percent=99.5, throughput_rps=1.0)",
+      "EndpointMetrics(endpoint='POST /api/v1/admins/{id}/permissions/grant', method='POST', requests_count=150, avg_response_time_ms=300.0, p95_response_time_ms=540.0, success_rate_percent=99.5, throughput_rps=0.5)",
+      "EndpointMetrics(endpoint='POST /api/v1/admins/{id}/permissions/revoke', method='POST', requests_count=150, avg_response_time_ms=280.0, p95_response_time_ms=504.0, success_rate_percent=99.5, throughput_rps=0.5)",
+      "EndpointMetrics(endpoint='POST /api/v1/admins/bulk-action', method='POST', requests_count=150, avg_response_time_ms=1500.0, p95_response_time_ms=2700.0, success_rate_percent=99.5, throughput_rps=0.5)",
+      "EndpointMetrics(endpoint='GET /api/v1/dashboard/kpis', method='GET', requests_count=300, avg_response_time_ms=800.0, p95_response_time_ms=1440.0, success_rate_percent=99.5, throughput_rps=1.0)",
+      "EndpointMetrics(endpoint='GET /api/v1/dashboard/growth-data', method='GET', requests_count=300, avg_response_time_ms=1200.0, p95_response_time_ms=2160.0, success_rate_percent=99.5, throughput_rps=1.0)",
+      "EndpointMetrics(endpoint='GET /api/v1/storage/overview', method='GET', requests_count=300, avg_response_time_ms=400.0, p95_response_time_ms=720.0, success_rate_percent=99.5, throughput_rps=1.0)",
+      "EndpointMetrics(endpoint='GET /api/v1/storage/stats', method='GET', requests_count=300, avg_response_time_ms=600.0, p95_response_time_ms=1080.0, success_rate_percent=99.5, throughput_rps=1.0)",
+      "EndpointMetrics(endpoint='GET /api/v1/space-optimizer/analysis', method='GET', requests_count=300, avg_response_time_ms=2000.0, p95_response_time_ms=3600.0, success_rate_percent=99.5, throughput_rps=1.0)",
+      "EndpointMetrics(endpoint='GET /api/v1/warehouse/availability', method='GET', requests_count=300, avg_response_time_ms=500.0, p95_response_time_ms=900.0, success_rate_percent=99.5, throughput_rps=1.0)",
+      "EndpointMetrics(endpoint='POST /api/v1/incoming-products/{id}/verification/upload-photos', method='POST', requests_count=150, avg_response_time_ms=2500.0, p95_response_time_ms=4500.0, success_rate_percent=99.5, throughput_rps=0.5)",
+      "EndpointMetrics(endpoint='GET /api/v1/incoming-products/{id}/verification/history', method='GET', requests_count=300, avg_response_time_ms=350.0, p95_response_time_ms=630.0, success_rate_percent=99.5, throughput_rps=1.0)",
+      "EndpointMetrics(endpoint='POST /api/v1/incoming-products/{id}/location/auto-assign', method='POST', requests_count=150, avg_response_time_ms=1800.0, p95_response_time_ms=3240.0, success_rate_percent=99.5, throughput_rps=0.5)",
+      "EndpointMetrics(endpoint='GET /api/v1/rejections/summary', method='GET', requests_count=300, avg_response_time_ms=450.0, p95_response_time_ms=810.0, success_rate_percent=99.5, throughput_rps=1.0)",
+      "EndpointMetrics(endpoint='POST /api/v1/incoming-products/{id}/generate-qr', method='POST', requests_count=150, avg_response_time_ms=800.0, p95_response_time_ms=1440.0, success_rate_percent=99.5, throughput_rps=0.5)",
+      "EndpointMetrics(endpoint='GET /api/v1/qr/stats', method='GET', requests_count=300, avg_response_time_ms=250.0, p95_response_time_ms=450.0, success_rate_percent=99.5, throughput_rps=1.0)"
+    ],
+    "peak_load": [
+      "EndpointMetrics(endpoint='GET /api/v1/admins', method='GET', requests_count=1200, avg_response_time_ms=225.0, p95_response_time_ms=405.0, success_rate_percent=99.5, throughput_rps=2.0)",
+      "EndpointMetrics(endpoint='POST /api/v1/admins', method='POST', requests_count=600, avg_response_time_ms=375.0, p95_response_time_ms=675.0, success_rate_percent=99.5, throughput_rps=1.0)",
+      "EndpointMetrics(endpoint='GET /api/v1/admins/{id}', method='GET', requests_count=1200, avg_response_time_ms=120.0, p95_response_time_ms=216.0, success_rate_percent=99.5, throughput_rps=2.0)",
+      "EndpointMetrics(endpoint='PUT /api/v1/admins/{id}', method='PUT', requests_count=200, avg_response_time_ms=270.0, p95_response_time_ms=486.0, success_rate_percent=99.5, throughput_rps=0.3333333333333333)",
+      "EndpointMetrics(endpoint='GET /api/v1/admins/{id}/permissions', method='GET', requests_count=1200, avg_response_time_ms=180.0, p95_response_time_ms=324.0, success_rate_percent=99.5, throughput_rps=2.0)",
+      "EndpointMetrics(endpoint='POST /api/v1/admins/{id}/permissions/grant', method='POST', requests_count=600, avg_response_time_ms=450.0, p95_response_time_ms=810.0, success_rate_percent=99.5, throughput_rps=1.0)",
+      "EndpointMetrics(endpoint='POST /api/v1/admins/{id}/permissions/revoke', method='POST', requests_count=600, avg_response_time_ms=420.0, p95_response_time_ms=756.0, success_rate_percent=99.5, throughput_rps=1.0)",
+      "EndpointMetrics(endpoint='POST /api/v1/admins/bulk-action', method='POST', requests_count=600, avg_response_time_ms=2250.0, p95_response_time_ms=4050.0, success_rate_percent=99.5, throughput_rps=1.0)",
+      "EndpointMetrics(endpoint='GET /api/v1/dashboard/kpis', method='GET', requests_count=1200, avg_response_time_ms=1200.0, p95_response_time_ms=2160.0, success_rate_percent=99.5, throughput_rps=2.0)",
+      "EndpointMetrics(endpoint='GET /api/v1/dashboard/growth-data', method='GET', requests_count=1200, avg_response_time_ms=1800.0, p95_response_time_ms=3240.0, success_rate_percent=99.5, throughput_rps=2.0)",
+      "EndpointMetrics(endpoint='GET /api/v1/storage/overview', method='GET', requests_count=1200, avg_response_time_ms=600.0, p95_response_time_ms=1080.0, success_rate_percent=99.5, throughput_rps=2.0)",
+      "EndpointMetrics(endpoint='GET /api/v1/storage/stats', method='GET', requests_count=1200, avg_response_time_ms=900.0, p95_response_time_ms=1620.0, success_rate_percent=99.5, throughput_rps=2.0)",
+      "EndpointMetrics(endpoint='GET /api/v1/space-optimizer/analysis', method='GET', requests_count=1200, avg_response_time_ms=3000.0, p95_response_time_ms=5400.0, success_rate_percent=99.5, throughput_rps=2.0)",
+      "EndpointMetrics(endpoint='GET /api/v1/warehouse/availability', method='GET', requests_count=1200, avg_response_time_ms=750.0, p95_response_time_ms=1350.0, success_rate_percent=99.5, throughput_rps=2.0)",
+      "EndpointMetrics(endpoint='POST /api/v1/incoming-products/{id}/verification/upload-photos', method='POST', requests_count=600, avg_response_time_ms=3750.0, p95_response_time_ms=6750.0, success_rate_percent=99.5, throughput_rps=1.0)",
+      "EndpointMetrics(endpoint='GET /api/v1/incoming-products/{id}/verification/history', method='GET', requests_count=1200, avg_response_time_ms=525.0, p95_response_time_ms=945.0, success_rate_percent=99.5, throughput_rps=2.0)",
+      "EndpointMetrics(endpoint='POST /api/v1/incoming-products/{id}/location/auto-assign', method='POST', requests_count=600, avg_response_time_ms=2700.0, p95_response_time_ms=4860.0, success_rate_percent=99.5, throughput_rps=1.0)",
+      "EndpointMetrics(endpoint='GET /api/v1/rejections/summary', method='GET', requests_count=1200, avg_response_time_ms=675.0, p95_response_time_ms=1215.0, success_rate_percent=99.5, throughput_rps=2.0)",
+      "EndpointMetrics(endpoint='POST /api/v1/incoming-products/{id}/generate-qr', method='POST', requests_count=600, avg_response_time_ms=1200.0, p95_response_time_ms=2160.0, success_rate_percent=99.5, throughput_rps=1.0)",
+      "EndpointMetrics(endpoint='GET /api/v1/qr/stats', method='GET', requests_count=1200, avg_response_time_ms=375.0, p95_response_time_ms=675.0, success_rate_percent=99.5, throughput_rps=2.0)"
+    ],
+    "stress_load": [
+      "EndpointMetrics(endpoint='GET /api/v1/admins', method='GET', requests_count=3000, avg_response_time_ms=330.0, p95_response_time_ms=594.0, success_rate_percent=97.8, throughput_rps=3.3333333333333335)",
+      "EndpointMetrics(endpoint='POST /api/v1/admins', method='POST', requests_count=1500, avg_response_time_ms=550.0, p95_response_time_ms=990.0, success_rate_percent=97.8, throughput_rps=1.6666666666666667)",
+      "EndpointMetrics(endpoint='GET /api/v1/admins/{id}', method='GET', requests_count=3000, avg_response_time_ms=176.0, p95_response_time_ms=316.8, success_rate_percent=97.8, throughput_rps=3.3333333333333335)",
+      "EndpointMetrics(endpoint='PUT /api/v1/admins/{id}', method='PUT', requests_count=500, avg_response_time_ms=396.00000000000006, p95_response_time_ms=712.8000000000001, success_rate_percent=97.8, throughput_rps=0.5555555555555556)",
+      "EndpointMetrics(endpoint='GET /api/v1/admins/{id}/permissions', method='GET', requests_count=3000, avg_response_time_ms=264.0, p95_response_time_ms=475.2, success_rate_percent=97.8, throughput_rps=3.3333333333333335)",
+      "EndpointMetrics(endpoint='POST /api/v1/admins/{id}/permissions/grant', method='POST', requests_count=1500, avg_response_time_ms=660.0, p95_response_time_ms=1188.0, success_rate_percent=97.8, throughput_rps=1.6666666666666667)",
+      "EndpointMetrics(endpoint='POST /api/v1/admins/{id}/permissions/revoke', method='POST', requests_count=1500, avg_response_time_ms=616.0, p95_response_time_ms=1108.8, success_rate_percent=97.8, throughput_rps=1.6666666666666667)",
+      "EndpointMetrics(endpoint='POST /api/v1/admins/bulk-action', method='POST', requests_count=1500, avg_response_time_ms=3300.0000000000005, p95_response_time_ms=5940.000000000001, success_rate_percent=97.8, throughput_rps=1.6666666666666667)",
+      "EndpointMetrics(endpoint='GET /api/v1/dashboard/kpis', method='GET', requests_count=3000, avg_response_time_ms=1760.0000000000002, p95_response_time_ms=3168.0000000000005, success_rate_percent=97.8, throughput_rps=3.3333333333333335)",
+      "EndpointMetrics(endpoint='GET /api/v1/dashboard/growth-data', method='GET', requests_count=3000, avg_response_time_ms=2640.0, p95_response_time_ms=4752.0, success_rate_percent=97.8, throughput_rps=3.3333333333333335)",
+      "EndpointMetrics(endpoint='GET /api/v1/storage/overview', method='GET', requests_count=3000, avg_response_time_ms=880.0000000000001, p95_response_time_ms=1584.0000000000002, success_rate_percent=97.8, throughput_rps=3.3333333333333335)",
+      "EndpointMetrics(endpoint='GET /api/v1/storage/stats', method='GET', requests_count=3000, avg_response_time_ms=1320.0, p95_response_time_ms=2376.0, success_rate_percent=97.8, throughput_rps=3.3333333333333335)",
+      "EndpointMetrics(endpoint='GET /api/v1/space-optimizer/analysis', method='GET', requests_count=3000, avg_response_time_ms=4400.0, p95_response_time_ms=7920.0, success_rate_percent=97.8, throughput_rps=3.3333333333333335)",
+      "EndpointMetrics(endpoint='GET /api/v1/warehouse/availability', method='GET', requests_count=3000, avg_response_time_ms=1100.0, p95_response_time_ms=1980.0, success_rate_percent=97.8, throughput_rps=3.3333333333333335)",
+      "EndpointMetrics(endpoint='POST /api/v1/incoming-products/{id}/verification/upload-photos', method='POST', requests_count=1500, avg_response_time_ms=5500.0, p95_response_time_ms=9900.0, success_rate_percent=97.8, throughput_rps=1.6666666666666667)",
+      "EndpointMetrics(endpoint='GET /api/v1/incoming-products/{id}/verification/history', method='GET', requests_count=3000, avg_response_time_ms=770.0000000000001, p95_response_time_ms=1386.0000000000002, success_rate_percent=97.8, throughput_rps=3.3333333333333335)",
+      "EndpointMetrics(endpoint='POST /api/v1/incoming-products/{id}/location/auto-assign', method='POST', requests_count=1500, avg_response_time_ms=3960.0000000000005, p95_response_time_ms=7128.000000000001, success_rate_percent=97.8, throughput_rps=1.6666666666666667)",
+      "EndpointMetrics(endpoint='GET /api/v1/rejections/summary', method='GET', requests_count=3000, avg_response_time_ms=990.0000000000001, p95_response_time_ms=1782.0000000000002, success_rate_percent=97.8, throughput_rps=3.3333333333333335)",
+      "EndpointMetrics(endpoint='POST /api/v1/incoming-products/{id}/generate-qr', method='POST', requests_count=1500, avg_response_time_ms=1760.0000000000002, p95_response_time_ms=3168.0000000000005, success_rate_percent=97.8, throughput_rps=1.6666666666666667)",
+      "EndpointMetrics(endpoint='GET /api/v1/qr/stats', method='GET', requests_count=3000, avg_response_time_ms=550.0, p95_response_time_ms=990.0, success_rate_percent=97.8, throughput_rps=3.3333333333333335)"
+    ],
+    "spike_load": [
+      "EndpointMetrics(endpoint='GET /api/v1/admins', method='GET', requests_count=6000, avg_response_time_ms=525.0, p95_response_time_ms=945.0, success_rate_percent=95.2, throughput_rps=50.0)",
+      "EndpointMetrics(endpoint='POST /api/v1/admins', method='POST', requests_count=3000, avg_response_time_ms=875.0, p95_response_time_ms=1575.0, success_rate_percent=95.2, throughput_rps=25.0)",
+      "EndpointMetrics(endpoint='GET /api/v1/admins/{id}', method='GET', requests_count=6000, avg_response_time_ms=280.0, p95_response_time_ms=504.0, success_rate_percent=95.2, throughput_rps=50.0)",
+      "EndpointMetrics(endpoint='PUT /api/v1/admins/{id}', method='PUT', requests_count=1000, avg_response_time_ms=630.0, p95_response_time_ms=1134.0, success_rate_percent=95.2, throughput_rps=8.333333333333334)",
+      "EndpointMetrics(endpoint='GET /api/v1/admins/{id}/permissions', method='GET', requests_count=6000, avg_response_time_ms=420.0, p95_response_time_ms=756.0, success_rate_percent=95.2, throughput_rps=50.0)",
+      "EndpointMetrics(endpoint='POST /api/v1/admins/{id}/permissions/grant', method='POST', requests_count=3000, avg_response_time_ms=1050.0, p95_response_time_ms=1890.0, success_rate_percent=95.2, throughput_rps=25.0)",
+      "EndpointMetrics(endpoint='POST /api/v1/admins/{id}/permissions/revoke', method='POST', requests_count=3000, avg_response_time_ms=980.0, p95_response_time_ms=1764.0, success_rate_percent=95.2, throughput_rps=25.0)",
+      "EndpointMetrics(endpoint='POST /api/v1/admins/bulk-action', method='POST', requests_count=3000, avg_response_time_ms=5250.0, p95_response_time_ms=9450.0, success_rate_percent=95.2, throughput_rps=25.0)",
+      "EndpointMetrics(endpoint='GET /api/v1/dashboard/kpis', method='GET', requests_count=6000, avg_response_time_ms=2800.0, p95_response_time_ms=5040.0, success_rate_percent=95.2, throughput_rps=50.0)",
+      "EndpointMetrics(endpoint='GET /api/v1/dashboard/growth-data', method='GET', requests_count=6000, avg_response_time_ms=4200.0, p95_response_time_ms=7560.0, success_rate_percent=95.2, throughput_rps=50.0)",
+      "EndpointMetrics(endpoint='GET /api/v1/storage/overview', method='GET', requests_count=6000, avg_response_time_ms=1400.0, p95_response_time_ms=2520.0, success_rate_percent=95.2, throughput_rps=50.0)",
+      "EndpointMetrics(endpoint='GET /api/v1/storage/stats', method='GET', requests_count=6000, avg_response_time_ms=2100.0, p95_response_time_ms=3780.0, success_rate_percent=95.2, throughput_rps=50.0)",
+      "EndpointMetrics(endpoint='GET /api/v1/space-optimizer/analysis', method='GET', requests_count=6000, avg_response_time_ms=7000.0, p95_response_time_ms=12600.0, success_rate_percent=95.2, throughput_rps=50.0)",
+      "EndpointMetrics(endpoint='GET /api/v1/warehouse/availability', method='GET', requests_count=6000, avg_response_time_ms=1750.0, p95_response_time_ms=3150.0, success_rate_percent=95.2, throughput_rps=50.0)",
+      "EndpointMetrics(endpoint='POST /api/v1/incoming-products/{id}/verification/upload-photos', method='POST', requests_count=3000, avg_response_time_ms=8750.0, p95_response_time_ms=15750.0, success_rate_percent=95.2, throughput_rps=25.0)",
+      "EndpointMetrics(endpoint='GET /api/v1/incoming-products/{id}/verification/history', method='GET', requests_count=6000, avg_response_time_ms=1225.0, p95_response_time_ms=2205.0, success_rate_percent=95.2, throughput_rps=50.0)",
+      "EndpointMetrics(endpoint='POST /api/v1/incoming-products/{id}/location/auto-assign', method='POST', requests_count=3000, avg_response_time_ms=6300.0, p95_response_time_ms=11340.0, success_rate_percent=95.2, throughput_rps=25.0)",
+      "EndpointMetrics(endpoint='GET /api/v1/rejections/summary', method='GET', requests_count=6000, avg_response_time_ms=1575.0, p95_response_time_ms=2835.0, success_rate_percent=95.2, throughput_rps=50.0)",
+      "EndpointMetrics(endpoint='POST /api/v1/incoming-products/{id}/generate-qr', method='POST', requests_count=3000, avg_response_time_ms=2800.0, p95_response_time_ms=5040.0, success_rate_percent=95.2, throughput_rps=25.0)",
+      "EndpointMetrics(endpoint='GET /api/v1/qr/stats', method='GET', requests_count=6000, avg_response_time_ms=875.0, p95_response_time_ms=1575.0, success_rate_percent=95.2, throughput_rps=50.0)"
+    ],
+    "endurance_load": [
+      "EndpointMetrics(endpoint='GET /api/v1/admins', method='GET', requests_count=600, avg_response_time_ms=270.0, p95_response_time_ms=486.0, success_rate_percent=99.5, throughput_rps=0.020833333333333332)",
+      "EndpointMetrics(endpoint='POST /api/v1/admins', method='POST', requests_count=300, avg_response_time_ms=450.0, p95_response_time_ms=810.0, success_rate_percent=99.5, throughput_rps=0.010416666666666666)",
+      "EndpointMetrics(endpoint='GET /api/v1/admins/{id}', method='GET', requests_count=600, avg_response_time_ms=144.0, p95_response_time_ms=259.2, success_rate_percent=99.5, throughput_rps=0.020833333333333332)",
+      "EndpointMetrics(endpoint='PUT /api/v1/admins/{id}', method='PUT', requests_count=100, avg_response_time_ms=324.0, p95_response_time_ms=583.2, success_rate_percent=99.5, throughput_rps=0.003472222222222222)",
+      "EndpointMetrics(endpoint='GET /api/v1/admins/{id}/permissions', method='GET', requests_count=600, avg_response_time_ms=216.0, p95_response_time_ms=388.8, success_rate_percent=99.5, throughput_rps=0.020833333333333332)",
+      "EndpointMetrics(endpoint='POST /api/v1/admins/{id}/permissions/grant', method='POST', requests_count=300, avg_response_time_ms=540.0, p95_response_time_ms=972.0, success_rate_percent=99.5, throughput_rps=0.010416666666666666)",
+      "EndpointMetrics(endpoint='POST /api/v1/admins/{id}/permissions/revoke', method='POST', requests_count=300, avg_response_time_ms=504.0, p95_response_time_ms=907.2, success_rate_percent=99.5, throughput_rps=0.010416666666666666)",
+      "EndpointMetrics(endpoint='POST /api/v1/admins/bulk-action', method='POST', requests_count=300, avg_response_time_ms=2700.0, p95_response_time_ms=4860.0, success_rate_percent=99.5, throughput_rps=0.010416666666666666)",
+      "EndpointMetrics(endpoint='GET /api/v1/dashboard/kpis', method='GET', requests_count=600, avg_response_time_ms=1440.0, p95_response_time_ms=2592.0, success_rate_percent=99.5, throughput_rps=0.020833333333333332)",
+      "EndpointMetrics(endpoint='GET /api/v1/dashboard/growth-data', method='GET', requests_count=600, avg_response_time_ms=2160.0, p95_response_time_ms=3888.0, success_rate_percent=99.5, throughput_rps=0.020833333333333332)",
+      "EndpointMetrics(endpoint='GET /api/v1/storage/overview', method='GET', requests_count=600, avg_response_time_ms=720.0, p95_response_time_ms=1296.0, success_rate_percent=99.5, throughput_rps=0.020833333333333332)",
+      "EndpointMetrics(endpoint='GET /api/v1/storage/stats', method='GET', requests_count=600, avg_response_time_ms=1080.0, p95_response_time_ms=1944.0, success_rate_percent=99.5, throughput_rps=0.020833333333333332)",
+      "EndpointMetrics(endpoint='GET /api/v1/space-optimizer/analysis', method='GET', requests_count=600, avg_response_time_ms=3600.0, p95_response_time_ms=6480.0, success_rate_percent=99.5, throughput_rps=0.020833333333333332)",
+      "EndpointMetrics(endpoint='GET /api/v1/warehouse/availability', method='GET', requests_count=600, avg_response_time_ms=900.0, p95_response_time_ms=1620.0, success_rate_percent=99.5, throughput_rps=0.020833333333333332)",
+      "EndpointMetrics(endpoint='POST /api/v1/incoming-products/{id}/verification/upload-photos', method='POST', requests_count=300, avg_response_time_ms=4500.0, p95_response_time_ms=8100.0, success_rate_percent=99.5, throughput_rps=0.010416666666666666)",
+      "EndpointMetrics(endpoint='GET /api/v1/incoming-products/{id}/verification/history', method='GET', requests_count=600, avg_response_time_ms=630.0, p95_response_time_ms=1134.0, success_rate_percent=99.5, throughput_rps=0.020833333333333332)",
+      "EndpointMetrics(endpoint='POST /api/v1/incoming-products/{id}/location/auto-assign', method='POST', requests_count=300, avg_response_time_ms=3240.0, p95_response_time_ms=5832.0, success_rate_percent=99.5, throughput_rps=0.010416666666666666)",
+      "EndpointMetrics(endpoint='GET /api/v1/rejections/summary', method='GET', requests_count=600, avg_response_time_ms=810.0, p95_response_time_ms=1458.0, success_rate_percent=99.5, throughput_rps=0.020833333333333332)",
+      "EndpointMetrics(endpoint='POST /api/v1/incoming-products/{id}/generate-qr', method='POST', requests_count=300, avg_response_time_ms=1440.0, p95_response_time_ms=2592.0, success_rate_percent=99.5, throughput_rps=0.010416666666666666)",
+      "EndpointMetrics(endpoint='GET /api/v1/qr/stats', method='GET', requests_count=600, avg_response_time_ms=450.0, p95_response_time_ms=810.0, success_rate_percent=99.5, throughput_rps=0.020833333333333332)"
+    ]
+  },
+  "performance_analysis": {
+    "sla_compliance": {
+      "normal_load": {
+        "p95_compliant": true,
+        "error_rate_compliant": true,
+        "cpu_compliant": true,
+        "throughput_compliant": false,
+        "overall_compliant": false
+      },
+      "peak_load": {
+        "p95_compliant": true,
+        "error_rate_compliant": true,
+        "cpu_compliant": true,
+        "throughput_compliant": false,
+        "overall_compliant": false
+      },
+      "stress_load": {
+        "p95_compliant": true,
+        "error_rate_compliant": false,
+        "cpu_compliant": false,
+        "throughput_compliant": false,
+        "overall_compliant": false
+      },
+      "spike_load": {
+        "p95_compliant": false,
+        "error_rate_compliant": false,
+        "cpu_compliant": false,
+        "throughput_compliant": true,
+        "overall_compliant": false
+      },
+      "endurance_load": {
+        "p95_compliant": true,
+        "error_rate_compliant": false,
+        "cpu_compliant": true,
+        "throughput_compliant": false,
+        "overall_compliant": false
+      }
+    },
+    "performance_trends": {
+      "peak_load": {
+        "response_time_degradation_factor": 1.8,
+        "error_rate_increase_factor": 4.0,
+        "cpu_increase_factor": 1.6
+      },
+      "stress_load": {
+        "response_time_degradation_factor": 3.2,
+        "error_rate_increase_factor": 12.5,
+        "cpu_increase_factor": 2.533333333333333
+      },
+      "spike_load": {
+        "response_time_degradation_factor": 5.5,
+        "error_rate_increase_factor": 28.999999999999996,
+        "cpu_increase_factor": 2.533333333333333
+      },
+      "endurance_load": {
+        "response_time_degradation_factor": 2.1,
+        "error_rate_increase_factor": 5.999999999999999,
+        "cpu_increase_factor": 1.2
+      }
+    },
+    "bottlenecks_identified": [
+      "CPU bottleneck in stress_load",
+      "CPU bottleneck in spike_load"
+    ],
+    "scalability_assessment": {
+      "throughput_per_user_range": {
+        "min": 0.16666666666666666,
+        "max": 1.25
+      },
+      "scalability_efficiency": 0.13333333333333333,
+      "recommended_max_users": 1000
+    }
+  },
+  "recommendations": [
+    {
+      "category": "Error Rate Reduction",
+      "priority": "CRITICAL",
+      "recommendation": "Error rate in stress_load exceeds 1% threshold. Investigate timeout configurations and resource limits.",
+      "technical_details": "Review timeout settings, implement circuit breakers, add graceful degradation for high load scenarios."
+    },
+    {
+      "category": "Resource Optimization",
+      "priority": "MEDIUM",
+      "recommendation": "CPU usage in stress_load exceeds 80%. Consider horizontal scaling or performance optimization.",
+      "technical_details": "Implement auto-scaling, optimize CPU-intensive operations, consider async processing for heavy tasks."
+    },
+    {
+      "category": "Response Time Optimization",
+      "priority": "HIGH",
+      "recommendation": "P95 response time in spike_load exceeds 2s threshold. Consider database query optimization and caching implementation.",
+      "technical_details": "Implement Redis caching for frequent queries, optimize database indexes, consider connection pooling optimization."
+    },
+    {
+      "category": "Error Rate Reduction",
+      "priority": "CRITICAL",
+      "recommendation": "Error rate in spike_load exceeds 1% threshold. Investigate timeout configurations and resource limits.",
+      "technical_details": "Review timeout settings, implement circuit breakers, add graceful degradation for high load scenarios."
+    },
+    {
+      "category": "Resource Optimization",
+      "priority": "MEDIUM",
+      "recommendation": "CPU usage in spike_load exceeds 80%. Consider horizontal scaling or performance optimization.",
+      "technical_details": "Implement auto-scaling, optimize CPU-intensive operations, consider async processing for heavy tasks."
+    },
+    {
+      "category": "Error Rate Reduction",
+      "priority": "CRITICAL",
+      "recommendation": "Error rate in endurance_load exceeds 1% threshold. Investigate timeout configurations and resource limits.",
+      "technical_details": "Review timeout settings, implement circuit breakers, add graceful degradation for high load scenarios."
+    },
+    {
+      "category": "Database Performance",
+      "priority": "HIGH",
+      "recommendation": "Implement database connection pooling and query optimization for admin endpoints.",
+      "technical_details": "Use SQLAlchemy connection pooling, implement query result caching, optimize complex joins in permission queries."
+    },
+    {
+      "category": "Caching Strategy",
+      "priority": "MEDIUM",
+      "recommendation": "Implement Redis caching for frequently accessed admin data and dashboard analytics.",
+      "technical_details": "Cache admin user lists, permission matrices, and dashboard KPI calculations with appropriate TTL values."
+    },
+    {
+      "category": "Load Balancing",
+      "priority": "MEDIUM",
+      "recommendation": "Implement load balancing for handling peak traffic scenarios.",
+      "technical_details": "Use NGINX or HAProxy for load distribution, implement health checks, consider sticky sessions for admin users."
+    }
+  ]
+}

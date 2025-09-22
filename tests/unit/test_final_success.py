@@ -15,7 +15,7 @@ class TestFinalSuccess:
             apellido="Success", 
             email="final.success@example.com",
             password_hash="hash123",
-            user_type=UserType.COMPRADOR
+            user_type=UserType.BUYER
         )
         
         test_db_session.add(user)
@@ -25,7 +25,7 @@ class TestFinalSuccess:
         # Verificaciones básicas
         assert user.id is not None
         assert user.nombre == "Final"
-        assert user.user_type == UserType.COMPRADOR
+        assert user.user_type == UserType.BUYER
         assert hasattr(user, 'deleted_at')
         assert user.deleted_at is None
         
@@ -46,7 +46,7 @@ class TestFinalSuccess:
             apellido="Test",
             email="basemodel.test@example.com", 
             password_hash="hash123",
-            user_type=UserType.VENDEDOR
+            user_type=UserType.VENDOR
         )
         
         # Verificar campos BaseModel
@@ -110,7 +110,7 @@ class TestFinalSuccess:
             apellido="Final",
             email="verification.final@example.com",
             password_hash="hash123",
-            user_type=UserType.VENDEDOR
+            user_type=UserType.VENDOR
         )
         assert hasattr(user, 'deleted_at'), "❌ BaseModel no tiene deleted_at"
         print("   ✅ BaseModel extendido con soft delete")

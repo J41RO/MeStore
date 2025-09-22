@@ -18,8 +18,8 @@ import axios, { AxiosResponse } from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ||
   (import.meta.env.MODE === 'production'
-    ? 'https://api.tudominio.com/api/v1'
-    : 'http://localhost:8000/api/v1');
+    ? 'https://api.tudominio.com'
+    : 'http://localhost:8000');
 
 // Configuración de axios con interceptores
 const commissionApi = axios.create({

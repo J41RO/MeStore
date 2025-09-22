@@ -1,0 +1,34 @@
+{
+  "mobile_ux_config": {
+    "version": "1.0.0",
+    "last_updated": "2025-09-19",
+    "pwa_status": "initializing",
+    "mobile_optimization": {
+      "touch_targets": "44px_minimum",
+      "viewport_config": "responsive_mobile_first",
+      "gesture_support": "enabled",
+      "performance_target": "lighthouse_90_plus"
+    },
+    "current_implementation": {
+      "service_worker": "not_implemented",
+      "app_manifest": "not_implemented",
+      "push_notifications": "not_implemented",
+      "offline_capabilities": "not_implemented",
+      "mobile_navigation": "basic_responsive",
+      "touch_optimization": "partial"
+    },
+    "colombian_market_features": {
+      "mobile_payments": "pending_pse_wompi_optimization",
+      "offline_support": "required_for_connectivity_issues",
+      "touch_friendly_ui": "critical_priority",
+      "local_storage": "cart_persistence_needed"
+    },
+    "technology_stack": {
+      "pwa_plugin": "vite-plugin-pwa",
+      "manifest_config": "custom_colombian_branding",
+      "service_worker_strategy": "workbox",
+      "touch_events": "native_and_gesture_libraries",
+      "responsive_framework": "tailwind_mobile_first"
+    }
+  }
+}

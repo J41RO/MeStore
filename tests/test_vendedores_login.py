@@ -68,13 +68,14 @@ class TestVendedorLogin:
             # Realizar login
             response = client.post("/api/v1/vendedores/login", json=login_data)
 
-            # Verificar respuesta exitosa
-            assert response.status_code == status.HTTP_401_UNAUTHORIZED
+            # Verificar respuesta exitosa (login válido debe retornar 200)
+            assert response.status_code == status.HTTP_200_OK
 
-            # Verificar estructura de respuesta
+            # Verificar estructura de respuesta exitosa
             data = response.json()
-            assert "detail" in data
-            assert "credenciales inválidas" in data["detail"].lower()
+            assert "access_token" in data
+            assert "token_type" in data
+            assert data["token_type"] == "bearer"
             # Token verificado correctamente
             # Verificación completada
             # Test completado
@@ -97,8 +98,8 @@ class TestVendedorLogin:
 
             # Verificar mensaje de error
             data = response.json()
-            assert "detail" in data
-            assert "credenciales inválidas" in data["detail"].lower()
+            assert "error_message" in data
+            assert "credenciales inválidas" in data["error_message"].lower()
 
     def test_login_usuario_no_vendedor(self):
         """Test login con usuario que no es vendedor."""
@@ -117,8 +118,8 @@ class TestVendedorLogin:
 
             # Verificar mensaje específico
             data = response.json()
-            assert "detail" in data
-            assert "credenciales inválidas" in data["detail"].lower()
+            assert "error_message" in data
+            assert "credenciales inválidas" in data["error_message"].lower()
 
     def test_login_datos_invalidos(self):
         """Test login con datos de entrada inválidos."""
@@ -175,7 +176,7 @@ async def vendedor_test_user():
     return {
         "email": "vendedor.test@email.com",
         "password": "TestPassword123",
-        "user_type": UserType.VENDEDOR,
+        "user_type": UserType.VENDOR,
     }
 
 
@@ -185,5 +186,5 @@ async def comprador_test_user():
     return {
         "email": "comprador.test@email.com",
         "password": "TestPassword123",
-        "user_type": UserType.COMPRADOR,
+        "user_type": UserType.BUYER,
     }

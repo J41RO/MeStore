@@ -27,7 +27,7 @@ class TestCRUDClean:
             apellido="Test",
             email="crud.test@example.com",
             password_hash="hash123",
-            user_type=UserType.COMPRADOR
+            user_type=UserType.BUYER
         )
         
         # Guardar en DB
@@ -47,7 +47,7 @@ class TestCRUDClean:
             apellido="Field",
             email="softdelete.field@example.com",
             password_hash="hash123",
-            user_type=UserType.VENDEDOR
+            user_type=UserType.VENDOR
         )
         
         assert hasattr(user, 'deleted_at')

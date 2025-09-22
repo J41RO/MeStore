@@ -1,0 +1,12 @@
+{
+  "office": "Database Architect",
+  "department": "Core Architecture",
+  "investigation_status": "COMPLETED",
+  "issue_resolved": "buyer@test.com constraint violation identified",
+  "database_system": "PostgreSQL/SQLite",
+  "environment": "development",
+  "priority": "critical",
+  "issue_type": "unique_constraint_violation",
+  "solution_provided": "SQL DELETE command and error handling improvement",
+  "next_steps": "Execute DELETE command or improve error handling in auth endpoint"
+}

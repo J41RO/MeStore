@@ -57,6 +57,7 @@ const BuyerProfile = lazy(() => import('./pages/BuyerProfile'));
 const BuyerLayout = lazy(() => import('./components/BuyerLayout'));
 const RoleBasedRedirect = lazy(() => import('./components/RoleBasedRedirect'));
 const Checkout = lazy(() => import('./pages/Checkout'));
+const CheckoutDemo = lazy(() => import('./pages/CheckoutDemo'));
 
 // Order management pages - MICRO-FASE 4.3
 const OrdersManagement = lazy(() => import('./pages/admin/OrdersManagement'));
@@ -102,7 +103,14 @@ function App() {
             <Checkout />
           </Suspense>
         } />
-        
+
+        {/* Checkout Demo */}
+        <Route path="/checkout-demo" element={
+          <Suspense fallback={<PageLoader />}>
+            <CheckoutDemo />
+          </Suspense>
+        } />
+
         {/* Public Order Tracking */}
         <Route path="/track/:orderNumber" element={
           <Suspense fallback={<PageLoader />}>

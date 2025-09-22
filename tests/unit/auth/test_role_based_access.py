@@ -62,7 +62,7 @@ class TestUserTypeValidation:
         user = Mock(spec=User)
         user.id = uuid.uuid4()
         user.email = "vendor@example.com"
-        user.user_type = UserType.VENDEDOR
+        user.user_type = UserType.VENDOR
         user.is_active = True
         user.nombre = "Vendor"
         user.apellido = "User"
@@ -74,7 +74,7 @@ class TestUserTypeValidation:
         user = Mock(spec=User)
         user.id = uuid.uuid4()
         user.email = "buyer@example.com"
-        user.user_type = UserType.COMPRADOR
+        user.user_type = UserType.BUYER
         user.is_active = True
         user.nombre = "Buyer"
         user.apellido = "User"
@@ -86,7 +86,7 @@ class TestUserTypeValidation:
         user = Mock(spec=User)
         user.id = uuid.uuid4()
         user.email = "inactive@example.com"
-        user.user_type = UserType.COMPRADOR
+        user.user_type = UserType.BUYER
         user.is_active = False
         user.nombre = "Inactive"
         user.apellido = "User"
@@ -96,13 +96,13 @@ class TestUserTypeValidation:
         """TDD: UserType enum should have correct values."""
         # RED: Verify UserType enum values
         assert hasattr(UserType, 'SUPERUSER')
-        assert hasattr(UserType, 'VENDEDOR')
-        assert hasattr(UserType, 'COMPRADOR')
+        assert hasattr(UserType, 'VENDOR')
+        assert hasattr(UserType, 'BUYER')
         
         # GREEN: Verify enum values
         assert UserType.SUPERUSER.value == 'SUPERUSER'
-        assert UserType.VENDEDOR.value == 'VENDEDOR'
-        assert UserType.COMPRADOR.value == 'COMPRADOR'
+        assert UserType.VENDOR.value == 'VENDOR'
+        assert UserType.BUYER.value == 'BUYER'
     
     def test_admin_user_has_superuser_type(self, mock_user_admin):
         """TDD: Admin user should have SUPERUSER type."""
@@ -111,13 +111,13 @@ class TestUserTypeValidation:
     
     def test_vendor_user_has_vendedor_type(self, mock_user_vendor):
         """TDD: Vendor user should have VENDEDOR type."""
-        assert mock_user_vendor.user_type == UserType.VENDEDOR
-        assert mock_user_vendor.user_type.value == 'VENDEDOR'
+        assert mock_user_vendor.user_type == UserType.VENDOR
+        assert mock_user_vendor.user_type.value == 'VENDOR'
     
     def test_buyer_user_has_comprador_type(self, mock_user_buyer):
         """TDD: Buyer user should have COMPRADOR type."""
-        assert mock_user_buyer.user_type == UserType.COMPRADOR
-        assert mock_user_buyer.user_type.value == 'COMPRADOR'
+        assert mock_user_buyer.user_type == UserType.BUYER
+        assert mock_user_buyer.user_type.value == 'BUYER'
 
 
 class TestGetCurrentUser:
@@ -230,7 +230,7 @@ class TestGetCurrentActiveUser:
         user = Mock()
         user.is_active = True
         user.email = "active@example.com"
-        user.user_type = UserType.COMPRADOR
+        user.user_type = UserType.BUYER
         return user
     
     @pytest.fixture
@@ -239,7 +239,7 @@ class TestGetCurrentActiveUser:
         user = Mock()
         user.is_active = False
         user.email = "inactive@example.com"
-        user.user_type = UserType.COMPRADOR
+        user.user_type = UserType.BUYER
         return user
     
     @pytest.mark.asyncio
@@ -276,7 +276,7 @@ class TestRoleRequirements:
     def mock_vendor_user(self):
         """Mock vendor user."""
         user = Mock()
-        user.user_type = UserType.VENDEDOR
+        user.user_type = UserType.VENDOR
         user.is_active = True
         user.email = "vendor@example.com"
         return user
@@ -285,14 +285,14 @@ class TestRoleRequirements:
     def mock_buyer_user(self):
         """Mock buyer user."""
         user = Mock()
-        user.user_type = UserType.COMPRADOR
+        user.user_type = UserType.BUYER
         user.is_active = True
         user.email = "buyer@example.com"
         return user
     
     def test_require_roles_with_matching_role_returns_user(self, mock_admin_user):
         """TDD: require_roles should return user when role matches."""
-        required_roles = [UserType.SUPERUSER, UserType.VENDEDOR]
+        required_roles = [UserType.SUPERUSER, UserType.VENDOR]
         
         user = require_roles(required_roles)(mock_admin_user)
         
@@ -300,7 +300,7 @@ class TestRoleRequirements:
     
     def test_require_roles_with_non_matching_role_raises_http_exception(self, mock_buyer_user):
         """TDD: require_roles should raise HTTPException when role doesn't match."""
-        required_roles = [UserType.SUPERUSER, UserType.VENDEDOR]
+        required_roles = [UserType.SUPERUSER, UserType.VENDOR]
         
         with pytest.raises(HTTPException) as exc_info:
             require_roles(required_roles)(mock_buyer_user)
@@ -310,7 +310,7 @@ class TestRoleRequirements:
     
     def test_require_roles_with_multiple_valid_roles_accepts_any(self, mock_vendor_user):
         """TDD: require_roles should accept user with any of the required roles."""
-        required_roles = [UserType.SUPERUSER, UserType.VENDEDOR]
+        required_roles = [UserType.SUPERUSER, UserType.VENDOR]
         
         user = require_roles(required_roles)(mock_vendor_user)
         
@@ -494,7 +494,7 @@ class TestRoleBasedAccessIntegration:
         vendor_data = {
             "sub": str(uuid.uuid4()),
             "email": "vendor@example.com",
-            "user_type": "VENDEDOR",
+            "user_type": "VENDOR",
             "nombre": "Vendor",
             "apellido": "User"
         }
@@ -507,7 +507,7 @@ class TestRoleBasedAccessIntegration:
         
         # Test authentication
         current_user = await get_current_user(credentials=credentials)
-        assert current_user.user_type == UserType.VENDEDOR
+        assert current_user.user_type == UserType.VENDOR
         
         # Test active user check
         current_user.is_active = True
@@ -533,7 +533,7 @@ class TestRoleBasedAccessIntegration:
         buyer_data = {
             "sub": str(uuid.uuid4()),
             "email": "buyer@example.com",
-            "user_type": "COMPRADOR",
+            "user_type": "BUYER",
             "nombre": "Buyer",
             "apellido": "User"
         }
@@ -546,7 +546,7 @@ class TestRoleBasedAccessIntegration:
         
         # Test authentication
         current_user = await get_current_user(credentials=credentials)
-        assert current_user.user_type == UserType.COMPRADOR
+        assert current_user.user_type == UserType.BUYER
         
         # Test active user check
         current_user.is_active = True

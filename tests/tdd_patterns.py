@@ -170,7 +170,29 @@ class TDDMockFactory:
         mock_session.refresh = AsyncMock()
         mock_session.rollback = AsyncMock()
         mock_session.close = AsyncMock()
+        mock_session.get = AsyncMock()
+        mock_session.execute = AsyncMock()
+
+        # Configure execute result with scalar_one_or_none
+        mock_result = Mock()
+        mock_result.scalar_one_or_none = Mock()
+        mock_session.execute.return_value = mock_result
+
         return mock_session
+
+    @staticmethod
+    def create_mock_entity(entity_type: str, **kwargs) -> Mock:
+        """Create a mock entity of specified type."""
+        defaults = {
+            "id": f"test-{entity_type.lower()}-id-123",
+        }
+        defaults.update(kwargs)
+
+        mock_entity = Mock()
+        for attr, value in defaults.items():
+            setattr(mock_entity, attr, value)
+
+        return mock_entity
 
 
 class TDDTestBuilder:

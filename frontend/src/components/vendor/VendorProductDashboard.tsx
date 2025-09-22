@@ -2,7 +2,7 @@
 // PRODUCTION_READY: Dashboard completo para gestión de productos de vendedores
 // Optimizado para el mercado colombiano con UX excepcional
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   Plus,
   Filter,
@@ -30,8 +30,41 @@ import {
   Upload,
   ArrowUpDown,
   SlidersHorizontal,
-  RefreshCw
+  RefreshCw,
+  GripVertical,
+  Move3D,
+  Archive,
+  Heart,
+  ImageUp,
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+  CheckCircle
 } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragStartEvent,
+  DragOverlay,
+  UniqueIdentifier
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  rectSortingStrategy
+} from '@dnd-kit/sortable';
+import {
+  useSortable
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Product, ProductFilters, ProductSort } from '../../types/product.types';
 
 // Simulamos datos de productos para el diseño
@@ -122,7 +155,68 @@ interface VendorProductDashboardProps {
 }
 
 type ViewMode = 'grid' | 'list';
-type BulkAction = 'activate' | 'deactivate' | 'feature' | 'unfeature' | 'delete';
+type BulkAction = 'activate' | 'deactivate' | 'feature' | 'unfeature' | 'delete' | 'edit';
+type ProductCategory = 'electronics' | 'clothing' | 'home' | 'beauty' | 'sports' | 'books';
+
+// Category color mapping for Colombian market preferences
+const CATEGORY_COLORS: Record<string, { border: string; bg: string; text: string; accent: string }> = {
+  electronics: {
+    border: 'border-primary-200',
+    bg: 'bg-primary-50',
+    text: 'text-primary-700',
+    accent: 'accent-primary-500'
+  },
+  clothing: {
+    border: 'border-secondary-200',
+    bg: 'bg-secondary-50',
+    text: 'text-secondary-700',
+    accent: 'accent-secondary-500'
+  },
+  home: {
+    border: 'border-accent-200',
+    bg: 'bg-accent-50',
+    text: 'text-accent-700',
+    accent: 'accent-accent-500'
+  },
+  beauty: {
+    border: 'border-pink-200',
+    bg: 'bg-pink-50',
+    text: 'text-pink-700',
+    accent: 'accent-pink-500'
+  },
+  sports: {
+    border: 'border-green-200',
+    bg: 'bg-green-50',
+    text: 'text-green-700',
+    accent: 'accent-green-500'
+  },
+  books: {
+    border: 'border-purple-200',
+    bg: 'bg-purple-50',
+    text: 'text-purple-700',
+    accent: 'accent-purple-500'
+  }
+};
+
+interface BulkEditModalData {
+  isOpen: boolean;
+  selectedIds: string[];
+  action: BulkAction | null;
+}
+
+interface QuickEditData {
+  productId: string | null;
+  field: 'name' | 'price' | 'stock' | null;
+  value: string;
+}
+
+interface ImageUploadProgress {
+  [key: string]: {
+    progress: number;
+    status: 'uploading' | 'success' | 'error';
+    url?: string;
+  };
+}
 
 export const VendorProductDashboard: React.FC<VendorProductDashboardProps> = ({
   className = '',
@@ -732,6 +826,12 @@ export const VendorProductDashboard: React.FC<VendorProductDashboardProps> = ({
                     className="px-3 py-1 text-sm font-medium text-accent-700 bg-accent-100 rounded hover:bg-accent-200 transition-colors"
                   >
                     Destacar
+                  </button>
+                  <button
+                    onClick={() => handleBulkAction('edit')}
+                    className="px-3 py-1 text-sm font-medium text-blue-700 bg-blue-100 rounded hover:bg-blue-200 transition-colors"
+                  >
+                    Editar
                   </button>
                   <button
                     onClick={() => handleBulkAction('delete')}

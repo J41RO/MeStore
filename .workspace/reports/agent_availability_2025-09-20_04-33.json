@@ -1,0 +1,148 @@
+{
+  "timestamp": "2025-09-20T04:33:07.454990",
+  "total_protected_files": 9,
+  "files_status": {
+    "app/main.py": {
+      "primary_agent": "system-architect-ai",
+      "backup_agent": "solution-architect-ai",
+      "department": "architecture",
+      "primary_office_exists": true,
+      "backup_office_exists": true,
+      "metadata_exists": true,
+      "metadata_complete": true,
+      "status": "OK"
+    },
+    "frontend/vite.config.ts": {
+      "primary_agent": "frontend-performance-ai",
+      "backup_agent": "react-specialist-ai",
+      "department": "frontend",
+      "primary_office_exists": true,
+      "backup_office_exists": true,
+      "metadata_exists": true,
+      "metadata_complete": false,
+      "status": "ISSUES",
+      "issues": [
+        "Metadatos incompletos (falta info contacto)"
+      ]
+    },
+    "docker-compose.yml": {
+      "primary_agent": "cloud-infrastructure-ai",
+      "backup_agent": "devops-integration-ai",
+      "department": "infrastructure",
+      "primary_office_exists": true,
+      "backup_office_exists": true,
+      "metadata_exists": true,
+      "metadata_complete": false,
+      "status": "ISSUES",
+      "issues": [
+        "Metadatos incompletos (falta info contacto)"
+      ]
+    },
+    "app/api/v1/deps/auth.py": {
+      "primary_agent": "security-backend-ai",
+      "backup_agent": "api-security",
+      "department": "backend",
+      "primary_office_exists": true,
+      "backup_office_exists": true,
+      "metadata_exists": true,
+      "metadata_complete": true,
+      "status": "OK"
+    },
+    "app/services/auth_service.py": {
+      "primary_agent": "security-backend-ai",
+      "backup_agent": "api-security",
+      "department": "backend",
+      "primary_office_exists": true,
+      "backup_office_exists": true,
+      "metadata_exists": false,
+      "metadata_complete": false,
+      "status": "ISSUES",
+      "issues": [
+        "Metadatos faltantes"
+      ]
+    },
+    "app/models/user.py": {
+      "primary_agent": "database-architect-ai",
+      "backup_agent": "backend-framework-ai",
+      "department": "architecture",
+      "primary_office_exists": true,
+      "backup_office_exists": false,
+      "metadata_exists": true,
+      "metadata_complete": true,
+      "status": "ISSUES",
+      "issues": [
+        "Oficina backup faltante: backend-framework-ai"
+      ]
+    },
+    "tests/conftest.py": {
+      "primary_agent": "tdd-specialist",
+      "backup_agent": "unit-testing-ai",
+      "department": "testing",
+      "primary_office_exists": true,
+      "backup_office_exists": true,
+      "metadata_exists": true,
+      "metadata_complete": true,
+      "status": "OK"
+    },
+    "app/core/config.py": {
+      "primary_agent": "configuration-management",
+      "backup_agent": "system-architect-ai",
+      "department": "backend",
+      "primary_office_exists": true,
+      "backup_office_exists": false,
+      "metadata_exists": false,
+      "metadata_complete": false,
+      "status": "ISSUES",
+      "issues": [
+        "Oficina backup faltante: system-architect-ai",
+        "Metadatos faltantes"
+      ]
+    },
+    "app/database.py": {
+      "primary_agent": "database-architect-ai",
+      "backup_agent": "database-performance",
+      "department": "architecture",
+      "primary_office_exists": true,
+      "backup_office_exists": false,
+      "metadata_exists": false,
+      "metadata_complete": false,
+      "status": "ISSUES",
+      "issues": [
+        "Oficina backup faltante: database-performance",
+        "Metadatos faltantes"
+      ]
+    }
+  },
+  "agents_status": {
+    "system-architect-ai": 2,
+    "solution-architect-ai": 1,
+    "frontend-performance-ai": 1,
+    "react-specialist-ai": 1,
+    "cloud-infrastructure-ai": 1,
+    "devops-integration-ai": 1,
+    "security-backend-ai": 2,
+    "api-security": 2,
+    "database-architect-ai": 2,
+    "backend-framework-ai": 1,
+    "tdd-specialist": 1,
+    "unit-testing-ai": 1,
+    "configuration-management": 1,
+    "database-performance": 1
+  },
+  "issues": [
+    "frontend/vite.config.ts: Metadatos incompletos (falta info contacto)",
+    "docker-compose.yml: Metadatos incompletos (falta info contacto)",
+    "app/services/auth_service.py: Metadatos faltantes",
+    "app/models/user.py: Oficina backup faltante: backend-framework-ai",
+    "app/core/config.py: Oficina backup faltante: system-architect-ai",
+    "app/core/config.py: Metadatos faltantes",
+    "app/database.py: Oficina backup faltante: database-performance",
+    "app/database.py: Metadatos faltantes"
+  ],
+  "summary": {
+    "fully_configured": 3,
+    "missing_offices": 0,
+    "missing_metadata": 3,
+    "incomplete_metadata": 2
+  }
+}

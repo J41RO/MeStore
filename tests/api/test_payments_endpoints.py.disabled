@@ -1,0 +1,894 @@
+"""
+Comprehensive integration tests for Payments API endpoints
+========================================================
+
+Tests for critical payment processing functionality:
+- Payment processing with Wompi integration
+- Payment status tracking and validation
+- Payment methods management
+- Webhook handling and verification
+- Fraud detection integration
+- Authentication and authorization
+- Error handling and edge cases
+
+Author: Integration Testing Specialist AI
+Date: 2025-09-20
+Purpose: Ensure >85% coverage for payments endpoints
+"""
+
+import pytest
+from fastapi.testclient import TestClient
+from unittest.mock import Mock, patch, AsyncMock, MagicMock
+from datetime import datetime, timedelta
+from typing import Dict, Any, List
+import json
+
+from app.main import app
+from app.database import get_db
+from app.api.v1.deps.auth import get_current_user, require_buyer
+from app.models.user import User
+from app.models.order import Order, OrderStatus, PaymentStatus
+from app.services.integrated_payment_service import PaymentProcessingError
+
+
+# Test client
+client = TestClient(app)
+
+# Mock fixtures
+@pytest.fixture
+def mock_db():
+    """Mock database session"""
+    db = Mock()
+    db.execute = AsyncMock()
+    db.commit = AsyncMock()
+    db.rollback = AsyncMock()
+    db.refresh = AsyncMock()
+    return db
+
+
+@pytest.fixture
+def mock_buyer_user():
+    """Mock buyer user"""
+    user = Mock(spec=User)
+    user.id = 123  # Integer ID for compatibility
+    user.email = "buyer@example.com"
+    user.name = "Test Buyer"
+    user.is_active = True
+    user.is_vendor = False
+    user.user_type = "buyer"
+    return user
+
+
+@pytest.fixture
+def mock_vendor_user():
+    """Mock vendor user"""
+    user = Mock(spec=User)
+    user.id = 456  # Integer ID for compatibility
+    user.email = "vendor@example.com"
+    user.name = "Test Vendor"
+    user.is_active = True
+    user.is_vendor = True
+    user.user_type = "vendor"
+    return user
+
+
+@pytest.fixture
+def mock_order():
+    """Mock order instance"""
+    order = Mock(spec=Order)
+    order.id = 123
+    order.order_number = "ORD-20250920-ABC123"
+    order.buyer_id = 123  # Match mock_buyer_user.id
+    order.status = OrderStatus.PENDING
+    order.payment_status = PaymentStatus.PENDING
+    order.total_amount = 250000.0
+    order.created_at = datetime.now()
+    order.updated_at = datetime.now()
+    return order
+
+
+@pytest.fixture
+def payment_request_data():
+    """Sample payment request data"""
+    return {
+        "order_id": 123,
+        "payment_method": "credit_card",
+        "payment_data": {
+            "card_number": "4111111111111111",
+            "card_holder": "Juan Pérez",
+            "expiration_month": "12",
+            "expiration_year": "2025",
+            "cvv": "123",
+            "installments": 1
+        },
+        "save_payment_method": False
+    }
+
+
+@pytest.fixture
+def webhook_data():
+    """Sample webhook data from Wompi"""
+    return {
+        "data": {
+            "transaction": {
+                "id": "wompi-12345",
+                "status": "APPROVED",
+                "amount_in_cents": 25000000,
+                "currency": "COP",
+                "reference": "ORD-20250920-ABC123",
+                "payment_method": {
+                    "type": "CARD",
+                    "extra": {
+                        "brand": "VISA",
+                        "last_four": "1111"
+                    }
+                }
+            }
+        },
+        "timestamp": datetime.now().isoformat()
+    }
+
+
+# Dependency overrides
+def override_get_db(mock_db):
+    def _override():
+        return mock_db
+    return _override
+
+
+def override_get_current_user(mock_user):
+    def _override():
+        return mock_user
+    return _override
+
+
+def override_require_buyer(mock_user):
+    def _override():
+        return mock_user
+    return _override
+
+
+@pytest.mark.api
+@pytest.mark.payments
+@pytest.mark.tdd
+class TestPaymentsEndpoints:
+    """Test suite for Payments API endpoints"""
+
+    def setup_method(self):
+        """Setup for each test method"""
+        app.dependency_overrides.clear()
+
+    def teardown_method(self):
+        """Cleanup after each test method"""
+        app.dependency_overrides.clear()
+
+    def test_payments_info_endpoint(self):
+        """Test payments service information endpoint"""
+        response = client.get("/api/v1/payments/")
+
+        assert response.status_code == 200
+        data = response.json()
+
+        assert data["service"] == "MeStore Payments API"
+        assert data["version"] == "1.0.0"
+        assert data["status"] == "operational"
+        assert "endpoints" in data
+
+        # Verify all expected endpoints are listed
+        endpoints = data["endpoints"]
+        assert "process" in endpoints
+        assert "status" in endpoints
+        assert "methods" in endpoints
+        assert "webhook" in endpoints
+        assert "health" in endpoints
+
+    def test_process_payment_success(self, mock_db, mock_buyer_user, mock_order, payment_request_data):
+        """Test successful payment processing"""
+        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        app.dependency_overrides[require_buyer] = override_require_buyer(mock_buyer_user)
+
+        # Mock order validation
+        mock_result = Mock()
+        mock_result.scalar_one_or_none.return_value = mock_order
+        mock_db.execute.return_value = mock_result
+
+        # Mock payment service response
+        with patch('app.services.integrated_payment_service.integrated_payment_service.process_order_payment') as mock_payment:
+            mock_payment.return_value = {
+                "success": True,
+                "order_id": 123,
+                "transaction_id": "txn-12345",
+                "wompi_transaction_id": "wompi-12345",
+                "status": "processing",
+                "payment_url": "https://checkout.wompi.co/p/12345",
+                "fraud_score": 0.15
+            }
+
+            response = client.post(
+                "/api/v1/payments/process",
+                json=payment_request_data,
+                headers={"Authorization": "Bearer mock-token"}
+            )
+
+            assert response.status_code == 200
+            data = response.json()
+
+            assert data["success"] is True
+            assert data["order_id"] == 123
+            assert data["transaction_id"] == "txn-12345"
+            assert data["wompi_transaction_id"] == "wompi-12345"
+            assert data["status"] == "processing"
+            assert data["payment_url"] == "https://checkout.wompi.co/p/12345"
+            assert data["fraud_score"] == 0.15
+            assert data["message"] == "Payment processed successfully"
+
+    def test_process_payment_order_not_found(self, mock_db, mock_buyer_user, payment_request_data):
+        """Test payment processing with non-existent order"""
+        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        app.dependency_overrides[require_buyer] = override_require_buyer(mock_buyer_user)
+
+        # Mock order not found
+        mock_result = Mock()
+        mock_result.scalar_one_or_none.return_value = None
+        mock_db.execute.return_value = mock_result
+
+        response = client.post(
+            "/api/v1/payments/process",
+            json=payment_request_data,
+            headers={"Authorization": "Bearer mock-token"}
+        )
+
+        assert response.status_code == 404
+        data = response.json()
+        assert "Order not found" in str(data)
+
+    def test_process_payment_unauthorized_order(self, mock_db, mock_buyer_user, mock_order, payment_request_data):
+        """Test payment processing for order not owned by user"""
+        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        app.dependency_overrides[require_buyer] = override_require_buyer(mock_buyer_user)
+
+        # Make order belong to different user
+        mock_order.buyer_id = 999
+        mock_result = Mock()
+        mock_result.scalar_one_or_none.return_value = mock_order
+        mock_db.execute.return_value = mock_result
+
+        response = client.post(
+            "/api/v1/payments/process",
+            json=payment_request_data,
+            headers={"Authorization": "Bearer mock-token"}
+        )
+
+        assert response.status_code == 403
+        data = response.json()
+        assert "Access denied" in str(data)
+
+    def test_process_payment_invalid_order_status(self, mock_db, mock_buyer_user, mock_order, payment_request_data):
+        """Test payment processing for order with invalid status"""
+        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        app.dependency_overrides[require_buyer] = override_require_buyer(mock_buyer_user)
+
+        # Set order to completed status (not payable)
+        mock_order.status = "COMPLETED"  # Use string instead of enum
+        mock_result = Mock()
+        mock_result.scalar_one_or_none.return_value = mock_order
+        mock_db.execute.return_value = mock_result
+
+        response = client.post(
+            "/api/v1/payments/process",
+            json=payment_request_data,
+            headers={"Authorization": "Bearer mock-token"}
+        )
+
+        assert response.status_code == 400
+        data = response.json()
+        assert "not in a payable state" in str(data)
+
+    def test_process_payment_fraud_detection_block(self, mock_db, mock_buyer_user, mock_order, payment_request_data):
+        """Test payment processing blocked by fraud detection"""
+        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        app.dependency_overrides[require_buyer] = override_require_buyer(mock_buyer_user)
+
+        # Mock order validation
+        mock_result = Mock()
+        mock_result.scalar_one_or_none.return_value = mock_order
+        mock_db.execute.return_value = mock_result
+
+        # Mock payment service fraud block
+        with patch('app.services.integrated_payment_service.integrated_payment_service.process_order_payment') as mock_payment:
+            mock_payment.side_effect = PaymentProcessingError(
+                error_code="FRAUD_DETECTED",
+                message="Transaction blocked by fraud detection",
+                details={"fraud_score": 0.95, "reason": "High risk pattern"}
+            )
+
+            response = client.post(
+                "/api/v1/payments/process",
+                json=payment_request_data,
+                headers={"Authorization": "Bearer mock-token"}
+            )
+
+            assert response.status_code == 400
+            data = response.json()
+            assert "FRAUD_DETECTED" in str(data)
+            assert "fraud detection" in str(data)
+
+    def test_process_payment_validation_errors(self, mock_db, mock_buyer_user):
+        """Test payment processing with validation errors"""
+        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        app.dependency_overrides[require_buyer] = override_require_buyer(mock_buyer_user)
+
+        # Test missing required fields
+        invalid_requests = [
+            {},  # Empty request
+            {"order_id": "invalid"},  # Invalid order_id type
+            {"order_id": 123},  # Missing payment_method
+            {"order_id": 123, "payment_method": "credit_card"},  # Missing payment_data
+        ]
+
+        for invalid_request in invalid_requests:
+            response = client.post(
+                "/api/v1/payments/process",
+                json=invalid_request,
+                headers={"Authorization": "Bearer mock-token"}
+            )
+
+            assert response.status_code == 422
+
+    def test_get_payment_status_success(self, mock_db, mock_buyer_user, mock_order):
+        """Test successful payment status retrieval"""
+        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        app.dependency_overrides[get_current_user] = override_get_current_user(mock_buyer_user)
+
+        # Mock order validation
+        mock_result = Mock()
+        mock_result.scalar_one_or_none.return_value = mock_order
+        mock_db.execute.return_value = mock_result
+
+        # Mock payment service response
+        with patch('app.services.integrated_payment_service.integrated_payment_service.get_payment_status') as mock_status:
+            mock_status.return_value = {
+                "order_id": 123,
+                "order_status": "confirmed",
+                "payment_status": "paid",
+                "transaction_id": "txn-12345",
+                "wompi_transaction_id": "wompi-12345",
+                "amount": 250000.0,
+                "last_updated": datetime.now().isoformat()
+            }
+
+            response = client.get(
+                "/api/v1/payments/status/123",
+                headers={"Authorization": "Bearer mock-token"}
+            )
+
+            assert response.status_code == 200
+            data = response.json()
+
+            assert data["order_id"] == 123
+            assert data["order_status"] == "confirmed"
+            assert data["payment_status"] == "paid"
+            assert data["transaction_id"] == "txn-12345"
+            assert data["amount"] == 250000.0
+
+    def test_get_payment_status_order_not_found(self, mock_db, mock_buyer_user):
+        """Test payment status for non-existent order"""
+        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        app.dependency_overrides[get_current_user] = override_get_current_user(mock_buyer_user)
+
+        # Mock order not found
+        mock_result = Mock()
+        mock_result.scalar_one_or_none.return_value = None
+        mock_db.execute.return_value = mock_result
+
+        response = client.get(
+            "/api/v1/payments/status/999",
+            headers={"Authorization": "Bearer mock-token"}
+        )
+
+        assert response.status_code == 404
+        data = response.json()
+        assert "Order not found" in str(data)
+
+    def test_get_payment_methods_success(self, mock_db, mock_buyer_user):
+        """Test successful payment methods retrieval"""
+        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        app.dependency_overrides[get_current_user] = override_get_current_user(mock_buyer_user)
+
+        # Mock payment service response
+        with patch('app.services.integrated_payment_service.integrated_payment_service.get_payment_methods') as mock_methods:
+            mock_methods.return_value = [
+                {
+                    "id": "credit_card",
+                    "name": "Tarjeta de Crédito",
+                    "type": "card",
+                    "enabled": True,
+                    "description": "Visa, Mastercard, American Express"
+                },
+                {
+                    "id": "debit_card",
+                    "name": "Tarjeta Débito",
+                    "type": "card",
+                    "enabled": True,
+                    "description": "Débito Visa y Mastercard"
+                },
+                {
+                    "id": "pse",
+                    "name": "PSE",
+                    "type": "bank_transfer",
+                    "enabled": True,
+                    "description": "Pagos Seguros en Línea"
+                }
+            ]
+
+            response = client.get(
+                "/api/v1/payments/methods",
+                headers={"Authorization": "Bearer mock-token"}
+            )
+
+            assert response.status_code == 200
+            data = response.json()
+
+            assert len(data) == 3
+            assert data[0]["id"] == "credit_card"
+            assert data[0]["name"] == "Tarjeta de Crédito"
+            assert data[0]["enabled"] is True
+
+            assert data[2]["id"] == "pse"
+            assert data[2]["type"] == "bank_transfer"
+
+    def test_handle_payment_webhook_success(self, mock_db, webhook_data):
+        """Test successful payment webhook handling"""
+        app.dependency_overrides[get_db] = override_get_db(mock_db)
+
+        # Mock payment service response
+        with patch('app.services.integrated_payment_service.integrated_payment_service.handle_payment_webhook') as mock_webhook:
+            mock_webhook.return_value = {
+                "success": True,
+                "transaction_id": "txn-12345",
+                "order_id": 123,
+                "status": "approved"
+            }
+
+            response = client.post(
+                "/api/v1/payments/webhook",
+                json=webhook_data,
+                headers={"X-Wompi-Signature": "test-signature"}
+            )
+
+            assert response.status_code == 200
+            data = response.json()
+
+            assert data["success"] is True
+            assert data["message"] == "Webhook processed successfully"
+            assert data["transaction_id"] == "txn-12345"
+
+    def test_handle_payment_webhook_invalid_signature(self, mock_db, webhook_data):
+        """Test payment webhook with invalid signature"""
+        app.dependency_overrides[get_db] = override_get_db(mock_db)
+
+        # Mock payment service signature validation error
+        with patch('app.services.integrated_payment_service.integrated_payment_service.handle_payment_webhook') as mock_webhook:
+            mock_webhook.side_effect = PaymentProcessingError(
+                error_code="INVALID_SIGNATURE",
+                message="Webhook signature validation failed"
+            )
+
+            response = client.post(
+                "/api/v1/payments/webhook",
+                json=webhook_data,
+                headers={"X-Wompi-Signature": "invalid-signature"}
+            )
+
+            assert response.status_code == 200  # Always return 200 for webhooks
+            data = response.json()
+
+            assert data["success"] is False
+            assert "signature validation failed" in data["error"]
+            assert data["acknowledged"] is True
+
+    def test_handle_payment_webhook_malformed_data(self, mock_db):
+        """Test payment webhook with malformed data"""
+        app.dependency_overrides[get_db] = override_get_db(mock_db)
+
+        malformed_webhook_data = {
+            "invalid_structure": "missing required fields"
+        }
+
+        response = client.post(
+            "/api/v1/payments/webhook",
+            json=malformed_webhook_data,
+            headers={"X-Wompi-Signature": "test-signature"}
+        )
+
+        # Should handle malformed data gracefully
+        assert response.status_code in [200, 422]
+
+    def test_payment_service_health_check(self):
+        """Test payment service health check"""
+        with patch('app.services.integrated_payment_service.integrated_payment_service.health_check') as mock_health:
+            mock_health.return_value = {
+                "service": "IntegratedPaymentService",
+                "status": "healthy",
+                "wompi_connection": "ok",
+                "fraud_service": "ok",
+                "database": "ok",
+                "timestamp": datetime.now().isoformat()
+            }
+
+            response = client.get("/api/v1/payments/health")
+
+            assert response.status_code == 200
+            data = response.json()
+
+            assert data["service"] == "IntegratedPaymentService"
+            assert data["status"] == "healthy"
+            assert "wompi_connection" in data
+            assert "fraud_service" in data
+
+    def test_payment_service_health_check_unhealthy(self):
+        """Test payment service health check when unhealthy"""
+        with patch('app.services.integrated_payment_service.integrated_payment_service.health_check') as mock_health:
+            mock_health.side_effect = Exception("Wompi service unavailable")
+
+            response = client.get("/api/v1/payments/health")
+
+            assert response.status_code == 200
+            data = response.json()
+
+            assert data["service"] == "IntegratedPaymentService"
+            assert data["status"] == "unhealthy"
+            assert "error" in data
+
+
+@pytest.mark.api
+@pytest.mark.payments
+@pytest.mark.auth
+@pytest.mark.tdd
+class TestPaymentsAuthentication:
+    """Test suite for Payments authentication and authorization"""
+
+    def test_process_payment_requires_authentication(self, mock_db, payment_request_data):
+        """Test that payment processing requires authentication"""
+        app.dependency_overrides[get_db] = override_get_db(mock_db)
+
+        response = client.post(
+            "/api/v1/payments/process",
+            json=payment_request_data
+        )
+
+        assert response.status_code == 401
+
+    def test_process_payment_requires_buyer_role(self, mock_db, mock_vendor_user, payment_request_data):
+        """Test that payment processing requires buyer role"""
+        app.dependency_overrides[get_db] = override_get_db(mock_db)
+
+        # Mock require_buyer dependency to reject vendor
+        def mock_require_buyer():
+            from fastapi import HTTPException, status
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Buyer access required"
+            )
+
+        app.dependency_overrides[require_buyer] = mock_require_buyer
+
+        response = client.post(
+            "/api/v1/payments/process",
+            json=payment_request_data,
+            headers={"Authorization": "Bearer mock-token"}
+        )
+
+        assert response.status_code == 403
+
+    def test_get_payment_status_requires_authentication(self, mock_db):
+        """Test that payment status requires authentication"""
+        app.dependency_overrides[get_db] = override_get_db(mock_db)
+
+        response = client.get("/api/v1/payments/status/123")
+
+        assert response.status_code == 401
+
+    def test_get_payment_methods_requires_authentication(self, mock_db):
+        """Test that payment methods requires authentication"""
+        app.dependency_overrides[get_db] = override_get_db(mock_db)
+
+        response = client.get("/api/v1/payments/methods")
+
+        assert response.status_code == 401
+
+    def test_webhook_no_authentication_required(self, mock_db, webhook_data):
+        """Test that webhook endpoint doesn't require authentication"""
+        app.dependency_overrides[get_db] = override_get_db(mock_db)
+
+        # Mock payment service
+        with patch('app.services.integrated_payment_service.integrated_payment_service.handle_payment_webhook') as mock_webhook:
+            mock_webhook.return_value = {"success": True, "transaction_id": "txn-12345"}
+
+            response = client.post(
+                "/api/v1/payments/webhook",
+                json=webhook_data
+            )
+
+            # Webhooks should work without authentication
+            assert response.status_code == 200
+
+
+@pytest.mark.api
+@pytest.mark.payments
+@pytest.mark.security
+@pytest.mark.tdd
+class TestPaymentsSecurity:
+    """Test suite for Payments security features"""
+
+    def test_payment_data_sanitization(self, mock_db, mock_buyer_user, mock_order):
+        """Test that sensitive payment data is properly sanitized"""
+        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        app.dependency_overrides[require_buyer] = override_require_buyer(mock_buyer_user)
+
+        # Mock order validation
+        mock_result = Mock()
+        mock_result.scalar_one_or_none.return_value = mock_order
+        mock_db.execute.return_value = mock_result
+
+        payment_request_with_sensitive_data = {
+            "order_id": 123,
+            "payment_method": "credit_card",
+            "payment_data": {
+                "card_number": "4111111111111111",
+                "card_holder": "Juan Pérez",
+                "expiration_month": "12",
+                "expiration_year": "2025",
+                "cvv": "123",
+                "admin_override": True,  # Potentially malicious field
+                "sql_injection": "'; DROP TABLE users; --"  # SQL injection attempt
+            },
+            "save_payment_method": False
+        }
+
+        # Mock payment service to verify data passed
+        with patch('app.services.integrated_payment_service.integrated_payment_service.process_order_payment') as mock_payment:
+            mock_payment.return_value = {
+                "success": True,
+                "order_id": 123,
+                "transaction_id": "txn-12345",
+                "status": "processing",
+                "fraud_score": 0.15
+            }
+
+            response = client.post(
+                "/api/v1/payments/process",
+                json=payment_request_with_sensitive_data,
+                headers={"Authorization": "Bearer mock-token"}
+            )
+
+            assert response.status_code == 200
+
+            # Verify sensitive data doesn't appear in logs
+            response_str = str(response.json())
+            assert "4111111111111111" not in response_str
+            assert "123" not in response_str  # CVV
+            assert "DROP TABLE" not in response_str
+
+    def test_rate_limiting_protection(self, mock_db, mock_buyer_user, mock_order, payment_request_data):
+        """Test protection against rapid payment requests"""
+        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        app.dependency_overrides[require_buyer] = override_require_buyer(mock_buyer_user)
+
+        # Mock order validation
+        mock_result = Mock()
+        mock_result.scalar_one_or_none.return_value = mock_order
+        mock_db.execute.return_value = mock_result
+
+        # Mock payment service
+        with patch('app.services.integrated_payment_service.integrated_payment_service.process_order_payment') as mock_payment:
+            mock_payment.return_value = {
+                "success": True,
+                "order_id": 123,
+                "transaction_id": "txn-12345",
+                "status": "processing",
+                "fraud_score": 0.15
+            }
+
+            # Make multiple rapid requests
+            responses = []
+            for i in range(5):
+                response = client.post(
+                    "/api/v1/payments/process",
+                    json=payment_request_data,
+                    headers={"Authorization": "Bearer mock-token"}
+                )
+                responses.append(response)
+
+            # All should succeed for now (rate limiting not implemented)
+            # But endpoint should handle multiple requests gracefully
+            for response in responses:
+                assert response.status_code in [200, 400, 429]
+
+    def test_ip_address_tracking(self, mock_db, mock_buyer_user, mock_order, payment_request_data):
+        """Test that IP addresses are properly tracked for fraud detection"""
+        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        app.dependency_overrides[require_buyer] = override_require_buyer(mock_buyer_user)
+
+        # Mock order validation
+        mock_result = Mock()
+        mock_result.scalar_one_or_none.return_value = mock_order
+        mock_db.execute.return_value = mock_result
+
+        captured_ip = None
+
+        # Mock payment service to capture IP
+        def capture_payment_call(*args, **kwargs):
+            nonlocal captured_ip
+            captured_ip = kwargs.get('ip_address')
+            return {
+                "success": True,
+                "order_id": 123,
+                "transaction_id": "txn-12345",
+                "status": "processing",
+                "fraud_score": 0.15
+            }
+
+        with patch('app.services.integrated_payment_service.integrated_payment_service.process_order_payment', side_effect=capture_payment_call):
+            response = client.post(
+                "/api/v1/payments/process",
+                json=payment_request_data,
+                headers={"Authorization": "Bearer mock-token"}
+            )
+
+            assert response.status_code == 200
+            # Verify IP was captured (testclient uses 'testclient' as default)
+            assert captured_ip is not None
+
+
+@pytest.mark.api
+@pytest.mark.payments
+@pytest.mark.error_handling
+@pytest.mark.tdd
+class TestPaymentsErrorHandling:
+    """Test suite for Payments error handling"""
+
+    def test_database_error_handling(self, mock_buyer_user, payment_request_data):
+        """Test handling of database errors"""
+        # Mock database failure
+        def failing_db():
+            raise Exception("Database connection failed")
+
+        app.dependency_overrides[get_db] = failing_db
+        app.dependency_overrides[require_buyer] = override_require_buyer(mock_buyer_user)
+
+        response = client.post(
+            "/api/v1/payments/process",
+            json=payment_request_data,
+            headers={"Authorization": "Bearer mock-token"}
+        )
+
+        assert response.status_code == 500
+
+    def test_payment_service_unavailable(self, mock_db, mock_buyer_user, mock_order, payment_request_data):
+        """Test handling when payment service is unavailable"""
+        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        app.dependency_overrides[require_buyer] = override_require_buyer(mock_buyer_user)
+
+        # Mock order validation
+        mock_result = Mock()
+        mock_result.scalar_one_or_none.return_value = mock_order
+        mock_db.execute.return_value = mock_result
+
+        # Mock payment service unavailable
+        with patch('app.services.integrated_payment_service.integrated_payment_service.process_order_payment') as mock_payment:
+            mock_payment.side_effect = Exception("Payment service unavailable")
+
+            response = client.post(
+                "/api/v1/payments/process",
+                json=payment_request_data,
+                headers={"Authorization": "Bearer mock-token"}
+            )
+
+            assert response.status_code == 500
+            data = response.json()
+            assert "Internal payment processing error" in data["detail"]
+
+    def test_large_payment_amount_handling(self, mock_db, mock_buyer_user, mock_order):
+        """Test handling of large payment amounts"""
+        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        app.dependency_overrides[require_buyer] = override_require_buyer(mock_buyer_user)
+
+        # Mock order validation
+        mock_result = Mock()
+        mock_result.scalar_one_or_none.return_value = mock_order
+        mock_db.execute.return_value = mock_result
+
+        large_payment_request = {
+            "order_id": 123,
+            "payment_method": "credit_card",
+            "payment_data": {
+                "card_number": "4111111111111111",
+                "card_holder": "Juan Pérez",
+                "expiration_month": "12",
+                "expiration_year": "2025",
+                "cvv": "123",
+                "installments": 1
+            },
+            "save_payment_method": False
+        }
+
+        # Mock order with large amount
+        mock_order.total_amount = 999999999.99
+
+        with patch('app.services.integrated_payment_service.integrated_payment_service.process_order_payment') as mock_payment:
+            mock_payment.return_value = {
+                "success": True,
+                "order_id": 123,
+                "transaction_id": "txn-12345",
+                "status": "processing",
+                "fraud_score": 0.85  # High fraud score for large amount
+            }
+
+            response = client.post(
+                "/api/v1/payments/process",
+                json=large_payment_request,
+                headers={"Authorization": "Bearer mock-token"}
+            )
+
+            # Should handle large amounts appropriately
+            assert response.status_code in [200, 400]
+
+    def test_concurrent_payment_processing(self, mock_db, mock_buyer_user, mock_order, payment_request_data):
+        """Test handling of concurrent payment processing"""
+        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        app.dependency_overrides[require_buyer] = override_require_buyer(mock_buyer_user)
+
+        # Mock order validation
+        mock_result = Mock()
+        mock_result.scalar_one_or_none.return_value = mock_order
+        mock_db.execute.return_value = mock_result
+
+        # Mock payment service with delay
+        def slow_payment_processing(*args, **kwargs):
+            import time
+            time.sleep(0.1)  # Simulate processing time
+            return {
+                "success": True,
+                "order_id": 123,
+                "transaction_id": f"txn-{hash(str(args)+str(kwargs))}"[:10],
+                "status": "processing",
+                "fraud_score": 0.15
+            }
+
+        with patch('app.services.integrated_payment_service.integrated_payment_service.process_order_payment', side_effect=slow_payment_processing):
+            # Simulate concurrent requests
+            import threading
+            responses = []
+
+            def make_payment_request():
+                response = client.post(
+                    "/api/v1/payments/process",
+                    json=payment_request_data,
+                    headers={"Authorization": "Bearer mock-token"}
+                )
+                responses.append(response)
+
+            # Create multiple threads
+            threads = []
+            for i in range(3):
+                thread = threading.Thread(target=make_payment_request)
+                threads.append(thread)
+
+            # Start all threads
+            for thread in threads:
+                thread.start()
+
+            # Wait for all threads to complete
+            for thread in threads:
+                thread.join()
+
+            # All requests should complete without errors
+            for response in responses:
+                assert response.status_code in [200, 400, 500]
+
+
+# Cleanup function
+def teardown_module():
+    """Clean up after all tests in module"""
+    app.dependency_overrides.clear()

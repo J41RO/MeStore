@@ -124,7 +124,7 @@ class TestUserStatusFields:
             'email': 'test@example.com',
             'nombre': 'Juan',
             'apellido': 'Pérez',
-            'user_type': UserType.COMPRADOR
+            'user_type': UserType.BUYER
         }
         user_base = UserBase(**user_data)
 
@@ -140,7 +140,7 @@ class TestUserStatusFields:
             'email': 'test@example.com',
             'nombre': 'Juan',
             'apellido': 'Pérez',
-            'user_type': UserType.COMPRADOR,
+            'user_type': UserType.BUYER,
             'is_active': True,
             'is_verified': True,
             'last_login': now,

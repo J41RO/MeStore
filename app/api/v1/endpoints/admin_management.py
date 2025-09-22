@@ -42,7 +42,7 @@ from sqlalchemy import and_, or_, func, desc
 from pydantic import BaseModel, Field, EmailStr
 
 from app.core.database import get_db
-from app.core.security import get_current_user
+from app.core.auth import get_current_user
 from app.models.user import User, UserType, VendorStatus
 from app.models.admin_permission import AdminPermission, PermissionScope, PermissionAction, ResourceType, admin_user_permissions
 from app.models.admin_activity_log import AdminActivityLog, AdminActionType, ActionResult, RiskLevel
@@ -69,7 +69,6 @@ class AdminCreateRequest(BaseModel):
     employee_id: Optional[str] = Field(None, description="Employee ID")
     telefono: Optional[str] = Field(None, description="Phone number")
     ciudad: Optional[str] = Field(None, description="City")
-    departamento: Optional[str] = Field(None, description="Colombian department")
     initial_permissions: Optional[List[str]] = Field([], description="Initial permission names to grant")
     force_password_change: bool = Field(True, description="Force password change on first login")
 
@@ -282,13 +281,10 @@ async def create_admin_user(
         'employee_id': request.employee_id,
         'telefono': request.telefono,
         'ciudad': request.ciudad,
-        'departamento': request.departamento,
         'is_active': True,
         'is_verified': True,  # Admin users are pre-verified
         'force_password_change': request.force_password_change,
-        'performance_score': 100,  # Start with perfect score
-        'habeas_data_accepted': True,
-        'data_processing_consent': True
+        'performance_score': 100  # Start with perfect score
     }
 
     new_admin = User(**admin_data)

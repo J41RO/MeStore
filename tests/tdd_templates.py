@@ -345,7 +345,7 @@ class DatabaseModelTDDTemplate(TDDTestCase):
                 valid_user_data = {
                     "email": "test@example.com",
                     "password": "password123",
-                    "user_type": "VENDEDOR",
+                    "user_type": "VENDOR",
                     "nombre": "Test",
                     "apellido": "User"
                 }
@@ -355,7 +355,7 @@ class DatabaseModelTDDTemplate(TDDTestCase):
 
                 # Verify basic properties
                 assert user["email"] == "test@example.com"
-                assert user["user_type"] == "VENDEDOR"
+                assert user["user_type"] == "VENDOR"
                 assert user["nombre"] == "Test"
 
                 green.minimal_implementation_check(
@@ -374,7 +374,7 @@ class DatabaseModelTDDTemplate(TDDTestCase):
                 test_cases = [
                     # Valid users
                     {
-                        "data": {"email": "vendor@test.com", "password": "password123", "user_type": "VENDEDOR"},
+                        "data": {"email": "vendor@test.com", "password": "password123", "user_type": "VENDOR"},
                         "should_succeed": True
                     },
                     {
@@ -383,11 +383,11 @@ class DatabaseModelTDDTemplate(TDDTestCase):
                     },
                     # Invalid users
                     {
-                        "data": {"email": "invalid", "password": "password123", "user_type": "VENDEDOR"},
+                        "data": {"email": "invalid", "password": "password123", "user_type": "VENDOR"},
                         "should_succeed": False
                     },
                     {
-                        "data": {"email": "test@test.com", "password": "123", "user_type": "VENDEDOR"},
+                        "data": {"email": "test@test.com", "password": "123", "user_type": "VENDOR"},
                         "should_succeed": False
                     }
                 ]
@@ -438,7 +438,7 @@ class DatabaseModelTDDTemplate(TDDTestCase):
             raise ValueError("Password must be at least 8 characters")
 
         # User type validation
-        valid_types = ["VENDEDOR", "COMPRADOR", "SUPERUSER"]
+        valid_types = ["VENDOR", "BUYER", "SUPERUSER"]
         if data.get("user_type") not in valid_types:
             raise ValueError("Invalid user type")
 

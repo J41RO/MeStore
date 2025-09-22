@@ -84,7 +84,7 @@ class TestE2EProductionReadiness:
                 "nombre": "E2E Test Vendor",
                 "apellido": "Production Test",
                 "celular": "3001234567",
-                "user_type": "VENDEDOR"
+                "user_type": "VENDOR"
             }
 
             registration_response = await async_client.post("/api/v1/auth/register", json=vendor_data)
@@ -144,7 +144,7 @@ class TestE2EProductionReadiness:
                 "nombre": "E2E Test Customer",
                 "apellido": "Production Test",
                 "celular": "3007654321",
-                "user_type": "COMPRADOR"
+                "user_type": "BUYER"
             }
 
             registration_response = await async_client.post("/api/v1/auth/register", json=customer_data)
@@ -177,7 +177,7 @@ class TestE2EProductionReadiness:
 
             profile_data = profile_response.json()
             assert profile_data["email"] == customer_data["email"], "Customer profile data inconsistency"
-            assert profile_data["user_type"] == "COMPRADOR", "Customer user type inconsistency"
+            assert profile_data["user_type"] == "BUYER", "Customer user type inconsistency"
 
             production_metrics.record_success()
 
@@ -314,7 +314,7 @@ class TestE2EProductionReadiness:
                 "password": "TestPass123!",
                 "nombre": "<script>alert('xss')</script>",
                 "apellido": "Test",
-                "user_type": "COMPRADOR"
+                "user_type": "BUYER"
             }
 
             start_time = time.time()
@@ -355,7 +355,7 @@ class TestE2EProductionReadiness:
                     "password": "PerfTest123!",
                     "nombre": f"Perf User {user_index}",
                     "apellido": "Load Test",
-                    "user_type": "COMPRADOR"
+                    "user_type": "BUYER"
                 }
 
                 # Register

@@ -94,8 +94,8 @@ def main():
     
     # Credenciales de prueba (según mensaje del usuario)
     test_users = [
-        ("buyer@mestore.com", "123456", "COMPRADOR"),
-        ("vendor@mestore.com", "123456", "VENDEDOR"), 
+        ("buyer@mestore.com", "123456", "BUYER"),
+        ("vendor@mestore.com", "123456", "VENDOR"), 
         ("admin@mestore.com", "123456", "ADMIN"),
         ("super@mestore.com", "123456", "SUPERUSER")
     ]

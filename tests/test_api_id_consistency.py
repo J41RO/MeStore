@@ -246,7 +246,7 @@ class TestSchemaIDValidation:
             "email": "test@example.com",
             "nombre": "Test",
             "apellido": "User",
-            "user_type": "COMPRADOR",
+            "user_type": "BUYER",
             "is_active": True,
             "is_verified": False,
             "created_at": datetime.utcnow(),

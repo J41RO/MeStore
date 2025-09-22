@@ -24,7 +24,7 @@ from app.core.security import get_password_hash
 from app.models.user import User, UserType
 from app.models.product import Product
 from app.models.order import Order, OrderStatus
-from tests.database_test_config import test_data_factory
+from tests.database_fixtures import test_data_factory
 
 
 class BusinessScenarioFixtures:
@@ -45,7 +45,7 @@ class BusinessScenarioFixtures:
         """
         # Create vendor user
         vendor = test_data_factory.create_test_user(
-            user_type="VENDEDOR",
+            user_type="VENDOR",
             email="vendor@testscenario.com",
             nombre="Juan Carlos",
             apellido="Vendedor"
@@ -67,7 +67,7 @@ class BusinessScenarioFixtures:
         orders = []
         for i in range(2):
             buyer = test_data_factory.create_test_user(
-                user_type="COMPRADOR",
+                user_type="BUYER",
                 email=f"buyer{i+1}@testscenario.com"
             )
             buyers.append(buyer)
@@ -100,7 +100,7 @@ class BusinessScenarioFixtures:
         vendors = []
         for i in range(3):
             vendor = test_data_factory.create_test_user(
-                user_type="VENDEDOR",
+                user_type="VENDOR",
                 email=f"vendor{i+1}@marketplace.com",
                 nombre=f"Vendor {i+1}",
                 apellido="Business"
@@ -129,7 +129,7 @@ class BusinessScenarioFixtures:
         orders = []
         for i in range(5):
             buyer = test_data_factory.create_test_user(
-                user_type="COMPRADOR",
+                user_type="BUYER",
                 email=f"buyer{i+1}@marketplace.com"
             )
             buyers.append(buyer)
@@ -168,7 +168,7 @@ class BusinessScenarioFixtures:
         vendors = []
         for i in range(10):
             vendor = test_data_factory.create_test_user(
-                user_type="VENDEDOR",
+                user_type="VENDOR",
                 email=f"vendor{i+1}@highvolume.com"
             )
             vendors.append(vendor)
@@ -189,7 +189,7 @@ class BusinessScenarioFixtures:
         buyers = []
         for i in range(25):
             buyer = test_data_factory.create_test_user(
-                user_type="COMPRADOR",
+                user_type="BUYER",
                 email=f"buyer{i+1}@highvolume.com"
             )
             buyers.append(buyer)
@@ -212,7 +212,7 @@ class AuthenticationFixtures:
         from app.core.security import get_password_hash
 
         users = {}
-        user_types = ["SUPERUSER", "VENDEDOR", "COMPRADOR"]
+        user_types = ["SUPERUSER", "VENDOR", "BUYER"]
 
         for user_type in user_types:
             user = User(
@@ -268,7 +268,7 @@ class ProductInventoryFixtures:
     @pytest.fixture(scope="function")
     def product_catalog_scenario(self, test_data_factory):
         """Complete product catalog with various scenarios."""
-        vendor = test_data_factory.create_test_user("VENDEDOR")
+        vendor = test_data_factory.create_test_user("VENDOR")
 
         # Create products with different conditions
         products = {
@@ -314,7 +314,7 @@ class ProductInventoryFixtures:
     @pytest.fixture(scope="function")
     def inventory_update_scenario(self, test_data_factory):
         """Scenario for testing inventory updates and constraints."""
-        vendor = test_data_factory.create_test_user("VENDEDOR")
+        vendor = test_data_factory.create_test_user("VENDOR")
 
         # Create products that will be updated
         products = []
@@ -351,8 +351,8 @@ class OrderProcessingFixtures:
     def order_lifecycle_scenario(self, test_data_factory):
         """Complete order lifecycle from creation to completion."""
         # Create participants
-        vendor = test_data_factory.create_test_user("VENDEDOR")
-        buyer = test_data_factory.create_test_user("COMPRADOR")
+        vendor = test_data_factory.create_test_user("VENDOR")
+        buyer = test_data_factory.create_test_user("BUYER")
         admin = test_data_factory.create_test_user("SUPERUSER")
 
         # Create products for the order
@@ -408,8 +408,8 @@ class OrderProcessingFixtures:
     @pytest.fixture(scope="function")
     def order_validation_scenario(self, test_data_factory):
         """Scenario for testing order validation and edge cases."""
-        vendor = test_data_factory.create_test_user("VENDEDOR")
-        buyer = test_data_factory.create_test_user("COMPRADOR")
+        vendor = test_data_factory.create_test_user("VENDOR")
+        buyer = test_data_factory.create_test_user("BUYER")
 
         # Create products with different constraints
         in_stock_product = test_data_factory.create_test_product(
@@ -478,14 +478,14 @@ class FinancialTestFixtures:
 
         for i, rate in enumerate(commission_rates):
             vendor = test_data_factory.create_test_user(
-                user_type="VENDEDOR",
+                user_type="VENDOR",
                 email=f"vendor{i+1}@commission.com"
             )
             vendors.append(vendor)
 
             # Create buyer for this vendor's order
             buyer = test_data_factory.create_test_user(
-                user_type="COMPRADOR",
+                user_type="BUYER",
                 email=f"buyer{i+1}@commission.com"
             )
 
@@ -535,8 +535,8 @@ class FinancialTestFixtures:
     @pytest.fixture(scope="function")
     def payment_processing_scenario(self, test_data_factory):
         """Scenario for testing payment processing workflows."""
-        buyer = test_data_factory.create_test_user("COMPRADOR")
-        vendor = test_data_factory.create_test_user("VENDEDOR")
+        buyer = test_data_factory.create_test_user("BUYER")
+        vendor = test_data_factory.create_test_user("VENDOR")
 
         # Create orders for different payment scenarios
         payment_orders = {
@@ -602,7 +602,7 @@ def performance_baseline_data(test_data_factory):
     # Create 5 vendors
     for i in range(5):
         vendor = test_data_factory.create_test_user(
-            user_type="VENDEDOR",
+            user_type="VENDOR",
             email=f"perf_vendor{i}@test.com"
         )
         vendors.append(vendor)
@@ -620,7 +620,7 @@ def performance_baseline_data(test_data_factory):
     # Create 20 buyers
     for i in range(20):
         buyer = test_data_factory.create_test_user(
-            user_type="COMPRADOR",
+            user_type="BUYER",
             email=f"perf_buyer{i}@test.com"
         )
         buyers.append(buyer)

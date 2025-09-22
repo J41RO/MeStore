@@ -1,0 +1,43 @@
+{
+  "pwa_dependencies": {
+    "required_packages": {
+      "vite-plugin-pwa": "^0.17.0",
+      "workbox-window": "^7.0.0",
+      "workbox-core": "^7.0.0",
+      "workbox-precaching": "^7.0.0",
+      "workbox-routing": "^7.0.0",
+      "workbox-strategies": "^7.0.0"
+    },
+    "mobile_ux_packages": {
+      "hammer.js": "^2.0.8",
+      "@use-gesture/react": "^10.3.0",
+      "react-spring": "^9.7.3",
+      "framer-motion": "^10.16.4"
+    },
+    "notification_packages": {
+      "web-push": "^3.6.6",
+      "@push.rocks/web-push": "^1.0.0"
+    }
+  },
+  "existing_dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.8.1",
+    "zustand": "^4.4.1",
+    "tailwindcss": "^3.3.0",
+    "vite": "^4.4.5",
+    "typescript": "^5.0.2"
+  },
+  "mobile_specific_configs": {
+    "viewport_meta": "required",
+    "touch_action_css": "required",
+    "safe_area_insets": "required",
+    "mobile_breakpoints": "required"
+  },
+  "colombian_market_integrations": {
+    "pse_payments": "existing_integration",
+    "wompi_service": "existing_integration",
+    "whatsapp_sharing": "to_implement",
+    "location_services": "to_implement"
+  }
+}

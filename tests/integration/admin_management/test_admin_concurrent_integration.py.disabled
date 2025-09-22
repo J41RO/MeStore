@@ -1,0 +1,640 @@
+# ~/tests/integration/admin_management/test_admin_concurrent_integration.py
+# ---------------------------------------------------------------------------------------------
+# MeStore - Admin Concurrent Operations Integration Tests
+# Copyright (c) 2025 Jairo. Todos los derechos reservados.
+# Licensed under the proprietary license detailed in a LICENSE file in the root of this project.
+# ---------------------------------------------------------------------------------------------
+#
+# Nombre del Archivo: test_admin_concurrent_integration.py
+# Ruta: ~/tests/integration/admin_management/test_admin_concurrent_integration.py
+# Autor: Integration Testing Specialist
+# Fecha de Creación: 2025-09-21
+# Última Actualización: 2025-09-21
+# Versión: 1.0.0
+# Propósito: Concurrent operations integration tests for admin management system
+#
+# Concurrent Integration Testing Coverage:
+# - High-load concurrent operations testing
+# - Database connection pooling under stress
+# - Cache invalidation scenarios with race conditions
+# - Background task processing integration
+# - Deadlock prevention and resolution
+# - Data consistency under concurrent modifications
+#
+# ---------------------------------------------------------------------------------------------
+
+"""
+Admin Concurrent Operations Integration Tests.
+
+Este módulo prueba operaciones concurrentes del sistema de administración:
+- Concurrent user creation and permission granting
+- Race condition handling in permission validation
+- Database deadlock prevention and recovery
+- Cache consistency under concurrent access
+- Session management with multiple simultaneous users
+- Performance degradation detection under load
+"""
+
+import pytest
+import asyncio
+import time
+import uuid
+import random
+from datetime import datetime, timedelta
+from typing import List, Dict, Any, Optional
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import OperationalError
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+from app.services.admin_permission_service import AdminPermissionService, PermissionDeniedError
+from app.services.auth_service import auth_service
+from app.models.user import User, UserType
+from app.models.admin_permission import (
+    AdminPermission, PermissionScope, PermissionAction, ResourceType,
+    admin_user_permissions
+)
+from app.models.admin_activity_log import AdminActivityLog, AdminActionType, ActionResult, RiskLevel
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+@pytest.mark.concurrent
+class TestAdminConcurrentIntegration:
+    """Test admin system under high concurrent load scenarios."""
+
+    async def test_concurrent_user_creation_with_permission_grants(
+        self,
+        integration_db_session: Session,
+        admin_permission_service_with_redis,
+        superuser: User,
+        system_permissions: List[AdminPermission],
+        integration_test_context
+    ):
+        """Test concurrent user creation with simultaneous permission granting."""
+        start_time = time.time()
+
+        # Configuration for concurrent operations
+        num_users = 10
+        permissions_per_user = 3
+
+        async def create_user_with_permissions_task(task_id: int):
+            """Task to create user and grant permissions concurrently."""
+            try:
+                # Create unique user
+                user = User(
+                    id=str(uuid.uuid4()),
+                    email=f'concurrent.user.{task_id}@mestore.com',
+                    nombre=f'Concurrent{task_id}',
+                    apellido='User',
+                    user_type=UserType.ADMIN,
+                    security_clearance_level=3,
+                    is_active=True,
+                    is_verified=True,
+                    password_hash=auth_service.get_password_hash(f'concurrent_password_{task_id}'),
+                    performance_score=80 + task_id,
+                    habeas_data_accepted=True,
+                    data_processing_consent=True
+                )
+
+                # Add user to database
+                integration_db_session.add(user)
+                integration_db_session.flush()  # Get ID without committing
+
+                # Grant random permissions
+                granted_permissions = []
+                selected_permissions = random.sample(
+                    system_permissions[:permissions_per_user],
+                    min(permissions_per_user, len(system_permissions))
+                )
+
+                for permission in selected_permissions:
+                    try:
+                        success = await admin_permission_service_with_redis.grant_permission(
+                            integration_db_session, superuser, user, permission
+                        )
+                        if success:
+                            granted_permissions.append(permission.name)
+
+                        # Small delay to increase chance of race conditions
+                        await asyncio.sleep(0.001)
+
+                    except Exception as perm_error:
+                        # Log permission error but continue
+                        print(f"Permission grant error for user {task_id}: {perm_error}")
+
+                # Commit user creation and permissions
+                integration_db_session.commit()
+
+                return {
+                    'task_id': task_id,
+                    'user_id': str(user.id),
+                    'email': user.email,
+                    'granted_permissions': granted_permissions,
+                    'success': True
+                }
+
+            except Exception as e:
+                integration_db_session.rollback()
+                return {
+                    'task_id': task_id,
+                    'error': str(e),
+                    'success': False
+                }
+
+        # Execute concurrent user creation tasks
+        tasks = [create_user_with_permissions_task(i) for i in range(num_users)]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Analyze results
+        successful_creations = [r for r in results if isinstance(r, dict) and r.get('success')]
+        failed_creations = [r for r in results if isinstance(r, Exception) or (isinstance(r, dict) and not r.get('success'))]
+
+        # Verify high success rate
+        success_rate = len(successful_creations) / num_users
+        assert success_rate >= 0.8, f"Success rate too low: {success_rate}"
+
+        # Verify all successful users exist in database
+        created_user_ids = [r['user_id'] for r in successful_creations]
+        for user_id in created_user_ids:
+            user = integration_db_session.query(User).filter(User.id == user_id).first()
+            assert user is not None, f"User {user_id} not found in database"
+
+        # Verify permission grants were consistent
+        total_permissions_granted = sum(
+            len(r.get('granted_permissions', [])) for r in successful_creations
+        )
+        assert total_permissions_granted > 0
+
+        integration_test_context.record_operation(
+            "concurrent_user_creation_permission_grants",
+            time.time() - start_time
+        )
+
+    async def test_race_condition_handling_in_permission_validation(
+        self,
+        integration_db_session: Session,
+        admin_permission_service_with_redis,
+        superuser: User,
+        multiple_admin_users: List[User],
+        system_permissions: List[AdminPermission],
+        integration_redis_client,
+        integration_test_context
+    ):
+        """Test race condition handling in permission validation with cache updates."""
+        start_time = time.time()
+
+        permission = system_permissions[0]
+        target_users = multiple_admin_users[:5]
+
+        # First, grant permission to all users
+        for user in target_users:
+            await admin_permission_service_with_redis.grant_permission(
+                integration_db_session, superuser, user, permission
+            )
+
+        async def concurrent_permission_validation_task(user: User, iteration: int):
+            """Task to validate permissions concurrently with cache manipulation."""
+            try:
+                user_id = str(user.id)
+
+                # Randomly clear cache to create race conditions
+                if random.choice([True, False]):
+                    await admin_permission_service_with_redis._clear_user_permission_cache(user_id)
+
+                # Validate permission
+                result = await admin_permission_service_with_redis.validate_permission(
+                    integration_db_session, user,
+                    permission.resource_type, permission.action, permission.scope
+                )
+
+                # Check if permission is cached
+                cached_result = await admin_permission_service_with_redis._get_cached_permission(
+                    user_id, f"{permission.resource_type.value}.{permission.action.value}.{permission.scope.value}".lower()
+                )
+
+                return {
+                    'user_id': user_id,
+                    'iteration': iteration,
+                    'validation_result': result,
+                    'cached_result': cached_result,
+                    'cache_miss': cached_result is None,
+                    'success': True
+                }
+
+            except Exception as e:
+                return {
+                    'user_id': str(user.id),
+                    'iteration': iteration,
+                    'error': str(e),
+                    'success': False
+                }
+
+        # Create massive concurrent validation tasks
+        num_iterations = 20
+        tasks = []
+
+        for iteration in range(num_iterations):
+            for user in target_users:
+                tasks.append(concurrent_permission_validation_task(user, iteration))
+
+        # Execute all tasks concurrently
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Analyze results for race conditions
+        successful_validations = [r for r in results if isinstance(r, dict) and r.get('success')]
+        failed_validations = [r for r in results if isinstance(r, Exception) or (isinstance(r, dict) and not r.get('success'))]
+
+        # Should have high success rate despite race conditions
+        total_tasks = len(tasks)
+        success_rate = len(successful_validations) / total_tasks
+        assert success_rate >= 0.95, f"Race condition handling failed: {success_rate}"
+
+        # Verify all successful validations returned True (permissions were granted)
+        for result in successful_validations:
+            assert result['validation_result'] is True, "Permission validation inconsistency detected"
+
+        # Check cache behavior
+        cache_misses = [r for r in successful_validations if r.get('cache_miss')]
+        cache_hits = [r for r in successful_validations if not r.get('cache_miss')]
+
+        # Should have both cache hits and misses due to concurrent cache clearing
+        assert len(cache_misses) > 0, "No cache misses detected - race conditions not properly simulated"
+        assert len(cache_hits) > 0, "No cache hits detected - caching not working"
+
+        integration_test_context.record_operation(
+            "race_condition_permission_validation",
+            time.time() - start_time
+        )
+
+    async def test_database_deadlock_prevention_under_load(
+        self,
+        integration_db_session: Session,
+        admin_permission_service_with_redis,
+        superuser: User,
+        multiple_admin_users: List[User],
+        system_permissions: List[AdminPermission],
+        integration_test_context
+    ):
+        """Test database deadlock prevention under high concurrent load."""
+        start_time = time.time()
+
+        # Use multiple permissions for complex grant/revoke scenarios
+        permissions_subset = system_permissions[:3]
+        users_subset = multiple_admin_users[:4]
+
+        async def complex_permission_operation_task(task_id: int):
+            """Task performing complex permission operations that could cause deadlocks."""
+            try:
+                # Random operation sequence to increase deadlock probability
+                operations = ['grant', 'revoke', 'validate', 'grant']
+                random.shuffle(operations)
+
+                results = []
+
+                for operation in operations:
+                    user = random.choice(users_subset)
+                    permission = random.choice(permissions_subset)
+
+                    if operation == 'grant':
+                        try:
+                            result = await admin_permission_service_with_redis.grant_permission(
+                                integration_db_session, superuser, user, permission
+                            )
+                            results.append(('grant', result))
+                        except PermissionDeniedError:
+                            results.append(('grant', False))
+
+                    elif operation == 'revoke':
+                        try:
+                            result = await admin_permission_service_with_redis.revoke_permission(
+                                integration_db_session, superuser, user, permission
+                            )
+                            results.append(('revoke', result))
+                        except PermissionDeniedError:
+                            results.append(('revoke', False))
+
+                    elif operation == 'validate':
+                        try:
+                            result = await admin_permission_service_with_redis.validate_permission(
+                                integration_db_session, user,
+                                permission.resource_type, permission.action, permission.scope
+                            )
+                            results.append(('validate', result))
+                        except PermissionDeniedError:
+                            results.append(('validate', False))
+
+                    # Small delay to increase concurrency overlap
+                    await asyncio.sleep(0.002)
+
+                return {
+                    'task_id': task_id,
+                    'operations': len(results),
+                    'results': results,
+                    'success': True
+                }
+
+            except OperationalError as oe:
+                if "deadlock" in str(oe).lower():
+                    return {
+                        'task_id': task_id,
+                        'deadlock_detected': True,
+                        'error': str(oe),
+                        'success': False
+                    }
+                else:
+                    raise oe
+
+            except Exception as e:
+                return {
+                    'task_id': task_id,
+                    'error': str(e),
+                    'success': False
+                }
+
+        # Execute high-concurrency tasks that could cause deadlocks
+        num_concurrent_tasks = 15
+        tasks = [complex_permission_operation_task(i) for i in range(num_concurrent_tasks)]
+
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Analyze deadlock occurrence
+        successful_tasks = [r for r in results if isinstance(r, dict) and r.get('success')]
+        deadlock_tasks = [r for r in results if isinstance(r, dict) and r.get('deadlock_detected')]
+        other_failures = [r for r in results if isinstance(r, Exception) or (isinstance(r, dict) and not r.get('success') and not r.get('deadlock_detected'))]
+
+        # Verify deadlock prevention worked
+        total_tasks = len(tasks)
+        success_rate = len(successful_tasks) / total_tasks
+
+        # Should have high success rate with minimal deadlocks
+        assert success_rate >= 0.8, f"Deadlock prevention insufficient: {success_rate}"
+        assert len(deadlock_tasks) <= total_tasks * 0.1, f"Too many deadlocks: {len(deadlock_tasks)}"
+
+        # Log deadlock statistics
+        if deadlock_tasks:
+            deadlock_log = AdminActivityLog(
+                admin_user_id=superuser.id,
+                admin_email=superuser.email,
+                admin_full_name=superuser.full_name,
+                action_type=AdminActionType.SYSTEM,
+                action_name="deadlock_detection",
+                action_description=f"Database deadlocks detected in concurrent operations: {len(deadlock_tasks)} out of {total_tasks}",
+                result=ActionResult.WARNING,
+                risk_level=RiskLevel.MEDIUM,
+                custom_fields={
+                    'deadlocks_detected': len(deadlock_tasks),
+                    'total_tasks': total_tasks,
+                    'success_rate': success_rate
+                }
+            )
+
+            integration_db_session.add(deadlock_log)
+            integration_db_session.commit()
+
+        integration_test_context.record_operation(
+            "database_deadlock_prevention",
+            time.time() - start_time
+        )
+
+    async def test_cache_consistency_under_concurrent_modifications(
+        self,
+        integration_db_session: Session,
+        admin_permission_service_with_redis,
+        superuser: User,
+        multiple_admin_users: List[User],
+        integration_redis_client,
+        integration_test_context
+    ):
+        """Test cache consistency under concurrent cache modifications."""
+        start_time = time.time()
+
+        users_subset = multiple_admin_users[:3]
+        cache_operations = ['set', 'get', 'clear', 'update']
+
+        async def cache_manipulation_task(user: User, task_id: int):
+            """Task to manipulate cache concurrently."""
+            try:
+                user_id = str(user.id)
+                operations_completed = []
+
+                for i in range(5):  # Multiple operations per task
+                    operation = random.choice(cache_operations)
+
+                    if operation == 'set':
+                        # Cache a permission result
+                        permission_key = f"test_permission_{task_id}_{i}"
+                        result = random.choice([True, False])
+                        await admin_permission_service_with_redis._cache_permission_result(
+                            user_id, permission_key, result
+                        )
+                        operations_completed.append(('set', permission_key, result))
+
+                    elif operation == 'get':
+                        # Try to get cached permission
+                        permission_key = f"test_permission_{task_id}_{i}"
+                        cached_result = await admin_permission_service_with_redis._get_cached_permission(
+                            user_id, permission_key
+                        )
+                        operations_completed.append(('get', permission_key, cached_result))
+
+                    elif operation == 'clear':
+                        # Clear user's cache
+                        await admin_permission_service_with_redis._clear_user_permission_cache(user_id)
+                        operations_completed.append(('clear', 'all', True))
+
+                    elif operation == 'update':
+                        # Update cache with new value
+                        permission_key = f"test_permission_{task_id}_{i}"
+                        new_result = random.choice([True, False])
+                        await admin_permission_service_with_redis._cache_permission_result(
+                            user_id, permission_key, new_result
+                        )
+                        operations_completed.append(('update', permission_key, new_result))
+
+                    # Small delay between operations
+                    await asyncio.sleep(0.001)
+
+                return {
+                    'task_id': task_id,
+                    'user_id': user_id,
+                    'operations': operations_completed,
+                    'success': True
+                }
+
+            except Exception as e:
+                return {
+                    'task_id': task_id,
+                    'user_id': str(user.id),
+                    'error': str(e),
+                    'success': False
+                }
+
+        # Execute concurrent cache manipulation tasks
+        tasks = []
+        for task_id in range(12):  # 12 tasks for 3 users
+            user = users_subset[task_id % len(users_subset)]
+            tasks.append(cache_manipulation_task(user, task_id))
+
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Analyze cache consistency
+        successful_tasks = [r for r in results if isinstance(r, dict) and r.get('success')]
+        failed_tasks = [r for r in results if isinstance(r, Exception) or (isinstance(r, dict) and not r.get('success'))]
+
+        # Should have high success rate
+        assert len(failed_tasks) == 0, f"Cache operations failed: {failed_tasks}"
+
+        # Verify cache state consistency for each user
+        for user in users_subset:
+            user_id = str(user.id)
+
+            # Check if cache operations were properly isolated per user
+            user_tasks = [r for r in successful_tasks if r['user_id'] == user_id]
+            assert len(user_tasks) > 0, f"No successful operations for user {user_id}"
+
+            # Verify cache operations didn't interfere with other users
+            # Each user should have their own cache namespace
+            for permission_key in ['test_permission_1_1', 'test_permission_2_2']:
+                cached_result = await admin_permission_service_with_redis._get_cached_permission(
+                    user_id, permission_key
+                )
+                # Result can be None, True, or False - all are valid due to concurrent clears
+
+        integration_test_context.record_operation(
+            "cache_consistency_concurrent_modifications",
+            time.time() - start_time
+        )
+
+    async def test_performance_degradation_detection_under_load(
+        self,
+        integration_db_session: Session,
+        admin_permission_service_with_redis,
+        superuser: User,
+        multiple_admin_users: List[User],
+        system_permissions: List[AdminPermission],
+        performance_metrics,
+        integration_test_context
+    ):
+        """Test performance degradation detection under high concurrent load."""
+        start_time = time.time()
+
+        # Performance thresholds
+        max_response_time = 0.5  # seconds
+        max_concurrent_operations = 50
+
+        async def measured_permission_operation_task(user: User, permission: AdminPermission, task_id: int):
+            """Task that measures performance of permission operations."""
+            operation_start = time.time()
+
+            try:
+                # Random operation
+                operation_type = random.choice(['validate', 'grant', 'get_permissions'])
+
+                if operation_type == 'validate':
+                    try:
+                        result = await admin_permission_service_with_redis.validate_permission(
+                            integration_db_session, user,
+                            permission.resource_type, permission.action, permission.scope
+                        )
+                    except PermissionDeniedError:
+                        result = False
+
+                elif operation_type == 'grant':
+                    try:
+                        result = await admin_permission_service_with_redis.grant_permission(
+                            integration_db_session, superuser, user, permission
+                        )
+                    except PermissionDeniedError:
+                        result = False
+
+                elif operation_type == 'get_permissions':
+                    result = await admin_permission_service_with_redis.get_user_permissions(
+                        integration_db_session, user
+                    )
+                    result = len(result) > 0
+
+                operation_duration = time.time() - operation_start
+
+                return {
+                    'task_id': task_id,
+                    'operation_type': operation_type,
+                    'duration': operation_duration,
+                    'result': result,
+                    'under_threshold': operation_duration <= max_response_time,
+                    'success': True
+                }
+
+            except Exception as e:
+                operation_duration = time.time() - operation_start
+                return {
+                    'task_id': task_id,
+                    'duration': operation_duration,
+                    'error': str(e),
+                    'success': False
+                }
+
+        # Create high-load scenario
+        tasks = []
+        for task_id in range(max_concurrent_operations):
+            user = random.choice(multiple_admin_users)
+            permission = random.choice(system_permissions)
+            tasks.append(measured_permission_operation_task(user, permission, task_id))
+
+        # Execute all tasks concurrently
+        load_start_time = time.time()
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        total_load_time = time.time() - load_start_time
+
+        # Analyze performance results
+        successful_ops = [r for r in results if isinstance(r, dict) and r.get('success')]
+        failed_ops = [r for r in results if isinstance(r, Exception) or (isinstance(r, dict) and not r.get('success'))]
+
+        # Calculate performance metrics
+        if successful_ops:
+            durations = [r['duration'] for r in successful_ops]
+            avg_duration = sum(durations) / len(durations)
+            max_duration = max(durations)
+            min_duration = min(durations)
+
+            under_threshold_ops = [r for r in successful_ops if r.get('under_threshold')]
+            performance_ratio = len(under_threshold_ops) / len(successful_ops)
+
+            # Update performance metrics
+            performance_metrics['response_times'].extend(durations)
+            performance_metrics['concurrent_users'] = max_concurrent_operations
+
+            # Performance assertions
+            assert len(failed_ops) <= max_concurrent_operations * 0.05, f"Too many failed operations: {len(failed_ops)}"
+            assert avg_duration <= max_response_time * 1.5, f"Average response time too high: {avg_duration}s"
+            assert performance_ratio >= 0.8, f"Performance degradation detected: {performance_ratio}"
+
+            # Log performance metrics
+            perf_log = AdminActivityLog(
+                admin_user_id=superuser.id,
+                admin_email=superuser.email,
+                admin_full_name=superuser.full_name,
+                action_type=AdminActionType.SYSTEM,
+                action_name="performance_load_test",
+                action_description=f"Concurrent load test completed: {len(successful_ops)} operations",
+                result=ActionResult.SUCCESS,
+                risk_level=RiskLevel.LOW,
+                custom_fields={
+                    'concurrent_operations': max_concurrent_operations,
+                    'avg_duration': avg_duration,
+                    'max_duration': max_duration,
+                    'performance_ratio': performance_ratio,
+                    'total_load_time': total_load_time
+                }
+            )
+
+            integration_db_session.add(perf_log)
+            integration_db_session.commit()
+
+        integration_test_context.record_operation(
+            "performance_degradation_detection",
+            time.time() - start_time
+        )
+
+        # Verify overall integration test context performance
+        overall_success_rate = integration_test_context.get_success_rate()
+        assert overall_success_rate >= 0.9, f"Overall integration test success rate too low: {overall_success_rate}"

@@ -6,7 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_async_db as get_db
+from app.core.database import get_db
 from app.schemas.financial_reports import ComisionBreakdown
 from app.models.commission_dispute import ComissionDispute
 from app.schemas.commission_dispute import DisputeCreate, DisputeResponse

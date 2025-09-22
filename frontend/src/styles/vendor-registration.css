@@ -1,0 +1,315 @@
+/* Vendor Registration Optimized Styles */
+
+/* Mobile-first responsive design */
+.vendor-registration-container {
+  @apply min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100;
+}
+
+/* Touch-friendly interactions */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Enhanced focus indicators for accessibility */
+.enhanced-focus:focus {
+  @apply outline-none ring-2 ring-blue-500 ring-offset-2;
+}
+
+.enhanced-focus:focus-visible {
+  @apply outline-none ring-2 ring-blue-500 ring-offset-2;
+}
+
+/* Mobile-optimized form layouts */
+@media (max-width: 768px) {
+  .mobile-step-container {
+    @apply px-4 py-6;
+  }
+
+  .mobile-form-spacing {
+    @apply space-y-4;
+  }
+
+  .mobile-button-spacing {
+    @apply space-y-3;
+  }
+
+  .mobile-grid-collapse {
+    @apply grid-cols-1 gap-3;
+  }
+
+  /* Larger touch targets on mobile */
+  .mobile-touch-input {
+    @apply py-4 text-base;
+  }
+
+  /* Better mobile typography */
+  .mobile-title {
+    @apply text-2xl;
+  }
+
+  .mobile-subtitle {
+    @apply text-base;
+  }
+
+  /* Mobile-optimized progress indicator */
+  .mobile-progress {
+    @apply space-x-1;
+  }
+
+  .mobile-progress-circle {
+    @apply w-8 h-8 text-xs;
+  }
+
+  .mobile-progress-line {
+    @apply w-4;
+  }
+}
+
+/* Tablet optimizations */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .tablet-layout {
+    @apply px-8 py-8;
+  }
+
+  .tablet-form-width {
+    @apply max-w-lg;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .high-contrast-border {
+    @apply border-2 border-black;
+  }
+
+  .high-contrast-text {
+    @apply text-black;
+  }
+
+  .high-contrast-bg {
+    @apply bg-white;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .respect-motion-preference {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .respect-motion-preference * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .dark-mode-container {
+    @apply bg-gray-900 text-white;
+  }
+
+  .dark-mode-card {
+    @apply bg-gray-800 border-gray-700;
+  }
+
+  .dark-mode-input {
+    @apply bg-gray-700 border-gray-600 text-white placeholder-gray-400;
+  }
+
+  .dark-mode-input:focus {
+    @apply border-blue-400 ring-blue-400;
+  }
+}
+
+/* Performance-optimized animations */
+.gpu-accelerated {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+.smooth-transform {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Loading states */
+.loading-shimmer {
+  background: linear-gradient(90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Accessibility enhancements */
+.sr-only {
+  @apply absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0;
+  clip: rect(0, 0, 0, 0);
+}
+
+.skip-link {
+  @apply absolute left-0 top-0 z-50 p-3 bg-blue-600 text-white font-medium;
+  transform: translateY(-100%);
+  transition: transform 0.2s;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+/* Form validation visual feedback */
+.validation-success {
+  @apply border-green-400 bg-green-50;
+}
+
+.validation-error {
+  @apply border-red-400 bg-red-50;
+}
+
+.validation-pending {
+  @apply border-yellow-400 bg-yellow-50;
+}
+
+/* Progress indicators */
+.progress-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Custom scrollbar for better UX */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-gray-100 rounded;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400;
+}
+
+/* Enhanced button states */
+.button-interactive {
+  @apply transition-all duration-200 transform;
+}
+
+.button-interactive:hover:not(:disabled) {
+  @apply scale-105 shadow-lg;
+}
+
+.button-interactive:active:not(:disabled) {
+  @apply scale-95;
+}
+
+.button-interactive:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+/* Toast notifications positioning */
+.toast-container {
+  @apply fixed top-4 right-4 z-50 space-y-2;
+}
+
+@media (max-width: 768px) {
+  .toast-container {
+    @apply top-2 right-2 left-2;
+  }
+}
+
+/* Optimized spacing system */
+.spacing-xs { @apply space-y-1; }
+.spacing-sm { @apply space-y-2; }
+.spacing-md { @apply space-y-4; }
+.spacing-lg { @apply space-y-6; }
+.spacing-xl { @apply space-y-8; }
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  * {
+    @apply text-black bg-white;
+  }
+}
+
+/* Performance monitoring indicators (development only) */
+.perf-indicator {
+  @apply fixed bottom-4 left-4 bg-black bg-opacity-75 text-white text-xs p-2 rounded font-mono;
+  z-index: 9999;
+}
+
+.perf-good { @apply bg-green-600; }
+.perf-warning { @apply bg-yellow-600; }
+.perf-critical { @apply bg-red-600; }
+
+/* Micro-interactions */
+.micro-bounce {
+  animation: micro-bounce 0.6s ease-in-out;
+}
+
+@keyframes micro-bounce {
+  0%, 20%, 53%, 80%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  40%, 43% {
+    transform: translate3d(0, -8px, 0);
+  }
+  70% {
+    transform: translate3d(0, -4px, 0);
+  }
+  90% {
+    transform: translate3d(0, -2px, 0);
+  }
+}
+
+/* Input state management */
+.input-state-idle { @apply border-gray-300; }
+.input-state-focus { @apply border-blue-500 ring-2 ring-blue-200; }
+.input-state-success { @apply border-green-500 ring-2 ring-green-200; }
+.input-state-error { @apply border-red-500 ring-2 ring-red-200; }
+.input-state-warning { @apply border-yellow-500 ring-2 ring-yellow-200; }
+
+/* Responsive typography scale */
+.text-responsive-xs { @apply text-xs sm:text-sm; }
+.text-responsive-sm { @apply text-sm sm:text-base; }
+.text-responsive-base { @apply text-base sm:text-lg; }
+.text-responsive-lg { @apply text-lg sm:text-xl; }
+.text-responsive-xl { @apply text-xl sm:text-2xl; }
+.text-responsive-2xl { @apply text-2xl sm:text-3xl; }
+
+/* Layout utilities */
+.safe-area-top { padding-top: env(safe-area-inset-top); }
+.safe-area-bottom { padding-bottom: env(safe-area-inset-bottom); }
+.safe-area-left { padding-left: env(safe-area-inset-left); }
+.safe-area-right { padding-right: env(safe-area-inset-right); }

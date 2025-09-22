@@ -1,0 +1,8 @@
+{
+  "request_id": "fe76478d",
+  "requesting_agent": "tdd-specialist",
+  "file": "app/models/user.py",
+  "reason": "URGENTE: Tests CR\u00cdTICO NIVEL 2 bloqueados por campos faltantes en tabla users. Necesito sincronizar modelo con DB para continuar validaci\u00f3n sistem\u00e1tica. Ver reporte en .workspace/reports/testing-issue-user-model-fields-missing.md",
+  "deadline": "2025-09-22T11:59:59.889533",
+  "instructions": "Responder con: python .workspace/scripts/respond_to_request.py fe76478d [APPROVE/DENY] [motivo]"
+}

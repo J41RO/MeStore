@@ -329,14 +329,15 @@ async def test_vendor_user(async_session: AsyncSession) -> User:
     from app.models.user import User, UserType
     import uuid
     from app.core.security import get_password_hash
+    from app.core.types import generate_uuid
 
     vendor = User(
-        id=uuid.uuid4(),
+        id=generate_uuid(),  # Explicitly set UUID as string for SQLite compatibility
         email="test_vendor@example.com",
         password_hash=await get_password_hash("testpass123"),
         nombre="Test Vendor",
         apellido="User",
-        user_type=UserType.VENDEDOR,
+        user_type=UserType.VENDOR,
         is_active=True
     )
 
@@ -352,9 +353,10 @@ async def test_admin_user(async_session: AsyncSession) -> User:
     from app.models.user import User, UserType
     import uuid
     from app.core.security import get_password_hash
+    from app.core.types import generate_uuid
 
     admin = User(
-        id=uuid.uuid4(),
+        id=generate_uuid(),  # Explicitly set UUID as string for SQLite compatibility
         email="test_admin@example.com",
         password_hash=await get_password_hash("testpass123"),
         nombre="Test Admin",
@@ -375,14 +377,15 @@ async def test_buyer_user(async_session: AsyncSession) -> User:
     from app.models.user import User, UserType
     import uuid
     from app.core.security import get_password_hash
+    from app.core.types import generate_uuid
 
     buyer = User(
-        id=uuid.uuid4(),
+        id=generate_uuid(),  # Explicitly set UUID as string for SQLite compatibility
         email="test_buyer@example.com",
         password_hash=await get_password_hash("testpass123"),
         nombre="Test Buyer",
         apellido="User",
-        user_type=UserType.COMPRADOR,
+        user_type=UserType.BUYER,
         is_active=True
     )
 
@@ -496,14 +499,16 @@ def test_confirmed_order(db_session: Session):
     from app.models.user import User, UserType
     from decimal import Decimal
     import uuid
+    from app.core.types import generate_uuid
 
-    # Create test buyer - let database auto-generate id
+    # Create test buyer with explicit UUID for SQLite compatibility
     buyer = User(
+        id=generate_uuid(),  # Explicitly set UUID as string for SQLite compatibility
         email="test_buyer@example.com",
         password_hash="$2b$12$test.hash.for.testing",
         nombre="Test Buyer",
         apellido="User",
-        user_type=UserType.COMPRADOR,
+        user_type=UserType.BUYER,
         is_active=True
     )
 
@@ -574,3 +579,11 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "transaction: Transaction processing tests")
     config.addinivalue_line("markers", "critical: Critical functionality tests")
     config.addinivalue_line("markers", "smoke: Smoke tests for basic functionality")
+
+
+
+# =============================================================================
+# ASYNC SESSION MAKER PARA E2E TESTS
+# =============================================================================
+# Alias para compatibilidad con tests E2E existentes
+async_session_maker = AsyncTestingSessionLocal

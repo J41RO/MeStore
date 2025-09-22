@@ -13,8 +13,8 @@ def test_all_users_complete():
     print("=" * 60)
     
     test_users = [
-        ("buyer@mestore.com", "123456", "COMPRADOR", "/app/dashboard"),
-        ("vendor@mestore.com", "123456", "VENDEDOR", "/app/vendor-dashboard"),
+        ("buyer@mestore.com", "123456", "BUYER", "/app/dashboard"),
+        ("vendor@mestore.com", "123456", "VENDOR", "/app/vendor-dashboard"),
         ("admin@mestore.com", "123456", "ADMIN", "/admin-secure-portal/dashboard"),
         ("super@mestore.com", "123456", "SUPERUSER", "/admin-secure-portal/dashboard")
     ]
@@ -79,8 +79,8 @@ def test_all_users_complete():
             
             # Test role hierarchy logic (simulating frontend)
             role_hierarchy = {
-                'COMPRADOR': 1,
-                'VENDEDOR': 2,
+                'BUYER': 1,
+                'VENDOR': 2,
                 'ADMIN': 3,
                 'SUPERUSER': 4
             }
@@ -93,8 +93,8 @@ def test_all_users_complete():
             
             # Test access to different routes
             route_requirements = {
-                '/app/dashboard': ('COMPRADOR', 'exact'),
-                '/app/vendor-dashboard': ('VENDEDOR', 'minimum'),
+                '/app/dashboard': ('BUYER', 'exact'),
+                '/app/vendor-dashboard': ('VENDOR', 'minimum'),
                 '/admin-secure-portal/dashboard': ('ADMIN', 'minimum')
             }
             

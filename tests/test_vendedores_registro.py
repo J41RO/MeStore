@@ -27,7 +27,7 @@ class TestVendedoresCore:
         assert vendedor.email == "test@example.com"
         assert vendedor.cedula == "12345678"
         assert vendedor.telefono == "+57 3001234567"  # Normalizado
-        assert vendedor.user_type.value == "VENDEDOR"
+        assert vendedor.user_type.value == "VENDOR"
 
     def test_vendedor_endpoint_registration(self):
         """Test que verifica que el endpoint está registrado"""

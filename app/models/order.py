@@ -29,7 +29,7 @@ class Order(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     order_number = Column(String(50), unique=True, nullable=False, index=True)
-    buyer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    buyer_id = Column(String(36), ForeignKey("users.id"), nullable=False)
     
     # Order totals
     subtotal = Column(Float, nullable=False, default=0.0)
@@ -157,7 +157,7 @@ class PaymentMethod(Base):
     __tablename__ = "payment_methods"
 
     id = Column(Integer, primary_key=True, index=True)
-    buyer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    buyer_id = Column(String(36), ForeignKey("users.id"), nullable=False)
     
     # Method type and details
     method_type = Column(String(50), nullable=False)  # card, pse, nequi, bancolombia_transfer

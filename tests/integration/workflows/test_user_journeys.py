@@ -796,7 +796,7 @@ class UserJourneyTester:
         """Test order failure recovery."""
         try:
             # Test order creation with invalid data, then valid data
-            user = await self._create_test_user(user_type=UserType.COMPRADOR)
+            user = await self._create_test_user(user_type=UserType.BUYER)
             token = create_access_token(data={"sub": str(user.id)})
             headers = {"Authorization": f"Bearer {token}"}
 
@@ -873,7 +873,7 @@ class UserJourneyTester:
             import asyncio
 
             # Create buyer user
-            buyer_user = await self._create_test_user(user_type=UserType.COMPRADOR)
+            buyer_user = await self._create_test_user(user_type=UserType.BUYER)
             token = create_access_token(data={"sub": str(buyer_user.id)})
             headers = {"Authorization": f"Bearer {token}"}
 
@@ -949,7 +949,7 @@ class UserJourneyTester:
         except Exception as e:
             return {"success": False, "error": str(e)}
 
-    async def _create_test_user(self, user_type: UserType = UserType.VENDEDOR, email: str = None) -> User:
+    async def _create_test_user(self, user_type: UserType = UserType.VENDOR, email: str = None) -> User:
         """Create a test user for journey testing."""
         from app.core.security import get_password_hash
 

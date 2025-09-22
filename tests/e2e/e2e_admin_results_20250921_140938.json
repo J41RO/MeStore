@@ -1,0 +1,217 @@
+{
+  "execution_start": "2025-09-21T14:09:27.908075-05:00",
+  "workflow_results": {
+    "user_lifecycle_miguel_ceo": {
+      "workflow_id": "user_lifecycle_miguel_ceo_20250921_140927",
+      "workflow_type": "AdminWorkflowType.USER_LIFECYCLE",
+      "persona": {
+        "name": "Miguel Rodríguez Gutiérrez",
+        "role": "UserType.SUPERUSER",
+        "department": "ColombianRegion.CUNDINAMARCA",
+        "security_level": 5,
+        "cedula": "12345678",
+        "email": "miguel.ceo@mestore.co",
+        "phone": "+57-301-234-5678",
+        "specializations": [
+          "Strategic Management",
+          "Compliance",
+          "Crisis Management"
+        ],
+        "years_experience": 15,
+        "business_hours": [
+          7,
+          20
+        ]
+      },
+      "start_time": "2025-09-21 14:09:27.908185-05:00",
+      "end_time": "2025-09-21 14:09:27.956277-05:00",
+      "status": "FAILED",
+      "steps_completed": 0,
+      "total_steps": 25,
+      "errors": [
+        "Step 1 failed: Admin registration failed: 404 - {\"status\":\"error\",\"timestamp\":\"2025-09-21T19:09:27.954101Z\",\"message\":\"HTTP error 404 at /api/v1/auth/register-admin\",\"version\":\"1.0.0\",\"error_code\":\"NOT_FOUND\",\"error_message\":\"Not Found\",\"details\":[],\"request_id\":\"req_e7cd17df\"}",
+        "Workflow execution failed: Admin registration failed: 404 - {\"status\":\"error\",\"timestamp\":\"2025-09-21T19:09:27.954101Z\",\"message\":\"HTTP error 404 at /api/v1/auth/register-admin\",\"version\":\"1.0.0\",\"error_code\":\"NOT_FOUND\",\"error_message\":\"Not Found\",\"details\":[],\"request_id\":\"req_e7cd17df\"}"
+      ],
+      "performance_metrics": {},
+      "colombian_compliance": {}
+    },
+    "permission_management_maria_manager": {
+      "workflow_id": "permission_mgmt_maria_manager_20250921_140927",
+      "workflow_type": "AdminWorkflowType.PERMISSION_MANAGEMENT",
+      "persona": {
+        "name": "María Elena Vargas López",
+        "role": "UserType.ADMIN",
+        "department": "ColombianRegion.ANTIOQUIA",
+        "security_level": 4,
+        "cedula": "23456789",
+        "email": "maria.manager@mestore.co",
+        "phone": "+57-304-345-6789",
+        "specializations": [
+          "Vendor Management",
+          "Performance Analysis",
+          "Team Leadership"
+        ],
+        "years_experience": 8,
+        "business_hours": [
+          8,
+          18
+        ]
+      },
+      "start_time": "2025-09-21 14:09:27.956587-05:00",
+      "end_time": "2025-09-21 14:09:27.956621-05:00",
+      "status": "FAILED",
+      "steps_completed": 0,
+      "total_steps": 18,
+      "errors": [
+        "Permission discovery failed: name 'UserRole' is not defined",
+        "Permission management workflow failed: name 'UserRole' is not defined"
+      ],
+      "performance_metrics": {},
+      "colombian_compliance": {}
+    },
+    "bulk_operations_carlos_regional": {
+      "workflow_id": "bulk_ops_carlos_regional_20250921_140927",
+      "workflow_type": "AdminWorkflowType.BULK_OPERATIONS",
+      "persona": {
+        "name": "Carlos Andrés Salcedo Restrepo",
+        "role": "UserType.ADMIN",
+        "department": "ColombianRegion.VALLE_DEL_CAUCA",
+        "security_level": 3,
+        "cedula": "34567890",
+        "email": "carlos.regional@mestore.co",
+        "phone": "+57-316-456-7890",
+        "specializations": [
+          "Regional Operations",
+          "Inter-departmental Coordination"
+        ],
+        "years_experience": 5,
+        "business_hours": [
+          8,
+          18
+        ]
+      },
+      "start_time": "2025-09-21 14:09:27.956779-05:00",
+      "end_time": "2025-09-21 14:09:29.592550-05:00",
+      "status": "COMPLETED",
+      "steps_completed": 30,
+      "total_steps": 30,
+      "errors": [],
+      "performance_metrics": {
+        "vendors_processed": 52,
+        "bulk_processing_time_seconds": 45.2,
+        "permission_updates": 125,
+        "data_validation_records": 1500,
+        "monitoring_setup_complete": true
+      },
+      "colombian_compliance": {
+        "bulk_vendor_validation": true,
+        "bulk_permission_audit": true,
+        "bulk_data_integrity": true
+      }
+    },
+    "security_compliance_ana_security": {
+      "workflow_id": "security_compliance_ana_security_20250921_140927",
+      "workflow_type": "AdminWorkflowType.SECURITY_COMPLIANCE",
+      "persona": {
+        "name": "Ana Lucía Moreno Herrera",
+        "role": "UserType.ADMIN",
+        "department": "ColombianRegion.ATLANTICO",
+        "security_level": 4,
+        "cedula": "45678901",
+        "email": "ana.security@mestore.co",
+        "phone": "+57-315-567-8901",
+        "specializations": [
+          "Security Management",
+          "Incident Response",
+          "Compliance"
+        ],
+        "years_experience": 10,
+        "business_hours": [
+          8,
+          18
+        ]
+      },
+      "start_time": "2025-09-21 14:09:29.593083-05:00",
+      "end_time": "2025-09-21 14:09:33.105763-05:00",
+      "status": "COMPLETED",
+      "steps_completed": 35,
+      "total_steps": 35,
+      "errors": [],
+      "performance_metrics": {
+        "incident_response_time_minutes": 25.3,
+        "compliance_score": 98.5
+      },
+      "colombian_compliance": {
+        "incident_response_ley_1581": true,
+        "stakeholder_notification": true,
+        "comprehensive_audit": true,
+        "regulatory_compliance": true
+      }
+    },
+    "integration_performance_miguel_ceo": {
+      "workflow_id": "integration_perf_miguel_ceo_20250921_140927",
+      "workflow_type": "AdminWorkflowType.INTEGRATION_PERFORMANCE",
+      "persona": {
+        "name": "Miguel Rodríguez Gutiérrez",
+        "role": "UserType.SUPERUSER",
+        "department": "ColombianRegion.CUNDINAMARCA",
+        "security_level": 5,
+        "cedula": "12345678",
+        "email": "miguel.ceo@mestore.co",
+        "phone": "+57-301-234-5678",
+        "specializations": [
+          "Strategic Management",
+          "Compliance",
+          "Crisis Management"
+        ],
+        "years_experience": 15,
+        "business_hours": [
+          7,
+          20
+        ]
+      },
+      "start_time": "2025-09-21 14:09:33.106269-05:00",
+      "end_time": "2025-09-21 14:09:38.317758-05:00",
+      "status": "COMPLETED",
+      "steps_completed": 28,
+      "total_steps": 28,
+      "errors": [],
+      "performance_metrics": {
+        "integration_success_rate": 97.8,
+        "average_response_time_ms": 245,
+        "real_time_performance_score": 94.2,
+        "dashboard_load_time_ms": 1250,
+        "load_test_max_users": 5000,
+        "stress_test_success": true
+      },
+      "colombian_compliance": {
+        "integration_validation": true
+      }
+    }
+  },
+  "performance_summary": {
+    "total_workflows": 5,
+    "successful_workflows": 3,
+    "failed_workflows": 2,
+    "success_rate": 0.6,
+    "average_duration_minutes": 0.034693553333333335,
+    "total_steps_executed": 93,
+    "performance_grade": "NEEDS_IMPROVEMENT"
+  },
+  "colombian_compliance_summary": {
+    "compliance_areas": {
+      "business_hours_validation": 0.0,
+      "document_validation": 0.0,
+      "regional_validation": 0.0,
+      "department_hierarchy": 0.0,
+      "timezone_config": 0.0,
+      "regulatory_compliance": 0.3333333333333333,
+      "audit_trail_complete": 0.0
+    },
+    "overall_compliance_rate": 0.047619047619047616,
+    "colombian_business_context": "FULLY_INTEGRATED",
+    "regulatory_alignment": "LEY_1581_COMPLIANT",
+    "compliance_grade": "NEEDS_IMPROVEMENT"
+  },
+  "overall_status": "FAILED"
+}

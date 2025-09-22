@@ -481,7 +481,7 @@ class TestUserCreation:
                 assert MockUser.called
                 call_args = MockUser.call_args
                 if call_args and len(call_args) > 1:
-                    assert call_args[1]['user_type'] == UserType.COMPRADOR
+                    assert call_args[1]['user_type'] == UserType.BUYER
 
 
 class TestAuthServiceCleanup:

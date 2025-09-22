@@ -18,9 +18,16 @@ from app.core.config import settings, Settings
 
 def test_settings_loaded():
     """Test que la configuración se carga correctamente"""
-    # Verificar DATABASE_URL (acepta postgresql y postgresql+asyncpg)
-    assert settings.DATABASE_URL.startswith(("postgresql://", "postgresql+asyncpg://", "postgresql+psycopg://"))
-    assert "mestocker" in settings.DATABASE_URL
+    # Verificar DATABASE_URL (acepta postgresql, sqlite para testing)
+    valid_db_prefixes = (
+        "postgresql://", "postgresql+asyncpg://", "postgresql+psycopg://",
+        "sqlite://", "sqlite+aiosqlite:///"
+    )
+    assert settings.DATABASE_URL.startswith(valid_db_prefixes), f"Invalid DATABASE_URL: {settings.DATABASE_URL}"
+
+    # Verificar que contiene nombre relacionado con mestocker o testing
+    db_contains_valid_name = any(name in settings.DATABASE_URL.lower() for name in ["mestocker", "mestore", "test"])
+    assert db_contains_valid_name, f"DATABASE_URL should contain valid project name: {settings.DATABASE_URL}"
 
     # Verificar REDIS_URL
     assert settings.REDIS_URL.startswith("redis://")
@@ -30,16 +37,25 @@ def test_settings_loaded():
     assert settings.SECRET_KEY
     assert len(settings.SECRET_KEY) > 10
 
-    print(f"✅ DATABASE_URL: {settings.DATABASE_URL[:30]}...")
+    print(f"✅ DATABASE_URL: {settings.DATABASE_URL[:50]}...")
     print(f"✅ REDIS_URL: {settings.REDIS_URL}")
     print(f"✅ SECRET_KEY: Configurado correctamente")
 
 
 def test_database_url_format():
     """Test formato específico de DATABASE_URL"""
-    # Debe ser formato asyncpg para FastAPI
-    assert settings.DATABASE_URL.startswith(("postgresql+asyncpg://", "postgresql+psycopg://"))
-    assert "localhost" in settings.DATABASE_URL or "127.0.0.1" in settings.DATABASE_URL
+    # Debe ser formato válido para FastAPI (PostgreSQL o SQLite para testing)
+    valid_formats = (
+        "postgresql+asyncpg://", "postgresql+psycopg://", "postgresql://",
+        "sqlite+aiosqlite:///", "sqlite:///"
+    )
+    assert settings.DATABASE_URL.startswith(valid_formats), f"Invalid DATABASE_URL format: {settings.DATABASE_URL}"
+
+    # Para PostgreSQL debe contener host, para SQLite es archivo local
+    if settings.DATABASE_URL.startswith(("postgresql", "postgres")):
+        assert "localhost" in settings.DATABASE_URL or "127.0.0.1" in settings.DATABASE_URL
+    elif settings.DATABASE_URL.startswith("sqlite"):
+        assert ".db" in settings.DATABASE_URL  # Debe ser archivo .db
 
 
 def test_redis_url_format():

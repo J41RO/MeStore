@@ -13,8 +13,11 @@ interface PSEFormProps {
 
 interface PSEData {
   bankCode: string;
+  bankName: string;
   userType: string;
+  identificationType: string;
   userLegalId: string;
+  email: string;
 }
 
 const PSEForm: React.FC<PSEFormProps> = ({
@@ -25,8 +28,11 @@ const PSEForm: React.FC<PSEFormProps> = ({
 }) => {
   const [formData, setFormData] = useState<PSEData>({
     bankCode: '',
+    bankName: '',
     userType: '0', // 0 = natural person, 1 = juridical person
-    userLegalId: ''
+    identificationType: 'CC',
+    userLegalId: '',
+    email: ''
   });
 
   const [errors, setErrors] = useState<Partial<PSEData>>({});
@@ -63,6 +69,16 @@ const PSEForm: React.FC<PSEFormProps> = ({
         newErrors.userLegalId = 'Número de cédula debe tener entre 6 y 12 dígitos';
       } else if (formData.userType === '1' && (cleanedId.length < 9 || cleanedId.length > 12)) {
         newErrors.userLegalId = 'NIT debe tener entre 9 y 12 dígitos';
+      }
+    }
+
+    // Email validation
+    if (!formData.email.trim()) {
+      newErrors.email = 'Correo electrónico es requerido';
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        newErrors.email = 'Correo electrónico inválido';
       }
     }
 
@@ -204,6 +220,29 @@ const PSEForm: React.FC<PSEFormProps> = ({
         )}
       </div>
 
+      {/* Email Input */}
+      <div>
+        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+          Correo electrónico
+        </label>
+        <input
+          id="email"
+          type="email"
+          value={formData.email}
+          onChange={(e) => handleInputChange('email', e.target.value)}
+          placeholder="tu@email.com"
+          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+            errors.email ? 'border-red-500' : 'border-gray-300'
+          }`}
+        />
+        {errors.email && (
+          <p className="mt-1 text-sm text-red-600 flex items-center">
+            <AlertCircle className="w-4 h-4 mr-1" />
+            {errors.email}
+          </p>
+        )}
+      </div>
+
       {/* Bank Selection */}
       <div>
         <label htmlFor="bankCode" className="block text-sm font-medium text-gray-700 mb-2">
@@ -212,7 +251,21 @@ const PSEForm: React.FC<PSEFormProps> = ({
         <select
           id="bankCode"
           value={formData.bankCode}
-          onChange={(e) => handleInputChange('bankCode', e.target.value)}
+          onChange={(e) => {
+            const selectedBank = banks.find(bank => bank.financial_institution_code === e.target.value);
+            setFormData(prev => ({
+              ...prev,
+              bankCode: e.target.value,
+              bankName: selectedBank?.financial_institution_name || ''
+            }));
+            // Clear error when user starts typing
+            if (errors.bankCode) {
+              setErrors(prev => ({
+                ...prev,
+                bankCode: undefined
+              }));
+            }
+          }}
           className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
             errors.bankCode ? 'border-red-500' : 'border-gray-300'
           }`}

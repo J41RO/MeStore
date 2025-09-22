@@ -126,7 +126,7 @@ class TestDatabaseIndexes:
         query_user = text("""
             EXPLAIN QUERY PLAN 
             SELECT * FROM users 
-            WHERE user_type = 'VENDEDOR' AND is_active = true
+            WHERE user_type = 'VENDOR' AND is_active = true
         """)
 
         result = test_db_session.execute(query_user).fetchone()

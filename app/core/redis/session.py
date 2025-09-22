@@ -35,7 +35,7 @@ class RedisSessionManager(RedisManager):
                     encoding="utf-8",
                 )
                 self._redis = redis.Redis(connection_pool=self._pool)
-                await self._redis.ping()
+                self._redis.ping()
                 logger.info("✅ Redis Sessions (DB 1) connection established")
             except Exception as e:
                 logger.error(f"❌ Redis Sessions connection failed: {e}")

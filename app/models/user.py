@@ -323,6 +323,53 @@ class User(BaseModel):
         comment='Fecha y hora del último envío de OTP'
     )
 
+    # === CAMPOS ADMINISTRATIVOS ===
+    security_clearance_level = Column(
+        Integer,
+        nullable=False,
+        default=3,
+        comment='Nivel de autorización de seguridad (1-5) para usuarios admin'
+    )
+
+    department_id = Column(
+        String(100),
+        nullable=True,
+        comment='ID del departamento al que pertenece el usuario admin'
+    )
+
+    employee_id = Column(
+        String(50),
+        nullable=True,
+        comment='ID de empleado para usuarios administrativos'
+    )
+
+    performance_score = Column(
+        Integer,
+        nullable=False,
+        default=100,
+        comment='Puntuación de desempeño del usuario admin (0-100)'
+    )
+
+    failed_login_attempts = Column(
+        Integer,
+        nullable=False,
+        default=0,
+        comment='Número de intentos fallidos de login'
+    )
+
+    account_locked_until = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment='Fecha hasta la cual la cuenta está bloqueada'
+    )
+
+    force_password_change = Column(
+        Boolean,
+        default=False,
+        nullable=False,
+        comment='Indica si el usuario debe cambiar su contraseña en el próximo login'
+    )
+
     # === TIMESTAMPS ===
     last_login = Column(
         DateTime(timezone=True),
@@ -599,6 +646,32 @@ class User(BaseModel):
             'full_name': self.full_name
         }
 
+    def to_enterprise_dict(self) -> dict:
+        """Convierte el objeto User a diccionario con campos enterprise para admin management."""
+        return {
+            'id': str(self.id) if self.id else None,
+            'email': self.email,
+            'nombre': self.nombre,
+            'apellido': self.apellido,
+            'full_name': self.full_name,
+            'user_type': self.user_type.value if self.user_type else None,
+            'is_active': self.is_active,
+            'is_verified': self.is_verified,
+            'security_clearance_level': self.security_clearance_level,
+            'department_id': self.department_id,
+            'employee_id': self.employee_id,
+            'performance_score': self.performance_score,
+            'failed_login_attempts': self.failed_login_attempts,
+            'account_locked': self.account_locked_until is not None,
+            'requires_password_change': self.force_password_change,
+            'last_login': self.last_login.isoformat() if self.last_login else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'telefono': self.telefono,
+            'ciudad': self.ciudad,
+            'departamento': getattr(self, 'departamento', None)
+        }
+
     # === MÉTODOS OTP ===
     def is_otp_valid(self) -> bool:
         """Verifica si el OTP actual no ha expirado."""
@@ -643,7 +716,7 @@ class User(BaseModel):
 
     def is_reset_blocked(self) -> bool:
         """Verifica si está bloqueado por demasiados intentos de reset."""
-        return self.reset_attempts >= 3  # Máximo 3 intentos por día
+        return (self.reset_attempts or 0) >= 3  # Máximo 3 intentos por día
 
     def increment_reset_attempts(self):
         """Incrementa el contador de intentos fallidos de reset."""
@@ -654,6 +727,44 @@ class User(BaseModel):
         self.reset_token = None
         self.reset_token_expires_at = None
         self.reset_attempts = 0
+
+    # === MÉTODOS DE AUTORIZACIÓN ===
+    def is_superuser(self) -> bool:
+        """Verifica si el usuario es SUPERUSER."""
+        return self.user_type == UserType.SUPERUSER
+
+    def is_admin(self) -> bool:
+        """Verifica si el usuario es ADMIN."""
+        return self.user_type == UserType.ADMIN
+
+    def is_admin_or_higher(self) -> bool:
+        """Verifica si el usuario es ADMIN, SUPERUSER o SYSTEM."""
+        return self.user_type in [UserType.ADMIN, UserType.SUPERUSER, UserType.SYSTEM]
+
+    def is_vendor(self) -> bool:
+        """Verifica si el usuario es VENDOR."""
+        return self.user_type == UserType.VENDOR
+
+    def is_buyer(self) -> bool:
+        """Verifica si el usuario es BUYER."""
+        return self.user_type == UserType.BUYER
+
+    def is_account_locked(self) -> bool:
+        """Verifica si la cuenta está bloqueada."""
+        if not self.account_locked_until:
+            return False
+        return datetime.utcnow() < self.account_locked_until.replace(tzinfo=None)
+
+    def is_superuser(self) -> bool:
+        """Verifica si el usuario es un superusuario."""
+        return self.user_type == UserType.SUPERUSER
+
+    def has_required_colombian_consents(self) -> bool:
+        """Verifica si el usuario ha aceptado los consentimientos requeridos en Colombia."""
+        # Verificar habeas data y tratamiento de datos según ley colombiana
+        habeas_data = getattr(self, 'habeas_data_accepted', False)
+        data_processing = getattr(self, 'data_processing_consent', False)
+        return habeas_data and data_processing
 
 # Alias para Buyer - usar User con user_type='buyer'
 # Se define aquí para referencia en los modelos de orden

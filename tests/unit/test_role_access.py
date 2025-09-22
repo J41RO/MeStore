@@ -44,7 +44,7 @@ class TestRoleBasedAccessSimple:
         mock_user = {
             "id": 2,
             "email": "comprador@test.com",
-            "user_type": "COMPRADOR"
+            "user_type": "BUYER"
         }
         allowed_types = ["ADMIN", "SUPERUSER"]
 
@@ -58,16 +58,16 @@ class TestRoleBasedAccessSimple:
         mock_user = {
             "id": 3,
             "email": "vendedor@test.com",
-            "user_type": "VENDEDOR"
+            "user_type": "VENDOR"
         }
-        allowed_types = ["VENDEDOR", "ADMIN", "SUPERUSER"]
+        allowed_types = ["VENDOR", "ADMIN", "SUPERUSER"]
 
         # Act
         user_type = mock_user.get("user_type")
 
         # Assert
         assert user_type in allowed_types
-        assert user_type == "VENDEDOR"
+        assert user_type == "VENDOR"
 
     def test_superuser_validation(self):
         """Test: Validación específica para SUPERUSER."""
@@ -109,16 +109,16 @@ class TestRoleBasedAccessSimple:
         mock_comprador = {
             "id": 6,
             "email": "comprador@test.com",
-            "user_type": "COMPRADOR"
+            "user_type": "BUYER"
         }
-        allowed_types = ["COMPRADOR"]
+        allowed_types = ["BUYER"]
 
         # Act
         user_type = mock_comprador.get("user_type")
 
         # Assert
         assert user_type in allowed_types
-        assert user_type == "COMPRADOR"
+        assert user_type == "BUYER"
 
     def test_vendedor_validation(self):
         """Test: Validación específica para VENDEDOR."""
@@ -126,16 +126,16 @@ class TestRoleBasedAccessSimple:
         mock_vendedor = {
             "id": 7,
             "email": "vendedor@test.com",
-            "user_type": "VENDEDOR"
+            "user_type": "VENDOR"
         }
-        allowed_types = ["VENDEDOR"]
+        allowed_types = ["VENDOR"]
 
         # Act
         user_type = mock_vendedor.get("user_type")
 
         # Assert
         assert user_type in allowed_types
-        assert user_type == "VENDEDOR"
+        assert user_type == "VENDOR"
 
     def test_wrong_user_type_validation_fails(self):
         """Test: Validación falla con tipo incorrecto."""
@@ -143,7 +143,7 @@ class TestRoleBasedAccessSimple:
         mock_comprador = {
             "id": 8,
             "email": "comprador@test.com",
-            "user_type": "COMPRADOR"
+            "user_type": "BUYER"
         }
         allowed_types = ["ADMIN"]
 

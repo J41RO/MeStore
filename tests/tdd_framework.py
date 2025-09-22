@@ -206,7 +206,7 @@ class TDDTestCase:
         print(f"\n🔧 Starting REFACTOR phase for: {self.test_name}")
         return self.current_phase
 
-    def create_mock_user(self, user_type: str = "VENDEDOR") -> Dict:
+    def create_mock_user(self, user_type: str = "VENDOR") -> Dict:
         """Create standardized mock user data for testing."""
         user_id = uuid.uuid4()
         return {
