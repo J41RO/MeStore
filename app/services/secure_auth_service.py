@@ -67,6 +67,13 @@ class SecurityAuditLogger:
         """Log token-related security events."""
         logger.info(f"TOKEN_{action.upper()}: {token_type} token for {email}")
 
+    @staticmethod
+    def log_security_event(event_type: str, user_id: str = None, details: dict = None):
+        """Log general security events for audit trails."""
+        detail_str = f" - {details}" if details else ""
+        user_info = f" for user {user_id}" if user_id else ""
+        logger.info(f"SECURITY_EVENT: {event_type.upper()}{user_info}{detail_str}")
+
 
 class PasswordValidator:
     """
