@@ -59,6 +59,7 @@ except ImportError:
     RedisContainer = None
 
 from app.core.database import get_db, Base
+from app.database import get_async_db
 from app.core.config import settings
 from app.models.user import User, UserType
 from app.models.admin_permission import AdminPermission, PermissionScope, PermissionAction, ResourceType
@@ -176,8 +177,9 @@ async def integration_async_client(integration_db_session: Session) -> AsyncClie
         finally:
             pass  # Don't close as the original session is managed elsewhere
 
-    # Override the database dependency
+    # Override both database dependencies
     app.dependency_overrides[get_db] = get_integration_db
+    app.dependency_overrides[get_async_db] = get_integration_db
 
     headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"}
     transport = ASGITransport(app=app)
@@ -189,9 +191,11 @@ async def integration_async_client(integration_db_session: Session) -> AsyncClie
     ) as client:
         yield client
 
-    # Clean up the override
+    # Clean up the overrides
     if get_db in app.dependency_overrides:
         del app.dependency_overrides[get_db]
+    if get_async_db in app.dependency_overrides:
+        del app.dependency_overrides[get_async_db]
 
 @pytest.fixture(scope="session")
 def postgres_container():

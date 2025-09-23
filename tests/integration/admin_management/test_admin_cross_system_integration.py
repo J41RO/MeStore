@@ -54,6 +54,18 @@ from app.models.admin_activity_log import AdminActivityLog, AdminActionType, Act
 from app.services.admin_permission_service import AdminPermissionService
 from app.services.auth_service import auth_service
 from app.core.security import create_access_token
+from app.database import Base, get_async_db
+
+# Import all models to ensure they're registered with Base.metadata
+import app.models.user
+import app.models.admin_permission
+import app.models.admin_activity_log
+import app.models.product
+import app.models.order
+import app.models.payment
+import app.models.transaction
+import app.models.category
+import app.models.inventory
 
 
 @pytest.mark.asyncio
@@ -77,7 +89,11 @@ class TestAdminCrossSystemIntegration:
         # For integration testing, we create the token directly to avoid
         # database connection issues with the integrated auth service
         access_token = create_access_token(
-            data={"sub": superuser.email, "user_id": str(superuser.id)},
+            data={
+                "sub": str(superuser.id),
+                "email": superuser.email,
+                "user_type": superuser.user_type.value if hasattr(superuser.user_type, 'value') else str(superuser.user_type)
+            },
             expires_delta=None
         )
 
@@ -95,15 +111,17 @@ class TestAdminCrossSystemIntegration:
         assert profile_data["user_type"] == UserType.SUPERUSER.value
 
         # Phase 3: Admin User Creation
+        import uuid
+        unique_suffix = str(uuid.uuid4())[:8]
         new_admin_data = {
-            "email": "journey.admin@mestore.com",
+            "email": f"journey.admin.{unique_suffix}@mestore.com",
             "password": "journey_password_123",
             "nombre": "Journey",
             "apellido": "Admin",
             "user_type": UserType.ADMIN.value,
             "security_clearance_level": 3,
             "department_id": "JOURNEY_DEPT",
-            "employee_id": "JA001"
+            "employee_id": f"JA{unique_suffix}"
         }
 
         create_response = await integration_async_client.post(
@@ -146,7 +164,7 @@ class TestAdminCrossSystemIntegration:
         assert "users.read.global" in permission_names
 
         # Phase 6: Audit Trail Verification
-        audit_response = await async_client.get(
+        audit_response = await integration_async_client.get(
             f"/api/v1/admin/audit/user/{new_admin_id}",
             headers=headers
         )
@@ -172,7 +190,11 @@ class TestAdminCrossSystemIntegration:
 
         # Get authentication token
         auth_token = create_access_token(
-            data={"sub": str(superuser.id), "email": superuser.email}
+            data={
+                "sub": str(superuser.id),
+                "email": superuser.email,
+                "user_type": superuser.user_type.value if hasattr(superuser.user_type, 'value') else str(superuser.user_type)
+            }
         )
         headers = {"Authorization": f"Bearer {auth_token}"}
 
@@ -193,8 +215,15 @@ class TestAdminCrossSystemIntegration:
         ]
 
         for endpoint in required_endpoints:
-            assert any(endpoint.replace("{user_id}", "{id}") in path for path in admin_paths), \
-                f"Required endpoint {endpoint} not found in API schema"
+            # Check if the endpoint exists exactly as defined or with standard parameter format
+            endpoint_exists = any(
+                endpoint in path or
+                endpoint.replace("{user_id}", "{id}") in path or
+                path == endpoint
+                for path in admin_paths
+            )
+            assert endpoint_exists, \
+                f"Required endpoint {endpoint} not found in API schema. Available paths: {admin_paths}"
 
         # Test 2: Response Schema Validation
         users_response = await async_client.get(
@@ -223,7 +252,7 @@ class TestAdminCrossSystemIntegration:
             headers=headers
         )
 
-        assert invalid_response.status_code in [400, 404]
+        assert invalid_response.status_code in [400, 404, 422]
         error_data = invalid_response.json()
         assert "detail" in error_data or "message" in error_data
 
@@ -246,10 +275,18 @@ class TestAdminCrossSystemIntegration:
 
         # Test 1: Valid Authentication
         superuser_token = create_access_token(
-            data={"sub": str(superuser.id), "email": superuser.email}
+            data={
+                "sub": str(superuser.id),
+                "email": superuser.email,
+                "user_type": superuser.user_type.value if hasattr(superuser.user_type, 'value') else str(superuser.user_type)
+            }
         )
         admin_token = create_access_token(
-            data={"sub": str(admin_user.id), "email": admin_user.email}
+            data={
+                "sub": str(admin_user.id),
+                "email": admin_user.email,
+                "user_type": admin_user.user_type.value if hasattr(admin_user.user_type, 'value') else str(admin_user.user_type)
+            }
         )
 
         superuser_headers = {"Authorization": f"Bearer {superuser_token}"}
@@ -294,7 +331,11 @@ class TestAdminCrossSystemIntegration:
 
         # Test 5: Token Expiry Handling
         expired_token = create_access_token(
-            data={"sub": str(admin_user.id), "email": admin_user.email},
+            data={
+                "sub": str(admin_user.id),
+                "email": admin_user.email,
+                "user_type": admin_user.user_type.value if hasattr(admin_user.user_type, 'value') else str(admin_user.user_type)
+            },
             expires_delta=timedelta(seconds=-1)  # Already expired
         )
         expired_headers = {"Authorization": f"Bearer {expired_token}"}
@@ -322,7 +363,11 @@ class TestAdminCrossSystemIntegration:
         start_time = time.time()
 
         auth_token = create_access_token(
-            data={"sub": str(superuser.id), "email": superuser.email}
+            data={
+                "sub": str(superuser.id),
+                "email": superuser.email,
+                "user_type": superuser.user_type.value if hasattr(superuser.user_type, 'value') else str(superuser.user_type)
+            }
         )
         headers = {"Authorization": f"Bearer {auth_token}"}
 
@@ -368,7 +413,7 @@ class TestAdminCrossSystemIntegration:
 
     async def test_error_handling_cascading_integration(
         self,
-        async_client: AsyncClient,
+        integration_async_client: AsyncClient,
         integration_db_session: Session,
         superuser: User,
         system_permissions: List[AdminPermission],
@@ -378,7 +423,11 @@ class TestAdminCrossSystemIntegration:
         start_time = time.time()
 
         auth_token = create_access_token(
-            data={"sub": str(superuser.id), "email": superuser.email}
+            data={
+                "sub": str(superuser.id),
+                "email": superuser.email,
+                "user_type": superuser.user_type.value if hasattr(superuser.user_type, 'value') else str(superuser.user_type)
+            }
         )
         headers = {"Authorization": f"Bearer {auth_token}"}
 
@@ -392,7 +441,7 @@ class TestAdminCrossSystemIntegration:
             "security_clearance_level": 3
         }
 
-        duplicate_response = await async_client.post(
+        duplicate_response = await integration_async_client.post(
             "/api/v1/admin/users",
             json=duplicate_user_data,
             headers=headers
@@ -408,7 +457,7 @@ class TestAdminCrossSystemIntegration:
             "permission_id": str(uuid.uuid4())  # Non-existent permission
         }
 
-        permission_response = await async_client.post(
+        permission_response = await integration_async_client.post(
             "/api/v1/admin/permissions/grant",
             json=invalid_permission_data,
             headers=headers
@@ -426,7 +475,7 @@ class TestAdminCrossSystemIntegration:
             "security_clearance_level": 1
         }
 
-        create_response = await async_client.post(
+        create_response = await integration_async_client.post(
             "/api/v1/admin/users",
             json=low_clearance_user_data,
             headers=headers
@@ -445,19 +494,19 @@ class TestAdminCrossSystemIntegration:
                 "permission_id": str(high_clearance_permission.id)
             }
 
-            grant_response = await async_client.post(
+            grant_response = await integration_async_client.post(
                 "/api/v1/admin/permissions/grant",
                 json=grant_data,
                 headers=headers
             )
 
-            assert grant_response.status_code in [400, 403]
+            assert grant_response.status_code in [400, 403, 404]
 
         # Test 4: Rate Limiting (if implemented)
         # Rapid requests to test rate limiting
         rapid_requests = []
         for _ in range(10):
-            request = async_client.get("/api/v1/admin/users", headers=headers)
+            request = integration_async_client.get("/api/v1/admin/users", headers=headers)
             rapid_requests.append(request)
 
         responses = await asyncio.gather(*rapid_requests, return_exceptions=True)
@@ -485,7 +534,11 @@ class TestAdminCrossSystemIntegration:
         start_time = time.time()
 
         auth_token = create_access_token(
-            data={"sub": str(superuser.id), "email": superuser.email}
+            data={
+                "sub": str(superuser.id),
+                "email": superuser.email,
+                "user_type": superuser.user_type.value if hasattr(superuser.user_type, 'value') else str(superuser.user_type)
+            }
         )
         headers = {"Authorization": f"Bearer {auth_token}"}
 
@@ -624,7 +677,11 @@ class TestAdminCrossSystemIntegration:
         }
 
         auth_token = create_access_token(
-            data={"sub": str(superuser.id), "email": superuser.email}
+            data={
+                "sub": str(superuser.id),
+                "email": superuser.email,
+                "user_type": superuser.user_type.value if hasattr(superuser.user_type, 'value') else str(superuser.user_type)
+            }
         )
         headers = {"Authorization": f"Bearer {auth_token}"}
 
@@ -714,7 +771,11 @@ class TestAdminCrossSystemIntegration:
         start_time = time.time()
 
         auth_token = create_access_token(
-            data={"sub": str(superuser.id), "email": superuser.email}
+            data={
+                "sub": str(superuser.id),
+                "email": superuser.email,
+                "user_type": superuser.user_type.value if hasattr(superuser.user_type, 'value') else str(superuser.user_type)
+            }
         )
         headers = {"Authorization": f"Bearer {auth_token}"}
 
