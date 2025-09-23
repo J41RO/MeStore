@@ -285,12 +285,122 @@ class UserInDB(UserRead, IDValidationMixin):
     )
 
 
+class AdminUserCreate(BaseModel):
+    """
+    Enhanced schema for admin user creation with security validations.
+
+    Includes strict email validation to prevent SQL injection and other attacks.
+    """
+    email: EmailStr = Field(..., description="Email único del usuario")
+    password: str = Field(..., min_length=8, description="Contraseña (mínimo 8 caracteres)")
+    nombre: str = Field(..., min_length=2, max_length=50, description="Nombre del usuario")
+    apellido: str = Field(..., min_length=2, max_length=50, description="Apellido del usuario")
+    user_type: UserType = Field(..., description="Tipo de usuario en el sistema")
+    security_clearance_level: Optional[int] = Field(default=1, ge=1, le=5, description="Nivel de autorización de seguridad")
+
+    @field_validator("email")
+    @classmethod
+    def validate_email_security(cls, v):
+        """Enhanced email validation with security checks"""
+        if not v:
+            raise ValueError("Email es requerido")
+
+        # Convert to string to handle EmailStr type
+        email_str = str(v)
+
+        # Check for SQL injection patterns
+        sql_injection_patterns = [
+            r"['\";]",  # Quotes and semicolons
+            r"--",      # SQL comments
+            r"/\*",     # Multi-line comments start
+            r"\*/",     # Multi-line comments end
+            r"\bdrop\b",    # DROP statements
+            r"\bdelete\b",  # DELETE statements
+            r"\binsert\b",  # INSERT statements
+            r"\bupdate\b",  # UPDATE statements
+            r"\bselect\b",  # SELECT statements
+            r"\bunion\b",   # UNION statements
+            r"\bexec\b",    # EXEC statements
+            r"\bexecute\b", # EXECUTE statements
+            r"<script",     # XSS attempts
+            r"javascript:",  # JavaScript protocol
+            r"\balert\b",   # Alert functions
+        ]
+
+        for pattern in sql_injection_patterns:
+            if re.search(pattern, email_str, re.IGNORECASE):
+                raise ValueError("Email contiene caracteres o patrones no permitidos por seguridad")
+
+        # Additional length check
+        if len(email_str) > 254:  # RFC 5321 limit
+            raise ValueError("Email excede la longitud máxima permitida")
+
+        # Check for multiple @ symbols (can be used in injection)
+        if email_str.count('@') != 1:
+            raise ValueError("Formato de email inválido")
+
+        return v
+
+    @field_validator("password")
+    @classmethod
+    def validate_password_security(cls, v):
+        """Enhanced password validation"""
+        if len(v) < 8:
+            raise ValueError("Contraseña debe tener al menos 8 caracteres")
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("Contraseña debe tener al menos una mayúscula")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("Contraseña debe tener al menos una minúscula")
+        if not re.search(r"\d", v):
+            raise ValueError("Contraseña debe tener al menos un número")
+
+        # Check for common SQL injection attempts in password
+        if any(pattern in v.lower() for pattern in ["'", '"', "--", "/*", "*/"]):
+            raise ValueError("Contraseña contiene caracteres no permitidos")
+
+        return v
+
+    @field_validator("nombre", "apellido")
+    @classmethod
+    def validate_names_security(cls, v):
+        """Validate names for security patterns"""
+        if not v or not v.strip():
+            raise ValueError("Nombre y apellido son requeridos")
+
+        # Check for injection patterns in names
+        if re.search(r"[<>\"';&]", v):
+            raise ValueError("Nombre contiene caracteres no permitidos")
+
+        # Check length
+        if len(v.strip()) < 2:
+            raise ValueError("Nombre debe tener al menos 2 caracteres")
+        if len(v.strip()) > 50:
+            raise ValueError("Nombre excede la longitud máxima")
+
+        return v.strip()
+
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
+            "example": {
+                "email": "admin@mestore.com",
+                "password": "SecurePass123",
+                "nombre": "Admin",
+                "apellido": "System",
+                "user_type": "ADMIN",
+                "security_clearance_level": 3
+            }
+        }
+    )
+
+
 # Exports para facilitar imports
 __all__ = [
     "UserBase",
-    "UserCreate", 
+    "UserCreate",
     "UserUpdate",
     "UserRead",
     "UserResponse",
-    "UserInDB"
+    "UserInDB",
+    "AdminUserCreate"
 ]

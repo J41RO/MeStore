@@ -184,7 +184,7 @@ class TestAddItemsEndpoint:
         # Assert
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         data = response.json()
-        assert "IDs y textos deben tener la misma longitud" in data["detail"]
+        assert "IDs y textos deben tener la misma longitud" in data["error_message"]
     
     def test_add_items_length_mismatch_metadatas(self, client):
         """Test: Error cuando metadatos tienen longitud diferente."""
@@ -201,7 +201,7 @@ class TestAddItemsEndpoint:
         # Assert
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         data = response.json()
-        assert "Metadatos deben tener la misma longitud que textos" in data["detail"]
+        assert "Metadatos deben tener la misma longitud que textos" in data["error_message"]
     
     def test_add_items_service_error(self, client, mock_embeddings_service):
         """Test: Error del servicio se maneja correctamente."""
@@ -218,7 +218,7 @@ class TestAddItemsEndpoint:
         # Assert
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
         data = response.json()
-        assert "ChromaDB connection failed" in data["detail"]
+        assert "ChromaDB connection failed" in data["error_message"]
     
     def test_add_items_schema_validation(self, client):
         """Test: Validación de schema Pydantic."""
@@ -313,9 +313,9 @@ class TestQuerySimilarEndpoint:
         assert response.status_code == 500
         # Error 500 - problema en endpoint
         data = response.json()
-        assert "error" in data
-        assert data["status_code"] == 500
-        assert data["error"] in ["HTTP500", "EmbeddingNotFound"]
+        assert "error_code" in data
+        assert data["error_code"] == "INTERNAL_SERVER_ERROR"
+        assert "No se encontraron embeddings similares" in data["error_message"]
     
     def test_query_similar_validation_n_results(self, client):
         """Test: Validación de n_results fuera de rango."""
@@ -357,7 +357,7 @@ class TestQuerySimilarEndpoint:
         # Assert
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
         data = response.json()
-        assert "Vector search failed" in data["detail"]
+        assert "Vector search failed" in data["error_message"]
 
 
 # ================================================================================================
@@ -443,7 +443,7 @@ class TestUpdateItemEndpoint:
         # Assert
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
         data = response.json()
-        assert "Item not found" in data["detail"]
+        assert "Item not found" in data["error_message"]
 
 
 # ================================================================================================
@@ -502,7 +502,7 @@ class TestDeleteItemsEndpoint:
         # Assert
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
         data = response.json()
-        assert "Database error" in data["detail"]
+        assert "Database error" in data["error_message"]
 
 
 # ================================================================================================
@@ -542,7 +542,7 @@ class TestCollectionStatsEndpoint:
         # Assert
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
         data = response.json()
-        assert "Collection not found" in data["detail"]
+        assert "Collection not found" in data["error_message"]
 
 
 # ================================================================================================
@@ -587,7 +587,7 @@ class TestListCollectionsEndpoint:
         # Assert
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
         data = response.json()
-        assert "ChromaDB unavailable" in data["detail"]
+        assert "ChromaDB unavailable" in data["error_message"]
 
 
 # ================================================================================================

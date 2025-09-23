@@ -162,9 +162,23 @@ class DatabaseIsolationManager:
                 yield session
             finally:
                 # Always rollback to ensure isolation
-                transaction.rollback()
-                session.close()
-                engine.dispose()
+                try:
+                    if transaction.is_active:
+                        transaction.rollback()
+                except Exception:
+                    # Transaction might already be closed - ignore
+                    pass
+
+                try:
+                    session.close()
+                except Exception:
+                    pass
+
+                try:
+                    engine.dispose()
+                except Exception:
+                    pass
+
                 if test_id in self.active_transactions:
                     del self.active_transactions[test_id]
 

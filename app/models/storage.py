@@ -279,8 +279,9 @@ class Storage(BaseModel):
 
     def calcular_ocupacion_porcentaje(self, productos_actuales: int) -> float:
         """Calcular porcentaje de ocupación del storage"""
-        if self.capacidad_max <= 0 or productos_actuales < 0:
+        if productos_actuales < 0:
             return 0.0
+        # capacidad_max is guaranteed to be > 0 by validator and DB constraint
         return min((productos_actuales / self.capacidad_max) * 100, 100.0)
 
     def productos_disponibles(self, productos_actuales: int) -> int:

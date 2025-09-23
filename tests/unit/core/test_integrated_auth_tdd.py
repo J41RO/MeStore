@@ -1055,8 +1055,9 @@ class TestIntegratedAuthServiceUserCreationTDD:
              patch('uuid.uuid4') as mock_uuid:
 
             mock_hash.return_value = "$2b$12$hashed_password"
-            mock_uuid.return_value = Mock()
-            mock_uuid.return_value.__str__.return_value = "new_user_uuid"
+            mock_uuid_instance = Mock()
+            mock_uuid_instance.__str__ = Mock(return_value="new_user_uuid")
+            mock_uuid.return_value = mock_uuid_instance
 
             result = await self.service.create_user(
                 self.mock_db,
@@ -1091,8 +1092,9 @@ class TestIntegratedAuthServiceUserCreationTDD:
              patch('uuid.uuid4') as mock_uuid:
 
             mock_hash.return_value = "$2b$12$hashed_password"
-            mock_uuid.return_value = Mock()
-            mock_uuid.return_value.__str__.return_value = "vendor_user_uuid"
+            mock_uuid_instance = Mock()
+            mock_uuid_instance.__str__ = Mock(return_value="vendor_user_uuid")
+            mock_uuid.return_value = mock_uuid_instance
 
             result = await self.service.create_user(
                 self.mock_db,
@@ -1142,7 +1144,7 @@ class TestIntegratedAuthServiceUserCreationTDD:
             ("VENDOR", UserType.VENDOR),
             ("ADMIN", UserType.ADMIN),
             ("buyer", UserType.BUYER),   # Case insensitive
-            ("vendor", UserType.BUYER), # Invalid case -> default
+            ("vendor", UserType.VENDOR), # Case insensitive
             ("invalid", UserType.BUYER), # Invalid -> default
             (UserType.VENDOR, UserType.VENDOR), # Already enum
         ]
@@ -1159,8 +1161,9 @@ class TestIntegratedAuthServiceUserCreationTDD:
                  patch('uuid.uuid4') as mock_uuid:
 
                 mock_hash.return_value = "$2b$12$hashed_password"
-                mock_uuid.return_value = Mock()
-                mock_uuid.return_value.__str__.return_value = f"user_uuid_{input_type}"
+                mock_uuid_instance = Mock()
+                mock_uuid_instance.__str__ = Mock(return_value=f"user_uuid_{input_type}")
+                mock_uuid.return_value = mock_uuid_instance
 
                 result = await self.service.create_user(
                     self.mock_db,

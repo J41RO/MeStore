@@ -198,8 +198,24 @@ def require_user_type(*allowed_types: str):
                     detail="Autenticación requerida"
                 )
 
-            user_type = current_user.get("user_type")
-            if user_type not in allowed_types:
+            # Handle both dict-like and UserRead object formats
+            if hasattr(current_user, 'user_type'):
+                user_type = current_user.user_type
+                # Handle enum values by getting their string value
+                if hasattr(user_type, 'value'):
+                    user_type = user_type.value.lower()
+                elif isinstance(user_type, str):
+                    user_type = user_type.lower()
+            elif hasattr(current_user, 'get'):
+                user_type = current_user.get("user_type")
+                if isinstance(user_type, str):
+                    user_type = user_type.lower()
+            else:
+                user_type = None
+
+            # Convert allowed_types to lowercase for comparison
+            allowed_types_lower = [t.lower() for t in allowed_types]
+            if user_type not in allowed_types_lower:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail=f"Acceso denegado. Tipos permitidos: {allowed_types}"

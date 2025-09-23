@@ -39,7 +39,14 @@ class SystemSetting(Base):
         Index('idx_system_settings_public', 'is_public'),
         Index('idx_system_settings_editable', 'is_editable'),
     )
-    
+
+    def __init__(self, **kwargs):
+        """Initialize SystemSetting with proper default values."""
+        # Set defaults for boolean fields if not provided
+        kwargs.setdefault('is_public', False)
+        kwargs.setdefault('is_editable', True)
+        super().__init__(**kwargs)
+
     def get_typed_value(self) -> Any:
         """
         Convert stored string value to appropriate Python type based on data_type.

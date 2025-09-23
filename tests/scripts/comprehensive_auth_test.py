@@ -15,7 +15,7 @@ from typing import Dict, List, Any
 class AuthenticationTester:
     def __init__(self):
         self.backend_url = "http://localhost:8000"
-        self.frontend_url = "http://localhost:5174"
+        self.frontend_url = "http://localhost:5173"
         self.db_path = "/home/admin-jairo/MeStore/mestore_production.db"
         self.test_results = []
 

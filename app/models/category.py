@@ -390,7 +390,7 @@ class Category(BaseModel):
             session.query(Category)
             .filter(
                 Category.path != self.path,  # Excluir self
-                self.path.startswith(Category.path),  # Self path starts with ancestor path
+                text(f"'{self.path}' LIKE CONCAT(categories.path, '%')"),  # Self path starts with ancestor path
                 Category.is_active == True
             )
             .order_by(Category.level)

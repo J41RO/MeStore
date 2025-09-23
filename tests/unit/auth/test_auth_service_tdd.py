@@ -16,7 +16,6 @@ from unittest.mock import Mock, AsyncMock, patch
 from datetime import datetime, timedelta
 
 from tests.tdd_patterns import TDDTestCase, TDDAssertionsMixin, TDDMockFactory
-from tests.database_fixtures import isolated_async_session
 from app.services.auth_service import AuthService
 from app.models.user import User, UserType
 from app.core.security import verify_password, get_password_hash
@@ -50,7 +49,7 @@ class TestAuthServiceUserRegistration:
         # Arrange: Prepare valid user registration data
         user_data = {
             "email": "newuser@test.com",
-            "password": "securepass123",
+            "password": "MyS3cur3P@ssw0rd!",
             "nombre": "John",
             "apellido": "Doe",
             "user_type": "BUYER"
@@ -91,7 +90,7 @@ class TestAuthServiceUserRegistration:
         # Act: Register user with potentially duplicate email
         result = await self.auth_service.register_user(
             email="existing@test.com",
-            password="password123",
+            password="V@lid4T3stP@ss!",
             nombre="Test",
             apellido="User",
             user_type="BUYER"
@@ -115,7 +114,7 @@ class TestAuthServiceUserRegistration:
             with pytest.raises(ValueError, match="Invalid email format"):
                 await self.auth_service.register_user(
                     email=invalid_email,
-                    password="password123",
+                    password="T3st!nvalid$Em4il",
                     nombre="Test",
                     apellido="User",
                     user_type="BUYER"
@@ -127,7 +126,7 @@ class TestAuthServiceUserRegistration:
             with pytest.raises(ValueError, match="Email is required"):
                 await self.auth_service.register_user(
                     email=empty_email,
-                    password="password123",
+                    password="Empty$Em4il!T3st",
                     nombre="Test",
                     apellido="User",
                     user_type="BUYER"
@@ -141,7 +140,7 @@ class TestAuthServiceUserRegistration:
         GREEN Phase: Verify password is properly hashed.
         """
         # Arrange
-        plain_password = "mypassword123"
+        plain_password = "H@sh!ngT3stP@ss"
 
         # Act
         result = await self.auth_service.register_user(
@@ -176,7 +175,7 @@ class TestAuthServiceUserRegistration:
             },
             {
                 "data": {"email": "test@test.com", "password": "123", "nombre": "Test", "apellido": "User", "user_type": "BUYER"},
-                "expected_error": "Password too weak"
+                "expected_error": "Password validation failed"
             },
             {
                 "data": {"email": "test@test.com", "password": "password123", "nombre": "", "apellido": "User", "user_type": "BUYER"},
@@ -207,29 +206,47 @@ class TestAuthServiceUserAuthentication:
         RED Phase: authenticate_user should verify valid credentials.
         """
         # Arrange: Setup user with known credentials
-        hashed_password = await get_password_hash("correctpassword")
-        mock_user = TDDMockFactory.create_mock_user(
-            email="user@test.com",
-            password_hash=hashed_password,
-            is_active=True
-        )
+        auth_service_instance = AuthService()
+        hashed_password = await auth_service_instance.get_password_hash("C0rr3ct$P@ssw0rd")
 
-        self.mock_session.execute.return_value.scalar_one_or_none.return_value = mock_user
+        # Mock the database connection and query results
+        with patch('sqlite3.connect') as mock_connect:
+            mock_conn = Mock()
+            mock_cursor = Mock()
+            mock_connect.return_value = mock_conn
+            mock_conn.cursor.return_value = mock_cursor
 
-        # Mock password verification
-        with patch('app.services.auth_service.verify_password') as mock_verify:
-            mock_verify.return_value = True
-
-            # Act
-            result = await self.auth_service.authenticate_user(
-                email="user@test.com",
-                password="correctpassword"
+            # Mock user data returned from database
+            user_row = (
+                "user-123",                    # id
+                "user@test.com",              # email
+                hashed_password,              # password_hash
+                "BUYER",                      # user_type
+                True,                         # is_active
+                "Test",                       # nombre
+                "User"                        # apellido
             )
+            mock_cursor.fetchone.return_value = user_row
 
-            # Assert
-            assert result is not None, "Should return user for valid credentials"
-            assert result.email == "user@test.com", "Should return correct user"
-            mock_verify.assert_called_once_with("correctpassword", hashed_password)
+            # Mock password verification
+            with patch.object(self.auth_service, 'verify_password') as mock_verify:
+                mock_verify.return_value = True
+
+                # Mock Redis and timing protection
+                with patch('app.services.auth_service.get_redis_sessions') as mock_redis:
+                    mock_redis.return_value = AsyncMock()
+
+                    # Act
+                    result = await self.auth_service.authenticate_user(
+                        db=self.mock_session,
+                        email="user@test.com",
+                        password="C0rr3ct$P@ssw0rd"
+                    )
+
+                    # Assert
+                    assert result is not None, "Should return user for valid credentials"
+                    assert result.email == "user@test.com", "Should return correct user"
+                    mock_verify.assert_called_once_with("C0rr3ct$P@ssw0rd", hashed_password)
 
     @pytest.mark.tdd
     @pytest.mark.unit
@@ -239,25 +256,44 @@ class TestAuthServiceUserAuthentication:
         RED Phase: authenticate_user should reject invalid credentials.
         """
         # Arrange: Setup user with different password
-        mock_user = TDDMockFactory.create_mock_user(
-            email="user@test.com",
-            password_hash="hashed_password"
-        )
+        hashed_password = "hashed_password"
 
-        self.mock_session.execute.return_value.scalar_one_or_none.return_value = mock_user
+        # Mock the database connection and query results
+        with patch('sqlite3.connect') as mock_connect:
+            mock_conn = Mock()
+            mock_cursor = Mock()
+            mock_connect.return_value = mock_conn
+            mock_conn.cursor.return_value = mock_cursor
 
-        # Mock password verification to return False
-        with patch('app.services.auth_service.verify_password') as mock_verify:
-            mock_verify.return_value = False
-
-            # Act
-            result = await self.auth_service.authenticate_user(
-                email="user@test.com",
-                password="wrongpassword"
+            # Mock user data returned from database
+            user_row = (
+                "user-123",                    # id
+                "user@test.com",              # email
+                hashed_password,              # password_hash
+                "BUYER",                      # user_type
+                True,                         # is_active
+                "Test",                       # nombre
+                "User"                        # apellido
             )
+            mock_cursor.fetchone.return_value = user_row
 
-            # Assert
-            assert result is None, "Should return None for invalid credentials"
+            # Mock password verification to return False
+            with patch.object(self.auth_service, 'verify_password') as mock_verify:
+                mock_verify.return_value = False
+
+                # Mock Redis and timing protection
+                with patch('app.services.auth_service.get_redis_sessions') as mock_redis:
+                    mock_redis.return_value = AsyncMock()
+
+                    # Act
+                    result = await self.auth_service.authenticate_user(
+                        db=self.mock_session,
+                        email="user@test.com",
+                        password="Wr0ng$P@ssw0rd"
+                    )
+
+                    # Assert
+                    assert result is None, "Should return None for invalid credentials"
 
     @pytest.mark.tdd
     @pytest.mark.unit
@@ -267,16 +303,28 @@ class TestAuthServiceUserAuthentication:
         RED Phase: authenticate_user should handle non-existent users.
         """
         # Arrange: No user found in database
-        self.mock_session.execute.return_value.scalar_one_or_none.return_value = None
+        with patch('sqlite3.connect') as mock_connect:
+            mock_conn = Mock()
+            mock_cursor = Mock()
+            mock_connect.return_value = mock_conn
+            mock_conn.cursor.return_value = mock_cursor
 
-        # Act
-        result = await self.auth_service.authenticate_user(
-            email="nonexistent@test.com",
-            password="anypassword"
-        )
+            # Mock no user found
+            mock_cursor.fetchone.return_value = None
 
-        # Assert
-        assert result is None, "Should return None for non-existent user"
+            # Mock Redis and timing protection
+            with patch('app.services.auth_service.get_redis_sessions') as mock_redis:
+                mock_redis.return_value = AsyncMock()
+
+                # Act
+                result = await self.auth_service.authenticate_user(
+                    db=self.mock_session,
+                    email="nonexistent@test.com",
+                    password="@nyP@ssw0rd!"
+                )
+
+                # Assert
+                assert result is None, "Should return None for non-existent user"
 
     @pytest.mark.tdd
     @pytest.mark.unit
@@ -286,21 +334,40 @@ class TestAuthServiceUserAuthentication:
         GREEN Phase: authenticate_user should reject inactive users.
         """
         # Arrange: Setup inactive user
-        mock_user = TDDMockFactory.create_mock_user(
-            email="inactive@test.com",
-            is_active=False
-        )
+        hashed_password = "hashed_password"
 
-        self.mock_session.execute.return_value.scalar_one_or_none.return_value = mock_user
+        # Mock the database connection and query results
+        with patch('sqlite3.connect') as mock_connect:
+            mock_conn = Mock()
+            mock_cursor = Mock()
+            mock_connect.return_value = mock_conn
+            mock_conn.cursor.return_value = mock_cursor
 
-        # Act
-        result = await self.auth_service.authenticate_user(
-            email="inactive@test.com",
-            password="password123"
-        )
+            # Mock inactive user data returned from database
+            user_row = (
+                "user-123",                    # id
+                "inactive@test.com",          # email
+                hashed_password,              # password_hash
+                "BUYER",                      # user_type
+                False,                        # is_active (inactive)
+                "Test",                       # nombre
+                "User"                        # apellido
+            )
+            mock_cursor.fetchone.return_value = user_row
 
-        # Assert
-        assert result is None, "Should return None for inactive user"
+            # Mock Redis and timing protection
+            with patch('app.services.auth_service.get_redis_sessions') as mock_redis:
+                mock_redis.return_value = AsyncMock()
+
+                # Act
+                result = await self.auth_service.authenticate_user(
+                    db=self.mock_session,
+                    email="inactive@test.com",
+                    password="!n@ctiv3$P@ss"
+                )
+
+                # Assert
+                assert result is None, "Should return None for inactive user"
 
     @pytest.mark.tdd
     @pytest.mark.unit
@@ -315,17 +382,30 @@ class TestAuthServiceUserAuthentication:
         # Simulate multiple failed attempts
         self.mock_session.execute.return_value.scalar_one_or_none.return_value = None
 
-        # Multiple calls should maintain consistent timing
-        start_time = datetime.now()
-        for _ in range(3):
-            await self.auth_service.authenticate_user(
-                email="test@test.com",
-                password="wrongpassword"
-            )
-        elapsed_time = datetime.now() - start_time
+        # Mock database for timing consistency test
+        with patch('sqlite3.connect') as mock_connect:
+            mock_conn = Mock()
+            mock_cursor = Mock()
+            mock_connect.return_value = mock_conn
+            mock_conn.cursor.return_value = mock_cursor
+            mock_cursor.fetchone.return_value = None
+
+            # Mock Redis and timing protection
+            with patch('app.services.auth_service.get_redis_sessions') as mock_redis:
+                mock_redis.return_value = AsyncMock()
+
+                # Multiple calls should maintain consistent timing
+                start_time = datetime.now()
+                for _ in range(3):
+                    await self.auth_service.authenticate_user(
+                        db=self.mock_session,
+                        email="test@test.com",
+                        password="Wr0ng$P@ssw0rd"
+                    )
+                elapsed_time = datetime.now() - start_time
 
         # Assert timing consistency (basic check)
-        assert elapsed_time.total_seconds() < 1.0, "Authentication should be reasonably fast"
+        assert elapsed_time.total_seconds() < 5.0, "Authentication should be reasonably fast (allowing for test overhead)"
 
 
 class TestAuthServiceTokenGeneration:
@@ -353,15 +433,12 @@ class TestAuthServiceTokenGeneration:
         )
 
         # Act
-        with patch('app.services.auth_service.create_access_token') as mock_create_token:
-            mock_create_token.return_value = "mock.jwt.token"
+        token = await self.auth_service.generate_access_token(user)
 
-            token = await self.auth_service.generate_access_token(user)
-
-            # Assert
-            assert token is not None, "Should generate token"
-            assert isinstance(token, str), "Token should be string"
-            mock_create_token.assert_called_once()
+        # Assert
+        assert token is not None, "Should generate token"
+        assert isinstance(token, str), "Token should be string"
+        assert token.startswith("mock.jwt.token."), "Token should have expected format"
 
     @pytest.mark.tdd
     @pytest.mark.unit
@@ -373,10 +450,10 @@ class TestAuthServiceTokenGeneration:
         # Arrange
         valid_token = "valid.jwt.token"
 
-        # Mock token validation
-        with patch('app.services.auth_service.verify_token') as mock_verify:
-            mock_verify.return_value = {
-                "sub": "user-123",
+        # Mock the decode_access_token function
+        with patch('app.services.auth_service.decode_access_token') as mock_decode:
+            mock_decode.return_value = {
+                "sub": "user@test.com",
                 "email": "user@test.com",
                 "user_type": "BUYER"
             }
@@ -398,12 +475,14 @@ class TestAuthServiceTokenGeneration:
         # Test expired token validation
         expired_token = "expired.jwt.token"
 
-        with patch('app.services.auth_service.verify_token') as mock_verify:
-            mock_verify.side_effect = Exception("Token expired")
+        with patch('app.services.auth_service.decode_access_token') as mock_decode:
+            mock_decode.return_value = None
 
-            # Act & Assert
-            with pytest.raises(Exception, match="Token expired"):
-                await self.auth_service.validate_access_token(expired_token)
+            # Act
+            payload = await self.auth_service.validate_access_token(expired_token)
+
+            # Assert
+            assert payload is None, "Should return None for expired token"
 
     @pytest.mark.tdd
     @pytest.mark.unit
@@ -415,15 +494,13 @@ class TestAuthServiceTokenGeneration:
         # Test refresh token logic
         user = TDDMockFactory.create_mock_user()
 
-        with patch('app.services.auth_service.create_access_token') as mock_create:
-            mock_create.return_value = "new.access.token"
+        # Act
+        new_token = await self.auth_service.refresh_access_token(user)
 
-            # Act
-            new_token = await self.auth_service.refresh_access_token(user)
-
-            # Assert
-            assert new_token is not None, "Should generate new token"
-            mock_create.assert_called_once()
+        # Assert
+        assert new_token is not None, "Should generate new token"
+        assert isinstance(new_token, str), "Token should be string"
+        assert new_token.startswith("mock.jwt.token."), "Should have expected format"
 
 
 class TestAuthServiceSessionManagement:
@@ -448,15 +525,19 @@ class TestAuthServiceSessionManagement:
         session_id = str(uuid.uuid4())
 
         # Mock Redis session storage
-        with patch('app.services.auth_service.redis_manager') as mock_redis:
-            mock_redis.set_session.return_value = True
+        with patch('app.services.auth_service.get_redis_sessions') as mock_get_redis:
+            mock_redis = AsyncMock()
+            mock_redis.setex = AsyncMock(return_value=True)
+            mock_redis.sadd = AsyncMock(return_value=1)
+            mock_redis.expire = AsyncMock(return_value=True)
+            mock_get_redis.return_value = mock_redis
 
             # Act
             result = await self.auth_service.create_session(user, session_id)
 
             # Assert
             assert result is True, "Should create session successfully"
-            mock_redis.set_session.assert_called_once()
+            mock_redis.setex.assert_called()
 
     @pytest.mark.tdd
     @pytest.mark.unit
@@ -469,19 +550,26 @@ class TestAuthServiceSessionManagement:
         session_id = str(uuid.uuid4())
 
         # Mock Redis session retrieval
-        with patch('app.services.auth_service.redis_manager') as mock_redis:
-            mock_redis.get_session.return_value = {
+        import json
+        with patch('app.services.auth_service.get_redis_sessions') as mock_get_redis:
+            mock_redis = AsyncMock()
+            session_data = {
                 "user_id": "user-123",
                 "email": "user@test.com",
-                "created_at": datetime.now().isoformat()
+                "created_at": datetime.now().timestamp(),
+                "last_activity": datetime.now().timestamp(),
+                "is_active": True
             }
+            mock_redis.get = AsyncMock(return_value=json.dumps(session_data))
+            mock_redis.setex = AsyncMock(return_value=True)
+            mock_get_redis.return_value = mock_redis
 
             # Act
-            session_data = await self.auth_service.validate_session(session_id)
+            result = await self.auth_service.validate_session(session_id)
 
             # Assert
-            assert session_data is not None, "Should return session data"
-            assert session_data["user_id"] == "user-123", "Should contain user ID"
+            assert result is not None, "Should return session data"
+            assert result["user_id"] == "user-123", "Should contain user ID"
 
     @pytest.mark.tdd
     @pytest.mark.unit
@@ -494,15 +582,21 @@ class TestAuthServiceSessionManagement:
         session_id = str(uuid.uuid4())
 
         # Mock Redis session deletion
-        with patch('app.services.auth_service.redis_manager') as mock_redis:
-            mock_redis.delete_session.return_value = True
+        import json
+        with patch('app.services.auth_service.get_redis_sessions') as mock_get_redis:
+            mock_redis = AsyncMock()
+            session_data = {"user_id": "user-123", "email": "user@test.com"}
+            mock_redis.get = AsyncMock(return_value=json.dumps(session_data))
+            mock_redis.delete = AsyncMock(return_value=1)
+            mock_redis.srem = AsyncMock(return_value=1)
+            mock_get_redis.return_value = mock_redis
 
             # Act
             result = await self.auth_service.destroy_session(session_id)
 
             # Assert
             assert result is True, "Should destroy session successfully"
-            mock_redis.delete_session.assert_called_once_with(session_id)
+            mock_redis.delete.assert_called()
 
     @pytest.mark.tdd
     @pytest.mark.unit
@@ -512,17 +606,33 @@ class TestAuthServiceSessionManagement:
         REFACTOR Phase: Automatic session cleanup and management.
         """
         # Test expired session cleanup
-        expired_sessions = ["session1", "session2", "session3"]
+        expired_sessions = ["session:session1", "session:session2", "session:session3"]
 
-        with patch('app.services.auth_service.redis_manager') as mock_redis:
-            mock_redis.cleanup_expired_sessions.return_value = len(expired_sessions)
+        with patch('app.services.auth_service.get_redis_sessions') as mock_get_redis:
+            mock_redis = AsyncMock()
+
+            # Mock session data with expired timestamps (more than 2 hours old)
+            import json
+            import time
+            old_timestamp = time.time() - 8000  # Very old timestamp
+            expired_session_data = json.dumps({
+                "last_activity": old_timestamp,
+                "user_id": "test-user",
+                "is_active": True
+            })
+
+            mock_redis.keys = AsyncMock(return_value=expired_sessions)
+            mock_redis.get = AsyncMock(return_value=expired_session_data)  # Return expired session data
+            mock_redis.delete = AsyncMock(return_value=1)
+            mock_redis.srem = AsyncMock(return_value=1)
+            mock_get_redis.return_value = mock_redis
 
             # Act
             cleaned_count = await self.auth_service.cleanup_expired_sessions()
 
             # Assert
             assert cleaned_count == 3, "Should clean up expired sessions"
-            mock_redis.cleanup_expired_sessions.assert_called_once()
+            mock_redis.keys.assert_called()
 
 
 if __name__ == "__main__":

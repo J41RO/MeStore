@@ -459,29 +459,42 @@ class TestUserCreation:
     
     @pytest.mark.asyncio
     async def test_create_user_default_user_type_is_buyer(self, auth_service, mock_async_session):
-        """TDD: create_user should set default user type to COMPRADOR."""
+        """TDD: create_user should set default user type to BUYER."""
         from app.models.user import UserType
-        
+
+        # Mock no existing user found
         mock_result = Mock()
         mock_result.scalar_one_or_none.return_value = None
         mock_async_session.execute.return_value = mock_result
-        
+
+        # Variable to capture the created user
+        created_user = None
+
+        def capture_user(user_obj):
+            nonlocal created_user
+            created_user = user_obj
+
+        # Mock session.add to capture the user being added
+        mock_async_session.add.side_effect = capture_user
+
         with patch.object(auth_service, 'get_password_hash', return_value="hashed_password"):
-            with patch('app.models.user.User') as MockUser:
-                mock_user_instance = Mock()
-                MockUser.return_value = mock_user_instance
 
-                await auth_service.create_user(
-                    db=mock_async_session,
-                    email="new@example.com",
-                    password="password123"
-                )
+            user = await auth_service.create_user(
+                db=mock_async_session,
+                email="new@example.com",
+                password="password123"
+            )
 
-                # Verify User was called with COMPRADOR as default
-                assert MockUser.called
-                call_args = MockUser.call_args
-                if call_args and len(call_args) > 1:
-                    assert call_args[1]['user_type'] == UserType.BUYER
+            # Verify database operations were called
+            mock_async_session.execute.assert_called_once()
+            mock_async_session.add.assert_called_once()
+            mock_async_session.commit.assert_called_once()
+            mock_async_session.refresh.assert_called_once()
+
+            # Verify the created user has the default user_type
+            assert created_user is not None
+            assert created_user.user_type == UserType.BUYER
+            assert created_user.email == "new@example.com"
 
 
 class TestAuthServiceCleanup:
@@ -620,13 +633,17 @@ class TestAuthServiceErrorHandling:
     @pytest.mark.asyncio
     async def test_password_verification_with_none_inputs(self, auth_service):
         """TDD: Password verification should handle None inputs gracefully."""
-        # Test with None password
-        with pytest.raises((TypeError, AttributeError)):
+        # Test with None password - should raise TypeError
+        with pytest.raises(TypeError, match="secret must be unicode or bytes, not None"):
             await auth_service.verify_password(None, "$2b$12$test.hash")
-        
-        # Test with None hash
-        with pytest.raises((TypeError, AttributeError)):
-            await auth_service.verify_password("password", None)
+
+        # Test with None hash - passlib returns False gracefully for None hash
+        result = await auth_service.verify_password("password", None)
+        assert result is False
+
+        # Test with both None - passlib returns False gracefully
+        result = await auth_service.verify_password(None, None)
+        assert result is False
     
     @pytest.mark.asyncio
     async def test_authenticate_user_with_malformed_database_response(self, auth_service):

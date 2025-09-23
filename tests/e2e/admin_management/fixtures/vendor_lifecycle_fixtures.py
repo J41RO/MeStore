@@ -113,6 +113,20 @@ class VendorLifecycleFactory:
     """Factory for generating vendor lifecycle test data."""
 
     @staticmethod
+    def _calculate_nit_check_digit(nit_number: str) -> int:
+        """Calculate NIT check digit using Colombian algorithm."""
+        weights = [71, 67, 59, 53, 47, 43, 41, 37, 29, 23, 19, 17, 13, 7, 3]
+        total = 0
+        for i, digit in enumerate(reversed(nit_number)):
+            if i < len(weights):
+                total += int(digit) * weights[i]
+        remainder = total % 11
+        if remainder < 2:
+            return remainder
+        else:
+            return 11 - remainder
+
+    @staticmethod
     def create_vendor_batch(department: str, category: str, count: int,
                           status_distribution: Dict[VendorStatus, float] = None) -> List[VendorTestProfile]:
         """
@@ -204,13 +218,24 @@ class VendorLifecycleFactory:
         elif status == VendorStatus.SUSPENDED:
             compliance_issues = ["Quejas de calidad", "Retraso en entregas"]
 
+        # Generate valid Colombian documents
+        if index % 3 == 0:  # NIT
+            nit_base = f"90012345{index % 10}"  # 9-digit base
+            check_digit = VendorLifecycleFactory._calculate_nit_check_digit(nit_base)
+            documento_numero = f"{nit_base}-{check_digit}"
+            documento_tipo = "NIT"
+        else:  # Cédula
+            cedula_number = f"{10123456 + index:08d}"  # 8-digit cédula
+            documento_numero = cedula_number
+            documento_tipo = "CC"
+
         return VendorTestProfile(
             vendor_id=vendor_id,
             business_name=business_name,
             email=f"vendor.{category}.{department}.{index+1:03d}@example.com",
             owner_name=f"Propietario {index+1:03d}",
-            documento_tipo="NIT" if index % 3 == 0 else "CC",
-            documento_numero=f"90012345{index:03d}" if index % 3 == 0 else f"10123456{index:03d}",
+            documento_tipo=documento_tipo,
+            documento_numero=documento_numero,
             telefono=f"+57 30{index%10} {100+index:03d} {1000+index:04d}",
             departamento=dept_data.name,
             ciudad=city,
