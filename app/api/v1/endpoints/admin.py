@@ -26,6 +26,8 @@ from app.services.qr_service import QRService
 from app.services.storage_manager_service import StorageManagerService
 from app.services.space_optimizer_service import SpaceOptimizerService, OptimizationGoal, OptimizationStrategy
 from app.core.config import settings
+from app.core.rate_limiting import check_admin_rate_limit
+from app.core.logging import audit_logger
 
 router = APIRouter()
 
@@ -39,16 +41,43 @@ async def get_admin_dashboard_kpis(
 ) -> AdminDashboardResponse:
     """
     Obtener KPIs globales para dashboard administrativo.
-    
+
     Requiere permisos de SUPERUSER o ADMIN.
     """
-    
+
+    # GREEN PHASE: Add rate limiting check
+    check_admin_rate_limit(str(current_user.id))
+
+    # GREEN PHASE: Add audit logging
+    audit_logger.log_admin_action(
+        user_id=str(current_user.id),
+        action="GET",
+        endpoint="/api/v1/admin/dashboard/kpis"
+    )
+
     # Verificar permisos adicionales (SUPERUSER o ADMIN)
-    if not (current_user.is_superuser or 
-            (hasattr(current_user, 'user_type') and current_user.user_type in ['ADMIN', 'SUPERUSER'])):
+    if not (current_user.user_type in [UserType.ADMIN, UserType.SUPERUSER]):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="No tienes permisos para acceder a esta información"
+        )
+
+    try:
+        # Calcular KPIs actuales
+        kpis_actuales = await _calcular_kpis_globales(db)
+
+        # Preparar respuesta
+        dashboard_response = AdminDashboardResponse(
+            kpis_globales=kpis_actuales,
+            metricas_periodo=None if not include_trends else await _calcular_tendencias(db, kpis_actuales)
+        )
+
+        return dashboard_response
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al calcular KPIs administrativos: {str(e)}"
         )
 
 
@@ -62,8 +91,7 @@ async def get_growth_data(
 ):
     """Obtener datos temporales para gráficos de crecimiento."""
     # Verificar permisos
-    if not (current_user.is_superuser or
-            (hasattr(current_user, 'user_type') and current_user.user_type in ['ADMIN', 'SUPERUSER'])):
+    if not (current_user.user_type in [UserType.ADMIN, UserType.SUPERUSER]):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="No tienes permisos para acceder a esta información"
@@ -91,53 +119,43 @@ async def get_growth_data(
             detail=f"Error obteniendo datos de crecimiento: {str(e)}"
         )
     
-    try:
-        # Calcular KPIs actuales
-        kpis_actuales = await _calcular_kpis_globales(db)
-        
-        # Preparar respuesta
-        dashboard_response = AdminDashboardResponse(
-            kpis_globales=kpis_actuales,
-            metricas_periodo=None if not include_trends else await _calcular_tendencias(db, kpis_actuales)
-        )
-        
-        return dashboard_response
-        
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al calcular KPIs administrativos: {str(e)}"
-        )
 
 
 async def _calcular_kpis_globales(db: AsyncSession) -> GlobalKPIs:
     """Calcular KPIs globales actuales"""
-    
-        # QUERIES SQL IMPLEMENTADAS:
-    # GMV: SELECT SUM(amount) FROM transactions WHERE status='COMPLETADA'
-    gmv_query = db.query(func.coalesce(func.sum(Transaction.amount), 0)).filter(
+
+    # QUERIES SQL IMPLEMENTADAS usando AsyncSession:
+    # GMV: SELECT SUM(monto) FROM transactions WHERE status='COMPLETADA'
+    gmv_query = select(func.coalesce(func.sum(Transaction.monto), 0)).filter(
         Transaction.status == 'COMPLETADA'
     )
-    gmv_total = gmv_query.scalar() or 0.0
-    
+    gmv_result = await db.execute(gmv_query)
+    gmv_total = gmv_result.scalar() or 0.0
+
     # Vendedores activos: usuarios tipo VENDEDOR con login reciente (últimos 30 días)
     fecha_limite = datetime.now() - timedelta(days=30)
-    vendedores_activos = db.query(func.count(User.id)).filter(
+    vendedores_query = select(func.count(User.id)).filter(
         and_(
             User.user_type == 'VENDEDOR',
             User.is_active == True,
             User.last_login >= fecha_limite
         )
-    ).scalar() or 0
-    
+    )
+    vendedores_result = await db.execute(vendedores_query)
+    vendedores_activos = vendedores_result.scalar() or 0
+
     # Total productos activos
-    total_productos = db.query(func.count(Product.id)).filter(
+    productos_query = select(func.count(Product.id)).filter(
         Product.status == 'ACTIVE'
-    ).scalar() or 0
-    
+    )
+    productos_result = await db.execute(productos_query)
+    total_productos = productos_result.scalar() or 0
+
     # Total órdenes/transacciones
-    total_ordenes = db.query(func.count(Transaction.id)).scalar() or 0
-    
+    ordenes_query = select(func.count(Transaction.id))
+    ordenes_result = await db.execute(ordenes_query)
+    total_ordenes = ordenes_result.scalar() or 0
+
     return GlobalKPIs(
         gmv_total=float(gmv_total),
         vendedores_activos=vendedores_activos,
@@ -155,23 +173,27 @@ async def _calcular_tendencias(db: AsyncSession, kpis_actuales: GlobalKPIs) -> O
         fecha_fin_anterior = datetime.now() - timedelta(days=30)
         
         # GMV período anterior
-        gmv_anterior = db.query(func.coalesce(func.sum(Transaction.amount), 0)).filter(
+        gmv_anterior_query = select(func.coalesce(func.sum(Transaction.monto), 0)).filter(
             and_(
                 Transaction.status == 'COMPLETADA',
                 Transaction.created_at >= fecha_inicio_anterior,
                 Transaction.created_at <= fecha_fin_anterior
             )
-        ).scalar() or 0.0
-        
+        )
+        gmv_anterior_result = await db.execute(gmv_anterior_query)
+        gmv_anterior = gmv_anterior_result.scalar() or 0.0
+
         # Vendedores activos período anterior
-        vendedores_anterior = db.query(func.count(User.id)).filter(
+        vendedores_anterior_query = select(func.count(User.id)).filter(
             and_(
                 User.user_type == 'VENDEDOR',
                 User.is_active == True,
                 User.last_login >= fecha_inicio_anterior,
                 User.last_login <= fecha_fin_anterior
             )
-        ).scalar() or 0
+        )
+        vendedores_anterior_result = await db.execute(vendedores_anterior_query)
+        vendedores_anterior = vendedores_anterior_result.scalar() or 0
         
         kpis_anteriores = GlobalKPIs(
             gmv_total=float(gmv_anterior),
@@ -207,8 +229,7 @@ async def get_current_verification_step(
     """Obtener el paso actual del workflow de verificación"""
     
     # Verificar permisos de administrador
-    if not (current_user.is_superuser or 
-            (hasattr(current_user, 'user_type') and current_user.user_type in ['ADMIN', 'SUPERUSER'])):
+    if not (current_user.user_type in [UserType.ADMIN, UserType.SUPERUSER]):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="No tienes permisos para acceder a esta funcionalidad"
@@ -313,8 +334,7 @@ async def execute_verification_step(
     """Ejecutar un paso específico del workflow de verificación"""
 
     # Verificar permisos de administrador
-    if not (current_user.is_superuser or
-            (hasattr(current_user, 'user_type') and current_user.user_type in ['ADMIN', 'SUPERUSER'])):
+    if not (current_user.user_type in [UserType.ADMIN, UserType.SUPERUSER]):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="No tienes permisos para ejecutar verificaciones"
@@ -398,8 +418,7 @@ async def get_verification_history(
     """Obtener historial completo de verificación de un producto"""
     
     # Verificar permisos de administrador
-    if not (current_user.is_superuser or
-            (hasattr(current_user, 'user_type') and current_user.user_type in ['ADMIN', 'SUPERUSER'])):
+    if not (current_user.user_type in [UserType.ADMIN, UserType.SUPERUSER]):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="No tienes permisos para acceder al historial"
@@ -477,8 +496,7 @@ async def delete_verification_photo(
     """Eliminar foto de verificación"""
     
     # Verificar permisos de administrador
-    if not (current_user.is_superuser or 
-            (hasattr(current_user, 'user_type') and current_user.user_type in ['ADMIN', 'SUPERUSER'])):
+    if not (current_user.user_type in [UserType.ADMIN, UserType.SUPERUSER]):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="No tienes permisos para eliminar fotos"
@@ -522,8 +540,7 @@ async def submit_quality_checklist(
     """Enviar checklist de calidad completado"""
     
     # Verificar permisos de administrador
-    if not (current_user.is_superuser or 
-            (hasattr(current_user, 'user_type') and current_user.user_type in ['ADMIN', 'SUPERUSER'])):
+    if not (current_user.user_type in [UserType.ADMIN, UserType.SUPERUSER]):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="No tienes permisos para enviar checklists"
@@ -1495,10 +1512,20 @@ async def get_storage_overview(
     current_user: User = Depends(get_current_admin_user)
 ):
     """Obtener resumen general de ocupación del almacén"""
-    
+
+    # GREEN PHASE: Add rate limiting check
+    check_admin_rate_limit(str(current_user.id))
+
+    # GREEN PHASE: Add audit logging
+    audit_logger.log_admin_action(
+        user_id=str(current_user.id),
+        action="GET",
+        endpoint="/api/v1/admin/storage/overview"
+    )
+
     storage_manager = StorageManagerService(db)
     overview = storage_manager.get_zone_occupancy_overview()
-    
+
     return overview
 
 @router.get("/storage/alerts")
@@ -1705,8 +1732,7 @@ async def upload_verification_photos(
     """Subir fotos de verificación para un producto en cola"""
 
     # Verificar permisos de administrador
-    if not (current_user.is_superuser or
-            (hasattr(current_user, 'user_type') and current_user.user_type in ['ADMIN', 'SUPERUSER'])):
+    if not (current_user.user_type in [UserType.ADMIN, UserType.SUPERUSER]):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="No tienes permisos para subir fotos de verificación"
