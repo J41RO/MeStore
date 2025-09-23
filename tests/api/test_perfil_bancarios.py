@@ -13,7 +13,7 @@ from app.main import app
 def test_update_datos_bancarios_sin_auth():
     """Test que el endpoint requiere autenticación."""
     client = TestClient(app)
-    response = client.put("/api/v1/perfil/datos-bancarios", json={
+    response = client.put("/api/v1/profile/datos-bancarios", json={
         "banco": "Bancolombia",
         "tipo_cuenta": "AHORROS", 
         "numero_cuenta": "12345678"
@@ -25,7 +25,7 @@ def test_update_datos_bancarios_payload_valido():
     """Test validación de payload con datos bancarios válidos."""
     client = TestClient(app)
     # Test sin auth pero con payload válido para verificar estructura
-    response = client.put("/api/v1/perfil/datos-bancarios", json={
+    response = client.put("/api/v1/profile/datos-bancarios", json={
         "banco": "Bancolombia",
         "tipo_cuenta": "CORRIENTE",
         "numero_cuenta": "12345678901"
@@ -38,7 +38,7 @@ def test_update_datos_bancarios_payload_invalido():
     """Test validación de payload con datos inválidos."""
     client = TestClient(app)
     # Test con tipo_cuenta inválido
-    response = client.put("/api/v1/perfil/datos-bancarios", json={
+    response = client.put("/api/v1/profile/datos-bancarios", json={
         "banco": "Bancolombia",
         "tipo_cuenta": "INVALIDO",  # Debe ser AHORROS o CORRIENTE
         "numero_cuenta": "123"  # Muy corto (min 8)

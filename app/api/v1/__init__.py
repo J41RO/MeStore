@@ -129,9 +129,12 @@ api_router.include_router(vendedores_router, prefix="/vendedores", tags=["vended
 # Comisiones (Spanish) - restored for testing compatibility
 api_router.include_router(comisiones_router, prefix="/comisiones", tags=["comisiones-testing"])
 
+# Pagos (Spanish) - restored for testing compatibility (TDD FIX)
+api_router.include_router(pagos_router, prefix="/pagos", tags=["pagos-testing"])
+
 # ==================================================
 # DEPRECATED ROUTERS (partially restored for testing):
 # - comisiones_router (Spanish) -> Use /commissions (but also available for testing)
-# - pagos_router (Spanish) -> Use /payments
+# - pagos_router (Spanish) -> Use /payments (but restored for testing)
 # - vendedores_router (Spanish) -> Use /vendors (but also available for testing)
 # ==================================================
