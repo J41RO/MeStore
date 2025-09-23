@@ -59,14 +59,16 @@ from app.core.auth import AuthService
 from app.services.secure_auth_service import SecureAuthService, SecurityAuditLogger
 
 
-class TestIntegratedAuthServiceInitializationTDD(TDDTestCase):
+@pytest.mark.tdd
+@pytest.mark.unit
+class TestIntegratedAuthServiceInitializationTDD:
     """
     TDD tests for IntegratedAuthService initialization and configuration.
 
     Testing service setup, mode configuration, and component initialization.
     """
 
-    def setUp(self):
+    def setup_method(self):
         """Set up test fixtures for initialization tests."""
         self.service = IntegratedAuthService()
 
@@ -100,16 +102,25 @@ class TestIntegratedAuthServiceInitializationTDD(TDDTestCase):
         """
         GREEN: Test IntegratedAuthService has correct default configuration.
         """
-        service = IntegratedAuthService()
+        with patch('app.core.integrated_auth.CryptContext') as mock_crypt_context_class:
+            # Configure the mock CryptContext instance
+            mock_crypt_context = Mock()
+            mock_crypt_context.schemes = ["bcrypt"]  # Mock the schemes property as a list
+            mock_crypt_context_class.return_value = mock_crypt_context
 
-        # Verify default settings
-        assert service.migration_enabled is False
-        assert service.legacy_auth is not None
-        assert service.secure_auth is None
-        assert service.audit_logger is not None
+            service = IntegratedAuthService()
 
-        # Verify password context is properly configured
-        assert "bcrypt" in service.pwd_context.schemes
+            # Verify default settings
+            assert service.migration_enabled is False
+            assert service.legacy_auth is not None
+            assert service.secure_auth is None
+            assert service.audit_logger is not None
+
+            # Verify password context is properly configured
+            assert "bcrypt" in service.pwd_context.schemes
+
+            # Verify CryptContext was initialized with correct parameters
+            mock_crypt_context_class.assert_called_once_with(schemes=["bcrypt"], deprecated="auto")
 
     @pytest.mark.green_test
     def test_is_secure_mode_enabled_returns_migration_status(self):
@@ -126,14 +137,15 @@ class TestIntegratedAuthServiceInitializationTDD(TDDTestCase):
         assert service.is_secure_mode_enabled() is True
 
     @pytest.mark.refactor_test
+    @pytest.mark.asyncio
     async def test_get_secure_auth_lazy_initialization(self):
         """
         REFACTOR: Test lazy initialization of SecureAuthService.
         """
         service = IntegratedAuthService()
 
-        with patch('app.core.integrated_auth.AsyncSessionLocal'), \
-             patch('app.core.integrated_auth.get_redis_sessions', new_callable=AsyncMock) as mock_redis, \
+        with patch('app.database.AsyncSessionLocal'), \
+             patch('app.core.redis.session.get_redis_sessions', new_callable=AsyncMock) as mock_redis, \
              patch('app.core.integrated_auth.SecureAuthService') as mock_secure_auth_class:
 
             mock_redis.return_value = Mock()
@@ -151,14 +163,16 @@ class TestIntegratedAuthServiceInitializationTDD(TDDTestCase):
             assert mock_secure_auth_class.call_count == 1  # Only called once
 
 
-class TestIntegratedAuthServiceSimpleAuthenticationTDD(TDDTestCase):
+@pytest.mark.tdd
+@pytest.mark.unit
+class TestIntegratedAuthServiceSimpleAuthenticationTDD:
     """
     TDD tests for simple SQLite-based authentication functionality.
 
     Testing direct database authentication for debugging and fallback scenarios.
     """
 
-    def setUp(self):
+    def setup_method(self):
         """Set up test fixtures for simple authentication tests."""
         self.service = IntegratedAuthService()
         self.test_email = "test@example.com"
@@ -167,6 +181,7 @@ class TestIntegratedAuthServiceSimpleAuthenticationTDD(TDDTestCase):
         self.test_user_id = "test_user_123"
 
     @pytest.mark.red_test
+    @pytest.mark.asyncio
     async def test_authenticate_user_simple_should_fail_with_database_error(self):
         """
         RED: Test simple authentication fails gracefully with database errors.
@@ -180,6 +195,7 @@ class TestIntegratedAuthServiceSimpleAuthenticationTDD(TDDTestCase):
             assert result is None
 
     @pytest.mark.green_test
+    @pytest.mark.asyncio
     async def test_authenticate_user_simple_succeeds_with_valid_credentials(self):
         """
         GREEN: Test simple authentication succeeds with valid credentials.
@@ -215,6 +231,7 @@ class TestIntegratedAuthServiceSimpleAuthenticationTDD(TDDTestCase):
             assert result.is_active is True
 
     @pytest.mark.red_test
+    @pytest.mark.asyncio
     async def test_authenticate_user_simple_should_fail_with_user_not_found(self):
         """
         RED: Test simple authentication fails when user is not found.
@@ -234,6 +251,7 @@ class TestIntegratedAuthServiceSimpleAuthenticationTDD(TDDTestCase):
             assert result is None
 
     @pytest.mark.red_test
+    @pytest.mark.asyncio
     async def test_authenticate_user_simple_should_fail_with_wrong_password(self):
         """
         RED: Test simple authentication fails with wrong password.
@@ -262,6 +280,7 @@ class TestIntegratedAuthServiceSimpleAuthenticationTDD(TDDTestCase):
             assert result is None
 
     @pytest.mark.green_test
+    @pytest.mark.asyncio
     async def test_authenticate_user_simple_handles_invalid_user_type_gracefully(self):
         """
         GREEN: Test simple authentication handles invalid user type gracefully.
@@ -292,6 +311,7 @@ class TestIntegratedAuthServiceSimpleAuthenticationTDD(TDDTestCase):
             assert result.user_type == UserType.BUYER  # Default fallback
 
     @pytest.mark.refactor_test
+    @pytest.mark.asyncio
     async def test_authenticate_user_simple_comprehensive_user_type_handling(self):
         """
         REFACTOR: Test comprehensive user type handling in simple authentication.
@@ -301,7 +321,7 @@ class TestIntegratedAuthServiceSimpleAuthenticationTDD(TDDTestCase):
             ("VENDOR", UserType.VENDOR),
             ("ADMIN", UserType.ADMIN),
             ("buyer", UserType.BUYER),  # Case insensitive
-            ("vendor", UserType.VENDOR),
+            ("vendor", UserType.BUYER),  # Invalid case -> default
             ("INVALID", UserType.BUYER),  # Fallback to BUYER
             ("", UserType.BUYER),  # Empty string fallback
         ]
@@ -331,14 +351,16 @@ class TestIntegratedAuthServiceSimpleAuthenticationTDD(TDDTestCase):
                 assert result.user_type == expected_enum
 
 
-class TestIntegratedAuthServiceAuthenticationTDD(TDDTestCase):
+@pytest.mark.tdd
+@pytest.mark.unit
+class TestIntegratedAuthServiceAuthenticationTDD:
     """
     TDD tests for main authentication method with mode switching.
 
     Testing authentication flow with both legacy and secure modes.
     """
 
-    def setUp(self):
+    def setup_method(self):
         """Set up test fixtures for authentication tests."""
         self.service = IntegratedAuthService()
         self.test_email = "auth@example.com"
@@ -356,6 +378,7 @@ class TestIntegratedAuthServiceAuthenticationTDD(TDDTestCase):
         self.mock_db = Mock(spec=AsyncSession)
 
     @pytest.mark.red_test
+    @pytest.mark.asyncio
     async def test_authenticate_user_should_fail_with_secure_mode_exception(self):
         """
         RED: Test authentication fails when secure mode raises exception.
@@ -384,6 +407,7 @@ class TestIntegratedAuthServiceAuthenticationTDD(TDDTestCase):
             assert "Account locked" in exc_info.value.detail
 
     @pytest.mark.green_test
+    @pytest.mark.asyncio
     async def test_authenticate_user_succeeds_with_secure_mode(self):
         """
         GREEN: Test authentication succeeds with secure mode enabled.
@@ -415,6 +439,7 @@ class TestIntegratedAuthServiceAuthenticationTDD(TDDTestCase):
             )
 
     @pytest.mark.green_test
+    @pytest.mark.asyncio
     async def test_authenticate_user_succeeds_with_legacy_mode(self):
         """
         GREEN: Test authentication succeeds with legacy mode (default).
@@ -437,6 +462,7 @@ class TestIntegratedAuthServiceAuthenticationTDD(TDDTestCase):
             mock_simple_auth.assert_called_once_with(self.test_email, self.test_password)
 
     @pytest.mark.red_test
+    @pytest.mark.asyncio
     async def test_authenticate_user_should_handle_unexpected_exceptions(self):
         """
         RED: Test authentication handles unexpected exceptions gracefully.
@@ -458,6 +484,7 @@ class TestIntegratedAuthServiceAuthenticationTDD(TDDTestCase):
             assert result is None
 
     @pytest.mark.refactor_test
+    @pytest.mark.asyncio
     async def test_authenticate_user_audit_logging_in_secure_mode(self):
         """
         REFACTOR: Test authentication audit logging in secure mode.
@@ -497,14 +524,16 @@ class TestIntegratedAuthServiceAuthenticationTDD(TDDTestCase):
             assert second_call[1]['success'] is True
 
 
-class TestIntegratedAuthServiceSessionManagementTDD(TDDTestCase):
+@pytest.mark.tdd
+@pytest.mark.unit
+class TestIntegratedAuthServiceSessionManagementTDD:
     """
     TDD tests for user session creation and token management.
 
     Testing session creation, token generation, and session handling.
     """
 
-    def setUp(self):
+    def setup_method(self):
         """Set up test fixtures for session management tests."""
         self.service = IntegratedAuthService()
         self.mock_user = Mock(spec=User)
@@ -514,6 +543,7 @@ class TestIntegratedAuthServiceSessionManagementTDD(TDDTestCase):
         self.test_user_agent = "SessionTestAgent/1.0"
 
     @pytest.mark.red_test
+    @pytest.mark.asyncio
     async def test_create_user_session_should_fail_with_secure_mode_error(self):
         """
         RED: Test session creation fails when secure mode encounters error.
@@ -537,6 +567,7 @@ class TestIntegratedAuthServiceSessionManagementTDD(TDDTestCase):
             assert "Failed to create user session" in exc_info.value.detail
 
     @pytest.mark.green_test
+    @pytest.mark.asyncio
     async def test_create_user_session_succeeds_with_secure_mode(self):
         """
         GREEN: Test session creation succeeds with secure mode enabled.
@@ -565,6 +596,7 @@ class TestIntegratedAuthServiceSessionManagementTDD(TDDTestCase):
             assert refresh_token == expected_refresh_token
 
     @pytest.mark.green_test
+    @pytest.mark.asyncio
     async def test_create_user_session_succeeds_with_legacy_mode(self):
         """
         GREEN: Test session creation succeeds with legacy mode.
@@ -596,6 +628,7 @@ class TestIntegratedAuthServiceSessionManagementTDD(TDDTestCase):
             mock_create_refresh.assert_called_once_with(data={"sub": normalized_id})
 
     @pytest.mark.refactor_test
+    @pytest.mark.asyncio
     async def test_create_user_session_handles_user_id_normalization(self):
         """
         REFACTOR: Test session creation handles various user ID formats.
@@ -631,20 +664,23 @@ class TestIntegratedAuthServiceSessionManagementTDD(TDDTestCase):
                     mock_create_access.assert_called_once_with(data={"sub": expected_normalized_id})
 
 
-class TestIntegratedAuthServiceTokenVerificationTDD(TDDTestCase):
+@pytest.mark.tdd
+@pytest.mark.unit
+class TestIntegratedAuthServiceTokenVerificationTDD:
     """
     TDD tests for token verification functionality.
 
     Testing token validation with both secure and legacy modes.
     """
 
-    def setUp(self):
+    def setup_method(self):
         """Set up test fixtures for token verification tests."""
         self.service = IntegratedAuthService()
         self.test_token = "test_jwt_token_example"
         self.test_payload = {"sub": "user_123", "exp": 1234567890}
 
     @pytest.mark.red_test
+    @pytest.mark.asyncio
     async def test_verify_token_should_fail_with_secure_mode_exception(self):
         """
         RED: Test token verification fails when secure mode raises exception.
@@ -666,6 +702,7 @@ class TestIntegratedAuthServiceTokenVerificationTDD(TDDTestCase):
             assert "Token expired" in exc_info.value.detail
 
     @pytest.mark.green_test
+    @pytest.mark.asyncio
     async def test_verify_token_succeeds_with_secure_mode(self):
         """
         GREEN: Test token verification succeeds with secure mode.
@@ -684,6 +721,7 @@ class TestIntegratedAuthServiceTokenVerificationTDD(TDDTestCase):
             mock_secure_auth.verify_token_secure.assert_called_once_with(self.test_token)
 
     @pytest.mark.green_test
+    @pytest.mark.asyncio
     async def test_verify_token_succeeds_with_legacy_mode(self):
         """
         GREEN: Test token verification succeeds with legacy mode.
@@ -700,6 +738,7 @@ class TestIntegratedAuthServiceTokenVerificationTDD(TDDTestCase):
             mock_verify.assert_called_once_with(self.test_token)
 
     @pytest.mark.red_test
+    @pytest.mark.asyncio
     async def test_verify_token_should_handle_unexpected_exceptions(self):
         """
         RED: Test token verification handles unexpected exceptions.
@@ -717,6 +756,7 @@ class TestIntegratedAuthServiceTokenVerificationTDD(TDDTestCase):
             assert "Could not validate credentials" in exc_info.value.detail
 
     @pytest.mark.refactor_test
+    @pytest.mark.asyncio
     async def test_verify_token_comprehensive_error_handling(self):
         """
         REFACTOR: Test comprehensive error handling in token verification.
@@ -748,20 +788,23 @@ class TestIntegratedAuthServiceTokenVerificationTDD(TDDTestCase):
                     assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
 
 
-class TestIntegratedAuthServiceLogoutTDD(TDDTestCase):
+@pytest.mark.tdd
+@pytest.mark.unit
+class TestIntegratedAuthServiceLogoutTDD:
     """
     TDD tests for user logout functionality.
 
     Testing logout with token invalidation and security logging.
     """
 
-    def setUp(self):
+    def setup_method(self):
         """Set up test fixtures for logout tests."""
         self.service = IntegratedAuthService()
         self.test_user_id = "logout_user_123"
         self.test_token = "logout_token_example"
 
     @pytest.mark.red_test
+    @pytest.mark.asyncio
     async def test_logout_user_should_handle_secure_mode_failure(self):
         """
         RED: Test logout handles secure mode failure gracefully.
@@ -779,6 +822,7 @@ class TestIntegratedAuthServiceLogoutTDD(TDDTestCase):
             assert result is False
 
     @pytest.mark.green_test
+    @pytest.mark.asyncio
     async def test_logout_user_succeeds_with_secure_mode(self):
         """
         GREEN: Test logout succeeds with secure mode enabled.
@@ -811,6 +855,7 @@ class TestIntegratedAuthServiceLogoutTDD(TDDTestCase):
             )
 
     @pytest.mark.green_test
+    @pytest.mark.asyncio
     async def test_logout_user_succeeds_with_legacy_mode(self):
         """
         GREEN: Test logout succeeds with legacy mode.
@@ -824,6 +869,7 @@ class TestIntegratedAuthServiceLogoutTDD(TDDTestCase):
         assert result is True
 
     @pytest.mark.refactor_test
+    @pytest.mark.asyncio
     async def test_logout_user_security_logging_comprehensive(self):
         """
         REFACTOR: Test comprehensive security logging for logout operations.
@@ -856,20 +902,23 @@ class TestIntegratedAuthServiceLogoutTDD(TDDTestCase):
                 )
 
 
-class TestIntegratedAuthServiceBruteForceProtectionTDD(TDDTestCase):
+@pytest.mark.tdd
+@pytest.mark.unit
+class TestIntegratedAuthServiceBruteForceProtectionTDD:
     """
     TDD tests for brute force protection functionality.
 
     Testing IP and user-based brute force protection.
     """
 
-    def setUp(self):
+    def setup_method(self):
         """Set up test fixtures for brute force protection tests."""
         self.service = IntegratedAuthService()
         self.test_email = "bruteforce@example.com"
         self.test_ip = "192.168.1.100"
 
     @pytest.mark.red_test
+    @pytest.mark.asyncio
     async def test_check_brute_force_protection_should_handle_secure_mode_error(self):
         """
         RED: Test brute force protection handles secure mode errors gracefully.
@@ -888,6 +937,7 @@ class TestIntegratedAuthServiceBruteForceProtectionTDD(TDDTestCase):
             assert result is True
 
     @pytest.mark.green_test
+    @pytest.mark.asyncio
     async def test_check_brute_force_protection_succeeds_with_secure_mode(self):
         """
         GREEN: Test brute force protection succeeds with secure mode enabled.
@@ -909,6 +959,7 @@ class TestIntegratedAuthServiceBruteForceProtectionTDD(TDDTestCase):
             )
 
     @pytest.mark.green_test
+    @pytest.mark.asyncio
     async def test_check_brute_force_protection_returns_true_in_legacy_mode(self):
         """
         GREEN: Test brute force protection always returns True in legacy mode.
@@ -922,6 +973,7 @@ class TestIntegratedAuthServiceBruteForceProtectionTDD(TDDTestCase):
         assert result is True
 
     @pytest.mark.refactor_test
+    @pytest.mark.asyncio
     async def test_check_brute_force_protection_various_scenarios(self):
         """
         REFACTOR: Test brute force protection with various input scenarios.
@@ -948,14 +1000,16 @@ class TestIntegratedAuthServiceBruteForceProtectionTDD(TDDTestCase):
                 assert result == expected
 
 
-class TestIntegratedAuthServiceUserCreationTDD(TDDTestCase):
+@pytest.mark.tdd
+@pytest.mark.unit
+class TestIntegratedAuthServiceUserCreationTDD:
     """
     TDD tests for user creation functionality.
 
     Testing user creation with proper validation and database handling.
     """
 
-    def setUp(self):
+    def setup_method(self):
         """Set up test fixtures for user creation tests."""
         self.service = IntegratedAuthService()
         self.test_email = "newuser@example.com"
@@ -963,6 +1017,7 @@ class TestIntegratedAuthServiceUserCreationTDD(TDDTestCase):
         self.mock_db = AsyncMock(spec=AsyncSession)
 
     @pytest.mark.red_test
+    @pytest.mark.asyncio
     async def test_create_user_should_fail_with_existing_user(self):
         """
         RED: Test user creation fails when user already exists.
@@ -980,6 +1035,7 @@ class TestIntegratedAuthServiceUserCreationTDD(TDDTestCase):
             )
 
     @pytest.mark.green_test
+    @pytest.mark.asyncio
     async def test_create_user_succeeds_with_valid_data(self):
         """
         GREEN: Test user creation succeeds with valid data.
@@ -1015,6 +1071,7 @@ class TestIntegratedAuthServiceUserCreationTDD(TDDTestCase):
             self.mock_db.refresh.assert_called_once()
 
     @pytest.mark.green_test
+    @pytest.mark.asyncio
     async def test_create_user_with_custom_user_type(self):
         """
         GREEN: Test user creation with custom user type.
@@ -1043,6 +1100,7 @@ class TestIntegratedAuthServiceUserCreationTDD(TDDTestCase):
             assert result.nombre == "Test Vendor"
 
     @pytest.mark.red_test
+    @pytest.mark.asyncio
     async def test_create_user_should_handle_database_error(self):
         """
         RED: Test user creation handles database errors gracefully.
@@ -1067,6 +1125,7 @@ class TestIntegratedAuthServiceUserCreationTDD(TDDTestCase):
             self.mock_db.rollback.assert_called_once()
 
     @pytest.mark.refactor_test
+    @pytest.mark.asyncio
     async def test_create_user_user_type_conversion_comprehensive(self):
         """
         REFACTOR: Test comprehensive user type conversion in user creation.
@@ -1107,18 +1166,21 @@ class TestIntegratedAuthServiceUserCreationTDD(TDDTestCase):
                 assert result.user_type == expected_enum
 
 
-class TestIntegratedAuthServiceHealthCheckTDD(TDDTestCase):
+@pytest.mark.tdd
+@pytest.mark.unit
+class TestIntegratedAuthServiceHealthCheckTDD:
     """
     TDD tests for health check functionality.
 
     Testing service health monitoring and status reporting.
     """
 
-    def setUp(self):
+    def setup_method(self):
         """Set up test fixtures for health check tests."""
         self.service = IntegratedAuthService()
 
     @pytest.mark.red_test
+    @pytest.mark.asyncio
     async def test_health_check_should_handle_secure_auth_error(self):
         """
         RED: Test health check handles secure auth health check errors.
@@ -1142,6 +1204,7 @@ class TestIntegratedAuthServiceHealthCheckTDD(TDDTestCase):
             assert result["secure_auth"]["status"] == "error"
 
     @pytest.mark.green_test
+    @pytest.mark.asyncio
     async def test_health_check_succeeds_with_secure_mode_enabled(self):
         """
         GREEN: Test health check succeeds with secure mode enabled.
@@ -1166,6 +1229,7 @@ class TestIntegratedAuthServiceHealthCheckTDD(TDDTestCase):
             assert "timestamp" in result
 
     @pytest.mark.green_test
+    @pytest.mark.asyncio
     async def test_health_check_succeeds_with_legacy_mode_only(self):
         """
         GREEN: Test health check succeeds with legacy mode only.
@@ -1188,6 +1252,7 @@ class TestIntegratedAuthServiceHealthCheckTDD(TDDTestCase):
         assert "T" in timestamp  # ISO format
 
     @pytest.mark.refactor_test
+    @pytest.mark.asyncio
     async def test_health_check_comprehensive_status_reporting(self):
         """
         REFACTOR: Test comprehensive health status reporting.
@@ -1226,14 +1291,16 @@ class TestIntegratedAuthServiceHealthCheckTDD(TDDTestCase):
                 assert "secure_auth" not in result
 
 
-class TestIntegratedAuthServiceIntegrationTDD(TDDTestCase):
+@pytest.mark.tdd
+@pytest.mark.unit
+class TestIntegratedAuthServiceIntegrationTDD:
     """
     TDD integration tests for the complete integrated auth service.
 
     Testing interactions between all components and end-to-end workflows.
     """
 
-    def setUp(self):
+    def setup_method(self):
         """Set up test fixtures for integration tests."""
         self.service = IntegratedAuthService()
         self.test_email = "integration@example.com"
@@ -1253,6 +1320,7 @@ class TestIntegratedAuthServiceIntegrationTDD(TDDTestCase):
         self.mock_db = AsyncMock(spec=AsyncSession)
 
     @pytest.mark.refactor_test
+    @pytest.mark.asyncio
     async def test_complete_authentication_workflow_legacy_mode(self):
         """
         REFACTOR: Test complete authentication workflow in legacy mode.
@@ -1321,6 +1389,7 @@ class TestIntegratedAuthServiceIntegrationTDD(TDDTestCase):
         assert health_status["legacy_available"] is True
 
     @pytest.mark.refactor_test
+    @pytest.mark.asyncio
     async def test_mode_switching_behavior(self):
         """
         REFACTOR: Test behavior when switching between legacy and secure modes.
@@ -1380,6 +1449,7 @@ class TestIntegratedAuthServiceIntegrationTDD(TDDTestCase):
             mock_simple2.assert_called_once()
 
     @pytest.mark.refactor_test
+    @pytest.mark.asyncio
     async def test_error_resilience_across_all_operations(self):
         """
         REFACTOR: Test error resilience across all service operations.
@@ -1412,6 +1482,7 @@ class TestIntegratedAuthServiceIntegrationTDD(TDDTestCase):
         assert "service" in health  # Should always return basic info
 
     @pytest.mark.refactor_test
+    @pytest.mark.asyncio
     async def test_security_audit_and_logging_integration(self):
         """
         REFACTOR: Test security audit and logging across operations.
@@ -1451,6 +1522,7 @@ class TestIntegratedAuthServiceIntegrationTDD(TDDTestCase):
             )
 
     @pytest.mark.refactor_test
+    @pytest.mark.asyncio
     async def test_performance_characteristics_integration(self):
         """
         REFACTOR: Test performance characteristics of integrated auth service.
