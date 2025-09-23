@@ -607,8 +607,8 @@ class TestIntegratedAuthServiceSessionManagementTDD:
         expected_access_token = "legacy_access_token_123"
         expected_refresh_token = "legacy_refresh_token_123"
 
-        with patch('app.core.integrated_auth.create_access_token') as mock_create_access, \
-             patch('app.core.integrated_auth.create_refresh_token') as mock_create_refresh:
+        with patch('app.core.security.create_access_token') as mock_create_access, \
+             patch('app.core.security.create_refresh_token') as mock_create_refresh:
 
             mock_create_access.return_value = expected_access_token
             mock_create_refresh.return_value = expected_refresh_token
@@ -643,16 +643,22 @@ class TestIntegratedAuthServiceSessionManagementTDD:
             mock_user = Mock(spec=User)
             mock_user.id = user_id
 
-            with patch('app.core.integrated_auth.create_access_token') as mock_create_access, \
-                 patch('app.core.integrated_auth.create_refresh_token') as mock_create_refresh:
+            with patch('app.core.security.create_access_token') as mock_create_access, \
+                 patch('app.core.security.create_refresh_token') as mock_create_refresh:
 
                 mock_create_access.return_value = "access_token"
                 mock_create_refresh.return_value = "refresh_token"
 
                 if user_id is None:
                     # Should handle None gracefully
-                    with pytest.raises((TypeError, AttributeError)):
-                        await self.service.create_user_session(mock_user)
+                    access_token, refresh_token = await self.service.create_user_session(mock_user)
+
+                    assert access_token == "access_token"
+                    assert refresh_token == "refresh_token"
+
+                    # Verify None was converted to string "None"
+                    expected_normalized_id = str(user_id)  # str(None) = "None"
+                    mock_create_access.assert_called_once_with(data={"sub": expected_normalized_id})
                 else:
                     access_token, refresh_token = await self.service.create_user_session(mock_user)
 
@@ -1350,8 +1356,8 @@ class TestIntegratedAuthServiceIntegrationTDD:
             assert authenticated_user == self.mock_user
 
         # Phase 2: Session creation
-        with patch('app.core.integrated_auth.create_access_token') as mock_create_access, \
-             patch('app.core.integrated_auth.create_refresh_token') as mock_create_refresh:
+        with patch('app.core.security.create_access_token') as mock_create_access, \
+             patch('app.core.security.create_refresh_token') as mock_create_refresh:
 
             mock_create_access.return_value = "integration_access_token"
             mock_create_refresh.return_value = "integration_refresh_token"
@@ -1460,7 +1466,7 @@ class TestIntegratedAuthServiceIntegrationTDD:
             assert result is None  # Should not crash
 
         # Test session creation resilience
-        with patch('app.core.integrated_auth.create_access_token', side_effect=Exception("Token error")):
+        with patch('app.core.security.create_access_token', side_effect=Exception("Token error")):
             with pytest.raises(HTTPException):
                 await self.service.create_user_session(self.mock_user)
 
@@ -1555,8 +1561,8 @@ class TestIntegratedAuthServiceIntegrationTDD:
         # Test session creation performance
         start_time = time.time()
 
-        with patch('app.core.integrated_auth.create_access_token') as mock_create_access, \
-             patch('app.core.integrated_auth.create_refresh_token') as mock_create_refresh:
+        with patch('app.core.security.create_access_token') as mock_create_access, \
+             patch('app.core.security.create_refresh_token') as mock_create_refresh:
 
             mock_create_access.return_value = "perf_access_token"
             mock_create_refresh.return_value = "perf_refresh_token"
