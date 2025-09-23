@@ -65,12 +65,92 @@ from app.models.admin_permission import AdminPermission, PermissionScope, Permis
 from app.models.admin_activity_log import AdminActivityLog, AdminActionType, ActionResult, RiskLevel
 from app.services.admin_permission_service import AdminPermissionService, admin_permission_service
 from app.services.auth_service import AuthService
+import asyncio
 
 # Create auth service instance
 auth_service = AuthService()
 
+# Helper function to get password hash synchronously
+def get_password_hash_sync(password: str) -> str:
+    """Get password hash synchronously for fixtures."""
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # If loop is already running, use a pre-computed hash
+            # This is a fallback for complex async scenarios
+            return auth_service.pwd_context.hash(password)
+        else:
+            return loop.run_until_complete(auth_service.get_password_hash(password))
+    except RuntimeError:
+        # Fallback to synchronous hashing if async fails
+        return auth_service.pwd_context.hash(password)
+
 
 # === CONTAINER-BASED TEST DATABASE ===
+
+# Add integration-specific async client
+from httpx import AsyncClient, ASGITransport
+from app.main import app
+from app.core.database import get_db
+from sqlalchemy.ext.asyncio import AsyncSession, async_scoped_session, create_async_engine
+from sqlalchemy.orm import sessionmaker
+
+@pytest.fixture
+async def integration_async_client(integration_db_session: Session) -> AsyncClient:
+    """
+    Integration-specific async client that properly handles async database operations.
+    This ensures API calls and fixtures use the same database state.
+    """
+    # Create a wrapper that simulates async behavior for the sync session
+    class AsyncSessionWrapper:
+        def __init__(self, sync_session):
+            self.sync_session = sync_session
+
+        def __getattr__(self, name):
+            # Forward all other attributes to the sync session
+            return getattr(self.sync_session, name)
+
+        async def execute(self, statement, parameters=None):
+            # Execute sync queries in the sync session
+            return self.sync_session.execute(statement, parameters)
+
+        async def scalar(self, statement, parameters=None):
+            # Execute scalar queries
+            return self.sync_session.scalar(statement, parameters)
+
+        async def commit(self):
+            return self.sync_session.commit()
+
+        async def rollback(self):
+            return self.sync_session.rollback()
+
+        async def close(self):
+            return self.sync_session.close()
+
+    async def get_integration_db():
+        """Override database dependency to use wrapped async session."""
+        wrapper = AsyncSessionWrapper(integration_db_session)
+        try:
+            yield wrapper
+        finally:
+            pass  # Don't close as the original session is managed elsewhere
+
+    # Override the database dependency
+    app.dependency_overrides[get_db] = get_integration_db
+
+    headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"}
+    transport = ASGITransport(app=app)
+
+    async with AsyncClient(
+        transport=transport,
+        base_url="http://testserver",
+        headers=headers
+    ) as client:
+        yield client
+
+    # Clean up the override
+    if get_db in app.dependency_overrides:
+        del app.dependency_overrides[get_db]
 
 @pytest.fixture(scope="session")
 def postgres_container():
@@ -193,10 +273,8 @@ def system_user(integration_db_session: Session) -> User:
         security_clearance_level=5,
         is_active=True,
         is_verified=True,
-        password_hash=auth_service.get_password_hash("system_password_123"),
-        performance_score=100,
-        habeas_data_accepted=True,
-        data_processing_consent=True
+        password_hash=get_password_hash_sync("system_password_123"),
+        performance_score=100
     )
     integration_db_session.add(user)
     integration_db_session.commit()
@@ -217,12 +295,10 @@ def superuser(integration_db_session: Session) -> User:
         security_clearance_level=4,
         is_active=True,
         is_verified=True,
-        password_hash=auth_service.get_password_hash("super_password_123"),
+        password_hash=get_password_hash_sync("super_password_123"),
         performance_score=95,
         department_id="IT_DEPT",
-        employee_id="SU001",
-        habeas_data_accepted=True,
-        data_processing_consent=True
+        employee_id="SU001"
     )
     integration_db_session.add(user)
     integration_db_session.commit()
@@ -243,12 +319,10 @@ def admin_user(integration_db_session: Session) -> User:
         security_clearance_level=3,
         is_active=True,
         is_verified=True,
-        password_hash=auth_service.get_password_hash("admin_password_123"),
+        password_hash=get_password_hash_sync("admin_password_123"),
         performance_score=90,
         department_id="SALES_DEPT",
-        employee_id="AD001",
-        habeas_data_accepted=True,
-        data_processing_consent=True
+        employee_id="AD001"
     )
     integration_db_session.add(user)
     integration_db_session.commit()
@@ -269,12 +343,10 @@ def locked_admin_user(integration_db_session: Session) -> User:
         security_clearance_level=3,
         is_active=True,
         is_verified=True,
-        password_hash=auth_service.get_password_hash("locked_password_123"),
+        password_hash=get_password_hash_sync("locked_password_123"),
         account_locked_until=datetime.utcnow() + timedelta(hours=1),
         failed_login_attempts=5,
-        performance_score=50,
-        habeas_data_accepted=True,
-        data_processing_consent=True
+        performance_score=50
     )
     integration_db_session.add(user)
     integration_db_session.commit()
@@ -298,12 +370,10 @@ def multiple_admin_users(integration_db_session: Session) -> List[User]:
             security_clearance_level=3,
             is_active=True if i < 3 else False,  # First 3 active, last 2 inactive
             is_verified=True,
-            password_hash=auth_service.get_password_hash(f"admin{i+1}_password_123"),
+            password_hash=get_password_hash_sync(f"admin{i+1}_password_123"),
             performance_score=80 + (i * 5),
             department_id="BULK_DEPT" if i < 3 else "INACTIVE_DEPT",
-            employee_id=f"BU00{i+1}",
-            habeas_data_accepted=True,
-            data_processing_consent=True
+            employee_id=f"BU00{i+1}"
         )
         integration_db_session.add(user)
         users.append(user)
@@ -323,6 +393,7 @@ def system_permissions(integration_db_session: Session) -> List[AdminPermission]
         AdminPermission(
             id=str(uuid.uuid4()),
             name="users.create.global",
+            display_name="Create Users Globally",
             description="Create users globally",
             resource_type=ResourceType.USERS,
             action=PermissionAction.CREATE,
@@ -334,6 +405,7 @@ def system_permissions(integration_db_session: Session) -> List[AdminPermission]
         AdminPermission(
             id=str(uuid.uuid4()),
             name="users.manage.global",
+            display_name="Manage Users Globally",
             description="Manage users globally",
             resource_type=ResourceType.USERS,
             action=PermissionAction.MANAGE,
@@ -345,6 +417,7 @@ def system_permissions(integration_db_session: Session) -> List[AdminPermission]
         AdminPermission(
             id=str(uuid.uuid4()),
             name="users.read.global",
+            display_name="Read Users Globally",
             description="Read users globally",
             resource_type=ResourceType.USERS,
             action=PermissionAction.READ,
@@ -356,6 +429,7 @@ def system_permissions(integration_db_session: Session) -> List[AdminPermission]
         AdminPermission(
             id=str(uuid.uuid4()),
             name="permissions.grant.system",
+            display_name="Grant System Permissions",
             description="Grant system permissions",
             resource_type=ResourceType.PERMISSIONS,
             action=PermissionAction.GRANT,
@@ -367,6 +441,7 @@ def system_permissions(integration_db_session: Session) -> List[AdminPermission]
         AdminPermission(
             id=str(uuid.uuid4()),
             name="audit.read.global",
+            display_name="Read Audit Logs Globally",
             description="Read audit logs globally",
             resource_type=ResourceType.AUDIT_LOGS,
             action=PermissionAction.READ,
