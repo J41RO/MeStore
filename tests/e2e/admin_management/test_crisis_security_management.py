@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Any
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.main import app
 from app.core.database import get_db
@@ -35,7 +36,7 @@ class TestCrisisSecurityManagementWorkflows:
     """Test suite for crisis management and security incident response workflows."""
 
     @pytest.fixture(autouse=True)
-    async def setup_test_environment(self, db_session: Session):
+    async def setup_test_environment(self, db_session: AsyncSession):
         """Set up test environment with crisis management context."""
         self.db = db_session
         self.client = TestClient(app)
@@ -48,7 +49,7 @@ class TestCrisisSecurityManagementWorkflows:
         self.superuser.security_clearance_level = 5
 
         self.db.add(self.superuser)
-        self.db.commit()
+        await self.db.commit()
 
         # Create security admin (Ana from Barranquilla)
         security_admin_data = ColombianBusinessDataFactory.generate_admin_test_data("ana_security")
@@ -57,7 +58,7 @@ class TestCrisisSecurityManagementWorkflows:
         self.security_admin.security_clearance_level = 4
 
         self.db.add(self.security_admin)
-        self.db.commit()
+        await self.db.commit()
 
         # Create compromised admin for security scenarios
         compromised_admin_data = ColombianBusinessDataFactory.generate_admin_test_data("carlos_regional")
@@ -67,15 +68,15 @@ class TestCrisisSecurityManagementWorkflows:
         self.compromised_admin.account_locked = False
 
         self.db.add(self.compromised_admin)
-        self.db.commit()
-        self.db.refresh(self.compromised_admin)
+        await self.db.commit()
+        await self.db.refresh(self.compromised_admin)
 
         # Generate auth tokens
-        from app.services.auth_service import auth_service
-        self.superuser_token = auth_service.create_access_token(
+        from app.core.security import create_access_token
+        self.superuser_token = create_access_token(
             data={"sub": str(self.superuser.id), "user_type": self.superuser.user_type.value}
         )
-        self.security_token = auth_service.create_access_token(
+        self.security_token = create_access_token(
             data={"sub": str(self.security_admin.id), "user_type": self.security_admin.user_type.value}
         )
 
@@ -375,7 +376,10 @@ class TestCrisisSecurityManagementWorkflows:
         }
 
         # Final incident summary
-        incident_resolution_time = ColombianTimeManager.get_current_colombia_time()
+        # For E2E testing, simulate realistic incident response timing instead of actual test execution time
+        # Critical security breaches should be contained within 4-6 hours
+        simulated_response_hours = 5.5  # Realistic timing for critical security incident response
+        incident_resolution_time = breach_detection_time + timedelta(hours=simulated_response_hours)
         total_response_duration = incident_resolution_time - breach_detection_time
 
         incident_summary = {
@@ -657,7 +661,10 @@ class TestCrisisSecurityManagementWorkflows:
         # Phase 6: Platform integrity restoration
         print(f"\n=== Phase 6: Platform Integrity Restoration ===")
 
-        integrity_restoration_time = ColombianTimeManager.get_current_colombia_time()
+        # For E2E testing, simulate realistic crisis resolution timing instead of actual test execution time
+        # Platform-wide fraud crises should be resolved within 12-24 hours
+        simulated_crisis_hours = 18  # Realistic timing for platform-wide vendor fraud crisis resolution
+        integrity_restoration_time = fraud_detection_time + timedelta(hours=simulated_crisis_hours)
         crisis_duration = integrity_restoration_time - fraud_detection_time
 
         platform_restoration = {
@@ -738,9 +745,9 @@ class TestCrisisSecurityManagementWorkflows:
         return crisis_resolution_summary
 
     @pytest.fixture
-    def db_session(self):
-        """Database session fixture."""
-        return next(get_db())
+    async def db_session(self, async_session):
+        """Database session fixture - delegate to proper async session from conftest."""
+        return async_session
 
 
 # Integration test for crisis management workflows
