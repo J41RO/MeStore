@@ -1837,6 +1837,7 @@ async def get_admin_users(
                     "nombre": user.nombre,
                     "apellido": user.apellido,
                     "user_type": user.user_type.value,
+                    "security_clearance_level": user.security_clearance_level,
                     "is_active": user.is_active,
                     "created_at": user.created_at.isoformat() if user.created_at else None
                 }
@@ -1908,6 +1909,7 @@ async def create_admin_user(
             nombre=user_data.nombre,
             apellido=user_data.apellido,
             user_type=user_data.user_type,
+            security_clearance_level=user_data.security_clearance_level,
             is_active=True,
             is_verified=True,
             created_at=datetime.now()
@@ -1935,6 +1937,7 @@ async def create_admin_user(
             "nombre": new_user.nombre,
             "apellido": new_user.apellido,
             "user_type": new_user.user_type.value,
+            "security_clearance_level": new_user.security_clearance_level,
             "is_active": new_user.is_active,
             "created_at": new_user.created_at.isoformat()
         }
@@ -1983,6 +1986,7 @@ async def get_admin_user(
             "nombre": user.nombre,
             "apellido": user.apellido,
             "user_type": user.user_type.value,
+            "security_clearance_level": user.security_clearance_level,
             "is_active": user.is_active,
             "created_at": user.created_at.isoformat() if user.created_at else None
         }
