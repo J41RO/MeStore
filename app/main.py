@@ -34,6 +34,8 @@ from app.core.logger import get_logger, log_error, log_shutdown_info, log_startu
 from app.core.logging_rotation import setup_log_rotation
 from app.models.user import User
 from fastapi.staticfiles import StaticFiles
+import os
+from pathlib import Path
 # Metadata para categorización de endpoints
 tags_metadata = [
     {"name": "health", "description": "Monitoreo de estado y readiness del sistema"},
@@ -107,7 +109,11 @@ app = FastAPI(
 )
 
 # Agregar después de crear app:
-app.mount("/media", StaticFiles(directory="uploads"), name="media")
+# Create uploads directory if it doesn't exist and mount StaticFiles
+BASE_DIR = Path(__file__).parent.parent  # MeStore root directory
+UPLOADS_DIR = BASE_DIR / "uploads"
+UPLOADS_DIR.mkdir(exist_ok=True)
+app.mount("/media", StaticFiles(directory=str(UPLOADS_DIR)), name="media")
 
 # Registrar exception handlers
 register_exception_handlers(app)

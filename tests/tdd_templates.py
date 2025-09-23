@@ -623,10 +623,64 @@ class ServiceLayerTDDTemplate(TDDTestCase):
         return service
 
 
+# Simple template classes for basic TDD structure
+class RedPhaseTemplate:
+    """Template for RED phase tests - tests that should fail initially."""
+
+    def __init__(self, description: str = ""):
+        self.description = description
+
+    def expect_failure(self, test_func, expected_exception=None):
+        """Expect a test function to fail in RED phase."""
+        try:
+            test_func()
+            return False  # Test should have failed
+        except Exception as e:
+            if expected_exception and not isinstance(e, expected_exception):
+                return False
+            return True  # Failed as expected
+
+
+class GreenPhaseTemplate:
+    """Template for GREEN phase tests - minimal implementation to pass."""
+
+    def __init__(self, description: str = ""):
+        self.description = description
+
+    def minimal_implementation_check(self, implementation_func, test_cases):
+        """Verify minimal implementation works for basic test cases."""
+        for case in test_cases:
+            try:
+                result = implementation_func(case["input"])
+                # Basic success check - implementation exists and returns something
+                return result is not None
+            except Exception:
+                return False
+        return True
+
+
+class RefactorPhaseTemplate:
+    """Template for REFACTOR phase tests - improved implementation."""
+
+    def __init__(self, description: str = ""):
+        self.description = description
+
+    def ensure_tests_still_pass(self, previous_test_func):
+        """Ensure refactoring doesn't break existing functionality."""
+        try:
+            previous_test_func()
+            return True
+        except Exception:
+            return False
+
+
 # Export templates
 __all__ = [
     'AuthServiceTDDTemplate',
     'APIEndpointTDDTemplate',
     'DatabaseModelTDDTemplate',
-    'ServiceLayerTDDTemplate'
+    'ServiceLayerTDDTemplate',
+    'RedPhaseTemplate',
+    'GreenPhaseTemplate',
+    'RefactorPhaseTemplate'
 ]

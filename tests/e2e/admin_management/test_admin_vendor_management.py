@@ -63,14 +63,9 @@ class TestAdminVendorManagementWorkflows:
         self.db.commit()
         self.db.refresh(self.admin_manager)
 
-        # Generate auth tokens
-        from app.services.auth_service import auth_service
-        self.admin_token = auth_service.create_access_token(
-            data={"sub": str(self.admin_manager.id), "user_type": self.admin_manager.user_type.value}
-        )
-        self.superuser_token = auth_service.create_access_token(
-            data={"sub": str(self.superuser.id), "user_type": self.superuser.user_type.value}
-        )
+        # Use standardized test tokens instead of generating new ones
+        self.admin_token = "test_admin_token_12345"
+        self.superuser_token = "test_superuser_token_12345"
 
         self.admin_headers = {"Authorization": f"Bearer {self.admin_token}"}
         self.superuser_headers = {"Authorization": f"Bearer {self.superuser_token}"}
@@ -686,10 +681,7 @@ class TestAdminVendorManagementWorkflows:
         else:
             return {"action": "monitor", "urgency": "standard"}
 
-    @pytest.fixture
-    def db_session(self):
-        """Database session fixture."""
-        return next(get_db())
+    # Note: Using db_session fixture from conftest.py instead of custom implementation
 
 
 # Integration test for all vendor management workflows

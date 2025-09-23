@@ -238,6 +238,7 @@ class ColombianBusinessDataFactory:
 
         return {
             "email": persona.email,
+            "password_hash": "$2b$12$LHJIaP9sWLJ.WgHnrTqLMeYjKq7vBxKEY2A7KhM9vg2xW1nVx2Y1u",  # "testpassword123"
             "nombre": persona.name.split()[0],
             "apellido": " ".join(persona.name.split()[1:]),
             "user_type": persona.role,
@@ -246,14 +247,10 @@ class ColombianBusinessDataFactory:
             "employee_id": persona.employee_id,
             "telefono": persona.phone,
             "ciudad": persona.city,
-            "departamento": department.name,
-            "specialization": persona.specialization,
-            "languages": persona.languages,
+            # Note: Removed invalid fields: departamento, specialization, languages, habeas_data_accepted, data_processing_consent
             "is_active": True,
             "is_verified": True,
-            "performance_score": 95,
-            "habeas_data_accepted": True,
-            "data_processing_consent": True
+            "performance_score": 95
         }
 
     @staticmethod

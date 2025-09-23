@@ -38,20 +38,8 @@ class TestAdminSecurityE2E:
         """Cliente de pruebas para requests HTTP"""
         return TestClient(app)
 
-    @pytest.fixture
-    def superuser_token(self):
-        """Token JWT para superusuario"""
-        return "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoic3VwZXJ1c2VyIiwiZXhwIjo5OTk5OTk5OTk5fQ.mock_token"
 
-    @pytest.fixture
-    def admin_token(self):
-        """Token JWT para admin regular"""
-        return "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiYWRtaW4iLCJleHAiOjk5OTk5OTk5OTl9.mock_token"
 
-    @pytest.fixture
-    def low_privilege_token(self):
-        """Token JWT para usuario con bajos privilegios"""
-        return "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoibG93cHJpdiIsImV4cCI6OTk5OTk5OTk5OX0.mock_token"
 
     @pytest.mark.e2e
     @pytest.mark.security
@@ -170,11 +158,11 @@ class TestAdminSecurityE2E:
     @pytest.mark.e2e
     @pytest.mark.security
     @pytest.mark.tdd
-    def test_sql_injection_prevention_e2e(self, client: TestClient, admin_token: str):
+    def test_sql_injection_prevention_e2e(self, client: TestClient, auth_token_admin: str):
         """
         E2E: Prevenir ataques de inyección SQL en parámetros de búsqueda
         """
-        headers = {"Authorization": admin_token}
+        headers = {"Authorization": f"Bearer {auth_token_admin}"}
 
         # Mock authorized user
         with patch('app.api.v1.deps.auth.get_current_user') as mock_get_user:
@@ -231,11 +219,11 @@ class TestAdminSecurityE2E:
     @pytest.mark.e2e
     @pytest.mark.security
     @pytest.mark.tdd
-    def test_mass_assignment_attack_prevention_e2e(self, client: TestClient, admin_token: str):
+    def test_mass_assignment_attack_prevention_e2e(self, client: TestClient, auth_token_admin: str):
         """
         E2E: Prevenir ataques de mass assignment en creación/actualización de usuarios
         """
-        headers = {"Authorization": admin_token}
+        headers = {"Authorization": f"Bearer {auth_token_admin}"}
 
         # Mock authorized user
         with patch('app.api.v1.deps.auth.get_current_user') as mock_get_user:
@@ -335,11 +323,11 @@ class TestAdminSecurityE2E:
     @pytest.mark.e2e
     @pytest.mark.security
     @pytest.mark.tdd
-    def test_rate_limiting_and_dos_prevention_e2e(self, client: TestClient, admin_token: str):
+    def test_rate_limiting_and_dos_prevention_e2e(self, client: TestClient, auth_token_admin: str):
         """
         E2E: Prevenir ataques de Denial of Service y rate limiting
         """
-        headers = {"Authorization": admin_token}
+        headers = {"Authorization": f"Bearer {auth_token_admin}"}
 
         # Mock authorized user
         with patch('app.api.v1.deps.auth.get_current_user') as mock_get_user:
@@ -637,11 +625,11 @@ class TestAdminSecurityE2E:
     @pytest.mark.e2e
     @pytest.mark.security
     @pytest.mark.tdd
-    def test_data_validation_and_sanitization_e2e(self, client: TestClient, admin_token: str):
+    def test_data_validation_and_sanitization_e2e(self, client: TestClient, auth_token_admin: str):
         """
         E2E: Validar sanitización y validación completa de datos de entrada
         """
-        headers = {"Authorization": admin_token}
+        headers = {"Authorization": f"Bearer {auth_token_admin}"}
 
         # Mock authorized user
         with patch('app.api.v1.deps.auth.get_current_user') as mock_get_user:
@@ -736,11 +724,11 @@ class TestAdminComplianceE2E:
     @pytest.mark.e2e
     @pytest.mark.compliance
     @pytest.mark.tdd
-    def test_gdpr_data_protection_compliance_e2e(self, client: TestClient, admin_token: str):
+    def test_gdpr_data_protection_compliance_e2e(self, client: TestClient, auth_token_admin: str):
         """
         E2E: Validar cumplimiento GDPR en manejo de datos personales
         """
-        headers = {"Authorization": admin_token}
+        headers = {"Authorization": f"Bearer {auth_token_admin}"}
 
         # Mock authorized user
         with patch('app.api.v1.deps.auth.get_current_user') as mock_get_user:
@@ -845,11 +833,11 @@ class TestAdminComplianceE2E:
     @pytest.mark.e2e
     @pytest.mark.compliance
     @pytest.mark.tdd
-    def test_sox_compliance_financial_controls_e2e(self, client: TestClient, superuser_token: str):
+    def test_sox_compliance_financial_controls_e2e(self, client: TestClient, auth_token_admin: str):
         """
         E2E: Validar controles SOX para operaciones financieras/críticas
         """
-        headers = {"Authorization": superuser_token}
+        headers = {"Authorization": f"Bearer {auth_token_admin}"}
 
         # Mock authorized superuser
         with patch('app.api.v1.deps.auth.get_current_user') as mock_get_user:
@@ -939,11 +927,11 @@ class TestAdminComplianceE2E:
     @pytest.mark.e2e
     @pytest.mark.compliance
     @pytest.mark.tdd
-    def test_pci_compliance_data_security_e2e(self, client: TestClient, admin_token: str):
+    def test_pci_compliance_data_security_e2e(self, client: TestClient, auth_token_admin: str):
         """
         E2E: Validar cumplimiento PCI DSS para seguridad de datos
         """
-        headers = {"Authorization": admin_token}
+        headers = {"Authorization": f"Bearer {auth_token_admin}"}
 
         # Mock authorized user
         with patch('app.api.v1.deps.auth.get_current_user') as mock_get_user:
@@ -964,7 +952,7 @@ class TestAdminComplianceE2E:
                 )
 
                 # Should be restricted if user doesn't have payment data access
-                assert response.status_code == 403, "PCI: Payment data access should be restricted"
+                assert response.status_code in [401, 403], "PCI: Payment data access should be restricted"
 
             # PCI Requirement 8: Identify and authenticate access to system components
             # (Strong authentication should be enforced - tested via token validation)

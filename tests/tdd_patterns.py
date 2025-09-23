@@ -11,6 +11,7 @@ Purpose: Establish TDD discipline and patterns across the entire codebase
 """
 
 import pytest
+import asyncio
 from typing import Any, Callable, Dict, List, Optional, Union
 from unittest.mock import Mock, patch, AsyncMock
 from dataclasses import dataclass
@@ -463,6 +464,200 @@ def run_tdd_cycle(test_func: Callable, implementation_func: Callable) -> bool:
     return True
 
 
+# Additional TDD Patterns for Specialized Testing
+
+class SecurityTestPattern:
+    """
+    Specialized testing patterns for security-related functionality.
+
+    Provides patterns for testing authentication, authorization, encryption,
+    and other security-critical components.
+    """
+
+    @staticmethod
+    def create_mock_token(payload: Dict[str, Any] = None) -> str:
+        """Create a mock JWT token for testing."""
+        import base64
+        import json
+
+        if payload is None:
+            payload = {"sub": "test_user", "exp": 1234567890}
+
+        # Simple mock token structure
+        header = {"typ": "JWT", "alg": "HS256"}
+        token_parts = [
+            base64.b64encode(json.dumps(header).encode()).decode(),
+            base64.b64encode(json.dumps(payload).encode()).decode(),
+            "mock_signature"
+        ]
+        return ".".join(token_parts)
+
+    @staticmethod
+    def assert_token_valid(token: str):
+        """Assert that a token has valid structure."""
+        parts = token.split('.')
+        assert len(parts) == 3, f"Token should have 3 parts, got {len(parts)}"
+
+    @staticmethod
+    def assert_password_hashed(password_hash: str):
+        """Assert that a password is properly hashed."""
+        assert password_hash != "", "Password hash should not be empty"
+        assert len(password_hash) > 20, "Password hash should be substantial length"
+
+
+class MockingPattern:
+    """
+    Advanced mocking patterns for complex testing scenarios.
+
+    Provides utilities for creating sophisticated mocks that simulate
+    real application behavior during testing.
+    """
+
+    @staticmethod
+    def create_async_context_manager(return_value: Any = None):
+        """Create a mock async context manager."""
+        mock_cm = AsyncMock()
+        mock_cm.__aenter__ = AsyncMock(return_value=return_value)
+        mock_cm.__aexit__ = AsyncMock(return_value=False)
+        return mock_cm
+
+    @staticmethod
+    def create_mock_request(headers: Dict[str, str] = None, client_host: str = "127.0.0.1"):
+        """Create a mock FastAPI Request object."""
+        from unittest.mock import Mock
+        from fastapi.datastructures import Headers
+
+        mock_request = Mock()
+        mock_request.headers = Headers(headers or {})
+        mock_request.client = Mock()
+        mock_request.client.host = client_host
+        return mock_request
+
+
+class AuthTestPattern:
+    """
+    Specialized patterns for authentication testing.
+
+    Provides utilities for testing authentication flows, token validation,
+    and user session management.
+    """
+
+    @staticmethod
+    def create_mock_user_with_type(user_type: str = "BUYER"):
+        """Create a mock user with specific type."""
+        from app.models.user import UserType
+
+        mock_user = Mock()
+        mock_user.id = "test_user_123"
+        mock_user.email = "test@example.com"
+        mock_user.user_type = UserType(user_type)
+        mock_user.is_active = True
+        mock_user.is_verified = True
+        return mock_user
+
+    @staticmethod
+    def assert_authentication_successful(result: Any, expected_user: Any = None):
+        """Assert successful authentication result."""
+        assert result is not None, "Authentication should return a user"
+        if expected_user:
+            assert result.email == expected_user.email, "User email should match"
+            assert result.id == expected_user.id, "User ID should match"
+
+
+class DatabaseTestPattern:
+    """
+    Patterns for database testing with proper isolation.
+
+    Provides utilities for testing database operations while maintaining
+    test isolation and avoiding side effects.
+    """
+
+    @staticmethod
+    def create_mock_db_session():
+        """Create a comprehensive mock database session."""
+        session = AsyncMock()
+        session.add = Mock()
+        session.commit = AsyncMock()
+        session.rollback = AsyncMock()
+        session.refresh = AsyncMock()
+        session.close = AsyncMock()
+        session.execute = AsyncMock()
+
+        # Configure query result
+        mock_result = Mock()
+        mock_result.scalar_one_or_none = Mock()
+        mock_result.fetchone = Mock()
+        session.execute.return_value = mock_result
+
+        return session
+
+    @staticmethod
+    def assert_database_operation_called(session_mock: Mock, operation: str):
+        """Assert that a specific database operation was called."""
+        operation_method = getattr(session_mock, operation, None)
+        assert operation_method is not None, f"Database session should have {operation} method"
+        operation_method.assert_called()
+
+
+class DependencyTestPattern:
+    """
+    Patterns for testing dependency injection and service management.
+
+    Provides utilities for testing service containers, dependencies,
+    and component lifecycle management.
+    """
+
+    @staticmethod
+    def create_mock_service_container():
+        """Create a mock service container."""
+        container = Mock()
+        container.services = {}
+        container._initialized = False
+        container.register = Mock()
+        container.get = Mock()
+        container.initialize = AsyncMock()
+        container.cleanup = AsyncMock()
+        return container
+
+    @staticmethod
+    def assert_service_registered(container: Mock, service_name: str):
+        """Assert that a service was registered in container."""
+        container.register.assert_called()
+        # Check if service name was used in any register call
+        register_calls = container.register.call_args_list
+        service_names = [call[0][0] for call in register_calls if len(call[0]) > 0]
+        assert service_name in service_names, f"Service {service_name} should be registered"
+
+
+class ServiceTestPattern:
+    """
+    Patterns for testing service layer components.
+
+    Provides utilities for testing business logic services, external
+    integrations, and service composition.
+    """
+
+    @staticmethod
+    def create_mock_external_service(responses: Dict[str, Any] = None):
+        """Create a mock external service with predefined responses."""
+        service = Mock()
+        if responses:
+            for method_name, response in responses.items():
+                method = AsyncMock(return_value=response) if asyncio.iscoroutinefunction(response) else Mock(return_value=response)
+                setattr(service, method_name, method)
+        return service
+
+    @staticmethod
+    def assert_service_call_made(service_mock: Mock, method_name: str, *args, **kwargs):
+        """Assert that a service method was called with specific arguments."""
+        method = getattr(service_mock, method_name, None)
+        assert method is not None, f"Service should have {method_name} method"
+        if args or kwargs:
+            method.assert_called_with(*args, **kwargs)
+        else:
+            method.assert_called()
+
+
 if __name__ == "__main__":
     print("TDD Patterns and Templates for MeStore Project")
     print("===============================================")
@@ -472,3 +667,5 @@ if __name__ == "__main__":
     print("3. REFACTOR Phase: Improve code structure")
     print("\nExample usage:")
     print("from tests.tdd_patterns import TDDTestCase, TDDAssertionsMixin")
+    print("from tests.tdd_patterns import SecurityTestPattern, MockingPattern")
+    print("from tests.tdd_patterns import AuthTestPattern, DatabaseTestPattern")

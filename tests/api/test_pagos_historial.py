@@ -3,7 +3,7 @@ import pytest
 from httpx import AsyncClient
 from app.main import app
 
-@pytest.mark.skip(reason="Database performance optimization - test incompatible with current setup")
+# Re-enabled for comprehensive API testing
 @pytest.mark.asyncio
 async def test_get_historial_pagos_basic(async_client: AsyncClient):
     """Test básico del endpoint de historial de pagos."""

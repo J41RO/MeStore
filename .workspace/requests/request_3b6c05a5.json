@@ -1,0 +1,20 @@
+{
+  "id": "3b6c05a5",
+  "timestamp": "2025-09-23T01:45:58.290224",
+  "requesting_agent": "integration-testing",
+  "target_file": "tests/conftest.py",
+  "reason": "Need to analyze fixture naming inconsistencies for E2E test integration. The test test_admin_security_flows.py:739 expects 'admin_token' fixture but conftest.py has 'auth_token_admin'. Need to standardize fixture names.",
+  "status": "pending",
+  "contacted_agents": [
+    {
+      "timestamp": "2025-09-23T01:45:58.293168",
+      "agent": "tdd-specialist",
+      "type": "primary_contact",
+      "message": "Solicitud de integration-testing para modificar tests/conftest.py",
+      "deadline": "2025-09-23T01:50:58.290232"
+    }
+  ],
+  "responses": [],
+  "escalation_level": 1,
+  "deadline": "2025-09-23T01:50:58.290232"
+}

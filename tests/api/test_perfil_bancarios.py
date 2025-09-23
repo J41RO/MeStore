@@ -7,8 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 from app.main import app
 
-# Skip entire file for performance optimization
-pytestmark = pytest.mark.skip(reason="Banking profile tests - performance optimization during database work")
+# Banking profile tests - now enabled for comprehensive API testing
 
 
 def test_update_datos_bancarios_sin_auth():
