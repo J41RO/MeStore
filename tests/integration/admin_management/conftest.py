@@ -76,7 +76,9 @@ auth_service = AuthService()
 def postgres_container():
     """PostgreSQL container for integration tests."""
     if not TESTCONTAINERS_AVAILABLE:
-        pytest.skip("testcontainers not available")
+        # Return None to trigger fallback in integration_db_engine
+        yield None
+        return
 
     with PostgresContainer("postgres:13") as postgres:
         postgres.start()
@@ -87,65 +89,40 @@ def postgres_container():
 def redis_container():
     """Redis container for integration tests."""
     if not TESTCONTAINERS_AVAILABLE:
-        pytest.skip("testcontainers not available")
+        # Return None to trigger fallback in integration_redis_client
+        yield None
+        return
 
     with RedisContainer("redis:6-alpine") as redis_cont:
         redis_cont.start()
         yield redis_cont
 
 
-@pytest.fixture(scope="session")
-def integration_db_engine(postgres_container):
-    """Database engine for integration tests using container."""
-    if not TESTCONTAINERS_AVAILABLE:
-        # Fallback to existing test database
-        from app.core.database import engine
-        Base.metadata.create_all(bind=engine)
-        yield engine
-        return
-
-    database_url = postgres_container.get_connection_url()
-    engine = create_engine(
-        database_url,
-        poolclass=StaticPool,
-        connect_args={
-            "check_same_thread": False,
-            "isolation_level": "READ_COMMITTED"
-        },
-        echo=False  # Set to True for SQL debugging
-    )
-
-    # Create all tables
-    Base.metadata.create_all(bind=engine)
-    yield engine
-    engine.dispose()
-
+# Import the isolated_sync_session fixture from database_isolation
+from tests.database_isolation import isolated_sync_session
 
 @pytest.fixture
-def integration_db_session(integration_db_engine) -> Generator[Session, None, None]:
+def integration_db_session(request, isolated_sync_session: Session) -> Generator[Session, None, None]:
     """Database session with transaction isolation for integration tests."""
-    connection = integration_db_engine.connect()
-    transaction = connection.begin()
+    # Skip database setup for standalone auth tests
+    if hasattr(request, 'node') and hasattr(request.node, 'get_closest_marker'):
+        if request.node.get_closest_marker('standalone_auth'):
+            # Provide a mock session that doesn't interfere
+            from unittest.mock import MagicMock
+            mock_session = MagicMock()
+            mock_session._test_objects = []
+            yield mock_session
+            return
 
-    # Create session
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=connection)
-    session = SessionLocal()
-
-    # Track objects for cleanup
-    session._test_objects = []
-
-    try:
-        yield session
-    finally:
-        session.close()
-        transaction.rollback()
-        connection.close()
+    # Add tracking for cleanup
+    isolated_sync_session._test_objects = []
+    yield isolated_sync_session
 
 
 @pytest.fixture
 def integration_redis_client(redis_container):
     """Redis client for integration tests."""
-    if not TESTCONTAINERS_AVAILABLE:
+    if not TESTCONTAINERS_AVAILABLE or redis_container is None:
         # Fallback to mock Redis client
         import fakeredis
         client = fakeredis.FakeRedis()
