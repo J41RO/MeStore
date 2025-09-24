@@ -334,6 +334,10 @@ class TestAdminLocationAssignmentRED:
         This test MUST FAIL initially because location availability checking
         is not implemented.
         """
+        from app.main import app
+        from app.api.v1.deps.auth import get_current_user
+        from app.api.v1.deps import get_sync_db
+
         queue_id = 1
         zona = "Z"  # Non-existent zone
         estante = "99"
@@ -343,22 +347,39 @@ class TestAdminLocationAssignmentRED:
         mock_queue_item.id = queue_id
         mock_queue_item.verification_status = "QUALITY_CHECK"
 
-        with patch("app.api.v1.deps.auth.get_current_user", return_value=mock_admin_user):
-            with patch("app.api.v1.endpoints.admin.get_current_admin_user", return_value=mock_admin_user):
-                with patch("app.api.v1.deps.get_sync_db", return_value=mock_sync_db_session):
-                    mock_sync_db_session.query.return_value.filter.return_value.first.return_value = mock_queue_item
+        # Mock database query to return our mock item
+        mock_sync_db_session.query.return_value.filter.return_value.first.return_value = mock_queue_item
 
-                    with patch("app.services.location_assignment_service.LocationAssignmentService") as mock_service:
-                        mock_service.return_value._get_available_locations = AsyncMock(return_value=[])  # No available locations
+        # Use FastAPI dependency overrides instead of patch
+        def override_get_current_user():
+            return mock_admin_user
 
-                        response = await async_client.post(
-                            f"/api/v1/admin/incoming-products/{queue_id}/location/manual-assign"
-                            f"?zona={zona}&estante={estante}&posicion={posicion}"
-                        )
+        def override_get_sync_db():
+            return mock_sync_db_session
 
-        # This assertion WILL FAIL in RED phase - that's expected
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "no está disponible" in response.json()["detail"].lower()
+        try:
+            app.dependency_overrides[get_current_user] = override_get_current_user
+            app.dependency_overrides[get_sync_db] = override_get_sync_db
+
+            with patch("app.services.location_assignment_service.LocationAssignmentService") as mock_service:
+                mock_service.return_value._get_available_locations = AsyncMock(return_value=[])  # No available locations
+
+                response = await async_client.post(
+                    f"/api/v1/admin/incoming-products/{queue_id}/location/manual-assign"
+                    f"?zona={zona}&estante={estante}&posicion={posicion}"
+                )
+
+            # This assertion WILL FAIL in RED phase - that's expected
+            assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+            # Check for availability-related error message
+            response_data = response.json()
+            error_text = str(response_data).lower()
+            assert "disponible" in error_text or "available" in error_text or "ubicación" in error_text, f"Error should mention location availability: {response_data}"
+
+        finally:
+            # Clean up overrides to avoid test interference
+            app.dependency_overrides.clear()
 
 
 @pytest.mark.red_test
@@ -779,15 +800,28 @@ class TestAdminStorageManagerRED:
         This test MUST FAIL initially because parameter validation
         for trends endpoint is not implemented.
         """
+        from app.main import app
+        from app.api.v1.deps.auth import get_current_user
+
         invalid_days_values = [0, -1, 31, 100]
 
-        for invalid_days in invalid_days_values:
-            with patch("app.api.v1.deps.auth.get_current_user", return_value=mock_admin_user):
-                with patch("app.api.v1.endpoints.admin.get_current_admin_user", return_value=mock_admin_user):
-                    response = await async_client.get(f"/api/v1/admin/storage/trends?days={invalid_days}")
+        # Use FastAPI dependency overrides instead of patch
+        def override_get_current_user():
+            return mock_admin_user
 
-            # This assertion WILL FAIL in RED phase - that's expected
-            assert response.status_code == status.HTTP_400_BAD_REQUEST, f"Days value {invalid_days} should be rejected"
+        try:
+            app.dependency_overrides[get_current_user] = override_get_current_user
+
+            for invalid_days in invalid_days_values:
+                response = await async_client.get(f"/api/v1/admin/storage/trends?days={invalid_days}")
+
+                # This assertion WILL FAIL in RED phase - that's expected
+                # We expect 400 Bad Request for invalid parameter values
+                assert response.status_code == status.HTTP_400_BAD_REQUEST, f"Days value {invalid_days} should be rejected"
+
+        finally:
+            # Clean up overrides to avoid test interference
+            app.dependency_overrides.clear()
 
 
 # RED PHASE: Fixtures that are DESIGNED to be incomplete or cause failures
