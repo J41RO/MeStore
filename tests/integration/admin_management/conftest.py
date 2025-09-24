@@ -337,7 +337,7 @@ def superuser(integration_db_session: Session) -> User:
         nombre="Super",
         apellido="User",
         user_type=UserType.SUPERUSER,
-        security_clearance_level=4,
+        security_clearance_level=5,
         is_active=True,
         is_verified=True,
         password_hash=get_password_hash_sync("super_password_123"),

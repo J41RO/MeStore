@@ -67,7 +67,7 @@ app/
 │   │       │   │       📁 tests/unit/auth/test_secure_auth_service.py--------------------------------------✅ 12 PASSED
 │   │       │   │       📁 tests/unit/core/test_auth_tdd.py-------------------------------------------------✅ 36 PASSED
 │   │       │   │       📁 tests/unit/core/test_integrated_auth_tdd.py--------------------------------------✅ 47 PASSED
-│   │       │   │       📁 tests/unit/middleware/test_auth_rate_limiting.py--------------------------------- ❌ FAILED
+│   │       │   │       📁 tests/unit/middleware/test_auth_rate_limiting.py---------------------------------✅ 37 PASSED
 │   │       │   │       📁 tests/unit/services/test_secure_auth_service.py---------------------------------- ❌ FAILED
 │   │       │   │       📁 tests/unit/test_auth.py----------------------------------------------------------✅ 11 PASSED
 │   │       │   │       📁 tests/unit/test_auth_dependency.py-----------------------------------------------✅ 08 PASSED
@@ -89,7 +89,7 @@ app/
 │   │       ├── endpoints/
 │   │       │   ├── admin.py ✅ ⚠️ 🏷️[api, integration, unit, e2e]
 │   │       │   │       📁 tests/api/test_critical_endpoints_mvp.py-----------------------------------------✅ 21 PASSED
-│   │       │   │       📁 tests/e2e/admin_management/test_admin_security_flows.py--------------------------✅ 11 PASSED
+│   │       │   │       📁 tests/e2e/admin_management/test_admin_security_flows.py--------------------------❌ ERROR
 │   │       │   │       📁 tests/e2e/admin_management/test_admin_vendor_management.py-----------------------✅ 04 PASSED
 │   │       │   │       📁 tests/e2e/app/test_main_endpoints_e2e.py-----------------------------------------✅ 16 PASSED
 │   │       │   │       📁 tests/e2e/test_admin_file_upload_e2e_red.py--------------------------------------✅ 10 PASSED
