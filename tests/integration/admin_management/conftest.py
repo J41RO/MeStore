@@ -274,8 +274,11 @@ def mock_email_service():
     email_service.send_admin_permission_notification = AsyncMock(return_value=True)
     email_service.send_admin_security_alert = AsyncMock(return_value=True)
     email_service.send_admin_password_reset = AsyncMock(return_value=True)
+    email_service.send_otp_email = AsyncMock(return_value=True)
+    email_service.send_password_reset_email = AsyncMock(return_value=True)
+    email_service.send_lead_welcome_email = AsyncMock(return_value=True)
 
-    with patch('app.services.email_service.email_service', email_service):
+    with patch('app.services.email_service.EmailService', return_value=email_service):
         yield email_service
 
 
@@ -286,8 +289,9 @@ def mock_notification_service():
     notification_service.send_admin_notification = AsyncMock(return_value=True)
     notification_service.send_security_alert = AsyncMock(return_value=True)
     notification_service.send_bulk_notification = AsyncMock(return_value=True)
+    notification_service.send_notification = AsyncMock(return_value=True)
 
-    with patch('app.services.notification_service.notification_service', notification_service):
+    with patch('app.services.notification_service.NotificationService', return_value=notification_service):
         yield notification_service
 
 

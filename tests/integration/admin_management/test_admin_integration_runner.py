@@ -46,8 +46,8 @@ from sqlalchemy.orm import Session
 
 from app.services.admin_permission_service import AdminPermissionService
 from app.models.user import User, UserType
-from app.models.admin_permission import AdminPermission
-from app.models.admin_activity_log import AdminActivityLog, AdminActionType
+from app.models.admin_permission import AdminPermission, ResourceType, PermissionAction, PermissionScope
+from app.models.admin_activity_log import AdminActivityLog, AdminActionType, ActionResult
 
 
 @pytest.mark.asyncio
