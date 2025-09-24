@@ -57,10 +57,21 @@ class TestAdminWorkflowVerificationCurrentStepRED:
         This test MUST FAIL initially because role-based access control
         is not implemented for verification endpoints.
         """
+        from app.main import app
+        from app.api.v1.deps.auth import get_current_user
+
         queue_id = uuid.uuid4()
 
-        with patch("app.api.v1.deps.auth.get_current_user", return_value=test_vendedor_user):
+        # Use FastAPI dependency overrides instead of patch
+        def override_get_current_user():
+            return test_vendedor_user
+
+        try:
+            app.dependency_overrides[get_current_user] = override_get_current_user
             response = await async_client.get(f"/api/v1/admin/incoming-products/{queue_id}/verification/current-step")
+        finally:
+            # Clean up overrides to avoid test interference
+            app.dependency_overrides.clear()
 
         # This assertion WILL FAIL in RED phase - that's expected
         assert response.status_code == status.HTTP_403_FORBIDDEN
