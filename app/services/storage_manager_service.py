@@ -30,12 +30,12 @@ class AlertLevel(str, Enum):
     CRITICAL = "critical"
 
 class StorageAlert:
-    def __init__(self, level: AlertLevel, zone: str, message: str, percentage: float):
+    def __init__(self, level: AlertLevel, zone: str, message: str, percentage: float, timestamp: Optional[datetime] = None):
         self.level = level
         self.zone = zone
         self.message = message
         self.percentage = percentage
-        self.timestamp = datetime.utcnow()
+        self.timestamp = timestamp if timestamp is not None else datetime.utcnow()
 
 class StorageManagerService:
     def __init__(self, db: Session):

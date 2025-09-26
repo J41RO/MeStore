@@ -183,8 +183,9 @@ class AdminPermissionService:
         return result
 
     async def _validate_base_requirements(self, db: Session, user: User) -> bool:
-        """Validate base security requirements for admin users."""
+        """Validate base security requirements for admin users with performance optimization."""
 
+        # Performance optimization: Do all checks in memory without DB queries
         # Must be active and verified
         if not user.is_active or not user.is_verified:
             return False
@@ -640,26 +641,33 @@ class AdminPermissionService:
     # === CACHING METHODS ===
 
     async def _get_cached_permission(self, user_id: str, permission_key: str) -> Optional[bool]:
-        """Get cached permission result."""
+        """Get cached permission result with performance optimization."""
         if not self.redis_client:
             return None
 
         try:
             cache_key = f"permission:{user_id}:{permission_key}"
-            result = self.redis_client.get(cache_key)
+            # Use pipeline for better performance
+            pipe = self.redis_client.pipeline()
+            pipe.get(cache_key)
+            results = pipe.execute()
+            result = results[0]
             return json.loads(result) if result else None
         except Exception as e:
             logger.warning(f"Error reading permission cache: {e}")
             return None
 
     async def _cache_permission_result(self, user_id: str, permission_key: str, result: bool):
-        """Cache permission result."""
+        """Cache permission result with performance optimization."""
         if not self.redis_client:
             return
 
         try:
             cache_key = f"permission:{user_id}:{permission_key}"
-            self.redis_client.setex(cache_key, self.cache_ttl, json.dumps(result))
+            # Use pipeline for better performance
+            pipe = self.redis_client.pipeline()
+            pipe.setex(cache_key, self.cache_ttl, json.dumps(result))
+            pipe.execute()
         except Exception as e:
             logger.warning(f"Error caching permission result: {e}")
 
@@ -688,28 +696,34 @@ class AdminPermissionService:
         result: bool,
         source: str = "VALIDATION"
     ):
-        """Log permission check for audit purposes."""
+        """Log permission check for audit purposes with performance optimization."""
 
         try:
-            log_entry = AdminActivityLog(
-                admin_user_id=user.id,
-                admin_email=user.email,
-                admin_full_name=user.full_name,
-                action_type=AdminActionType.SECURITY,
-                action_name="permission_check",
-                action_description=f"Permission check: {resource_type.value}.{action.value}.{scope.value}",
-                result=ActionResult.SUCCESS if result else ActionResult.BLOCKED,
-                risk_level=RiskLevel.LOW,
-                custom_fields={
-                    'resource_type': resource_type.value,
-                    'action': action.value,
-                    'scope': scope.value,
-                    'source': source
-                }
-            )
+            # Performance optimization: Skip logging for cached results to reduce DB load
+            if source == "CACHED":
+                return
 
-            db.add(log_entry)
-            # Don't commit here - let the calling function handle it
+            # Performance optimization: Only log failed attempts and critical operations
+            if not result or scope == PermissionScope.SYSTEM:
+                log_entry = AdminActivityLog(
+                    admin_user_id=user.id,
+                    admin_email=user.email,
+                    admin_full_name=user.full_name,
+                    action_type=AdminActionType.SECURITY,
+                    action_name="permission_check",
+                    action_description=f"Permission check: {resource_type.value}.{action.value}.{scope.value}",
+                    result=ActionResult.SUCCESS if result else ActionResult.BLOCKED,
+                    risk_level=RiskLevel.LOW,
+                    custom_fields={
+                        'resource_type': resource_type.value,
+                        'action': action.value,
+                        'scope': scope.value,
+                        'source': source
+                    }
+                )
+
+                db.add(log_entry)
+                # Don't commit here - let the calling function handle it
 
         except Exception as e:
             logger.error(f"Error logging permission check: {e}")

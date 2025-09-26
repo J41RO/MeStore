@@ -37,11 +37,40 @@ Extraído desde app/core/security.py para mejor modularización.
 """
 
 import asyncio
+import os
+import sys
 from concurrent.futures import ThreadPoolExecutor
 from passlib.context import CryptContext
 
 # Configuración del contexto de passwords con bcrypt
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Environment-aware configuration for performance optimization
+
+def _get_bcrypt_rounds():
+    """Get bcrypt rounds based on environment for performance optimization."""
+    environment = os.getenv("ENVIRONMENT", "development")
+    testing = (
+        "pytest" in sys.modules or
+        os.getenv("PYTEST_CURRENT_TEST") is not None or
+        os.getenv("TESTING") == "true" or
+        environment == "testing"
+    )
+
+    if testing:
+        # Testing: Very fast, minimal security (only for tests)
+        return 4
+    elif environment == "development":
+        # Development: Fast but some security
+        return 8
+    else:
+        # Production: Full security
+        return 12
+
+# Configure bcrypt with environment-appropriate rounds
+pwd_context = CryptContext(
+    schemes=["bcrypt"],
+    deprecated="auto",
+    bcrypt__rounds=_get_bcrypt_rounds()
+)
 
 # CORRECCIÓN CRÍTICA: ThreadPoolExecutor global para evitar RuntimeError
 _bcrypt_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="bcrypt-pool")

@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 import asyncio
 import logging
 import os
-from app.services.email_service import EmailService
+from app.services.smtp_email_service import SMTPEmailService as EmailService
 
 logger = logging.getLogger(__name__)
 

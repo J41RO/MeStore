@@ -30,11 +30,13 @@ if not os.getenv("DISABLE_SEARCH_SERVICE"):
     from app.api.v1.endpoints.search import router as search_router
 from app.api.v1.endpoints.vendedores import router as vendedores_router
 from app.api.v1.endpoints.admin import router as admin_router
+from app.api.v1.endpoints.admin_users import router as admin_users_router
 from app.api.v1.endpoints.leads import router as leads_router
 from app.api.v1.endpoints.system_config import router as system_config_router
 from app.api.v1.endpoints.vendor_profile import router as vendor_profile_router
 from app.api.v1.endpoints.payments import router as payments_router
 from app.api.v1.endpoints.orders import router as orders_router
+from app.api.v1.endpoints.database_reset import router as database_reset_router
 
 # Router principal que unifica todos los endpoints v1
 api_router = APIRouter()
@@ -88,6 +90,12 @@ api_router.include_router(marketplace_router, prefix="/marketplace", tags=["mark
 # ===== ADMIN & SYSTEM =====
 # Admin operations
 api_router.include_router(admin_router, prefix="/admin", tags=["administration"])
+
+# Admin user management
+api_router.include_router(admin_users_router, prefix="/admin", tags=["admin-users"])
+
+# Database reset operations (dev/test only)
+api_router.include_router(database_reset_router, prefix="/admin", tags=["database-reset"])
 
 # System configuration
 api_router.include_router(system_config_router, prefix="/system", tags=["system"])

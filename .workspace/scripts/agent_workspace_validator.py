@@ -7,6 +7,7 @@ Script que TODOS los agentes deben ejecutar antes de modificar archivos
 import os
 import sys
 import json
+import subprocess
 from datetime import datetime
 from pathlib import Path
 
@@ -57,6 +58,69 @@ def validate_workspace_access(agent_name, target_file):
 
     print(f"✅ Acceso autorizado para {agent_name}")
     return True
+
+def validate_workspace_access_with_auto_delegation(agent_name, target_file, user_instruction):
+    """
+    Validar acceso con delegación automática si es necesario
+    """
+    print(f"🔍 Validando acceso de {agent_name} a {target_file} con auto-delegación")
+
+    # 1. Verificar si archivo está protegido
+    if target_file not in PROTECTED_FILES:
+        return {"status": "ALLOWED", "message": "Archivo no protegido, proceder"}
+
+    responsible_agent = PROTECTED_FILES[target_file]
+
+    # 2. Si es el agente responsable o master-orchestrator, permitir
+    if agent_name == responsible_agent or agent_name == "master-orchestrator":
+        return {"status": "ALLOWED", "message": f"Agente autorizado: {agent_name}"}
+
+    # 3. Activar delegación automática
+    print(f"🚀 ACTIVANDO DELEGACIÓN AUTOMÁTICA: {agent_name} → {responsible_agent}")
+
+    try:
+        # Ejecutar sistema de delegación automática
+        result = subprocess.run([
+            "python", ".workspace/scripts/auto_delegate_to_responsible_agent.py",
+            agent_name, target_file, user_instruction
+        ], capture_output=True, text=True, cwd=".")
+
+        if result.returncode == 0:
+            # Parsear resultado de la delegación
+            output_lines = result.stdout.strip().split('\n')
+
+            # Buscar información clave en la salida
+            request_id = None
+            responsible = None
+
+            for line in output_lines:
+                if "Request ID:" in line:
+                    request_id = line.split("Request ID: ")[1].strip()
+                elif "Agente responsable:" in line:
+                    responsible = line.split("Agente responsable: ")[1].strip()
+
+            return {
+                "status": "DELEGATED",
+                "request_id": request_id or "UNKNOWN",
+                "responsible_agent": responsible or responsible_agent,
+                "message": f"Delegación automática exitosa a {responsible_agent}",
+                "delegation_output": result.stdout
+            }
+        else:
+            print(f"⚠️ Error en delegación automática: {result.stderr}")
+            return {
+                "status": "DENIED",
+                "message": f"Fallo en delegación automática. Consulte manualmente con {responsible_agent}",
+                "error": result.stderr
+            }
+
+    except Exception as e:
+        print(f"❌ Error ejecutando delegación automática: {e}")
+        return {
+            "status": "DENIED",
+            "message": f"Error técnico. Consulte manualmente con {responsible_agent}",
+            "error": str(e)
+        }
 
 def log_agent_activity(agent_name, action, target_file, approved_by=None):
     """Registrar actividad del agente"""
@@ -155,10 +219,18 @@ def main():
         print("❌ WORKSPACE NO CONFIGURADO CORRECTAMENTE")
         sys.exit(1)
 
-    # 2. Validar acceso del agente
-    if not validate_workspace_access(agent_name, target_file):
+    # 2. Validar acceso del agente y activar delegación automática si es necesario
+    access_result = validate_workspace_access_with_auto_delegation(agent_name, target_file, sys.argv[3] if len(sys.argv) > 3 else "Modificación solicitada")
+
+    if access_result["status"] == "DENIED":
         print("❌ ACCESO DENEGADO - CONSULTE CON AGENTE RESPONSABLE")
         sys.exit(1)
+    elif access_result["status"] == "DELEGATED":
+        print("🔄 DELEGACIÓN AUTOMÁTICA ACTIVADA")
+        print(f"📋 Request ID: {access_result['request_id']}")
+        print(f"🤖 Agente responsable activado: {access_result['responsible_agent']}")
+        print(f"⌛ El agente evaluará y decidirá automáticamente")
+        sys.exit(0)
 
     # 3. Registrar actividad
     log_agent_activity(agent_name, "file_access_request", target_file, approved_by)

@@ -68,7 +68,7 @@ app/
 │   │       │   │       📁 tests/unit/core/test_auth_tdd.py-------------------------------------------------✅ 36 PASSED
 │   │       │   │       📁 tests/unit/core/test_integrated_auth_tdd.py--------------------------------------✅ 47 PASSED
 │   │       │   │       📁 tests/unit/middleware/test_auth_rate_limiting.py---------------------------------✅ 37 PASSED
-│   │       │   │       📁 tests/unit/services/test_secure_auth_service.py---------------------------------- ❌ FAILED
+│   │       │   │       📁 tests/unit/services/test_secure_auth_service.py----------------------------------✅ 39 PASSES
 │   │       │   │       📁 tests/unit/test_auth.py----------------------------------------------------------✅ 11 PASSED
 │   │       │   │       📁 tests/unit/test_auth_dependency.py-----------------------------------------------✅ 08 PASSED
 │   │       │   ├── database.py ✅ ℹ️ 🏷️[api, integration, unit]

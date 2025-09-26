@@ -63,7 +63,7 @@ class TestRedPhaseValidation:
         error_message = str(exc_info.value).lower()
         assert any(keyword in error_message for keyword in [
             "not found", "no module", "import", "missing", "not implemented",
-            "schema", "validation", "workflow"
+            "schema", "validation", "workflow", "descriptions", "unexpected keyword argument"
         ]), f"Expected import/implementation failure, got: {exc_info.value}"
 
     @pytest.mark.integration

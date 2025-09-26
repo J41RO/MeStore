@@ -7,7 +7,7 @@ Contiene los modelos Pydantic para request/response de autenticación:
 - RefreshTokenRequest: Request para refresh de token
 """
 
-from typing import Optional
+from typing import Optional, Dict, Any
 from pydantic import BaseModel, EmailStr, Field, field_validator, ConfigDict
 from app.models.user import UserType
 
@@ -56,7 +56,15 @@ class TokenResponse(BaseModel):
                 "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
                 "refresh_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
                 "token_type": "bearer",
-                "expires_in": 3600
+                "expires_in": 3600,
+                "user": {
+                    "id": "user-uuid",
+                    "email": "admin@mestocker.com",
+                    "user_type": "ADMIN",
+                    "nombre": "Admin User",
+                    "is_active": True,
+                    "is_verified": True
+                }
             }
         }
     )
@@ -65,6 +73,7 @@ class TokenResponse(BaseModel):
     refresh_token: str = Field(..., description="Token de refresh JWT")
     token_type: str = Field(default="bearer", description="Tipo de token")
     expires_in: int = Field(..., description="Tiempo de expiración en segundos")
+    user: Optional[Dict[str, Any]] = Field(None, description="Información del usuario autenticado")
 
 
 class RefreshTokenRequest(BaseModel):

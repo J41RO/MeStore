@@ -36,7 +36,7 @@ from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from app.models.user import User
 from app.services.otp_service import OTPService
-from app.services.email_service import EmailService
+from app.services.smtp_email_service import SMTPEmailService as EmailService
 from app.services.sms_service import SMSService
 from app.core.redis.session import get_redis_sessions
 from app.core.security import create_access_token, decode_access_token
@@ -753,17 +753,17 @@ class AuthService:
                 otp_type="SMS"
             )
 
-            # Enviar SMS
-            sms_sent = self.sms_service.send_otp_sms(
+            # Enviar SMS usando el servicio mejorado
+            sms_sent, sms_message = self.sms_service.send_otp_sms(
                 phone_number=user.telefono,
                 otp_code=otp_code,
                 user_name=user.nombre
             )
 
             if sms_sent:
-                return True, f"Código enviado a {user.telefono}. Válido por 10 minutos"
+                return True, sms_message
             else:
-                return False, "Error enviando SMS. Intente nuevamente"
+                return False, sms_message
 
         except Exception as e:
             return False, f"Error interno: {str(e)}"
@@ -844,7 +844,7 @@ class AuthService:
             Tuple[bool, str]: (Éxito, Mensaje)
         """
         from app.models.user import User
-        from app.services.email_service import EmailService
+        from app.services.smtp_email_service import SMTPEmailService as EmailService
         import secrets
         from datetime import datetime, timedelta
 

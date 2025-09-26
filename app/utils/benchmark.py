@@ -67,7 +67,8 @@ class DatabaseBenchmark:
             'summary': {}
         }
 
-        async with AsyncSessionLocal() as session:
+        session = AsyncSessionLocal()
+        try:
             for operation in operations:
                 logger.info(f"Benchmarking {operation} on {table_name}")
 
@@ -81,6 +82,8 @@ class DatabaseBenchmark:
                 )
 
                 benchmark_results['operations'][operation] = operation_results
+        finally:
+            session.close()
 
         # Generar resumen
         benchmark_results['summary'] = self._generate_crud_summary(benchmark_results['operations'])
@@ -166,7 +169,7 @@ class DatabaseBenchmark:
         for i in range(iterations):
             try:
                 start_time = time.time()
-                result = await session.execute(text(query), params)
+                result = session.execute(text(query), params)
 
                 # Fetch results para simular uso real
                 if result.returns_rows:

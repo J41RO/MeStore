@@ -39,3 +39,11 @@ async def get_async_db():
         yield db
     finally:
         db.close()
+
+def get_sync_db():
+    """Synchronous database session dependency for admin endpoints."""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

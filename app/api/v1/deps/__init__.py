@@ -9,12 +9,15 @@ and other cross-cutting concerns.
 
 from .auth import get_current_user, get_current_active_user
 from .database import get_db, get_db_session
+# Import sync database for compatibility with admin endpoints
+from app.database import get_sync_db
 
 __all__ = [
     # Authentication dependencies
     "get_current_user",
     "get_current_active_user",
     # Database dependencies
-    "get_db", 
+    "get_db",
     "get_db_session",
+    "get_sync_db",
 ]
