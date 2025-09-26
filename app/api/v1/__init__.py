@@ -94,6 +94,10 @@ api_router.include_router(admin_router, prefix="/admin", tags=["administration"]
 # Admin user management
 api_router.include_router(admin_users_router, prefix="/admin", tags=["admin-users"])
 
+# Superuser admin portal - Advanced user management
+from app.api.v1.endpoints.superuser_admin import router as superuser_admin_router
+api_router.include_router(superuser_admin_router, prefix="/superuser", tags=["superuser-admin"])
+
 # Database reset operations (dev/test only)
 api_router.include_router(database_reset_router, prefix="/admin", tags=["database-reset"])
 
