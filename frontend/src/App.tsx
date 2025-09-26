@@ -43,6 +43,7 @@ const OTPDemo = lazy(() => import('./components/OTPDemo'));
 const VendorTest = lazy(() => import('./pages/VendorTest'));
 const Marketplace = lazy(() => import('./pages/Marketplace'));
 const AdminRestricted = lazy(() => import('./pages/AdminRestricted'));
+const AdminRedirect = lazy(() => import('./components/AdminRedirect'));
 const Unauthorized = lazy(() => import('./pages/Unauthorized'));
 const InventoryAuditPanel = lazy(() => import('./components/admin/InventoryAuditPanel'));
 const StorageManagerDashboard = lazy(() => import('./components/admin/StorageManagerDashboard'));
@@ -356,12 +357,12 @@ function App() {
           }
         />
 
-        {/* Admin original - ACCESO RESTRINGIDO */}
+        {/* Admin original - INTELLIGENT REDIRECT FOR AUTHORIZED USERS */}
         <Route
           path='/admin/*'
           element={
             <Suspense fallback={<PageLoader />}>
-              <AdminRestricted />
+              <AdminRedirect />
             </Suspense>
           }
         />

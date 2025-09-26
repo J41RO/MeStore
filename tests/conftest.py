@@ -12,8 +12,9 @@ from typing import AsyncGenerator
 
 # Configurar variables de entorno para testing ANTES de importar app
 os.environ["TESTING"] = "1"
+os.environ["ENVIRONMENT"] = "testing"  # Enable performance optimizations
 os.environ["CORS_ORIGINS"] = (
-    "http://localhost:3000,http://localhost:8000,https://mestocker.com"
+    "http://localhost:3000,http://localhost:8000,http://test.mestore.local"
 )
 # Disable problematic imports in testing
 os.environ["DISABLE_SEARCH_SERVICE"] = "1"

@@ -137,7 +137,7 @@ class Settings(BaseSettings):
 
     # CORS Configuration - SECURITY FIX: No wildcard origins
     CORS_ORIGINS: str = Field(
-        default="http://localhost:5173,http://localhost:3000,http://192.168.1.137:5173",
+        default="http://localhost:5173,http://localhost:3000,http://192.168.1.137:5173,http://192.168.1.137:5175",
         description="Comma-separated list of allowed CORS origins (NO WILDCARDS for security)"
     )
     CORS_ALLOW_CREDENTIALS: bool = True
@@ -487,10 +487,20 @@ class Settings(BaseSettings):
         return results
 
     class Config:
-        env_file = [".env.development", ".env.test", ".env.production", ".env"]
+        env_file = [".env", ".env.production", ".env.test", ".env.development", ".env.local"]
         env_file_encoding = 'utf-8'
 
 
+
+    # Email Configuration
+    EMAIL_HOST: Optional[str] = Field(default=None, description="SMTP server host")
+    EMAIL_PORT: Optional[str] = Field(default=None, description="SMTP server port")
+    EMAIL_HOST_USER: Optional[str] = Field(default=None, description="SMTP username")
+    EMAIL_HOST_PASSWORD: Optional[str] = Field(default=None, description="SMTP password")
+    EMAIL_USE_TLS: Optional[str] = Field(default=None, description="Use TLS for SMTP")
+
+    # Frontend Configuration
+    DEV_FRONTEND_URL: Optional[str] = Field(default=None, description="Development frontend URL")
 
     # Configuración de uploads
     UPLOAD_DIR: str = "uploads"

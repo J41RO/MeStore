@@ -62,7 +62,7 @@ from sqlalchemy import and_, asc, desc, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.api.v1.deps.auth import get_current_active_user, get_current_vendor
+from app.api.v1.deps.auth import get_current_active_user, get_current_user_optional, get_current_vendor
 from app.api.v1.deps.database import get_product_or_404
 from app.core.config import settings
 from app.core.id_validation import validate_product_id
@@ -97,6 +97,34 @@ from app.utils.file_validator import (
 
 # Configure logging
 logger = logging.getLogger(__name__)
+
+# Helper function to handle tags deserialization
+def _prepare_product_dict_for_response(db_product: Product) -> Dict[str, Any]:
+    """
+    Convert database product object to dictionary with proper tags deserialization.
+
+    Args:
+        db_product: SQLAlchemy Product object from database
+
+    Returns:
+        Dictionary suitable for ProductResponse validation
+    """
+    product_dict = {
+        column.name: getattr(db_product, column.name)
+        for column in db_product.__table__.columns
+    }
+
+    # Handle tags deserialization: convert JSON string back to Python list
+    if product_dict.get("tags"):
+        import json
+        try:
+            product_dict["tags"] = json.loads(product_dict["tags"])
+        except (json.JSONDecodeError, TypeError):
+            product_dict["tags"] = []
+    else:
+        product_dict["tags"] = []
+
+    return product_dict
 
 # Create router
 router = APIRouter()
@@ -258,7 +286,7 @@ async def list_products(
     include_analytics: bool = Query(False, description="Include basic analytics"),
 
     db: AsyncSession = Depends(get_db),
-    current_user: UserRead = Depends(get_current_active_user)
+    current_user: Optional[UserRead] = Depends(get_current_user_optional)
 ) -> ProductListResponse:
     """
     List products with comprehensive filtering and search capabilities.
@@ -274,7 +302,8 @@ async def list_products(
     - Optional inclusion of related data
     """
     try:
-        logger.info(f"Listing products for user {current_user.id} with filters")
+        user_info = current_user.id if current_user else "anonymous"
+        logger.info(f"Listing products for user {user_info} with filters")
 
         # Build base query
         stmt = select(Product)
@@ -369,7 +398,7 @@ async def list_products(
         # Convert to response format
         product_data = []
         for product in products:
-            product_dict = ProductResponse.model_validate(product).model_dump()
+            product_dict = ProductResponse.model_validate(_prepare_product_dict_for_response(product)).model_dump()
 
             # Add analytics if requested
             if include_analytics:
@@ -465,6 +494,11 @@ async def create_product(
         product_dict["vendedor_id"] = current_vendor.id
         product_dict["created_by_id"] = current_vendor.id
 
+        # Handle tags serialization: convert Python list to JSON string for database storage
+        if "tags" in product_dict and product_dict["tags"] is not None:
+            import json
+            product_dict["tags"] = json.dumps(product_dict["tags"])
+
         db_product = Product(**product_dict)
         db.add(db_product)
         await db.commit()
@@ -486,7 +520,7 @@ async def create_product(
 
         return APIResponse(
             success=True,
-            data=ProductResponse.model_validate(db_product),
+            data=ProductResponse.model_validate(_prepare_product_dict_for_response(db_product)),
             message="Product created successfully"
         )
 
@@ -544,7 +578,7 @@ async def get_product(
             )
 
         # Convert to response
-        product_data = ProductResponse.model_validate(product)
+        product_data = ProductResponse.model_validate(_prepare_product_dict_for_response(product))
 
         # Add analytics if requested and user is the vendor
         if include_analytics and (
@@ -683,7 +717,7 @@ async def update_product(
 
         return APIResponse(
             success=True,
-            data=ProductResponse.model_validate(product),
+            data=ProductResponse.model_validate(_prepare_product_dict_for_response(product)),
             message="Product updated successfully"
         )
 
@@ -1268,7 +1302,7 @@ async def search_products(
 
                     # Convert to response format with relevance scores
                     for product in products:
-                        product_data = ProductResponse.model_validate(product).model_dump()
+                        product_data = ProductResponse.model_validate(_prepare_product_dict_for_response(product)).model_dump()
                         product_data["relevance_score"] = relevance_map.get(str(product.id), 0.0)
                         search_results.append(product_data)
 
@@ -1305,7 +1339,7 @@ async def search_products(
             products = result.scalars().all()
 
             search_results = [
-                ProductResponse.model_validate(product).model_dump()
+                ProductResponse.model_validate(_prepare_product_dict_for_response(product)).model_dump()
                 for product in products
             ]
 
@@ -1427,7 +1461,7 @@ async def patch_product(
 
         return APIResponse(
             success=True,
-            data=ProductResponse.model_validate(product),
+            data=ProductResponse.model_validate(_prepare_product_dict_for_response(product)),
             message="Product patched successfully"
         )
 
@@ -1492,7 +1526,7 @@ async def get_my_products(
         result = await db.execute(stmt)
         products = result.scalars().all()
 
-        products_data = [ProductResponse.model_validate(p) for p in products]
+        products_data = [ProductResponse.model_validate(_prepare_product_dict_for_response(p)) for p in products]
         pages = (total + per_page - 1) // per_page
 
         return ProductListResponse(

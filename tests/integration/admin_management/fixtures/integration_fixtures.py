@@ -334,7 +334,7 @@ def performance_monitor():
 
             return summary
 
-    return PerformanceMonitor
+    return PerformanceMonitor()
 
 
 # === ERROR SIMULATION FIXTURES ===

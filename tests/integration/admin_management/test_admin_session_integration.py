@@ -508,7 +508,7 @@ class TestAdminSessionIntegration:
             admin_user_id=superuser.id,
             admin_email=superuser.email,
             admin_full_name=superuser.full_name,
-            action_type=AdminActionType.SYSTEM,
+            action_type=AdminActionType.SYSTEM_CONFIG,
             action_name="session_failover_recovery",
             action_description=f"Session {session_id} recovered from backup after failover",
             result=ActionResult.SUCCESS,

@@ -63,9 +63,21 @@ class TestAdminDashboardKPIsRED:
         This test MUST FAIL initially because authorization checks
         for admin-only access are not implemented yet.
         """
-        # Mock login as regular vendedor user
-        with patch("app.api.v1.deps.auth.get_current_user", return_value=test_vendedor_user):
+        # Mock login as regular vendedor user using dependency override
+        from app.main import app
+        from app.api.v1.deps.auth import get_current_user
+
+        def mock_get_current_user():
+            return test_vendedor_user
+
+        app.dependency_overrides[get_current_user] = mock_get_current_user
+
+        try:
             response = await async_client.get("/api/v1/admin/dashboard/kpis")
+        finally:
+            # Clean up the override
+            if get_current_user in app.dependency_overrides:
+                del app.dependency_overrides[get_current_user]
 
         # This assertion WILL FAIL in RED phase - that's expected
         assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -406,8 +418,21 @@ class TestAdminGrowthDataEndpointRED:
         This test MUST FAIL initially because role-based access control
         is not implemented for growth data endpoint.
         """
-        with patch("app.api.v1.deps.auth.get_current_user", return_value=test_vendedor_user):
+        # Mock login as regular vendedor user using dependency override
+        from app.main import app
+        from app.api.v1.deps.auth import get_current_user
+
+        def mock_get_current_user():
+            return test_vendedor_user
+
+        app.dependency_overrides[get_current_user] = mock_get_current_user
+
+        try:
             response = await async_client.get("/api/v1/admin/dashboard/growth-data")
+        finally:
+            # Clean up the override
+            if get_current_user in app.dependency_overrides:
+                del app.dependency_overrides[get_current_user]
 
         # This assertion WILL FAIL in RED phase - that's expected
         assert response.status_code == status.HTTP_403_FORBIDDEN

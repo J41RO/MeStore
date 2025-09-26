@@ -4,7 +4,7 @@ import uuid
 import os
 import aiofiles
 from pathlib import Path
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Request
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
@@ -14,11 +14,16 @@ from PIL import Image
 import io
 
 from app.api.v1.deps.auth import get_current_user
-from app.database import get_async_db as get_db, get_db as get_sync_db
+from app.api.v1.deps import get_sync_db
+from app.database import get_async_db as get_db
 from app.models import User, Product, Transaction
-from app.models.admin_permission import AdminPermission
+from app.schemas.user import UserRead
+from app.models.transaction import EstadoTransaccion
+from app.models.product import ProductStatus
+from app.models.admin_permission import AdminPermission, ResourceType, PermissionAction, PermissionScope
 from app.models.user import UserType
 from app.models.incoming_product_queue import IncomingProductQueue
+from app.models.admin_activity_log import AdminActionType, RiskLevel
 from app.schemas.admin import AdminDashboardResponse, GlobalKPIs, PeriodMetrics
 from app.schemas.user import AdminUserCreate
 from app.schemas.product_verification import QualityPhoto, PhotoUploadResponse, QualityChecklist, QualityChecklistRequest
@@ -27,9 +32,11 @@ from app.services.location_assignment_service import LocationAssignmentService, 
 from app.services.qr_service import QRService
 from app.services.storage_manager_service import StorageManagerService
 from app.services.space_optimizer_service import SpaceOptimizerService, OptimizationGoal, OptimizationStrategy
+from app.services.admin_permission_service import admin_permission_service, PermissionDeniedError
 from app.core.config import settings
 from app.core.rate_limiting import check_admin_rate_limit
 from app.core.logging import audit_logger
+from app.core.csrf_protection import validate_csrf_protection
 
 router = APIRouter()
 
@@ -38,8 +45,9 @@ router = APIRouter()
 async def get_admin_dashboard_kpis(
     *,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    include_trends: bool = True
+    current_user: UserRead = Depends(get_current_user),
+    include_trends: bool = True,
+    department_id: Optional[str] = None
 ) -> AdminDashboardResponse:
     """
     Obtener KPIs globales para dashboard administrativo.
@@ -58,11 +66,42 @@ async def get_admin_dashboard_kpis(
     )
 
     # Verificar permisos adicionales (SUPERUSER o ADMIN)
-    if not (current_user.user_type in [UserType.ADMIN, UserType.SUPERUSER]):
+    # Handle both string and enum values for user_type from JWT payload
+    user_type_value = current_user.user_type
+    if isinstance(user_type_value, str):
+        # Convert string to enum for comparison
+        try:
+            user_type_enum = UserType(user_type_value)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Tipo de usuario inválido"
+            )
+    else:
+        user_type_enum = user_type_value
+
+    if user_type_enum not in [UserType.ADMIN, UserType.SUPERUSER]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="No tienes permisos para acceder a esta información"
         )
+
+    # PCI DSS Compliance: Check for payment data access restrictions
+    if department_id == "payment_processing":
+        try:
+            # Validate specific permission for payment data access
+            await admin_permission_service.validate_permission(
+                db=db,
+                user=current_user,
+                resource_type=ResourceType.PAYMENTS,
+                action=PermissionAction.READ,
+                scope=PermissionScope.GLOBAL
+            )
+        except PermissionDeniedError as e:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"PCI: Payment data access denied - {e.message}"
+            )
 
     try:
         # Calcular KPIs actuales
@@ -88,7 +127,7 @@ async def get_admin_dashboard_kpis(
 async def get_growth_data(
     *,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: UserRead = Depends(get_current_user),
     months_back: int = 6
 ):
     """Obtener datos temporales para gráficos de crecimiento."""
@@ -127,9 +166,9 @@ async def _calcular_kpis_globales(db: AsyncSession) -> GlobalKPIs:
     """Calcular KPIs globales actuales"""
 
     # QUERIES SQL IMPLEMENTADAS usando AsyncSession:
-    # GMV: SELECT SUM(monto) FROM transactions WHERE status='COMPLETADA'
+    # GMV: SELECT SUM(monto) FROM transactions WHERE estado='COMPLETADA'
     gmv_query = select(func.coalesce(func.sum(Transaction.monto), 0)).filter(
-        Transaction.status == 'COMPLETADA'
+        Transaction.estado == EstadoTransaccion.COMPLETADA
     )
     gmv_result = await db.execute(gmv_query)
     gmv_total = gmv_result.scalar() or 0.0
@@ -148,7 +187,7 @@ async def _calcular_kpis_globales(db: AsyncSession) -> GlobalKPIs:
 
     # Total productos activos
     productos_query = select(func.count(Product.id)).filter(
-        Product.status == 'ACTIVE'
+        Product.status == ProductStatus.ACTIVE
     )
     productos_result = await db.execute(productos_query)
     total_productos = productos_result.scalar() or 0
@@ -177,7 +216,7 @@ async def _calcular_tendencias(db: AsyncSession, kpis_actuales: GlobalKPIs) -> O
         # GMV período anterior
         gmv_anterior_query = select(func.coalesce(func.sum(Transaction.monto), 0)).filter(
             and_(
-                Transaction.status == 'COMPLETADA',
+                Transaction.estado == EstadoTransaccion.COMPLETADA,
                 Transaction.created_at >= fecha_inicio_anterior,
                 Transaction.created_at <= fecha_fin_anterior
             )
@@ -226,7 +265,7 @@ async def _calcular_tendencias(db: AsyncSession, kpis_actuales: GlobalKPIs) -> O
 async def get_current_verification_step(
     queue_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: UserRead = Depends(get_current_user)
 ):
     """Obtener el paso actual del workflow de verificación"""
     
@@ -328,6 +367,7 @@ async def get_current_verification_step(
 
 @router.post("/incoming-products/{queue_id}/verification/execute-step")
 async def execute_verification_step(
+    request: Request,
     queue_id: UUID,
     step_data: dict,
     db: AsyncSession = Depends(get_db),
@@ -341,6 +381,9 @@ async def execute_verification_step(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="No tienes permisos para ejecutar verificaciones"
         )
+
+    # GREEN PHASE: Add CSRF protection for state-changing operation
+    validate_csrf_protection(request, str(current_user.id))
 
     # Validar datos del paso PRIMERO (antes de consultar base de datos)
     required_fields = ['step', 'passed', 'notes']
@@ -1290,7 +1333,7 @@ async def generate_product_qr(
     queue_id: int,
     style: str = "standard",
     db: Session = Depends(get_sync_db),
-    current_user: User = Depends(get_current_user)
+    current_user: UserRead = Depends(get_current_user)
 ):
     """Generar código QR para producto"""
     
@@ -1321,7 +1364,7 @@ async def generate_product_qr(
 async def get_qr_info(
     queue_id: int,
     db: Session = Depends(get_sync_db),
-    current_user: User = Depends(get_current_user)
+    current_user: UserRead = Depends(get_current_user)
 ):
     """Obtener información del QR del producto"""
     
@@ -1351,7 +1394,7 @@ async def get_qr_info(
 @router.get("/qr-codes/{filename}")
 async def download_qr_code(
     filename: str,
-    current_user: User = Depends(get_current_user)
+    current_user: UserRead = Depends(get_current_user)
 ):
     """Descargar imagen de código QR"""
     
@@ -1380,7 +1423,7 @@ async def download_qr_code(
 @router.get("/labels/{filename}")
 async def download_label(
     filename: str,
-    current_user: User = Depends(get_current_user)
+    current_user: UserRead = Depends(get_current_user)
 ):
     """Descargar etiqueta completa"""
     
@@ -1410,7 +1453,7 @@ async def download_label(
 async def decode_qr_content(
     qr_content: str,
     db: Session = Depends(get_sync_db),
-    current_user: User = Depends(get_current_user)
+    current_user: UserRead = Depends(get_current_user)
 ):
     """Decodificar contenido de QR escaneado"""
     
@@ -1455,17 +1498,27 @@ async def decode_qr_content(
 
 @router.get("/qr/stats")
 async def get_qr_statistics(
-    current_user: User = Depends(get_current_user)
+    current_user: UserRead = Depends(get_current_user)
 ):
     """Obtener estadísticas de QRs generados"""
-    
+
     # Verificar que el usuario tiene permisos de admin
-    if not current_user.user_type in ["SUPERUSER", "ADMIN"]:
+    # Handle both UserType enum and string values for compatibility
+    user_type_value = current_user.user_type
+    if isinstance(user_type_value, UserType):
+        user_type_str = user_type_value.value
+    else:
+        user_type_str = str(user_type_value)
+
+    if user_type_str not in ["SUPERUSER", "ADMIN"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Acceso denegado. Se requieren permisos de administrador"
         )
-    
+
+    # Apply rate limiting to admin endpoint
+    check_admin_rate_limit(str(current_user.id))
+
     qr_service = QRService()
     stats = qr_service.get_qr_stats()
     
@@ -1477,7 +1530,7 @@ async def regenerate_qr(
     queue_id: int,
     style: str = "standard",
     db: Session = Depends(get_sync_db),
-    current_user: User = Depends(get_current_user)
+    current_user: UserRead = Depends(get_current_user)
 ):
     """Regenerar código QR con nuevo estilo"""
     
@@ -1518,11 +1571,12 @@ async def get_storage_overview(
     # GREEN PHASE: Add rate limiting check
     check_admin_rate_limit(str(current_user.id))
 
-    # GREEN PHASE: Add audit logging
-    audit_logger.log_admin_action(
-        user_id=str(current_user.id),
-        action="GET",
-        endpoint="/api/v1/admin/storage/overview"
+    # SOX COMPLIANCE: High-risk logging for financial/warehouse data access
+    await admin_permission_service._log_admin_activity(
+        db, current_user, AdminActionType.MONITORING, "storage_overview_access",
+        "Accessed warehouse storage overview - potential financial data",
+        target_type="storage", target_id="overview",
+        risk_level=RiskLevel.HIGH  # SOX compliance: storage data access is high-risk
     )
 
     storage_manager = StorageManagerService(db)
@@ -1645,16 +1699,20 @@ async def get_space_efficiency_analysis(
 
 @router.post("/space-optimizer/suggestions")
 async def generate_optimization_suggestions(
+    request: Request,
     goal: OptimizationGoal = OptimizationGoal.MAXIMIZE_CAPACITY,
     strategy: OptimizationStrategy = OptimizationStrategy.HYBRID_APPROACH,
     db: Session = Depends(get_sync_db),
     current_user: User = Depends(get_current_admin_user)
 ):
     """Generar sugerencias de optimización"""
-    
+
+    # GREEN PHASE: Add CSRF protection for state-changing operation
+    validate_csrf_protection(request, str(current_user.id))
+
     optimizer = SpaceOptimizerService(db)
     suggestions = optimizer.generate_optimization_suggestions(goal, strategy)
-    
+
     return suggestions
 
 @router.post("/space-optimizer/simulate")

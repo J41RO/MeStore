@@ -68,6 +68,9 @@ from app.services.admin_permission_service import AdminPermissionService, admin_
 from app.services.auth_service import AuthService
 import asyncio
 
+# Import integration fixtures to make performance_monitor available
+from tests.integration.admin_management.fixtures.integration_fixtures import *
+
 # Create auth service instance
 auth_service = AuthService()
 
@@ -325,6 +328,10 @@ def system_user(integration_db_session: Session) -> User:
         password_hash=get_password_hash_sync("system_password_123"),
         performance_score=100
     )
+    # Set Colombian consent fields as dynamic attributes
+    user.habeas_data_accepted = True
+    user.data_processing_consent = True
+
     integration_db_session.add(user)
     integration_db_session.commit()
     integration_db_session.refresh(user)
@@ -349,6 +356,10 @@ def superuser(integration_db_session: Session) -> User:
         department_id="IT_DEPT",
         employee_id="SU001"
     )
+    # Set Colombian consent fields as dynamic attributes
+    user.habeas_data_accepted = True
+    user.data_processing_consent = True
+
     integration_db_session.add(user)
     integration_db_session.commit()
     integration_db_session.refresh(user)
@@ -373,6 +384,10 @@ def admin_user(integration_db_session: Session) -> User:
         department_id="SALES_DEPT",
         employee_id="AD001"
     )
+    # Set Colombian consent fields as dynamic attributes
+    user.habeas_data_accepted = True
+    user.data_processing_consent = True
+
     integration_db_session.add(user)
     integration_db_session.commit()
     integration_db_session.refresh(user)
@@ -397,6 +412,10 @@ def locked_admin_user(integration_db_session: Session) -> User:
         failed_login_attempts=5,
         performance_score=50
     )
+    # Set Colombian consent fields as dynamic attributes
+    user.habeas_data_accepted = True
+    user.data_processing_consent = True
+
     integration_db_session.add(user)
     integration_db_session.commit()
     integration_db_session.refresh(user)
@@ -424,6 +443,10 @@ def multiple_admin_users(integration_db_session: Session) -> List[User]:
             department_id="BULK_DEPT" if i < 3 else "INACTIVE_DEPT",
             employee_id=f"BU00{i+1}"
         )
+        # Set Colombian consent fields as dynamic attributes
+        user.habeas_data_accepted = True
+        user.data_processing_consent = True
+
         integration_db_session.add(user)
         users.append(user)
         integration_db_session._test_objects.append(user)

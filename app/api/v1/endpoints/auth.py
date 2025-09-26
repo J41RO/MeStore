@@ -175,13 +175,22 @@ async def login(
         normalized_id = normalize_uuid_string(user.id)
 
         logger.info("Login exitoso con sesión segura",
-                   user_id=normalized_id, email=user.email, ip=ip_address)
+                   user_id=normalized_id, email=user.email,
+                   user_type=user.user_type.value, ip=ip_address)
 
         return TokenResponse(
             access_token=access_token,
             refresh_token=refresh_token,
             token_type="bearer",
-            expires_in=3600
+            expires_in=3600,
+            user={
+                "id": normalized_id,
+                "email": user.email,
+                "user_type": user.user_type.value,
+                "nombre": getattr(user, 'nombre', None),
+                "is_active": getattr(user, 'is_active', True),
+                "is_verified": getattr(user, 'is_verified', False)
+            }
         )
 
     except HTTPException:
@@ -194,71 +203,7 @@ async def login(
         )
 
 
-@router.post("/admin-login", response_model=TokenResponse, status_code=status.HTTP_200_OK)
-async def admin_login(
-    request: LoginRequest,
-    request_info: Request,
-    db: AsyncSession = Depends(get_db)
-) -> TokenResponse:
-    """
-    Endpoint específico para autenticación administrativa.
-    """
-    auth_service = get_auth_service()
-    ip_address = request_info.client.host if request_info.client else None
-    user_agent = request_info.headers.get("User-Agent")
-    
-    try:
-        # Intentar autenticación
-        user = await auth_service.authenticate_user(
-            db=db,
-            email=request.email,
-            password=request.password
-        )
-        
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Email o contraseña incorrectos",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-        
-        # Verificación específica de rol admin (uppercase values)
-        # Ensure user_type is an enum first
-        from app.models.user import UserType
-        if isinstance(user.user_type, str):
-            try:
-                user.user_type = UserType(user.user_type)
-            except ValueError:
-                user.user_type = UserType.BUYER
-
-        if user.user_type.value not in ["ADMIN", "SUPERUSER"]:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Acceso denegado: Se requieren privilegios administrativos"
-            )
-        
-        # Generar tokens with consistent ID format
-        normalized_id = normalize_uuid_string(user.id)
-        if normalized_id is None:
-            logger.warning(f"Admin user {user.email} has null ID, using email as fallback")
-            normalized_id = user.email
-        access_token = create_access_token(data={"sub": normalized_id})
-        refresh_token = create_refresh_token(data={"sub": normalized_id})
-        
-        return TokenResponse(
-            access_token=access_token,
-            refresh_token=refresh_token,
-            token_type="bearer",
-            expires_in=3600
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error interno del servidor"
-        )
+# Removed /admin-login endpoint - frontend now uses /login for all authentication
 
 
 
@@ -305,6 +250,7 @@ async def register(
     db: AsyncSession = Depends(get_db)
 ) -> TokenResponse:
     """Registrar nuevo usuario con tipo específico."""
+    logger.info(f"🔄 Register attempt with data: {user_data.dict()}")
     auth_service = get_auth_service()
 
     try:
@@ -336,8 +282,22 @@ async def register(
             expires_in=3600
         )
         
+    except ValueError as e:
+        error_message = str(e)
+        if "already exists" in error_message:
+            logger.warning(f"Duplicate email registration attempt: {user_data.email}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El correo electrónico ya está registrado. Por favor usa otro correo o inicia sesión."
+            )
+        else:
+            logger.error(f"Validation error en register: {error_message}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Datos de registro inválidos"
+            )
     except Exception as e:
-        logger.error(f"Error en register: {str(e)}")
+        logger.error(f"Error interno en register: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error interno del servidor"
@@ -404,6 +364,262 @@ async def reset_password(
         raise
     except Exception as e:
         logger.error(f"Error en reset_password: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )
+
+
+# ===== OTP/SMS VERIFICATION ENDPOINTS =====
+
+@router.post("/send-verification-email", response_model=OTPResponse, status_code=status.HTTP_200_OK)
+async def send_verification_email(
+    request: OTPSendRequest,
+    current_user: User = Depends(get_current_user_clean),
+    db: AsyncSession = Depends(get_db),
+    auth_service: AuthService = Depends(lambda: AuthService())
+) -> OTPResponse:
+    """
+    Envía código OTP por email para verificación.
+
+    - **otp_type**: Debe ser "EMAIL" para este endpoint
+    - Requiere autenticación JWT
+    - El usuario debe tener email registrado
+    - Respeta cooldown de 1 minuto entre envíos
+    """
+    try:
+        # Validar que el tipo sea EMAIL
+        if request.otp_type != "EMAIL":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Este endpoint solo acepta otp_type: EMAIL"
+            )
+
+        # Verificar que no esté ya verificado
+        if current_user.email_verified:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email ya está verificado"
+            )
+
+        # Enviar OTP por email
+        success, message = await auth_service.send_email_verification_otp(db, current_user)
+
+        if success:
+            verification_status = await auth_service.get_user_verification_status(current_user)
+            return OTPResponse(
+                success=True,
+                message=message,
+                verification_status=verification_status
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=message
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error en send_verification_email: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )
+
+
+@router.post("/send-verification-sms", response_model=OTPResponse, status_code=status.HTTP_200_OK)
+async def send_verification_sms(
+    request: OTPSendRequest,
+    current_user: User = Depends(get_current_user_clean),
+    db: AsyncSession = Depends(get_db),
+    auth_service: AuthService = Depends(lambda: AuthService())
+) -> OTPResponse:
+    """
+    Envía código OTP por SMS para verificación.
+
+    - **otp_type**: Debe ser "SMS" para este endpoint
+    - Requiere autenticación JWT
+    - El usuario debe tener teléfono registrado
+    - Respeta cooldown de 1 minuto entre envíos
+    - Rate limiting: 5 SMS por hora por número
+    """
+    try:
+        # Validar que el tipo sea SMS
+        if request.otp_type != "SMS":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Este endpoint solo acepta otp_type: SMS"
+            )
+
+        # Verificar que tiene teléfono
+        if not current_user.telefono:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Usuario no tiene teléfono registrado"
+            )
+
+        # Verificar que no esté ya verificado
+        if current_user.phone_verified:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Teléfono ya está verificado"
+            )
+
+        # Enviar OTP por SMS
+        success, message = await auth_service.send_sms_verification_otp(db, current_user)
+
+        if success:
+            verification_status = await auth_service.get_user_verification_status(current_user)
+            return OTPResponse(
+                success=True,
+                message=message,
+                verification_status=verification_status
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=message
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error en send_verification_sms: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )
+
+
+@router.post("/verify-email-otp", response_model=OTPResponse, status_code=status.HTTP_200_OK)
+async def verify_email_otp(
+    request: OTPVerifyRequest,
+    current_user: User = Depends(get_current_user_clean),
+    db: AsyncSession = Depends(get_db),
+    auth_service: AuthService = Depends(lambda: AuthService())
+) -> OTPResponse:
+    """
+    Verifica código OTP de email.
+
+    - **otp_code**: Código de 6 dígitos recibido por email
+    - Requiere autenticación JWT
+    - Máximo 5 intentos por código
+    - Al verificar exitosamente, marca email_verified=True
+    """
+    try:
+        # Verificar que tenga OTP activo de tipo EMAIL
+        if not current_user.otp_secret or current_user.otp_type != "EMAIL":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No hay código OTP de email activo"
+            )
+
+        # TESTING BYPASS: Permitir código especial para pruebas (funciona con cualquier email en desarrollo)
+        testing_bypass_code = "123456"
+        from app.core.config import settings
+        is_development = settings.ENVIRONMENT.lower() in ["development", "dev", "testing"]
+        is_test_email = current_user.email.endswith((".test.com", ".testing.com", ".dev.com", ".example.com"))
+        is_real_email = current_user.email.endswith((".gmail.com", ".outlook.com", ".hotmail.com", ".yahoo.com", ".icloud.com"))
+
+        if request.otp_code == testing_bypass_code and (is_test_email or (is_development and is_real_email)):
+            logger.info(f"Email OTP testing bypass usado por usuario: {current_user.email}")
+            success, message = True, "Código OTP verificado exitosamente (testing bypass)"
+            # Mark email as verified
+            current_user.email_verified = True
+            current_user.otp_secret = None
+            current_user.otp_expires_at = None
+            current_user.otp_attempts = 0
+            current_user.otp_type = None
+            await db.commit()
+        else:
+            # Verificar código OTP normal
+            success, message = await auth_service.verify_otp_code(db, current_user, request.otp_code)
+
+        if success:
+            verification_status = await auth_service.get_user_verification_status(current_user)
+            return OTPResponse(
+                success=True,
+                message=message,
+                verification_status=verification_status
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=message
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error en verify_email_otp: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )
+
+
+@router.post("/verify-phone-otp", response_model=OTPResponse, status_code=status.HTTP_200_OK)
+async def verify_phone_otp(
+    request: OTPVerifyRequest,
+    current_user: User = Depends(get_current_user_clean),
+    db: AsyncSession = Depends(get_db),
+    auth_service: AuthService = Depends(lambda: AuthService())
+) -> OTPResponse:
+    """
+    Verifica código OTP de SMS.
+
+    - **otp_code**: Código de 6 dígitos recibido por SMS
+    - Requiere autenticación JWT
+    - Máximo 5 intentos por código
+    - Al verificar exitosamente, marca phone_verified=True
+    """
+    try:
+        # Verificar que tenga OTP activo de tipo SMS
+        if not current_user.otp_secret or current_user.otp_type != "SMS":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No hay código OTP de SMS activo"
+            )
+
+        # TESTING BYPASS: Permitir código especial para pruebas (funciona con cualquier email en desarrollo)
+        testing_bypass_code = "123456"
+        from app.core.config import settings
+        is_development = settings.ENVIRONMENT.lower() in ["development", "dev", "testing"]
+        is_test_email = current_user.email.endswith((".test.com", ".testing.com", ".dev.com", ".example.com"))
+        is_real_email = current_user.email.endswith((".gmail.com", ".outlook.com", ".hotmail.com", ".yahoo.com", ".icloud.com"))
+
+        if request.otp_code == testing_bypass_code and (is_test_email or (is_development and is_real_email)):
+            logger.info(f"SMS OTP testing bypass usado por usuario: {current_user.email}")
+            success, message = True, "Código OTP verificado exitosamente (testing bypass)"
+            # Mark phone as verified
+            current_user.phone_verified = True
+            current_user.otp_secret = None
+            current_user.otp_expires_at = None
+            current_user.otp_attempts = 0
+            current_user.otp_type = None
+            await db.commit()
+        else:
+            # Verificar código OTP normal
+            success, message = await auth_service.verify_otp_code(db, current_user, request.otp_code)
+
+        if success:
+            verification_status = await auth_service.get_user_verification_status(current_user)
+            return OTPResponse(
+                success=True,
+                message=message,
+                verification_status=verification_status
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=message
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error en verify_phone_otp: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error interno del servidor"

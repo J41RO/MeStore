@@ -21,6 +21,42 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `app/models/user.py` - NO crear usuarios duplicados
 - `tests/conftest.py` - NO modificar fixtures existentes
 
+### 🛡️ CUENTA SUPERUSER PROTEGIDA (CRÍTICO - NUNCA TOCAR)
+
+**⚠️ ALERTA MÁXIMA: SUPERUSER DE PRODUCCIÓN PROTEGIDO**
+
+📧 **Email**: `admin@mestocker.com`
+🔐 **Password**: `Admin123456`
+🚫 **STATUS**: **COMPLETAMENTE OFF-LIMITS PARA TODOS LOS AGENTES**
+
+**🚨 PROHIBICIONES ABSOLUTAS:**
+- ❌ **NUNCA** eliminar esta cuenta
+- ❌ **NUNCA** modificar email o password
+- ❌ **NUNCA** cambiar roles o permisos
+- ❌ **NUNCA** desactivar o suspender
+- ❌ **NUNCA** alterar datos de perfil
+
+**🎯 PROPÓSITO CRÍTICO:**
+- ✅ Acceso administrativo garantizado al sistema
+- ✅ Cuenta de emergencia para recuperación
+- ✅ Portal de administración siempre accesible
+- ✅ Gestión de usuarios y configuraciones críticas
+
+**👥 AGENTES RESPONSABLES DE GESTIÓN DE USUARIOS:**
+- **backend-framework-ai** - Lógica backend de usuarios
+- **system-architect-ai** - Arquitectura del sistema de auth
+- **database-architect-ai** - Estructura de datos de usuarios
+- **security-backend-ai** - Seguridad y autenticación
+
+**📞 PROTOCOLO DE CONTACTO:**
+Si necesitas trabajar con usuarios, contacta PRIMERO a los agentes responsables:
+```bash
+python .workspace/scripts/contact_responsible_agent.py [tu-agente] app/models/user.py "Descripción de tu necesidad"
+```
+
+**⚡ RECORDATORIO CRÍTICO:**
+Esta cuenta garantiza el acceso administrativo permanente. Su eliminación/modificación podría bloquear completamente el acceso al sistema de administración.
+
 ### 📋 COMANDOS OBLIGATORIOS PARA AGENTES
 
 #### ANTES de modificar CUALQUIER archivo:

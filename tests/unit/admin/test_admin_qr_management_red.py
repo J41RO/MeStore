@@ -53,10 +53,35 @@ class TestAdminQRGenerationRED:
         This test MUST FAIL initially because role-based access control
         is not implemented for QR generation endpoints.
         """
+        from app.api.v1.deps.auth import get_current_user
+        from app.schemas.user import UserRead
+        from app.main import app
+
         queue_id = 1
 
-        with patch("app.api.v1.deps.auth.get_current_user", return_value=test_vendedor_user):
+        # Convert User model to UserRead schema to match auth dependency return type
+        now = datetime.now()
+        vendor_user_read = UserRead(
+            id=test_vendedor_user.id,
+            email=test_vendedor_user.email,
+            nombre=test_vendedor_user.nombre,
+            apellido=test_vendedor_user.apellido,
+            user_type=test_vendedor_user.user_type,
+            is_active=test_vendedor_user.is_active,
+            is_superuser=test_vendedor_user.is_superuser,
+            created_at=getattr(test_vendedor_user, 'created_at', None) or now,
+            updated_at=getattr(test_vendedor_user, 'updated_at', None) or now
+        )
+
+        # Override the auth dependency to return UserRead instead of using patch
+        app.dependency_overrides[get_current_user] = lambda: vendor_user_read
+
+        try:
             response = await async_client.post(f"/api/v1/admin/incoming-products/{queue_id}/generate-qr")
+        finally:
+            # Clean up the override - but be careful not to clear other test overrides
+            if get_current_user in app.dependency_overrides:
+                del app.dependency_overrides[get_current_user]
 
         # This assertion WILL FAIL in RED phase - that's expected
         assert response.status_code == status.HTTP_403_FORBIDDEN

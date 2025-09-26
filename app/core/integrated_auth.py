@@ -221,8 +221,18 @@ class IntegratedAuthService:
 
                 normalized_id = str(user.id)
 
-                # Create tokens using centralized security functions
-                access_token = create_access_token(data={"sub": normalized_id})
+                # Include user information in JWT payload for proper authorization
+                token_data = {
+                    "sub": normalized_id,
+                    "email": user.email,
+                    "nombre": user.nombre,
+                    "user_type": user.user_type.value if hasattr(user.user_type, 'value') else str(user.user_type),
+                    "is_active": user.is_active,
+                    "is_verified": user.is_verified
+                }
+
+                # Create tokens using centralized security functions with enhanced payload
+                access_token = create_access_token(data=token_data)
                 refresh_token = create_refresh_token(data={"sub": normalized_id})
 
                 return access_token, refresh_token

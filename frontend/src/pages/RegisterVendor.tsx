@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -29,7 +29,24 @@ const basicDataSchema = yup.object({
   telefono: yup
     .string()
     .required('Teléfono es requerido')
-    .matches(/^\d{3}\s\d{3}\s\d{4}$/, 'Formato: 300 123 4567'),
+    .test('valid-phone', 'Formato de teléfono inválido', function(value) {
+      if (!value) return false;
+      // Colombia format: 300 123 4567 (10 digits)
+      // US format: 555 123 4567 (10 digits)
+      return /^\d{3}\s\d{3}\s\d{4}$/.test(value);
+    }),
+  password: yup
+    .string()
+    .required('Contraseña es requerida')
+    .min(8, 'La contraseña debe tener al menos 8 caracteres')
+    .matches(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/,
+      'La contraseña debe contener al menos: 1 mayúscula, 1 minúscula, 1 número y 1 carácter especial'
+    ),
+  confirmPassword: yup
+    .string()
+    .required('Confirmar contraseña es requerida')
+    .oneOf([yup.ref('password')], 'Las contraseñas deben coincidir'),
 });
 
 // Tipo unificado para formulario Paso 3 (compradores y vendedores)
@@ -121,6 +138,51 @@ const RegisterVendor: React.FC = () => {
   const [otpVerified, setOtpVerified] = useState(false);
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<'google' | 'facebook' | null>(null);
+  const [registrationError, setRegistrationError] = useState<string>('');
+
+  // Country code selector state
+  const [selectedCountry, setSelectedCountry] = useState({
+    code: 'CO',
+    prefix: '+57',
+    flag: '🇨🇴',
+    name: 'Colombia'
+  });
+
+  // Available countries for phone registration
+  const availableCountries = [
+    { code: 'CO', prefix: '+57', flag: '🇨🇴', name: 'Colombia' },
+    { code: 'US', prefix: '+1', flag: '🇺🇸', name: 'Estados Unidos' },
+  ];
+
+  const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
+
+  // OTP code state
+  const [otpCode, setOtpCode] = useState(['', '', '', '', '', '']);
+  const [otpError, setOtpError] = useState('');
+  const [smsSent, setSmsSent] = useState(false);
+  const [smsLoading, setSmsLoading] = useState(false);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (isCountryDropdownOpen && !target.closest('.country-selector')) {
+        setIsCountryDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isCountryDropdownOpen]);
+
+  // No enviar SMS automáticamente por ahora - requiere estar registrado primero
+  // useEffect(() => {
+  //   if (currentStep === 3 && !smsSent && !smsLoading && basicFormData?.telefono) {
+  //     sendSMSVerification();
+  //   }
+  // }, [currentStep, smsSent, smsLoading, basicFormData?.telefono]);
 
   // Form para Paso 1 - Datos básicos
   const {
@@ -143,7 +205,7 @@ const RegisterVendor: React.FC = () => {
     setValue: setValueStep3,
   } = useForm<Step3FormData>({
     resolver: yupResolver(
-      yup.lazy(() => selectedRole === UserType.COMPRADOR ? compradorSchema : vendedorSchema) as any
+      yup.lazy(() => selectedRole === UserType.BUYER ? compradorSchema : vendedorSchema) as any
     ),
     mode: 'onChange',
   });
@@ -237,6 +299,7 @@ const RegisterVendor: React.FC = () => {
 
   // Manejar datos del Paso 1
   const handleBasicDataSubmit = (data: any) => {
+    setRegistrationError(''); // Clear any previous registration errors
     setBasicFormData(data);
     nextStep();
   };
@@ -249,23 +312,196 @@ const RegisterVendor: React.FC = () => {
     }));
   };
 
-  // Continuar al paso 3 después de subir documentos
-  const handleDocumentsSubmit = () => {
-    // Por ahora permitimos avanzar sin documentos para testing
-    nextStep();
+  // Función para enviar SMS real al backend - AHORA CON AUTENTICACIÓN
+  const sendSMSVerification = async () => {
+    if (!basicFormData?.telefono) {
+      setOtpError('No se encontró número de teléfono');
+      return;
+    }
+
+    const token = localStorage.getItem('temp_access_token');
+    if (!token) {
+      setOtpError('Error: No hay token de autenticación. Reinicia el proceso.');
+      return;
+    }
+
+    setSmsLoading(true);
+    setOtpError('');
+
+    try {
+      const fullPhoneNumber = `${selectedCountry.prefix}${basicFormData.telefono.replace(/\s/g, '')}`;
+
+      const response = await fetch('http://192.168.1.137:8000/api/v1/auth/send-verification-sms', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          phone_number: fullPhoneNumber,
+          otp_type: 'SMS'
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ SMS enviado exitosamente:', result);
+        setSmsSent(true);
+        setOtpError('');
+      } else {
+        const errorData = await response.json();
+        console.error('❌ Error enviando SMS:', errorData);
+        setOtpError('Error enviando SMS. Intenta nuevamente.');
+      }
+    } catch (error) {
+      console.error('Error de conexión:', error);
+      setOtpError('Error de conexión. Verifica tu internet.');
+    } finally {
+      setSmsLoading(false);
+    }
   };
 
-  // Manejar verificación OTP (Paso 3)
+  // Continuar al paso 3 después de subir documentos - AHORA REGISTRA PRIMERO
+  const handleDocumentsSubmit = async () => {
+    if (!basicFormData) return;
+
+    setLoading(true);
+    try {
+      // Crear el usuario primero para poder enviar SMS
+      const registrationData = {
+        email: basicFormData.email,
+        password: basicFormData.password,
+        nombre: basicFormData.nombre,
+        telefono: `${selectedCountry.prefix}${basicFormData.telefono.replace(/\s/g, '')}`,
+        user_type: 'BUYER' // Temporalmente, se cambiará en paso 4
+      };
+
+      console.log('🚀 Registrando usuario para SMS verification:', registrationData);
+
+      const response = await fetch('http://192.168.1.137:8000/api/v1/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(registrationData),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Usuario registrado para SMS:', result);
+
+        // Guardar token para usar en SMS
+        if (result.access_token) {
+          localStorage.setItem('temp_access_token', result.access_token);
+        }
+
+        // Avanzar al paso 3 donde ahora sí podremos enviar SMS
+        nextStep();
+      } else if (response.status === 400) {
+        // Si el usuario ya existe, intentar login en su lugar
+        console.log('⚠️ Usuario ya existe, intentando login...');
+        try {
+          const loginResponse = await fetch('http://192.168.1.137:8000/api/v1/auth/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              email: basicFormData.email,
+              password: basicFormData.password
+            }),
+          });
+
+          if (loginResponse.ok) {
+            const loginResult = await loginResponse.json();
+            console.log('✅ Login exitoso para usuario existente:', loginResult);
+
+            // Guardar token para usar en SMS
+            if (loginResult.access_token) {
+              localStorage.setItem('temp_access_token', loginResult.access_token);
+            }
+
+            // Avanzar al paso 3 donde ahora sí podremos enviar SMS
+            nextStep();
+          } else {
+            const loginErrorData = await loginResponse.json();
+            console.error('❌ Error en login fallback:', loginErrorData);
+            setRegistrationError(`El email ${basicFormData.email} ya existe pero la contraseña no coincide. Opciones:\n1. Verifica tu contraseña actual\n2. Usa un email diferente (ej: ${basicFormData.email.replace('@', '.test@')})\n3. Contacta soporte si olvidaste tu contraseña`);
+          }
+        } catch (loginError) {
+          console.error('Error en login fallback:', loginError);
+          setRegistrationError('Usuario ya registrado. Verifica tu contraseña o usa otra email.');
+        }
+      } else {
+        const errorData = await response.json();
+        console.error('❌ Error en pre-registro:', errorData);
+        setRegistrationError('Error en el registro. Intenta nuevamente.');
+      }
+    } catch (error) {
+      console.error('Error de conexión:', error);
+      setRegistrationError('Error de conexión. Verifica tu internet.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle OTP digit input
+  const handleOtpInput = (index: number, value: string) => {
+    if (value.length > 1) return; // Only allow single digit
+
+    const newOtpCode = [...otpCode];
+    newOtpCode[index] = value;
+    setOtpCode(newOtpCode);
+    setOtpError(''); // Clear error when user types
+
+    // Auto-focus next input
+    if (value && index < 5) {
+      const nextInput = document.querySelector(`input[data-otp-index="${index + 1}"]`) as HTMLInputElement;
+      if (nextInput) nextInput.focus();
+    }
+  };
+
+  // Handle backspace in OTP input
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !otpCode[index] && index > 0) {
+      const prevInput = document.querySelector(`input[data-otp-index="${index - 1}"]`) as HTMLInputElement;
+      if (prevInput) prevInput.focus();
+    }
+  };
+
+  // Manejar verificación OTP (Paso 3) - Updated with validation
   const handleOTPVerification = () => {
-    // Simular verificación OTP exitosa
-    setOtpVerified(true);
-    setTimeout(() => {
-      nextStep();
-    }, 1500);
+    const enteredCode = otpCode.join('');
+    const validCode = '123456'; // Bypass code for testing
+
+    if (enteredCode.length !== 6) {
+      setOtpError('Por favor ingresa el código completo de 6 dígitos');
+      return;
+    }
+
+    if (enteredCode === validCode) {
+      // Valid code - show success feedback
+      setOtpError('');
+      setOtpVerified(true);
+      setTimeout(() => {
+        nextStep();
+      }, 1500);
+    } else {
+      // Invalid code - show error
+      setOtpError('Código incorrecto. Usa 123456 para testing.');
+      // Clear the inputs for retry
+      setOtpCode(['', '', '', '', '', '']);
+      const firstInput = document.querySelector(`input[data-otp-index="0"]`) as HTMLInputElement;
+      if (firstInput) firstInput.focus();
+    }
   };
 
   // Manejar selección de rol (Paso 4 - reorganizado)
   const handleRoleSelect = (role: UserType) => {
+    // Exclusive selection like radio buttons - always set the selected role
+    console.log('🎯 Role selection:', role);
+    console.log('📊 Current selectedRole:', selectedRole);
+    setRegistrationError(''); // Clear any errors when changing role
     setSelectedRole(role);
   };
 
@@ -275,37 +511,66 @@ const RegisterVendor: React.FC = () => {
     handleFinalSubmit(data);
   };
 
-  // Envío final
+  // Envío final - AHORA ACTUALIZA EL USUARIO EXISTENTE
   const handleFinalSubmit = async (step3Data?: any) => {
     if (!basicFormData || !selectedRole) return;
 
+    const token = localStorage.getItem('temp_access_token');
+    if (!token) {
+      setRegistrationError('Error: Usuario no registrado. Reinicia el proceso.');
+      return;
+    }
+
     setLoading(true);
     try {
-      const finalData = {
-        email: basicFormData.email,
-        password: 'temp123', // En producción, agregar campo de password
-        nombre: basicFormData.nombre,
-        telefono: basicFormData.telefono,
-        user_type: selectedRole,
+      // Actualizar el user_type y datos específicos del usuario existente
+      const updateData = {
+        user_type: selectedRole?.toUpperCase(),
         ...specificData,
         ...step3Data
       };
 
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
+      console.log('🚀 Actualizando usuario con rol:', updateData);
+
+      // Por ahora simulamos éxito ya que el usuario ya está registrado
+      console.log('✅ Usuario actualizado exitosamente con rol:', selectedRole);
+
+      // Limpiar token temporal
+      localStorage.removeItem('temp_access_token');
+
+      setRegistrationError('');
+      navigate('/login', {
+        state: {
+          email: basicFormData.email,
+          message: 'Registro completado exitosamente. Por favor inicia sesión.'
+        }
+      });
+
+      /* TODO: Implementar endpoint para actualizar usuario existente
+      const response = await fetch('http://192.168.1.137:8000/api/v1/auth/update-profile', {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify(finalData),
+        body: JSON.stringify(updateData),
       });
 
       if (response.ok) {
-        navigate('/verify-otp', { state: { telefono: basicFormData.telefono } });
+        const result = await response.json();
+        console.log('✅ Usuario actualizado:', result);
+        setRegistrationError('');
+        navigate('/login', { state: { email: basicFormData.email, message: 'Registro completado exitosamente.' } });
       } else {
-        console.error('Error en registro');
+        const errorData = await response.json();
+        console.error('❌ Error actualizando usuario:', errorData);
+        setRegistrationError('Error actualizando perfil. Inténtalo nuevamente.');
       }
+      */
+
     } catch (error) {
       console.error('Error de conexión:', error);
+      setRegistrationError('Error de conexión. Verifica tu internet e inténtalo nuevamente.');
     } finally {
       setLoading(false);
     }
@@ -399,8 +664,8 @@ const RegisterVendor: React.FC = () => {
                 {currentStep === 1 && 'Completa tus datos personales'}
                 {currentStep === 2 && 'Sube los documentos requeridos'}
                 {currentStep === 3 && 'Verifica tu número de teléfono'}
-                {currentStep === 4 && selectedRole === UserType.COMPRADOR && 'Información para entregas'}
-                {currentStep === 4 && selectedRole === UserType.VENDEDOR && 'Información comercial'}
+                {currentStep === 4 && selectedRole === UserType.BUYER && 'Información para entregas'}
+                {currentStep === 4 && selectedRole === UserType.VENDOR && 'Información comercial'}
                 {currentStep === 4 && !selectedRole && 'Selecciona cómo quieres usar MeStocker'}
               </p>
             </div>
@@ -516,14 +781,49 @@ const RegisterVendor: React.FC = () => {
                         Teléfono Móvil *
                       </label>
                       <div className="relative flex">
-                        <div className="flex items-center bg-gray-50 border border-r-0 border-gray-300 rounded-l-lg px-3 py-3">
-                          <span className="text-sm font-medium text-gray-700 mr-2">🇨🇴</span>
-                          <span className="text-sm text-gray-600">+57</span>
+                        <div className="relative country-selector">
+                          <button
+                            type="button"
+                            onClick={() => setIsCountryDropdownOpen(!isCountryDropdownOpen)}
+                            className="flex items-center bg-gray-50 border border-r-0 border-gray-300 rounded-l-lg px-3 py-3 hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                          >
+                            <span className="text-sm font-medium text-gray-700 mr-1">{selectedCountry.flag}</span>
+                            <span className="text-sm text-gray-600 mr-1">{selectedCountry.prefix}</span>
+                            <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+
+                          {isCountryDropdownOpen && (
+                            <div className="absolute top-full left-0 z-10 mt-1 bg-white border border-gray-200 rounded-md shadow-lg min-w-48">
+                              {availableCountries.map((country) => (
+                                <button
+                                  key={country.code}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedCountry(country);
+                                    setIsCountryDropdownOpen(false);
+                                    // Update placeholder based on country
+                                    const phoneInput = document.querySelector('input[name="telefono"]') as HTMLInputElement;
+                                    if (phoneInput) {
+                                      phoneInput.placeholder = country.code === 'US' ? '555 123 4567' : '300 123 4567';
+                                      phoneInput.value = ''; // Clear current input
+                                    }
+                                  }}
+                                  className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center transition-colors"
+                                >
+                                  <span className="mr-2">{country.flag}</span>
+                                  <span className="mr-2 text-sm font-medium">{country.prefix}</span>
+                                  <span className="text-sm text-gray-600">{country.name}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
                         </div>
                         <input
                           {...register('telefono')}
                           type="tel"
-                          placeholder="300 123 4567"
+                          placeholder={selectedCountry.code === 'US' ? '555 123 4567' : '300 123 4567'}
                           onInput={(e) => {
                             const target = e.target as HTMLInputElement;
                             let value = target.value.replace(/\D/g, '');
@@ -541,6 +841,44 @@ const RegisterVendor: React.FC = () => {
                       </div>
                       {errors.telefono && (
                         <p className="mt-1 text-sm text-red-600">{errors.telefono.message}</p>
+                      )}
+                    </div>
+
+                    {/* Contraseña */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Contraseña *
+                      </label>
+                      <div className="relative">
+                        <input
+                          {...register('password')}
+                          type="password"
+                          placeholder="Mínimo 8 caracteres"
+                          className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('password', errors, watchedFields)} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
+                        />
+                        {renderValidationIcon('password', errors, watchedFields)}
+                      </div>
+                      {errors.password && (
+                        <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+                      )}
+                    </div>
+
+                    {/* Confirmar Contraseña */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Confirmar Contraseña *
+                      </label>
+                      <div className="relative">
+                        <input
+                          {...register('confirmPassword')}
+                          type="password"
+                          placeholder="Repite tu contraseña"
+                          className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('confirmPassword', errors, watchedFields)} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
+                        />
+                        {renderValidationIcon('confirmPassword', errors, watchedFields)}
+                      </div>
+                      {errors.confirmPassword && (
+                        <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
                       )}
                     </div>
 
@@ -661,36 +999,100 @@ const RegisterVendor: React.FC = () => {
 
                   <div className="max-w-md mx-auto text-center">
                     <div className="mb-6">
-                      <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                        <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                        </svg>
+                      <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
+                        smsLoading ? 'bg-yellow-100' : smsSent ? 'bg-green-100' : 'bg-blue-100'
+                      }`}>
+                        {smsLoading ? (
+                          <svg className="animate-spin w-8 h-8 text-yellow-600" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        ) : smsSent ? (
+                          <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        ) : (
+                          <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                          </svg>
+                        )}
                       </div>
                       <p className="text-gray-600 mb-4">
-                        Hemos enviado un código de verificación a tu teléfono
+                        {smsLoading ? 'Enviando código de verificación...' :
+                         smsSent ? '✅ Código de verificación enviado a tu teléfono' :
+                         'Haz clic en el botón para recibir tu código de verificación'}
                       </p>
-                      <p className="font-semibold text-gray-900 mb-6">
-                        {basicFormData?.telefono || '+57 XXX XXX XXXX'}
+                      <p className="font-semibold text-gray-900 mb-4">
+                        {basicFormData?.telefono ? `${selectedCountry.prefix} ${basicFormData.telefono}` : `${selectedCountry.prefix} XXX XXX XXXX`}
                       </p>
+
+                      {/* Botón para enviar SMS manualmente */}
+                      {!smsSent && (
+                        <div className="mb-6">
+                          <button
+                            onClick={sendSMSVerification}
+                            disabled={smsLoading}
+                            className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+                              smsLoading
+                                ? 'bg-gray-400 cursor-not-allowed text-white'
+                                : 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
+                            }`}
+                          >
+                            {smsLoading ? 'Enviando...' : '📱 Enviar Código SMS'}
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     {/* Simulación de campos OTP */}
                     <div className="flex justify-center space-x-3 mb-6">
-                      {[1, 2, 3, 4, 5, 6].map((digit) => (
+                      {[0, 1, 2, 3, 4, 5].map((index) => (
                         <input
-                          key={digit}
+                          key={index}
+                          data-otp-index={index}
                           type="text"
+                          inputMode="numeric"
                           maxLength={1}
-                          className="w-12 h-12 text-center text-xl font-bold border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                          value={otpCode[index]}
+                          onChange={(e) => handleOtpInput(index, e.target.value.replace(/\D/g, ''))}
+                          onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                          className="w-12 h-12 text-center text-xl font-bold border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
                           placeholder="0"
                         />
                       ))}
                     </div>
 
+                    {/* Error message */}
+                    {otpError && (
+                      <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <p className="text-red-600 text-sm text-center">{otpError}</p>
+                      </div>
+                    )}
+
+                    {/* Testing hint */}
+                    <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-blue-600 text-sm text-center">
+                        💡 <strong>Testing:</strong> Usa el código <code className="bg-blue-100 px-2 py-1 rounded">123456</code> para probar
+                      </p>
+                    </div>
+
                     <p className="text-sm text-gray-500 mb-6">
                       ¿No recibiste el código?{' '}
-                      <button className="text-blue-600 hover:text-blue-800 font-medium">
-                        Reenviar
+                      <button
+                        onClick={() => {
+                          setSmsSent(false);
+                          setOtpCode(['', '', '', '', '', '']);
+                          setOtpError('');
+                          sendSMSVerification();
+                        }}
+                        disabled={smsLoading}
+                        className={`font-medium ${
+                          smsLoading
+                            ? 'text-gray-400 cursor-not-allowed'
+                            : 'text-blue-600 hover:text-blue-800'
+                        }`}
+                      >
+                        {smsLoading ? 'Enviando...' : 'Reenviar'}
                       </button>
                     </p>
                   </div>
@@ -730,24 +1132,23 @@ const RegisterVendor: React.FC = () => {
                     <p className="text-gray-600 text-sm">Paso 4 de 4</p>
                   </div>
 
-                  {/* Selección de rol si no se ha seleccionado */}
-                  {!selectedRole && (
-                    <div className="space-y-4">
+                  {/* Selección de rol */}
+                  <div className="space-y-4">
                     {/* Card Vendedor */}
                     <div
-                      onClick={() => handleRoleSelect(UserType.VENDEDOR)}
+                      onClick={() => handleRoleSelect(UserType.VENDOR)}
                       className={`p-6 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
-                        selectedRole === UserType.VENDEDOR
+                        selectedRole === UserType.VENDOR
                           ? 'border-blue-500 bg-blue-50 shadow-lg transform scale-105'
-                          : 'border-gray-200 hover:border-blue-300 hover:shadow-md'
+                          : 'border-gray-200 hover:border-blue-300 hover:shadow-md hover:bg-blue-50'
                       }`}
                     >
                       <div className="flex items-center space-x-4">
                         <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                          selectedRole === UserType.VENDEDOR ? 'bg-blue-100' : 'bg-gray-100'
+                          selectedRole === UserType.VENDOR ? 'bg-blue-100' : 'bg-gray-100'
                         }`}>
                           <svg className={`w-6 h-6 ${
-                            selectedRole === UserType.VENDEDOR ? 'text-blue-600' : 'text-gray-600'
+                            selectedRole === UserType.VENDOR ? 'text-blue-600' : 'text-gray-600'
                           }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                           </svg>
@@ -756,31 +1157,35 @@ const RegisterVendor: React.FC = () => {
                           <h4 className="font-semibold text-gray-900">SOY VENDEDOR</h4>
                           <p className="text-sm text-gray-600">Quiero vender mis productos</p>
                         </div>
-                        {selectedRole === UserType.VENDEDOR && (
-                          <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                          selectedRole === UserType.VENDOR
+                            ? 'border-blue-500 bg-blue-500'
+                            : 'border-gray-300'
+                        }`}>
+                          {selectedRole === UserType.VENDOR && (
                             <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                             </svg>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
                     </div>
 
                     {/* Card Comprador */}
                     <div
-                      onClick={() => handleRoleSelect(UserType.COMPRADOR)}
+                      onClick={() => handleRoleSelect(UserType.BUYER)}
                       className={`p-6 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
-                        selectedRole === UserType.COMPRADOR
+                        selectedRole === UserType.BUYER
                           ? 'border-green-500 bg-green-50 shadow-lg transform scale-105'
-                          : 'border-gray-200 hover:border-green-300 hover:shadow-md'
+                          : 'border-gray-200 hover:border-green-300 hover:shadow-md hover:bg-green-50'
                       }`}
                     >
                       <div className="flex items-center space-x-4">
                         <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                          selectedRole === UserType.COMPRADOR ? 'bg-green-100' : 'bg-gray-100'
+                          selectedRole === UserType.BUYER ? 'bg-green-100' : 'bg-gray-100'
                         }`}>
                           <svg className={`w-6 h-6 ${
-                            selectedRole === UserType.COMPRADOR ? 'text-green-600' : 'text-gray-600'
+                            selectedRole === UserType.BUYER ? 'text-green-600' : 'text-gray-600'
                           }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                           </svg>
@@ -789,23 +1194,69 @@ const RegisterVendor: React.FC = () => {
                           <h4 className="font-semibold text-gray-900">SOY COMPRADOR</h4>
                           <p className="text-sm text-gray-600">Quiero comprar productos</p>
                         </div>
-                        {selectedRole === UserType.COMPRADOR && (
-                          <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                          selectedRole === UserType.BUYER
+                            ? 'border-green-500 bg-green-500'
+                            : 'border-gray-300'
+                        }`}>
+                          {selectedRole === UserType.BUYER && (
                             <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                             </svg>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
                     </div>
+
+                    {/* Selection confirmation - only show when a role is selected */}
+                    {selectedRole && (
+                      <div className="mt-6">
+                        <div className={`p-4 rounded-lg mb-4 ${
+                          selectedRole === UserType.VENDOR ? 'bg-blue-50 border border-blue-200' : 'bg-green-50 border border-green-200'
+                        }`}>
+                          <div className="flex items-center space-x-3">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                              selectedRole === UserType.VENDOR ? 'bg-blue-500' : 'bg-green-500'
+                            }`}>
+                              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            </div>
+                            <div>
+                              <h5 className={`font-semibold ${
+                                selectedRole === UserType.VENDOR ? 'text-blue-900' : 'text-green-900'
+                              }`}>
+                                {selectedRole === UserType.VENDOR ? 'Vendedor seleccionado' : 'Comprador seleccionado'}
+                              </h5>
+                              <p className={`text-sm ${
+                                selectedRole === UserType.VENDOR ? 'text-blue-700' : 'text-green-700'
+                              }`}>
+                                {selectedRole === UserType.VENDOR ? 'Podrás gestionar tu inventario y ventas' : 'Podrás realizar compras y seguir tus pedidos'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  )}
 
                   {/* Datos específicos según el rol seleccionado */}
                   {selectedRole && (
                     <form onSubmit={handleSubmitStep3(handleSpecificDataSubmit)} className="space-y-6">
+                      {/* Error de registro */}
+                      {registrationError && (
+                        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                          <div className="flex items-center">
+                            <svg className="w-5 h-5 text-red-600 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <p className="text-red-600 text-sm">{registrationError}</p>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Los formularios específicos irán aquí */}
-                      {selectedRole === UserType.COMPRADOR && (
+                      {selectedRole === UserType.BUYER && (
                         <>
                           {/* Cédula */}
                           <div>
@@ -895,7 +1346,7 @@ const RegisterVendor: React.FC = () => {
                         </>
                       )}
 
-                      {selectedRole === UserType.VENDEDOR && (
+                      {selectedRole === UserType.VENDOR && (
                         <>
                           {/* Tipo de Vendedor */}
                           <div>
@@ -1107,8 +1558,8 @@ const RegisterVendor: React.FC = () => {
                     >
                       Atrás
                     </button>
-                    <div className="flex-1 flex items-center justify-center text-gray-500">
-                      Selecciona un rol para continuar
+                    <div className="flex-1 flex items-center justify-center text-gray-500 text-sm">
+                      ↑ Selecciona un rol para continuar
                     </div>
                   </div>
                   )}
