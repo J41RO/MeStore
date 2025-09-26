@@ -28,7 +28,7 @@ import type {
 const AUTH_ENDPOINTS = {
   LOGIN: '/auth/login',
   REGISTER: '/auth/register',
-  ADMIN_LOGIN: '/auth/admin-login',
+  ADMIN_LOGIN: '/auth/login',
   LOGOUT: '/auth/logout',
   REFRESH: '/auth/refresh-token',
   ME: '/auth/me',

@@ -122,7 +122,7 @@ class ApiError extends Error implements IApiError {
 const AUTH_ENDPOINTS = {
   LOGIN: '/api/v1/auth/login',
   REGISTER: '/api/v1/auth/register',
-  ADMIN_LOGIN: '/api/v1/auth/admin-login',
+  ADMIN_LOGIN: '/api/v1/auth/login',
   LOGOUT: '/api/v1/auth/logout',
   REFRESH: '/api/v1/auth/refresh-token',
   ME: '/api/v1/auth/me',

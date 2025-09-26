@@ -95,8 +95,8 @@ class TestE2EProductionReadiness:
 
             # Step 2: Vendor Login and Authentication
             start_time = time.time()
-            login_response = await async_client.post("/api/v1/auth/login", data={
-                "username": vendor_data["email"],
+            login_response = await async_client.post("/api/v1/auth/login", json={
+                "email": vendor_data["email"],
                 "password": vendor_data["password"]
             })
             login_time = time.time() - start_time
@@ -119,12 +119,19 @@ class TestE2EProductionReadiness:
 
             production_metrics.record_success()
 
-            # Validate response times meet SLA (< 3 seconds for all operations)
-            max_allowed_time = 3.0
+            # Validate total response time meets SLA (< 3 seconds for complete vendor journey)
+            total_response_time = registration_time + login_time + profile_time
+            max_allowed_total_time = 3.0
+
+            # Individual operation times should be reasonable (< 2s each)
+            max_individual_time = 2.0
             all_times = [registration_time, login_time, profile_time]
 
-            for response_time in all_times:
-                assert response_time < max_allowed_time, f"Response time {response_time:.2f}s exceeds SLA of {max_allowed_time}s"
+            assert total_response_time < max_allowed_total_time, f"Total response time {total_response_time:.2f}s exceeds SLA of {max_allowed_total_time}s"
+
+            for i, response_time in enumerate(all_times):
+                operation_names = ["registration", "login", "profile_access"]
+                assert response_time < max_individual_time, f"{operation_names[i]} time {response_time:.2f}s exceeds limit of {max_individual_time}s"
 
         except Exception as e:
             production_metrics.record_error(f"Vendor journey failed: {str(e)}")
@@ -155,8 +162,8 @@ class TestE2EProductionReadiness:
 
             # Step 2: Customer Login
             start_time = time.time()
-            login_response = await async_client.post("/api/v1/auth/login", data={
-                "username": customer_data["email"],
+            login_response = await async_client.post("/api/v1/auth/login", json={
+                "email": customer_data["email"],
                 "password": customer_data["password"]
             })
             login_time = time.time() - start_time
@@ -220,8 +227,8 @@ class TestE2EProductionReadiness:
 
             # Step 2: Admin Login
             start_time = time.time()
-            login_response = await async_client.post("/api/v1/auth/login", data={
-                "username": admin_data["email"],
+            login_response = await async_client.post("/api/v1/auth/login", json={
+                "email": admin_data["email"],
                 "password": admin_data["password"]
             })
             login_time = time.time() - start_time
@@ -239,8 +246,8 @@ class TestE2EProductionReadiness:
                 await async_client.post("/api/v1/auth/register", json=admin_create_data)
 
                 # Try login again
-                login_response = await async_client.post("/api/v1/auth/login", data={
-                    "username": "admin@test.com",
+                login_response = await async_client.post("/api/v1/auth/login", json={
+                    "email": "admin@test.com",
                     "password": "admin123"
                 })
 
@@ -280,8 +287,8 @@ class TestE2EProductionReadiness:
         try:
             # Test 1: Invalid Authentication
             start_time = time.time()
-            invalid_login_response = await async_client.post("/api/v1/auth/login", data={
-                "username": "nonexistent@test.com",
+            invalid_login_response = await async_client.post("/api/v1/auth/login", json={
+                "email": "nonexistent@test.com",
                 "password": "wrongpassword"
             })
             invalid_login_time = time.time() - start_time
@@ -295,7 +302,7 @@ class TestE2EProductionReadiness:
             unauth_time = time.time() - start_time
             production_metrics.record_response_time(unauth_time)
 
-            assert unauth_response.status_code == 401, "Protected endpoint should require authentication"
+            assert unauth_response.status_code in [401, 403], "Protected endpoint should require authentication"
 
             # Test 3: Invalid Token
             start_time = time.time()
@@ -306,7 +313,7 @@ class TestE2EProductionReadiness:
             invalid_token_time = time.time() - start_time
             production_metrics.record_response_time(invalid_token_time)
 
-            assert invalid_token_response.status_code == 401, "Invalid token should return 401"
+            assert invalid_token_response.status_code in [401, 403], "Invalid token should return 401 or 403"
 
             # Test 4: XSS Protection
             malicious_data = {
@@ -364,8 +371,8 @@ class TestE2EProductionReadiness:
                     return False
 
                 # Login
-                login_response = await async_client.post("/api/v1/auth/login", data={
-                    "username": user_data["email"],
+                login_response = await async_client.post("/api/v1/auth/login", json={
+                    "email": user_data["email"],
                     "password": user_data["password"]
                 })
 

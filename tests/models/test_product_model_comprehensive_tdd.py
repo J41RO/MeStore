@@ -268,117 +268,199 @@ class TestProductCategoryManagement:
     @pytest.mark.tdd
     def test_get_primary_category_exists(self, db_session):
         """Test get_primary_category when primary category exists"""
+        # Import required models
+        from app.models.category import Category, ProductCategory
+
+        # Create a product
         product = Product(sku="PROD-001", name="Test Product")
+        db_session.add(product)
+        db_session.flush()  # Get ID assigned
 
-        # Mock category associations
-        mock_assoc1 = Mock()
-        mock_assoc1.is_primary = False
-        mock_assoc1.category = Mock()
-        mock_assoc1.category.name = "Secondary"
+        # Create categories
+        primary_cat = Category(name="Primary", slug="primary", path="/primary/", level=0)
+        secondary_cat = Category(name="Secondary", slug="secondary", path="/secondary/", level=0)
+        db_session.add(primary_cat)
+        db_session.add(secondary_cat)
+        db_session.flush()
 
-        mock_assoc2 = Mock()
-        mock_assoc2.is_primary = True
-        mock_assoc2.category = Mock()
-        mock_assoc2.category.name = "Primary"
+        # Create associations
+        primary_assoc = ProductCategory(
+            product_id=product.id,
+            category_id=primary_cat.id,
+            is_primary=True
+        )
+        secondary_assoc = ProductCategory(
+            product_id=product.id,
+            category_id=secondary_cat.id,
+            is_primary=False
+        )
+        db_session.add(primary_assoc)
+        db_session.add(secondary_assoc)
+        db_session.commit()
 
-        product.category_associations = [mock_assoc1, mock_assoc2]
-
+        # Test the method
         primary = product.get_primary_category()
+        assert primary is not None
         assert primary.name == "Primary"
 
     @pytest.mark.tdd
     def test_get_primary_category_none(self, db_session):
         """Test get_primary_category when no primary category exists"""
+        from app.models.category import Category, ProductCategory
+
+        # Create a product
         product = Product(sku="PROD-001", name="Test Product")
+        db_session.add(product)
+        db_session.flush()
 
-        # Mock category associations with no primary
-        mock_assoc = Mock()
-        mock_assoc.is_primary = False
-        product.category_associations = [mock_assoc]
+        # Create category (secondary only, no primary)
+        secondary_cat = Category(name="Secondary", slug="secondary", path="/secondary/", level=0)
+        db_session.add(secondary_cat)
+        db_session.flush()
 
+        # Create association (not primary)
+        secondary_assoc = ProductCategory(
+            product_id=product.id,
+            category_id=secondary_cat.id,
+            is_primary=False
+        )
+        db_session.add(secondary_assoc)
+        db_session.commit()
+
+        # Test the method - should return None because no primary category
         assert product.get_primary_category() is None
 
     @pytest.mark.tdd
     def test_get_secondary_categories(self, db_session):
         """Test get_secondary_categories returns non-primary categories"""
+        from app.models.category import Category, ProductCategory
+
+        # Create a product
         product = Product(sku="PROD-001", name="Test Product")
+        db_session.add(product)
+        db_session.flush()
 
-        # Mock category associations
-        mock_assoc1 = Mock()
-        mock_assoc1.is_primary = True
-        mock_assoc1.category = Mock()
-        mock_assoc1.category.name = "Primary"
+        # Create categories
+        primary_cat = Category(name="Primary", slug="primary", path="/primary/", level=0)
+        secondary_cat1 = Category(name="Secondary1", slug="secondary1", path="/secondary1/", level=0)
+        secondary_cat2 = Category(name="Secondary2", slug="secondary2", path="/secondary2/", level=0)
+        db_session.add(primary_cat)
+        db_session.add(secondary_cat1)
+        db_session.add(secondary_cat2)
+        db_session.flush()
 
-        mock_assoc2 = Mock()
-        mock_assoc2.is_primary = False
-        mock_assoc2.category = Mock()
-        mock_assoc2.category.name = "Secondary1"
+        # Create associations
+        primary_assoc = ProductCategory(
+            product_id=product.id,
+            category_id=primary_cat.id,
+            is_primary=True
+        )
+        secondary_assoc1 = ProductCategory(
+            product_id=product.id,
+            category_id=secondary_cat1.id,
+            is_primary=False
+        )
+        secondary_assoc2 = ProductCategory(
+            product_id=product.id,
+            category_id=secondary_cat2.id,
+            is_primary=False
+        )
+        db_session.add(primary_assoc)
+        db_session.add(secondary_assoc1)
+        db_session.add(secondary_assoc2)
+        db_session.commit()
 
-        mock_assoc3 = Mock()
-        mock_assoc3.is_primary = False
-        mock_assoc3.category = Mock()
-        mock_assoc3.category.name = "Secondary2"
-
-        product.category_associations = [mock_assoc1, mock_assoc2, mock_assoc3]
-
+        # Test the method
         secondary = product.get_secondary_categories()
         assert len(secondary) == 2
-        assert secondary[0].name == "Secondary1"
-        assert secondary[1].name == "Secondary2"
+        secondary_names = [cat.name for cat in secondary]
+        assert "Secondary1" in secondary_names
+        assert "Secondary2" in secondary_names
 
     @pytest.mark.tdd
     def test_add_category(self, db_session):
         """Test add_category functionality"""
+        from app.models.category import Category, ProductCategory
+
+        # Create a product
         product = Product(sku="PROD-001", name="Test Product")
-        product.id = "test-product-id"
-        product.category_associations = []
+        db_session.add(product)
+        db_session.flush()
 
-        # Mock category
-        mock_category = Mock()
-        mock_category.id = "test-category-id"
+        # Create category
+        test_category = Category(name="Test Category", slug="test-category", path="/test-category/", level=0)
+        db_session.add(test_category)
+        db_session.flush()
 
-        with patch('app.models.category.ProductCategory') as MockProductCategory:
-            mock_association = Mock()
-            MockProductCategory.return_value = mock_association
+        # Initially product should have no categories
+        assert len(product.category_associations) == 0
 
-            product.add_category(mock_category, is_primary=True, sort_order=1)
+        # Add category
+        product.add_category(test_category, is_primary=True, sort_order=1)
+        db_session.commit()
 
-            MockProductCategory.assert_called_once_with(
-                product_id="test-product-id",
-                category_id="test-category-id",
-                is_primary=True,
-                sort_order=1,
-                assigned_by_id=None
-            )
-            assert mock_association in product.category_associations
+        # Verify category was added
+        assert len(product.category_associations) == 1
+        association = product.category_associations[0]
+        assert association.category_id == test_category.id
+        assert association.is_primary is True
+        assert association.sort_order == 1
 
     @pytest.mark.tdd
     def test_has_category_true(self, db_session):
         """Test has_category returns True when category exists"""
+        from app.models.category import Category, ProductCategory
+
+        # Create a product
         product = Product(sku="PROD-001", name="Test Product")
+        db_session.add(product)
+        db_session.flush()
 
-        mock_category = Mock()
-        mock_category.id = "test-category-id"
+        # Create category
+        test_category = Category(name="Test Category", slug="test-category", path="/test-category/", level=0)
+        db_session.add(test_category)
+        db_session.flush()
 
-        mock_assoc = Mock()
-        mock_assoc.category_id = "test-category-id"
-        product.category_associations = [mock_assoc]
+        # Create association
+        assoc = ProductCategory(
+            product_id=product.id,
+            category_id=test_category.id,
+            is_primary=True
+        )
+        db_session.add(assoc)
+        db_session.commit()
 
-        assert product.has_category(mock_category) is True
+        # Test the method
+        assert product.has_category(test_category) is True
 
     @pytest.mark.tdd
     def test_has_category_false(self, db_session):
         """Test has_category returns False when category doesn't exist"""
+        from app.models.category import Category, ProductCategory
+
+        # Create a product
         product = Product(sku="PROD-001", name="Test Product")
+        db_session.add(product)
+        db_session.flush()
 
-        mock_category = Mock()
-        mock_category.id = "different-category-id"
+        # Create two categories
+        existing_category = Category(name="Existing", slug="existing", path="/existing/", level=0)
+        different_category = Category(name="Different", slug="different", path="/different/", level=0)
+        db_session.add(existing_category)
+        db_session.add(different_category)
+        db_session.flush()
 
-        mock_assoc = Mock()
-        mock_assoc.category_id = "test-category-id"
-        product.category_associations = [mock_assoc]
+        # Create association only with existing_category
+        assoc = ProductCategory(
+            product_id=product.id,
+            category_id=existing_category.id,
+            is_primary=True
+        )
+        db_session.add(assoc)
+        db_session.commit()
 
-        assert product.has_category(mock_category) is False
+        # Test the method with different_category (should return False)
+        assert product.has_category(different_category) is False
 
 
 class TestProductBusinessLogic:
@@ -618,30 +700,89 @@ class TestProductClassMethods:
     @pytest.mark.tdd
     def test_get_low_stock_products(self, db_session):
         """Test get_low_stock_products class method"""
-        with patch('app.models.inventory.Inventory') as MockInventory:
-            mock_session = Mock()
+        from app.models.inventory import Inventory
 
-            # Mock the complex query chain
-            mock_session.query.return_value.join.return_value.filter.return_value.all.return_value = []
+        # Create products with different stock levels
+        product_high_stock = Product(sku="HIGH-001", name="High Stock Product")
+        product_low_stock = Product(sku="LOW-001", name="Low Stock Product")
+        product_no_stock = Product(sku="NONE-001", name="No Stock Product")
 
-            result = Product.get_low_stock_products(mock_session, 10)
+        db_session.add(product_high_stock)
+        db_session.add(product_low_stock)
+        db_session.add(product_no_stock)
+        db_session.flush()
 
-            assert isinstance(result, list)
-            mock_session.query.assert_called()
+        # Create inventory entries
+        # High stock (above threshold)
+        high_inventory = Inventory(product_id=product_high_stock.id, zona="A", estante="1", posicion="1", cantidad=50)
+        # Low stock (below threshold)
+        low_inventory = Inventory(product_id=product_low_stock.id, zona="A", estante="1", posicion="2", cantidad=5)
+        # No inventory for product_no_stock
+
+        db_session.add(high_inventory)
+        db_session.add(low_inventory)
+        db_session.commit()
+
+        # Test with threshold of 10
+        result = Product.get_low_stock_products(db_session, 10)
+
+        assert isinstance(result, list)
+        # Should find the low stock product (5 < 10)
+        result_skus = [p.sku for p in result]
+        assert "LOW-001" in result_skus
+        assert "HIGH-001" not in result_skus  # 50 >= 10
+        # product_no_stock won't appear because it has no inventory records
 
     @pytest.mark.tdd
     def test_get_inactive_products(self, db_session):
         """Test get_inactive_products class method"""
-        with patch('app.models.inventory.Inventory') as MockInventory:
-            mock_session = Mock()
+        from app.models.inventory import Inventory
+        from datetime import datetime, timedelta
 
-            # Mock the complex query chains
-            mock_session.query.return_value.join.return_value.filter.return_value.all.return_value = []
-            mock_session.query.return_value.outerjoin.return_value.filter.return_value.all.return_value = []
+        # Create products with different activity levels
+        old_date = datetime.now() - timedelta(days=40)  # Older than test threshold (30)
+        recent_date = datetime.now() - timedelta(days=10)  # Recent (within threshold)
 
-            result = Product.get_inactive_products(mock_session, 30)
+        # Product with old inventory activity (should be inactive)
+        product_inactive = Product(sku="INACTIVE-001", name="Inactive Product")
+        product_inactive.created_at = old_date
 
-            assert isinstance(result, list)
+        # Product with recent inventory activity (should be active)
+        product_active = Product(sku="ACTIVE-001", name="Active Product")
+        product_active.created_at = old_date
+
+        # Product with no inventory history and old creation date (should be inactive)
+        product_no_inventory = Product(sku="NOSTOCK-001", name="No Inventory Product")
+        product_no_inventory.created_at = old_date
+
+        db_session.add(product_inactive)
+        db_session.add(product_active)
+        db_session.add(product_no_inventory)
+        db_session.flush()
+
+        # Create inventory entries with different activity dates
+        # Inactive product has old inventory update
+        inactive_inventory = Inventory(product_id=product_inactive.id, zona="A", estante="1", posicion="1", cantidad=10)
+        inactive_inventory.updated_at = old_date
+
+        # Active product has recent inventory update
+        active_inventory = Inventory(product_id=product_active.id, zona="A", estante="1", posicion="2", cantidad=10)
+        active_inventory.updated_at = recent_date
+
+        db_session.add(inactive_inventory)
+        db_session.add(active_inventory)
+        db_session.commit()
+
+        # Test with threshold of 30 days
+        result = Product.get_inactive_products(db_session, 30)
+
+        assert isinstance(result, list)
+        result_skus = [p.sku for p in result]
+
+        # Should find inactive products (older than 30 days)
+        assert "INACTIVE-001" in result_skus  # Old inventory activity
+        assert "NOSTOCK-001" in result_skus  # No inventory, old creation
+        assert "ACTIVE-001" not in result_skus  # Recent inventory activity
 
 
 class TestProductEdgeCases:
