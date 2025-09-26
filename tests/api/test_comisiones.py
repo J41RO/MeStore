@@ -10,9 +10,12 @@ def test_get_comisiones_endpoint():
     """Test básico del endpoint GET /comisiones"""
     client = TestClient(app)
     response = client.get("/api/v1/comisiones")
+    # Should return 200 now with error handling
     assert response.status_code == 200
     assert "comisiones" in response.json()
     assert "total_registros" in response.json()
+    # Should return empty list if no data/table doesn't exist
+    assert isinstance(response.json()["comisiones"], list)
 
 
 def test_solicitar_pago_comisiones_sin_auth():

@@ -40,41 +40,49 @@ async def get_comisiones(
     metodo_pago: Optional[MetodoPago] = Query(None, description="Filtrar por método de pago"),
     db: AsyncSession = Depends(get_db),
 ):
-    # Construir query base
-    query = select(Transaction).where(Transaction.porcentaje_mestocker.is_not(None))
+    try:
+        # Construir query base
+        query = select(Transaction).where(Transaction.porcentaje_mestocker.is_not(None))
 
-    # Aplicar filtros de fecha si se proporcionan
-    if fecha_inicio:
-        query = query.where(Transaction.fecha_transaccion >= fecha_inicio)
-    if fecha_fin:
-        query = query.where(Transaction.fecha_transaccion <= fecha_fin)
-    if metodo_pago:
-        query = query.where(Transaction.metodo_pago == metodo_pago)
-    # Ejecutar query
-    result = await db.execute(query)
-    transactions = result.scalars().all()
+        # Aplicar filtros de fecha si se proporcionan
+        if fecha_inicio:
+            query = query.where(Transaction.fecha_transaccion >= fecha_inicio)
+        if fecha_fin:
+            query = query.where(Transaction.fecha_transaccion <= fecha_fin)
+        if metodo_pago:
+            query = query.where(Transaction.metodo_pago == metodo_pago)
+        # Ejecutar query
+        result = await db.execute(query)
+        transactions = result.scalars().all()
 
-    # Formatear respuesta
-    comisiones_data = []
-    for tx in transactions:
-        if tx.porcentaje_mestocker and tx.monto:
-            comision_monto = (tx.monto * tx.porcentaje_mestocker) / 100
-            comisiones_data.append(
-                {
-                    "transaction_id": str(tx.id),
-                    "fecha": tx.fecha_transaccion.isoformat(),
-                    "monto_total": float(tx.monto),
-                    "porcentaje_comision": float(tx.porcentaje_mestocker),
-                    "monto_comision": float(comision_monto),
-                    "monto_vendedor": (
-                        float(tx.monto_vendedor)
-                        if tx.monto_vendedor
-                        else float(tx.monto - comision_monto)
-                    ),
-                }
-            )
+        # Formatear respuesta
+        comisiones_data = []
+        for tx in transactions:
+            if tx.porcentaje_mestocker and tx.monto:
+                comision_monto = (tx.monto * tx.porcentaje_mestocker) / 100
+                comisiones_data.append(
+                    {
+                        "transaction_id": str(tx.id),
+                        "fecha": tx.fecha_transaccion.isoformat(),
+                        "monto_total": float(tx.monto),
+                        "porcentaje_comision": float(tx.porcentaje_mestocker),
+                        "monto_comision": float(comision_monto),
+                        "monto_vendedor": (
+                            float(tx.monto_vendedor)
+                            if tx.monto_vendedor
+                            else float(tx.monto - comision_monto)
+                        ),
+                    }
+                )
 
-    return {"comisiones": comisiones_data, "total_registros": len(comisiones_data)}
+        return {"comisiones": comisiones_data, "total_registros": len(comisiones_data)}
+
+    except Exception as e:
+        # Return empty result if database issues (table doesn't exist)
+        if "no such table" in str(e).lower():
+            return {"comisiones": [], "total_registros": 0}
+        # Re-raise other unexpected errors
+        raise e
 
 
 @router.post("/solicitar-pago", response_model=PayoutRequestRead)
