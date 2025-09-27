@@ -2,6 +2,36 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 🤖 INSTRUCCIONES AUTOMÁTICAS PARA CLAUDE CODE
+
+### 🔄 AL INICIO DE CUALQUIER SESIÓN, EJECUTAR AUTOMÁTICAMENTE:
+
+**COMANDO INICIAL OBLIGATORIO:**
+```bash
+echo "📋 INICIANDO PROTOCOLO WORKSPACE..." && \
+echo "🔍 Leyendo reglas del sistema..." && \
+cat .workspace/SYSTEM_RULES.md && \
+echo -e "\n🔒 VERIFICANDO ARCHIVOS PROTEGIDOS:" && \
+cat .workspace/PROTECTED_FILES.md && \
+echo -e "\n📖 GUÍA RÁPIDA DE INICIO:" && \
+cat .workspace/QUICK_START_GUIDE.md && \
+echo -e "\n✅ PROTOCOLO WORKSPACE CARGADO CORRECTAMENTE"
+```
+
+### ⚡ CHECKLIST AUTOMÁTICO OBLIGATORIO:
+1. ✅ **Leer este archivo CLAUDE.md completo**
+2. ✅ **Ejecutar comando de protocolo workspace arriba**
+3. ✅ **Verificar archivos protegidos antes de cualquier modificación**
+4. ✅ **Consultar agente responsable si archivo está protegido**
+5. ✅ **Seguir template de commits obligatorio**
+
+### 🚨 RECORDATORIO CRÍTICO:
+- **NUNCA** modificar archivos sin consultar `.workspace/PROTECTED_FILES.md`
+- **SIEMPRE** usar scripts de validación antes de cambios
+- **OBLIGATORIO** seguir protocolo de agentes responsables
+
+---
+
 ## 🚨 OBLIGATORIO: PROTOCOLO .WORKSPACE (TODOS LOS AGENTES)
 
 ### ⚡ ANTES DE CUALQUIER MODIFICACIÓN
@@ -20,6 +50,39 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `app/api/v1/deps/auth.py` - Sistema autenticación JWT
 - `app/models/user.py` - NO crear usuarios duplicados
 - `tests/conftest.py` - NO modificar fixtures existentes
+
+### 🚨 NAVEGACIÓN ADMINISTRATIVA - CRÍTICO PARA ACCESO
+- `frontend/src/components/admin/navigation/NavigationProvider.tsx` - NUNCA usar useCallback dentro de useMemo
+- `frontend/src/components/admin/navigation/CategoryNavigation.tsx` - Depende de NavigationProvider
+- `frontend/src/components/AdminLayout.tsx` - Layout principal del portal admin
+- `frontend/src/pages/AdminLogin.tsx` - Punto de entrada administrativo
+
+### 🔐 FLUJO DE AUTENTICACIÓN ADMIN - CRÍTICO NO ROMPER
+
+**⚠️ FLUJO ABSOLUTO PARA ADMIN/SUPERUSER - NUNCA MODIFICAR SIN CONSULTAR**
+
+Este flujo está separado completamente del login de usuarios regulares:
+
+1. **LandingPage** → Footer → "Portal Admin" (línea 87) → `/admin-portal`
+2. **AdminPortal** → Botón "Acceder al Sistema" → `navigate('/admin-login')`
+3. **AdminLogin** → Credenciales → `/admin-secure-portal/dashboard`
+
+**🚨 COMPONENTES CRÍTICOS:**
+- `frontend/src/components/layout/Footer.tsx` - Línea 87: Link a `/admin-portal`
+- `frontend/src/pages/AdminPortal.tsx` - Línea 101-104: navigate('/admin-login')
+- `frontend/src/pages/AdminLogin.tsx` - Línea 48: navigate('/admin-secure-portal/dashboard')
+- `frontend/src/components/AdminLayout.tsx` - DEBE tener AccessibilityProvider
+
+**🔒 CREDENCIALES PROTEGIDAS:**
+- Email: `admin@mestocker.com`
+- Password: `Admin123456`
+- Tipo: SUPERUSER
+
+**❌ PROHIBICIONES ABSOLUTAS:**
+- NUNCA cambiar rutas `/admin-portal` o `/admin-login`
+- NUNCA usar `window.location.href` - SOLO `navigate()`
+- NUNCA remover AccessibilityProvider del AdminLayout
+- NUNCA modificar NavigationProvider props en AdminLayout
 
 ### 🛡️ CUENTA SUPERUSER PROTEGIDA (CRÍTICO - NUNCA TOCAR)
 
@@ -56,6 +119,56 @@ python .workspace/scripts/contact_responsible_agent.py [tu-agente] app/models/us
 
 **⚡ RECORDATORIO CRÍTICO:**
 Esta cuenta garantiza el acceso administrativo permanente. Su eliminación/modificación podría bloquear completamente el acceso al sistema de administración.
+
+### 🚨 NAVEGACIÓN ADMINISTRATIVA - REGLAS CRÍTICAS REACT HOOKS
+
+**⚠️ VIOLACIONES DE REACT HOOKS QUE ROMPEN EL ACCESO ADMIN:**
+
+**🔥 REGLA #1: NUNCA useCallback DENTRO DE useMemo**
+```typescript
+// ❌ INCORRECTO - ROMPE EL PORTAL ADMIN
+const utils = useMemo(() => ({
+  isActiveByPath: useCallback((path, currentPath) => { ... }, [])
+}), []);
+
+// ✅ CORRECTO - PORTAL ADMIN FUNCIONA
+const utils = useMemo(() => ({
+  isActiveByPath: (path, currentPath) => { ... }
+}), []);
+```
+
+**🎯 ARCHIVOS CRÍTICOS PARA ACCESO ADMIN:**
+- `NavigationProvider.tsx` - ❌ NUNCA usar useCallback dentro de useMemo
+- `CategoryNavigation.tsx` - Depende de utils.isActiveByPath
+- `AdminLayout.tsx` - Wrapper principal del portal
+- `AdminLogin.tsx` - Punto de entrada
+
+**🚨 SÍNTOMAS DE VIOLACIÓN:**
+- Error: `TypeError: utils.isActiveByPath is not a function`
+- Portal administrativo inaccesible después del login
+- React Hook warnings en consola
+
+**📍 FLUJO CRÍTICO PROTEGIDO:**
+1. Landing Page → Footer "Portal Admin" → `/admin-portal`
+2. AdminPortal → "Acceder al Sistema" → `/admin-login`
+3. Login → admin@mestocker.com / Admin123456
+4. Redirect → `/admin-secure-portal/analytics` → ✅ DEBE FUNCIONAR
+
+**⚡ ANTES DE MODIFICAR NAVEGACIÓN ADMIN:**
+1. ✅ Verificar que NO hay useCallback dentro de useMemo
+2. ✅ Testear el flujo completo de login admin
+3. ✅ Confirmar que NavigationProvider context funciona
+4. ✅ Validar que no hay React Hook violations
+
+**🔧 COMANDO DE PRUEBA OBLIGATORIO:**
+```bash
+# Después de modificar componentes de navegación admin:
+echo "Testing admin portal access..." && \
+curl -X POST "http://localhost:8000/api/v1/auth/admin-login" \
+  -H "Content-Type: application/json" \
+  -d '{"email": "admin@mestocker.com", "password": "Admin123456"}' && \
+echo "✅ Backend auth OK - Now test frontend navigation"
+```
 
 ### 📋 COMANDOS OBLIGATORIOS PARA AGENTES
 
@@ -98,8 +211,15 @@ Archivo: ruta/del/archivo.py
 Agente: nombre-del-agente
 Protocolo: [SEGUIDO/CONSULTA_PREVIA/APROBACIÓN_OBTENIDA]
 Tests: [PASSED/FAILED]
+Admin-Portal: [VERIFIED/NOT_APPLICABLE]
+Hook-Violations: [NONE/FIXED]
 Responsable: agente-que-aprobó (si aplica)
 ```
+
+**📍 CAMPOS OBLIGATORIOS PARA NAVEGACIÓN ADMIN:**
+- `Admin-Portal: VERIFIED` - Si modificaste componentes de navegación admin
+- `Hook-Violations: NONE` - Si NO hay useCallback en useMemo
+- `Hook-Violations: FIXED` - Si encontraste y corregiste violaciones
 
 ### 🚨 CONSECUENCIAS POR INCUMPLIMIENTO
 - Primera vez: Warning y corrección obligatoria
@@ -359,3 +479,31 @@ Payment integration
 Advanced analytics
 Mobile responsiveness
 SEO optimization
+
+---
+
+## 🔐 RESUMEN EJECUTIVO: PROTECCIÓN PORTAL ADMINISTRATIVO
+
+### 🚨 ACCESO CRÍTICO SUPERUSER
+**Email**: `admin@mestocker.com` | **Password**: `Admin123456`
+**Estado**: ✅ OPERATIVO Y PROTEGIDO
+
+### 🎯 FLUJO VERIFICADO Y FUNCIONAL:
+1. **Landing Page** → Footer "Portal Admin" → `/admin-portal` ✅
+2. **AdminPortal** → "Acceder al Sistema" → `/admin-login` ✅
+3. **AdminLogin** → Credenciales → `/admin-secure-portal/analytics` ✅
+4. **Dashboard** → Navegación completa funcionando ✅
+
+### ⚠️ REGLAS CRÍTICAS PARA AGENTES:
+- ❌ **NUNCA** usar `useCallback` dentro de `useMemo` en NavigationProvider
+- ✅ **SIEMPRE** verificar acceso admin después de modificar navegación
+- 🔧 **OBLIGATORIO** usar template de commits con verificación Admin-Portal
+
+### 📍 ARCHIVOS BAJO MÁXIMA PROTECCIÓN:
+- `NavigationProvider.tsx` - Contexto de navegación crítico
+- `CategoryNavigation.tsx` - Depende del provider
+- `AdminLayout.tsx` - Layout principal del portal
+- `AdminLogin.tsx` - Punto de entrada administrativo
+
+**🔥 RECORDATORIO FINAL:**
+Cualquier modificación a estos archivos DEBE ser seguida por verificación manual del login administrativo. El acceso al portal es CRÍTICO para la gestión del sistema.

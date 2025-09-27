@@ -1,8 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import GrowthChart, { GrowthData } from '../../components/charts/GrowthChart';
-import MonthlyComparisonChart, {
-  MonthlyComparisonData,
-} from '../../components/charts/MonthlyComparisonChart';
 import { useNavigate } from 'react-router-dom';
 
 interface AlertasMetadata {
@@ -39,84 +35,13 @@ const AdminDashboard: React.FC = () => {
     fetchAlertas();
   }, []);
 
-  // Datos de ejemplo para gráficos de crecimiento
-  const growthData: GrowthData[] = [
-    {
-      month: 'Ene',
-      currentPeriod: 12000,
-      previousPeriod: 10000,
-      growthRate: 20,
-    },
-    {
-      month: 'Feb',
-      currentPeriod: 15000,
-      previousPeriod: 12000,
-      growthRate: 25,
-    },
-    {
-      month: 'Mar',
-      currentPeriod: 18000,
-      previousPeriod: 14000,
-      growthRate: 28.6,
-    },
-    {
-      month: 'Abr',
-      currentPeriod: 22000,
-      previousPeriod: 16000,
-      growthRate: 37.5,
-    },
-    {
-      month: 'May',
-      currentPeriod: 25000,
-      previousPeriod: 18000,
-      growthRate: 38.9,
-    },
-    {
-      month: 'Jun',
-      currentPeriod: 28000,
-      previousPeriod: 20000,
-      growthRate: 40,
-    },
-  ];
-
-  const comparisonData: MonthlyComparisonData[] = [
-    {
-      month: 'Ene',
-      currentPeriod: 12000,
-      previousPeriod: 10000,
-      category: 'ventas',
-    },
-    {
-      month: 'Feb',
-      currentPeriod: 15000,
-      previousPeriod: 12000,
-      category: 'ventas',
-    },
-    {
-      month: 'Mar',
-      currentPeriod: 18000,
-      previousPeriod: 14000,
-      category: 'ventas',
-    },
-    {
-      month: 'Abr',
-      currentPeriod: 22000,
-      previousPeriod: 16000,
-      category: 'ventas',
-    },
-    {
-      month: 'May',
-      currentPeriod: 25000,
-      previousPeriod: 18000,
-      category: 'ventas',
-    },
-    {
-      month: 'Jun',
-      currentPeriod: 28000,
-      previousPeriod: 20000,
-      category: 'ventas',
-    },
-  ];
+  // Datos de ejemplo para métricas dashboard
+  const dashboardStats = {
+    usuarios: 156,
+    vendors: 23,
+    productos: 1247,
+    ordenes: 89
+  };
   return (
     <div className='space-y-6'>
       <div className='bg-white shadow rounded-lg p-6'>
@@ -207,50 +132,39 @@ const AdminDashboard: React.FC = () => {
           )}
         </div>
 
+        {/* Métricas del Sistema */}
         <div className='grid grid-cols-1 md:grid-cols-4 gap-4 mb-6'>
           <div className='bg-red-50 p-4 rounded-lg border-l-4 border-red-500'>
             <h3 className='font-semibold text-red-900'>Sistema</h3>
             <p className='text-lg font-bold text-red-700'>Operativo</p>
           </div>
-
-          {/* Sección de Análisis de Crecimiento */}
-          <div className='mt-8'>
-            <h2 className='text-xl font-semibold text-gray-900 mb-6'>
-              Análisis de Crecimiento
-            </h2>
-
-            {/* Grid de gráficos */}
-            <div className='grid grid-cols-1 xl:grid-cols-2 gap-6'>
-              {/* Gráfico de Crecimiento Temporal */}
-              <div className='bg-white shadow rounded-lg p-6'>
-                <GrowthChart
-                  data={growthData}
-                  title='Tendencia de Crecimiento'
-                  height={350}
-                />
-              </div>
-
-              {/* Gráfico de Comparación Mensual */}
-              <div className='bg-white shadow rounded-lg p-6'>
-                <MonthlyComparisonChart
-                  data={comparisonData}
-                  title='Comparativa Período Actual vs Anterior'
-                  height={350}
-                />
-              </div>
-            </div>
-          </div>
           <div className='bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500'>
-            <h3 className='font-semibold text-blue-900'>Usuarios Online</h3>
-            <p className='text-lg font-bold text-blue-700'>0</p>
+            <h3 className='font-semibold text-blue-900'>Usuarios</h3>
+            <p className='text-lg font-bold text-blue-700'>{dashboardStats.usuarios}</p>
           </div>
           <div className='bg-green-50 p-4 rounded-lg border-l-4 border-green-500'>
-            <h3 className='font-semibold text-green-900'>Transacciones</h3>
-            <p className='text-lg font-bold text-green-700'>0</p>
+            <h3 className='font-semibold text-green-900'>Vendors</h3>
+            <p className='text-lg font-bold text-green-700'>{dashboardStats.vendors}</p>
           </div>
           <div className='bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-500'>
             <h3 className='font-semibold text-yellow-900'>Alertas</h3>
             <p className='text-lg font-bold text-yellow-700'>{alertasData?.total_alertas || 0}</p>
+          </div>
+        </div>
+
+        {/* Métricas de Negocio */}
+        <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
+          <div className='bg-purple-50 p-4 rounded-lg border-l-4 border-purple-500'>
+            <h3 className='font-semibold text-purple-900'>Productos</h3>
+            <p className='text-lg font-bold text-purple-700'>{dashboardStats.productos}</p>
+          </div>
+          <div className='bg-indigo-50 p-4 rounded-lg border-l-4 border-indigo-500'>
+            <h3 className='font-semibold text-indigo-900'>Órdenes</h3>
+            <p className='text-lg font-bold text-indigo-700'>{dashboardStats.ordenes}</p>
+          </div>
+          <div className='bg-teal-50 p-4 rounded-lg border-l-4 border-teal-500'>
+            <h3 className='font-semibold text-teal-900'>Estado</h3>
+            <p className='text-lg font-bold text-teal-700'>Activo</p>
           </div>
         </div>
 

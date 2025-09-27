@@ -25,6 +25,33 @@ const MovementTrackerPage = lazy(() => import('./pages/admin/MovementTracker'));
 const ReportesDiscrepanciasPage = lazy(() => import('./pages/admin/ReportesDiscrepancias'));
 const IncomingProductsQueuePage = lazy(() => import('./pages/admin/IncomingProductsQueuePage'));
 const SystemConfig = lazy(() => import('./pages/admin/SystemConfig'));
+
+// Enterprise Navigation Pages - Users Category
+const UsersPage = lazy(() => import('./pages/admin/users/UsersPage'));
+const RolesPage = lazy(() => import('./pages/admin/users/RolesPage'));
+const UserRegistrationPage = lazy(() => import('./pages/admin/users/UserRegistrationPage'));
+const AuthenticationLogsPage = lazy(() => import('./pages/admin/users/AuthenticationLogsPage'));
+
+// Enterprise Navigation Pages - Vendors Category
+const VendorsPage = lazy(() => import('./pages/admin/vendors/VendorsPage'));
+const VendorApplicationsPage = lazy(() => import('./pages/admin/vendors/VendorApplicationsPage'));
+const VendorProductsPage = lazy(() => import('./pages/admin/vendors/VendorProductsPage'));
+const VendorOrdersPage = lazy(() => import('./pages/admin/vendors/VendorOrdersPage'));
+const VendorCommissionsPage = lazy(() => import('./pages/admin/vendors/VendorCommissionsPage'));
+
+// Enterprise Navigation Pages - Analytics Category
+const AnalyticsDashboard = lazy(() => import('./pages/admin/analytics/AnalyticsDashboard'));
+const SalesReportsPage = lazy(() => import('./pages/admin/analytics/SalesReportsPage'));
+const FinancialReportsPage = lazy(() => import('./pages/admin/analytics/FinancialReportsPage'));
+const PerformanceMetricsPage = lazy(() => import('./pages/admin/analytics/PerformanceMetricsPage'));
+const CustomReportsPage = lazy(() => import('./pages/admin/analytics/CustomReportsPage'));
+
+// Enterprise Navigation Pages - Settings Category
+const GeneralSettingsPage = lazy(() => import('./pages/admin/settings/GeneralSettingsPage'));
+const SecuritySettingsPage = lazy(() => import('./pages/admin/settings/SecuritySettingsPage'));
+const PaymentSettingsPage = lazy(() => import('./pages/admin/settings/PaymentSettingsPage'));
+const NotificationSettingsPage = lazy(() => import('./pages/admin/settings/NotificationSettingsPage'));
+const IntegrationsPage = lazy(() => import('./pages/admin/settings/IntegrationsPage'));
 const WarehouseMap = lazy(() => import('./components/admin/WarehouseMap'));
 const Productos = lazy(() => import('./pages/Productos'));
 const VendorProfile = lazy(() => import('./pages/VendorProfile'));
@@ -386,30 +413,125 @@ function App() {
               <Suspense fallback={<PageLoader />}>
                 <AdminLayout>
                   <Routes>
+                    {/* Default route - redirect to analytics dashboard */}
+                    <Route index element={<Navigate to='analytics' replace />} />
+
+                    {/* Legacy dashboard route */}
                     <Route path='dashboard' element={<AdminDashboard />} />
+
+                    {/* USERS Category Routes */}
                     <Route path='users' element={
                       <RoleGuard roles={[UserType.ADMIN, UserType.SUPERUSER]} strategy="any">
-                        <UserManagement />
+                        <UsersPage />
                       </RoleGuard>
                     } />
+                    <Route path='roles' element={
+                      <RoleGuard roles={[UserType.SUPERUSER]} strategy="exact">
+                        <RolesPage />
+                      </RoleGuard>
+                    } />
+                    <Route path='user-registration' element={
+                      <RoleGuard roles={[UserType.ADMIN, UserType.SUPERUSER]} strategy="any">
+                        <UserRegistrationPage />
+                      </RoleGuard>
+                    } />
+                    <Route path='auth-logs' element={
+                      <RoleGuard roles={[UserType.SUPERUSER]} strategy="exact">
+                        <AuthenticationLogsPage />
+                      </RoleGuard>
+                    } />
+
+                    {/* VENDORS Category Routes */}
+                    <Route path='vendors' element={
+                      <RoleGuard roles={[UserType.ADMIN, UserType.SUPERUSER]} strategy="any">
+                        <VendorsPage />
+                      </RoleGuard>
+                    } />
+                    <Route path='vendor-applications' element={
+                      <RoleGuard roles={[UserType.ADMIN, UserType.SUPERUSER]} strategy="any">
+                        <VendorApplicationsPage />
+                      </RoleGuard>
+                    } />
+                    <Route path='vendor-products' element={
+                      <RoleGuard roles={[UserType.ADMIN, UserType.SUPERUSER]} strategy="any">
+                        <VendorProductsPage />
+                      </RoleGuard>
+                    } />
+                    <Route path='vendor-orders' element={
+                      <RoleGuard roles={[UserType.ADMIN, UserType.SUPERUSER]} strategy="any">
+                        <VendorOrdersPage />
+                      </RoleGuard>
+                    } />
+                    <Route path='vendor-commissions' element={
+                      <RoleGuard roles={[UserType.ADMIN, UserType.SUPERUSER]} strategy="any">
+                        <VendorCommissionsPage />
+                      </RoleGuard>
+                    } />
+
+                    {/* ANALYTICS Category Routes */}
+                    <Route path='analytics' element={
+                      <RoleGuard roles={[UserType.ADMIN, UserType.SUPERUSER]} strategy="any">
+                        <AnalyticsDashboard />
+                      </RoleGuard>
+                    } />
+                    <Route path='sales-reports' element={
+                      <RoleGuard roles={[UserType.ADMIN, UserType.SUPERUSER]} strategy="any">
+                        <SalesReportsPage />
+                      </RoleGuard>
+                    } />
+                    <Route path='financial-reports' element={
+                      <RoleGuard roles={[UserType.ADMIN, UserType.SUPERUSER]} strategy="any">
+                        <FinancialReportsPage />
+                      </RoleGuard>
+                    } />
+                    <Route path='performance' element={
+                      <RoleGuard roles={[UserType.ADMIN, UserType.SUPERUSER]} strategy="any">
+                        <PerformanceMetricsPage />
+                      </RoleGuard>
+                    } />
+                    <Route path='custom-reports' element={
+                      <RoleGuard roles={[UserType.ADMIN, UserType.SUPERUSER]} strategy="any">
+                        <CustomReportsPage />
+                      </RoleGuard>
+                    } />
+
+                    {/* SETTINGS Category Routes */}
+                    <Route path='system-config' element={
+                      <RoleGuard roles={[UserType.SUPERUSER]} strategy="exact">
+                        <GeneralSettingsPage />
+                      </RoleGuard>
+                    } />
+                    <Route path='security' element={
+                      <RoleGuard roles={[UserType.SUPERUSER]} strategy="exact">
+                        <SecuritySettingsPage />
+                      </RoleGuard>
+                    } />
+                    <Route path='database' element={
+                      <RoleGuard roles={[UserType.SUPERUSER]} strategy="exact">
+                        <PaymentSettingsPage />
+                      </RoleGuard>
+                    } />
+                    <Route path='notifications' element={
+                      <RoleGuard roles={[UserType.ADMIN, UserType.SUPERUSER]} strategy="any">
+                        <NotificationSettingsPage />
+                      </RoleGuard>
+                    } />
+                    <Route path='integrations' element={
+                      <RoleGuard roles={[UserType.ADMIN, UserType.SUPERUSER]} strategy="any">
+                        <IntegrationsPage />
+                      </RoleGuard>
+                    } />
+
+                    {/* Legacy Routes - Keep for backward compatibility */}
                     <Route path='orders' element={<OrdersManagement />} />
                     <Route path='alertas-incidentes' element={<AlertasIncidentes />} />
                     <Route path='movement-tracker' element={<MovementTrackerPage />} />
                     <Route path='reportes-discrepancias' element={<ReportesDiscrepanciasPage />} />
                     <Route path='cola-productos-entrantes' element={<IncomingProductsQueuePage />} />
-                    <Route path='system-config' element={
-                      <RoleGuard roles={[UserType.SUPERUSER]} strategy="exact">
-                        <SystemConfig />
-                      </RoleGuard>
-                    } />
                     <Route path='warehouse-map' element={<WarehouseMap />} />
                     <Route path='auditoria' element={<InventoryAuditPanel />} />
                     <Route path='storage-manager' element={<StorageManagerDashboard />} />
                     <Route path='space-optimizer' element={<SpaceOptimizerDashboard />} />
-                    <Route
-                      index
-                      element={<Navigate to='dashboard' replace />}
-                    />
                   </Routes>
                 </AdminLayout>
               </Suspense>

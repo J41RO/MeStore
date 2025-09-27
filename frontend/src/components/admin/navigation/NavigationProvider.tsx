@@ -275,10 +275,10 @@ export const NavigationProvider: React.FC<NavigationProviderProps> = ({
   }, [state, onError]);
 
   /**
-   * Navigation actions with performance optimization
+   * Navigation actions with proper memoization
    */
   const actions: NavigationActions = useMemo(() => ({
-    setActiveItem: useCallback((itemId: string) => {
+    setActiveItem: (itemId: string) => {
       const startTime = performance.now();
       dispatch({ type: 'SET_ACTIVE_ITEM', payload: itemId });
 
@@ -297,9 +297,9 @@ export const NavigationProvider: React.FC<NavigationProviderProps> = ({
           metadata: { performanceMs: endTime - startTime }
         }
       });
-    }, [userRole]),
+    },
 
-    toggleCategory: useCallback((categoryId: string) => {
+    toggleCategory: (categoryId: string) => {
       const startTime = performance.now();
       dispatch({ type: 'TOGGLE_CATEGORY', payload: categoryId });
 
@@ -316,20 +316,20 @@ export const NavigationProvider: React.FC<NavigationProviderProps> = ({
           metadata: { performanceMs: endTime - startTime }
         }
       });
-    }, [userRole]),
+    },
 
-    setCategoryCollapsed: useCallback((categoryId: string, collapsed: boolean) => {
+    setCategoryCollapsed: (categoryId: string, collapsed: boolean) => {
       dispatch({
         type: 'SET_CATEGORY_COLLAPSED',
         payload: { categoryId, collapsed }
       });
-    }, []),
+    },
 
-    updatePreferences: useCallback((preferences: Partial<NavigationPreferences>) => {
+    updatePreferences: (preferences: Partial<NavigationPreferences>) => {
       dispatch({ type: 'UPDATE_PREFERENCES', payload: preferences });
-    }, []),
+    },
 
-    resetState: useCallback(() => {
+    resetState: () => {
       dispatch({ type: 'RESET_STATE' });
 
       // Clear localStorage
@@ -339,25 +339,25 @@ export const NavigationProvider: React.FC<NavigationProviderProps> = ({
       } catch (error) {
         console.warn('Failed to clear navigation state from localStorage:', error);
       }
-    }, []),
+    },
 
-    trackEvent: useCallback((event: NavigationEvent) => {
+    trackEvent: (event: NavigationEvent) => {
       dispatch({ type: 'TRACK_EVENT', payload: event });
-    }, []),
+    },
 
-    handleError: useCallback((error: NavigationError) => {
+    handleError: (error: NavigationError) => {
       dispatch({ type: 'HANDLE_ERROR', payload: error });
       if (onError) {
         onError(error);
       }
-    }, [onError])
+    }
   }), [userRole, onError]);
 
   /**
-   * Navigation utilities with memoization
+   * Navigation utilities with proper memoization
    */
   const utils: NavigationUtils = useMemo(() => ({
-    hasAccess: useCallback((item: NavigationItem | NavigationCategory, userRole: UserRole) => {
+    hasAccess: (item: NavigationItem | NavigationCategory, userRole: UserRole) => {
       if (!item.requiredRole) return true;
 
       const roleHierarchy = {
@@ -369,32 +369,32 @@ export const NavigationProvider: React.FC<NavigationProviderProps> = ({
       };
 
       return roleHierarchy[userRole] >= roleHierarchy[item.requiredRole];
-    }, []),
+    },
 
-    getCategoryByItemId: useCallback((itemId: string) => {
+    getCategoryByItemId: (itemId: string) => {
       const result = navigationConfigUtils.getItemById(itemId);
       return result?.category || null;
-    }, []),
+    },
 
-    getItemById: useCallback((itemId: string) => {
+    getItemById: (itemId: string) => {
       const result = navigationConfigUtils.getItemById(itemId);
       return result?.item || null;
-    }, []),
+    },
 
-    filterByRole: useCallback((items: NavigationItem[], userRole: UserRole) => {
+    filterByRole: (items: NavigationItem[], userRole: UserRole) => {
       return navigationConfigUtils.getItemsByRole({ items } as NavigationCategory, userRole);
-    }, []),
+    },
 
-    getBreadcrumb: useCallback((itemId: string) => {
+    getBreadcrumb: (itemId: string) => {
       const result = navigationConfigUtils.getItemById(itemId);
       if (!result) return [];
 
       return [result.category.title, result.item.title];
-    }, []),
+    },
 
-    isActiveByPath: useCallback((path: string, currentPath: string) => {
+    isActiveByPath: (path: string, currentPath: string) => {
       return path === currentPath || currentPath.startsWith(path + '/');
-    }, [])
+    }
   }), []);
 
   /**

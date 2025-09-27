@@ -1,9 +1,10 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 
 const AdminPortal: React.FC = () => {
   const { isAuthenticated, user } = useAuthStore();
+  const navigate = useNavigate();
 
   // Si ya está autenticado como admin, redirigir al dashboard
   if (isAuthenticated && (user?.user_type === 'ADMIN' || user?.user_type === 'SUPERUSER')) {
@@ -97,7 +98,7 @@ const AdminPortal: React.FC = () => {
 
             <div className="space-y-6">
               <button
-                onClick={() => window.location.href = '/admin-login'}
+                onClick={() => navigate('/admin-login')}
                 className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-5 px-8 rounded-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl"
               >
                 <span className="text-lg">Acceder al Sistema</span>
@@ -108,7 +109,7 @@ const AdminPortal: React.FC = () => {
               </div>
 
                 <button
-                  onClick={() => window.location.href = '/login'}
+                  onClick={() => navigate('/login')}
                   className="w-full border border-white/20 hover:border-white/30 bg-white/5 hover:bg-white/10 backdrop-blur-sm text-slate-300 hover:text-white font-medium py-4 px-8 rounded-2xl transition-all duration-300"
                 >
                   Portal Público

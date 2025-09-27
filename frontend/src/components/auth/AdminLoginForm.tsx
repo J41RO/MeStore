@@ -45,7 +45,7 @@ const AdminLoginForm: React.FC<AdminLoginFormProps> = ({ onLoginSuccess }) => {
         }
 
         // Navegar al dashboard administrativo
-        navigate('/admin/dashboard');
+        navigate('/admin-secure-portal/analytics');
       } else {
         // Error manejado por el hook useAuth
         console.error('Admin login failed:', result.error);

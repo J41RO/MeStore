@@ -36,6 +36,9 @@ import type {
 import { useNavigation } from './NavigationProvider';
 import { NavigationCategory as NavigationCategoryComponent } from './NavigationCategory';
 import { navigationConfigUtils } from './NavigationConfig';
+import { AccessibilityProvider, useAccessibility } from './AccessibilityProvider';
+import { KeyboardNavigationHandler } from './KeyboardNavigationHandler';
+import { AccessibilityTheme } from './AccessibilityTheme';
 
 /**
  * Performance configuration
@@ -59,6 +62,7 @@ export const CategoryNavigation: React.FC<CategoryNavigationProps> = memo(({
 }) => {
   const location = useLocation();
   const { state, actions, utils } = useNavigation();
+  const { actions: a11yActions } = useAccessibility();
 
   // Refs for performance optimization
   const containerRef = useRef<HTMLDivElement>(null);
@@ -304,22 +308,41 @@ export const CategoryNavigation: React.FC<CategoryNavigationProps> = memo(({
   }, [actions, userRole, accessibleCategories.length, visibleCategories.size]);
 
   return (
-    <nav
-      ref={containerRef}
-      className={containerClasses}
-      role="navigation"
-      aria-label="Admin navigation"
-      onKeyDown={handleKeyDown}
-      tabIndex={-1}
-    >
-      {/* Live region for screen readers */}
+    <AccessibilityTheme>
+      <KeyboardNavigationHandler
+        categories={accessibleCategories}
+        containerRef={containerRef}
+        onCategoryFocus={(categoryId) => {
+          a11yActions.announceNavigation(`${categoryId} category`, 'navigation');
+        }}
+        onItemFocus={(itemId, categoryId) => {
+          const category = accessibleCategories.find(c => c.id === categoryId);
+          const item = category?.items.find(i => i.id === itemId);
+          a11yActions.announceNavigation(item?.title || itemId, category?.title);
+        }}
+      >
+        <nav
+          ref={containerRef}
+          className={`admin-navigation ${containerClasses}`}
+          role="navigation"
+          aria-label="Admin navigation"
+          onKeyDown={handleKeyDown}
+          tabIndex={-1}
+        >
+      {/* Enhanced live region for screen readers */}
       <div
         aria-live="polite"
         aria-atomic="false"
         className="sr-only"
         role="status"
+        aria-label="Navigation status updates"
       >
         {activeItemId && `Current page: ${activeItemId}`}
+      </div>
+
+      {/* Navigation help for screen readers */}
+      <div className="sr-only" role="region" aria-label="Navigation help">
+        <p>Use arrow keys to navigate, Enter or Space to select, Alt+1-4 for category shortcuts</p>
       </div>
 
       {/* Navigation categories */}
@@ -335,13 +358,24 @@ export const CategoryNavigation: React.FC<CategoryNavigationProps> = memo(({
                   category={category}
                   userRole={userRole}
                   isActive={isActive}
-                  onToggle={() => handleCategoryToggle(category.id)}
-                  onItemClick={handleItemClick}
+                  onToggle={() => {
+                    handleCategoryToggle(category.id);
+                    const isExpanded = !state.collapsedState[category.id];
+                    a11yActions.announceStateChange(
+                      `${category.title} category ${isExpanded ? 'collapsed' : 'expanded'}`
+                    );
+                  }}
+                  onItemClick={(item) => {
+                    handleItemClick(item);
+                    a11yActions.announceNavigation(item.title, category.title);
+                  }}
                   className={`
+                    nav-category
                     transition-all duration-200
                     ${state.preferences.animations ? 'animate-fade-in' : ''}
                     ${state.preferences.accessibility.reduceMotion ? 'motion-reduce:transition-none' : ''}
                   `}
+                  data-category-id={category.id}
                 />
               ) : (
                 createLazyPlaceholder(category, index)
@@ -359,7 +393,9 @@ export const CategoryNavigation: React.FC<CategoryNavigationProps> = memo(({
           <div>Role: {userRole}</div>
         </div>
       )}
-    </nav>
+        </nav>
+      </KeyboardNavigationHandler>
+    </AccessibilityTheme>
   );
 });
 

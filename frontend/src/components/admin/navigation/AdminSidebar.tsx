@@ -37,7 +37,6 @@ import type {
   NavigationItem
 } from './NavigationTypes';
 
-import { NavigationProvider } from './NavigationProvider';
 import { CategoryNavigation } from './CategoryNavigation';
 import { enterpriseNavigationConfig } from './NavigationConfig';
 
@@ -107,10 +106,20 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = memo(({
    * Handle navigation item clicks
    */
   const handleItemClick = useCallback((item: NavigationItem) => {
-    // Navigation will be handled by the NavigationItem component
-    // This is just for additional tracking or logic if needed
+    // Navigate using React Router
+    navigate(item.path);
+
+    // Close mobile sidebar after navigation
+    if (window.innerWidth < 768) {
+      setTimeout(() => {
+        if (!isControlled) {
+          setInternalCollapsed(false);
+        }
+      }, 150);
+    }
+
     console.log(`Navigating to: ${item.title} (${item.path})`);
-  }, []);
+  }, [navigate, isControlled]);
 
   /**
    * Handle category toggle
@@ -129,10 +138,12 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = memo(({
   /**
    * Handle logout
    */
-  const handleLogout = useCallback(() => {
-    // This would typically call an auth service
-    console.log('Logout clicked');
-  }, []);
+  const handleLogout = useCallback(async () => {
+    // Import and use the auth store logout method
+    const { logout } = await import('../../../stores/authStore').then(m => m.useAuthStore.getState());
+    await logout();
+    navigate('/admin-login');
+  }, [navigate]);
 
   /**
    * Get user display name
@@ -161,11 +172,6 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = memo(({
   `.trim(), [collapsed]);
 
   return (
-    <NavigationProvider
-      categories={enterpriseNavigationConfig}
-      userRole={userRole}
-      onError={(error) => console.error('Navigation Error:', error)}
-    >
       <div className={sidebarClasses} data-testid="admin-sidebar">
         {/* Header Section */}
         <div className={headerClasses}>
@@ -296,7 +302,6 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = memo(({
           )}
         </div>
       </div>
-    </NavigationProvider>
   );
 });
 
