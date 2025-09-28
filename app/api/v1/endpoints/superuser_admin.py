@@ -164,51 +164,88 @@ async def get_users_paginated(
 
 @router.get("/users/stats")
 async def get_user_stats(
-    current_admin: User = Depends(require_superuser)
+    db: AsyncSession = Depends(get_db),
+    current_user: UserRead = Depends(require_superuser)
 ):
-    """Simple user stats endpoint"""
+    """Get real user statistics from PostgreSQL database"""
     try:
-        # Conexión directa a SQLite para evitar errores async/sync
-        import sqlite3
-        conn = sqlite3.connect('mestore_development.db')
-        cursor = conn.cursor()
+        from sqlalchemy import select, func
+        from datetime import datetime, timedelta
 
-        # Contar usuarios por tipo
-        cursor.execute("SELECT COUNT(*) FROM users")
-        total_users = cursor.fetchone()[0]
+        # Base filter: excluir usuarios soft-deleted (igual que el endpoint de listado)
+        base_filter = User.deleted_at.is_(None)
 
-        cursor.execute("SELECT COUNT(*) FROM users WHERE user_type = 'VENDOR'")
-        total_vendors = cursor.fetchone()[0]
+        # Contar usuarios totales usando ORM (solo activos, no soft-deleted)
+        result = await db.execute(select(func.count(User.id)).where(base_filter))
+        total_users = result.scalar()
 
-        cursor.execute("SELECT COUNT(*) FROM users WHERE is_verified = 1")
-        verified_users = cursor.fetchone()[0]
+        # Contar por tipo de usuario usando ORM (solo activos, no soft-deleted)
+        result = await db.execute(select(func.count(User.id)).where(
+            base_filter & (User.user_type == UserType.VENDOR)
+        ))
+        total_vendors = result.scalar()
 
-        cursor.execute("SELECT COUNT(*) FROM users WHERE is_active = 1")
-        active_users = cursor.fetchone()[0]
+        result = await db.execute(select(func.count(User.id)).where(
+            base_filter & (User.user_type == UserType.BUYER)
+        ))
+        total_buyers = result.scalar()
 
-        conn.close()
+        result = await db.execute(select(func.count(User.id)).where(
+            base_filter & (User.user_type == UserType.ADMIN)
+        ))
+        total_admins = result.scalar()
+
+        result = await db.execute(select(func.count(User.id)).where(
+            base_filter & (User.user_type == UserType.SUPERUSER)
+        ))
+        total_superusers = result.scalar()
+
+        # Contar usuarios verificados (solo activos, no soft-deleted)
+        result = await db.execute(select(func.count(User.id)).where(
+            base_filter & (User.is_verified == True)
+        ))
+        verified_users = result.scalar()
+
+        # Contar usuarios activos (solo activos, no soft-deleted)
+        result = await db.execute(select(func.count(User.id)).where(
+            base_filter & (User.is_active == True)
+        ))
+        active_users = result.scalar()
+
+        # Contar vendedores pendientes (vendors not verified) (solo activos, no soft-deleted)
+        result = await db.execute(select(func.count(User.id)).where(
+            base_filter & (User.user_type == UserType.VENDOR) & (User.is_verified == False)
+        ))
+        pending_vendors = result.scalar()
+
+        # Contar registros recientes (último mes) - compatible con SQLite y PostgreSQL (solo activos, no soft-deleted)
+        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+        result = await db.execute(select(func.count(User.id)).where(
+            base_filter & (User.created_at >= thirty_days_ago)
+        ))
+        recent_registrations = result.scalar()
 
         return {
             "totalUsers": total_users,
             "totalVendors": total_vendors,
-            "totalAdmins": total_users - total_vendors,
+            "totalBuyers": total_buyers,
+            "totalAdmins": total_admins,
+            "totalSuperusers": total_superusers,
             "verifiedUsers": verified_users,
             "activeUsers": active_users,
             "inactiveUsers": total_users - active_users,
-            "pendingVendors": total_vendors - verified_users,
-            "recentRegistrations": 0
+            "pendingVendors": pending_vendors,
+            "recentRegistrations": recent_registrations
         }
     except Exception as e:
-        return {
-            "totalUsers": 2,
-            "totalVendors": 1,
-            "totalAdmins": 1,
-            "verifiedUsers": 2,
-            "activeUsers": 2,
-            "inactiveUsers": 0,
-            "pendingVendors": 0,
-            "recentRegistrations": 0
-        }
+        print(f"Error in get_user_stats: {e}")
+        import traceback
+        traceback.print_exc()
+        # Return error instead of fallback to debug the issue
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database error in stats: {str(e)}"
+        )
 
 
 @router.get("/users/{user_id}", response_model=UserDetailedInfo)

@@ -118,25 +118,16 @@ export interface UserListResponse {
 }
 
 export interface UserStatsResponse {
-  total_users: number;
-  active_users: number;
-  inactive_users: number;
-  verified_users: number;
-  buyers: number;
-  vendors: number;
-  admins: number;
-  superusers: number;
-  email_verified: number;
-  phone_verified: number;
-  both_verified: number;
-  created_today: number;
-  created_this_week: number;
-  created_this_month: number;
-  vendor_stats: Record<string, number>;
-  recent_logins: number;
-  locked_accounts: number;
-  calculated_at: string;
-  period: string;
+  totalUsers: number;
+  totalVendors: number;
+  totalBuyers: number;
+  totalAdmins: number;
+  totalSuperusers: number;
+  verifiedUsers: number;
+  activeUsers: number;
+  inactiveUsers: number;
+  pendingVendors: number;
+  recentRegistrations: number;
 }
 
 export interface UserFilters {
@@ -244,12 +235,12 @@ export class SuperuserService {
       const response = await superuserApi.get('/api/v1/superuser-admin/users/stats');
       const stats: UserStatsResponse = response.data;
 
-      // Transform to legacy format for compatibility
+      // Transform to new backend format
       const usersByType = {
-        BUYER: stats.buyers,
-        VENDOR: stats.vendors,
-        ADMIN: stats.admins,
-        SUPERUSER: stats.superusers,
+        BUYER: stats.totalBuyers,
+        VENDOR: stats.totalVendors,
+        ADMIN: stats.totalAdmins,
+        SUPERUSER: stats.totalSuperusers,
       };
 
       // Mock recent activity for now (backend doesn't provide this yet)
@@ -260,10 +251,30 @@ export class SuperuserService {
       })).reverse();
 
       return {
-        ...stats,
-        totalUsers: stats.total_users,
-        activeUsers: stats.active_users,
-        verifiedUsers: stats.verified_users,
+        // Map new backend fields to expected frontend interface
+        total_users: stats.totalUsers,
+        active_users: stats.activeUsers,
+        inactive_users: stats.inactiveUsers,
+        verified_users: stats.verifiedUsers,
+        buyers: stats.totalBuyers,
+        vendors: stats.totalVendors,
+        admins: stats.totalAdmins,
+        superusers: stats.totalSuperusers,
+        email_verified: 0, // Not provided by backend yet
+        phone_verified: 0, // Not provided by backend yet
+        both_verified: 0, // Not provided by backend yet
+        created_today: 0, // Not provided by backend yet
+        created_this_week: 0, // Not provided by backend yet
+        created_this_month: 0, // Not provided by backend yet
+        vendor_stats: {},
+        recent_logins: 0, // Not provided by backend yet
+        locked_accounts: 0, // Not provided by backend yet
+        calculated_at: new Date().toISOString(),
+        period: 'all_time',
+        // Legacy compatibility
+        totalUsers: stats.totalUsers,
+        activeUsers: stats.activeUsers,
+        verifiedUsers: stats.verifiedUsers,
         usersByType,
         recentActivity,
       };
