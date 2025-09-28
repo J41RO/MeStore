@@ -4,7 +4,8 @@ import DeleteDiagnostic from '../../components/admin/DeleteDiagnostic';
 import UserDataTable from '../../components/admin/UserDataTable';
 import UserCreateModal from '../../components/admin/UserCreateModal';
 import UserDetailsModal from '../../components/admin/UserDetailsModal';
-import { User } from '../../services/superuserService';
+import UserFilters from '../../components/admin/UserFilters';
+import { User, UserFilters as UserFiltersType } from '../../services/superuserService';
 
 // User interface now imported from superuserService
 
@@ -38,9 +39,12 @@ const UserManagement: React.FC = () => {
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
   const [totalUsers, setTotalUsers] = useState(0);
 
+  // UserFilters state
+  const [filters, setFilters] = useState<UserFiltersType>({});
+
   useEffect(() => {
     loadUserData();
-  }, [currentPage, pageSize]);
+  }, [currentPage, pageSize, filters]);
 
   const loadUserData = async (showSuccessMessage?: string) => {
     try {
@@ -81,8 +85,20 @@ const UserManagement: React.FC = () => {
         });
       }
 
-      // Cargar lista de usuarios con paginación
-      const usersResponse = await fetch(`http://192.168.1.137:8000/api/v1/superuser-admin/users?page=${currentPage}&size=${pageSize}`, {
+      // Cargar lista de usuarios con paginación y filtros
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        size: pageSize.toString(),
+      });
+
+      // Agregar filtros activos a los parámetros
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          params.append(key, value.toString());
+        }
+      });
+
+      const usersResponse = await fetch(`http://192.168.1.137:8000/api/v1/superuser-admin/users?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -107,6 +123,17 @@ const UserManagement: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Funciones para manejar filtros
+  const handleFiltersChange = (newFilters: UserFiltersType) => {
+    setFilters(newFilters);
+    setCurrentPage(1); // Reset to first page when filters change
+  };
+
+  const handleFiltersReset = () => {
+    setFilters({});
+    setCurrentPage(1);
   };
 
   const performUserAction = async (userId: string, action: string, reason?: string) => {
@@ -566,6 +593,24 @@ const UserManagement: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* User Filters */}
+      <UserFilters
+        filters={filters}
+        onFiltersChange={handleFiltersChange}
+        onReset={handleFiltersReset}
+        userCounts={{
+          total: stats?.totalUsers || 0,
+          active: stats?.activeUsers || 0,
+          inactive: stats?.inactiveUsers || 0,
+          verified: stats?.verifiedUsers || 0,
+          unverified: (stats?.totalUsers || 0) - (stats?.verifiedUsers || 0),
+          buyers: stats?.totalBuyers || 0,
+          vendors: stats?.totalVendors || 0,
+          admins: stats?.totalAdmins || 0,
+          superusers: stats?.totalSuperusers || 0,
+        }}
+      />
 
       {/* Stats Cards */}
       {stats && (
