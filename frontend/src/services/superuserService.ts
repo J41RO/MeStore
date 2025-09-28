@@ -11,12 +11,27 @@ const superuserApi = axios.create({
   }
 });
 
-// Request interceptor to add auth token
+// Request interceptor to add auth token and CSRF token
 superuserApi.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  // Add CSRF token for POST, PUT, DELETE requests
+  if (['post', 'put', 'delete'].includes(config.method?.toLowerCase() || '')) {
+    // Generate CSRF token from user ID if available
+    try {
+      if (token) {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const csrfToken = `csrf_${payload.sub || 'default'}_${Date.now()}`;
+        config.headers['X-CSRF-Token'] = csrfToken;
+      }
+    } catch (error) {
+      console.warn('Could not generate CSRF token:', error);
+    }
+  }
+
   return config;
 });
 

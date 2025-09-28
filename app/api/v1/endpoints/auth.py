@@ -292,7 +292,7 @@ async def admin_login(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error interno en admin login: {str(e)} - email: {login_data.email}")
+        logger.error("Error interno en admin login: %s - email: %s", str(e), login_data.email)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error interno del servidor"

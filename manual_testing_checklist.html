@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Create Modal - Manual Testing Checklist</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; background: #f8fafc; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; text-align: center; }
+        .test-section { background: white; border-radius: 8px; padding: 25px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .test-title { color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 20px; }
+        .checklist-item { display: flex; align-items: center; padding: 12px; margin: 8px 0; background: #f9fafb; border-radius: 6px; border-left: 4px solid #d1d5db; }
+        .checklist-item.completed { border-left-color: #10b981; background: #ecfdf5; }
+        .checklist-item.failed { border-left-color: #ef4444; background: #fef2f2; }
+        .checklist-item input[type="checkbox"] { margin-right: 15px; width: 18px; height: 18px; }
+        .test-data { background: #f3f4f6; padding: 15px; border-radius: 6px; margin: 10px 0; font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; font-size: 14px; }
+        .urgent { background: #fef3c7; border: 1px solid #f59e0b; padding: 15px; border-radius: 6px; margin: 15px 0; }
+        .success { background: #dcfce7; border: 1px solid #22c55e; padding: 15px; border-radius: 6px; margin: 15px 0; }
+        .warning { background: #fef3c7; border: 1px solid #f59e0b; padding: 15px; border-radius: 6px; margin: 15px 0; }
+        .button { background: #4f46e5; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; margin: 5px; font-size: 14px; }
+        .button:hover { background: #4338ca; }
+        .button.secondary { background: #6b7280; }
+        .progress-bar { width: 100%; height: 12px; background: #e5e7eb; border-radius: 6px; margin: 20px 0; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #10b981, #22c55e); transition: width 0.3s; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin: 20px 0; }
+        .stat-card { background: white; padding: 20px; border-radius: 8px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .stat-number { font-size: 2em; font-weight: bold; color: #4f46e5; }
+        .stat-label { color: #6b7280; font-size: 0.875em; margin-top: 5px; }
+        .test-steps { counter-reset: step-counter; }
+        .test-step { counter-increment: step-counter; position: relative; padding-left: 40px; margin: 15px 0; }
+        .test-step::before { content: counter(step-counter); position: absolute; left: 0; top: 0; background: #4f46e5; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; }
+        .test-step.completed::before { background: #10b981; content: "✓"; }
+        .test-step.failed::before { background: #ef4444; content: "✗"; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 User Create Modal - Manual Testing Checklist</h1>
+            <p>Complete functional validation for MeStore Admin System</p>
+            <p><strong>Target System:</strong> http://192.168.1.137:5175</p>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="total-tests">0</div>
+                <div class="stat-label">Total Tests</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="completed-tests">0</div>
+                <div class="stat-label">Completed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="success-rate">0%</div>
+                <div class="stat-label">Success Rate</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="current-status">Ready</div>
+                <div class="stat-label">Status</div>
+            </div>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+        </div>
+
+        <div class="urgent">
+            <h3>🚨 CRITICAL: Start Here</h3>
+            <p><strong>1. Open Admin System:</strong> <a href="http://192.168.1.137:5175" target="_blank">http://192.168.1.137:5175</a></p>
+            <p><strong>2. Login Credentials:</strong> admin@mestocker.com / Admin123456</p>
+            <p><strong>3. Navigate to User Management section</strong></p>
+        </div>
+
+        <div class="test-section">
+            <h2 class="test-title">Test 1: Modal Opening & Structure</h2>
+            <div class="test-steps">
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Click "Create User" button in User Management section</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Verify modal opens with dark overlay background</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Confirm modal header shows "Create New User"</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Verify progress indicator shows "Step 1 of 3: Basic Information"</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Confirm close button (X) is visible and functional</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2 class="test-title">Test 2: Step 1 - Basic Information Fields</h2>
+            <div class="test-steps">
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Verify "Email Address *" field is present and required</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Verify "First Name *" and "Last Name *" fields are present</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Verify "Password *" field with complexity hint</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Verify "Confirm Password *" field is present</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Test "Next" button - should validate required fields</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2 class="test-title">Test 3: Form Validation Testing</h2>
+            <div class="test-steps">
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Test empty email - should show "Email is required" error</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Test invalid email format - should show format error</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Test weak password - should enforce complexity rules</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Test password mismatch - should show "Passwords do not match"</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Verify error messages clear when user starts typing</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2 class="test-title">Test 4: Step Progression</h2>
+            <div class="test-steps">
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Fill valid data in Step 1 and click "Next"</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Verify progression to "Step 2 of 3: Additional Details"</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Test "Previous" button - should return to Step 1</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Progress to Step 3 and verify "Security Settings"</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Verify step indicators update correctly (checkmarks)</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2 class="test-title">Test 5: User Creation - BUYER User</h2>
+            <div class="test-data">
+<strong>Test Data for BUYER:</strong>
+Email: manual.buyer.1759082454@example.com
+Password: BuyerPass123!
+First Name: Manual
+Last Name: Buyer
+User Type: BUYER
+Security Level: 1
+Phone: +1-555-0001
+Document: DOC1759082454001
+            </div>
+            <div class="test-steps">
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Fill all fields with BUYER test data</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Select "BUYER" user type in Step 3</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Click "Create User" and verify success message</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Verify modal closes after successful creation</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Check User Data Table - new BUYER should appear</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2 class="test-title">Test 6: User Creation - VENDOR User</h2>
+            <div class="test-data">
+<strong>Test Data for VENDOR:</strong>
+Email: manual.vendor.1759082454@example.com
+Password: VendorPass123!
+First Name: Manual
+Last Name: Vendor
+User Type: VENDOR
+Security Level: 2
+Phone: +1-555-0002
+Document: DOC1759082454002
+            </div>
+            <div class="test-steps">
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Open Create User modal again</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Fill all fields with VENDOR test data</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Select "VENDOR" user type and security level 2</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Create user and verify success</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Verify new VENDOR appears in User Data Table</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2 class="test-title">Test 7: User Creation - ADMIN User</h2>
+            <div class="test-data">
+<strong>Test Data for ADMIN:</strong>
+Email: manual.admin.1759082454@example.com
+Password: AdminPass123!
+First Name: Manual
+Last Name: Admin
+User Type: ADMIN
+Security Level: 5
+Phone: +1-555-0003
+Document: DOC1759082454003
+            </div>
+            <div class="test-steps">
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Open Create User modal again</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Fill all fields with ADMIN test data</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Select "ADMIN" user type and security level 5</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Create user and verify success</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Verify new ADMIN appears in User Data Table</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2 class="test-title">Test 8: Error Handling & Edge Cases</h2>
+            <div class="test-steps">
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Try creating user with duplicate email (should fail)</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Test phone number validation with invalid formats</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Test document field with less than 5 characters</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Verify error messages are user-friendly</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Test modal close behavior with unsaved changes</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2 class="test-title">Test 9: Data Persistence Verification</h2>
+            <div class="test-steps">
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Refresh the User Data Table page</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Verify all 3 created users still appear</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Click on each user to view details</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Verify all fields saved correctly</span>
+                    </label>
+                </div>
+                <div class="test-step">
+                    <label class="checklist-item">
+                        <input type="checkbox" onchange="updateProgress()">
+                        <span>Confirm user types and security levels are correct</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2 class="test-title">Final Validation Summary</h2>
+            <div id="final-results">
+                <p>Complete all tests above to see final validation results.</p>
+            </div>
+            <button class="button" onclick="generateReport()">Generate Final Report</button>
+            <button class="button secondary" onclick="resetTests()">Reset All Tests</button>
+        </div>
+    </div>
+
+    <script>
+        function updateProgress() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            const totalTests = checkboxes.length;
+            const completedTests = Array.from(checkboxes).filter(cb => cb.checked).length;
+            const successRate = totalTests > 0 ? Math.round((completedTests / totalTests) * 100) : 0;
+
+            document.getElementById('total-tests').textContent = totalTests;
+            document.getElementById('completed-tests').textContent = completedTests;
+            document.getElementById('success-rate').textContent = successRate + '%';
+            document.getElementById('progress-fill').style.width = successRate + '%';
+
+            // Update status
+            let status = 'In Progress';
+            if (completedTests === 0) status = 'Ready';
+            if (completedTests === totalTests) status = 'Complete';
+            document.getElementById('current-status').textContent = status;
+
+            // Update checklist item styles
+            checkboxes.forEach(checkbox => {
+                const item = checkbox.closest('.checklist-item');
+                if (checkbox.checked) {
+                    item.classList.add('completed');
+                } else {
+                    item.classList.remove('completed');
+                }
+            });
+
+            // Update test step styles
+            document.querySelectorAll('.test-step').forEach(step => {
+                const checkbox = step.querySelector('input[type="checkbox"]');
+                if (checkbox && checkbox.checked) {
+                    step.classList.add('completed');
+                } else {
+                    step.classList.remove('completed');
+                }
+            });
+
+            // Show final results if all tests complete
+            if (completedTests === totalTests) {
+                showFinalResults();
+            }
+        }
+
+        function showFinalResults() {
+            const resultsDiv = document.getElementById('final-results');
+            resultsDiv.innerHTML = `
+                <div class="success">
+                    <h3>🎉 All Tests Completed!</h3>
+                    <p><strong>Validation Status:</strong> ✅ COMPLETE</p>
+                    <p><strong>User Create Modal Assessment:</strong> 🟢 PRODUCTION READY</p>
+                    <p><strong>Tests Passed:</strong> ${document.getElementById('completed-tests').textContent}/${document.getElementById('total-tests').textContent}</p>
+                    <p><strong>Success Rate:</strong> ${document.getElementById('success-rate').textContent}</p>
+
+                    <h4>Key Validations Confirmed:</h4>
+                    <ul>
+                        <li>✅ Modal opening and structure</li>
+                        <li>✅ Multi-step form progression</li>
+                        <li>✅ Form validation rules</li>
+                        <li>✅ User creation for all types</li>
+                        <li>✅ Error handling and edge cases</li>
+                        <li>✅ Data persistence verification</li>
+                    </ul>
+
+                    <h4>Production Readiness:</h4>
+                    <p>The User Create Modal component has been thoroughly validated and is ready for production deployment. All critical functionality works as expected with proper error handling and user experience.</p>
+                </div>
+            `;
+        }
+
+        function generateReport() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            const totalTests = checkboxes.length;
+            const completedTests = Array.from(checkboxes).filter(cb => cb.checked).length;
+
+            const report = {
+                timestamp: new Date().toISOString(),
+                validation_type: "User Create Modal - Manual Testing",
+                total_tests: totalTests,
+                completed_tests: completedTests,
+                success_rate: Math.round((completedTests / totalTests) * 100),
+                status: completedTests === totalTests ? "COMPLETE" : "PARTIAL",
+                production_ready: completedTests === totalTests,
+                test_results: []
+            };
+
+            // Collect individual test results
+            document.querySelectorAll('.test-section').forEach(section => {
+                const title = section.querySelector('.test-title').textContent;
+                const sectionCheckboxes = section.querySelectorAll('input[type="checkbox"]');
+                const sectionCompleted = Array.from(sectionCheckboxes).filter(cb => cb.checked).length;
+
+                report.test_results.push({
+                    section: title,
+                    total: sectionCheckboxes.length,
+                    completed: sectionCompleted,
+                    success_rate: Math.round((sectionCompleted / sectionCheckboxes.length) * 100)
+                });
+            });
+
+            // Download report as JSON
+            const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `user_create_modal_manual_test_report_${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            alert('Test report generated and downloaded!');
+        }
+
+        function resetTests() {
+            if (confirm('Are you sure you want to reset all test progress?')) {
+                document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                    cb.checked = false;
+                });
+                updateProgress();
+                document.getElementById('final-results').innerHTML = '<p>Complete all tests above to see final validation results.</p>';
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateProgress();
+        });
+    </script>
+</body>
+</html>

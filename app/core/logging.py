@@ -26,6 +26,10 @@ class AuditLogger:
         """Log audit warnings"""
         self.logger.warning(message, extra=extra)
 
+    def error(self, message: str, extra: Dict[str, Any] = None):
+        """Log audit errors"""
+        self.logger.error(message, extra=extra)
+
     def log_admin_action(self, user_id: str, action: str, endpoint: str, status_code: int = None):
         """Log admin actions for audit trail"""
         audit_data = {

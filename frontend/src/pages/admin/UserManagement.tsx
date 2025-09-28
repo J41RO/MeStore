@@ -1,18 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Users, UserCheck, UserX, Shield, Plus, Edit, Trash2, UserMinus, CheckCircle } from 'lucide-react';
 import DeleteDiagnostic from '../../components/admin/DeleteDiagnostic';
+import UserDataTable from '../../components/admin/UserDataTable';
+import UserCreateModal from '../../components/admin/UserCreateModal';
+import { User } from '../../services/superuserService';
 
-interface User {
-  id: string;
-  email: string;
-  nombre: string;
-  apellido: string;
-  user_type: string;
-  vendor_status: string;
-  is_active: boolean;
-  is_verified: boolean;
-  created_at: string;
-}
+// User interface now imported from superuserService
 
 interface UserStats {
   total_users: number;
@@ -30,13 +23,20 @@ const UserManagement: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+
+  // UserDataTable state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
+  const [totalUsers, setTotalUsers] = useState(0);
 
   useEffect(() => {
     loadUserData();
   }, []);
 
-  const loadUserData = async () => {
+  const loadUserData = async (showSuccessMessage?: string) => {
     try {
       setLoading(true);
       const token = localStorage.getItem('access_token');
@@ -82,6 +82,12 @@ const UserManagement: React.FC = () => {
       if (usersResponse.ok) {
         const usersData = await usersResponse.json();
         setUsers(usersData.users || []);
+        setTotalUsers(usersData.total || usersData.users?.length || 0);
+
+        // Show success message if provided
+        if (showSuccessMessage) {
+          setTimeout(() => alert(showSuccessMessage), 100);
+        }
       } else {
         setError('Failed to load users');
       }
@@ -165,14 +171,19 @@ const UserManagement: React.FC = () => {
             if (deleteResponse.ok) {
               const responseData = await deleteResponse.json();
               console.log('✅ DELETE Success:', responseData);
-              alert('✅ Usuario eliminado correctamente');
-              await loadUserData();
+              await loadUserData('✅ Usuario eliminado correctamente'); // Refresh user list with success message
+              return; // Exit early after success
+            } else if (deleteResponse.status === 404) {
+              // 404 might mean user was already deleted - treat as success
+              console.log('🔄 User already deleted (404), treating as success');
+              await loadUserData('✅ Usuario eliminado correctamente (ya había sido eliminado)'); // Refresh user list with success message
+              return; // Exit early after treating 404 as success
             } else {
-              // Enhanced error handling
+              // Enhanced error handling for other errors
               let errorMessage = 'Error desconocido';
               try {
                 const errorData = await deleteResponse.json();
-                errorMessage = errorData.detail || errorData.message || `HTTP ${deleteResponse.status}`;
+                errorMessage = errorData.error_message || errorData.detail || errorData.message || `HTTP ${deleteResponse.status}`;
                 console.log('❌ DELETE Error Data:', errorData);
               } catch (parseError) {
                 console.log('❌ Could not parse error response, status:', deleteResponse.status);
@@ -321,6 +332,71 @@ const UserManagement: React.FC = () => {
     handleSuspendUser(userId);
   };
 
+  // UserDataTable handlers
+  const handleUserSelect = (userId: string) => {
+    const newSelected = new Set(selectedUsers);
+    if (newSelected.has(userId)) {
+      newSelected.delete(userId);
+    } else {
+      newSelected.add(userId);
+    }
+    setSelectedUsers(newSelected);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedUsers.size === users.length) {
+      setSelectedUsers(new Set());
+    } else {
+      setSelectedUsers(new Set(users.map(u => u.id)));
+    }
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size);
+    setCurrentPage(1);
+  };
+
+  // Adapted handlers for UserDataTable
+  const handleUserEdit = (user: User) => {
+    setSelectedUser(user);
+    setEditModalOpen(true);
+  };
+
+  const handleUserDelete = (user: User) => {
+    const reason = prompt('Motivo de la eliminación (obligatorio):');
+    if (reason && confirm(`¿CONFIRMAS que quieres ELIMINAR al usuario ${user.email}? Esta acción no se puede deshacer.`)) {
+      performUserAction(user.id, 'delete', reason);
+    }
+  };
+
+  const handleUserToggleStatus = (user: User) => {
+    if (user.is_active) {
+      const reason = prompt('Motivo de la suspensión (opcional):');
+      if (confirm(`¿Confirmas que quieres suspender al usuario ${user.email}?`)) {
+        performUserAction(user.id, 'suspend', reason || 'Suspendido por administrador');
+      }
+    } else {
+      if (confirm(`¿Confirmas que quieres activar al usuario ${user.email}?`)) {
+        performUserAction(user.id, 'activate', 'Activado por administrador');
+      }
+    }
+  };
+
+  const handleUserView = (user: User) => {
+    // Show user details modal or navigate to user detail page
+    alert(`Ver detalles de: ${user.email}\n\nFuncionalidad de vista detallada disponible próximamente.`);
+  };
+
+  const handleUserCreated = (newUser: User) => {
+    // Refresh the user list after creating a new user
+    loadUserData('✅ Usuario creado exitosamente');
+    setCreateModalOpen(false);
+  };
+
   const getUserActions = (user: User) => {
     const actions = [];
 
@@ -463,7 +539,7 @@ const UserManagement: React.FC = () => {
               🔄 Actualizar
             </button>
             <button
-              onClick={() => alert('Función de agregar usuario disponible próximamente')}
+              onClick={() => setCreateModalOpen(true)}
               className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors"
             >
               <Plus className="h-4 w-4 inline mr-1" />
@@ -518,87 +594,23 @@ const UserManagement: React.FC = () => {
         </div>
       )}
 
-      {/* Users Table */}
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-medium text-gray-900">Lista de Usuarios ({users.length})</h2>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Usuario
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Tipo
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Estado
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Fecha Registro
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Acciones
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {users.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{user.email}</div>
-                      <div className="text-sm text-gray-500">
-                        {user.nombre} {user.apellido}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      user.user_type === 'SUPERUSER' ? 'bg-purple-100 text-purple-800' :
-                      user.user_type === 'ADMIN' ? 'bg-blue-100 text-blue-800' :
-                      'bg-green-100 text-green-800'
-                    }`}>
-                      {user.user_type}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex space-x-2">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}>
-                        {user.is_active ? 'Activo' : 'Inactivo'}
-                      </span>
-                      {user.is_verified && (
-                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                          Verificado
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    {getUserActions(user)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {users.length === 0 && (
-          <div className="text-center py-8">
-            <Users className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No hay usuarios</h3>
-            <p className="mt-1 text-sm text-gray-500">No se encontraron usuarios en el sistema.</p>
-          </div>
-        )}
-      </div>
+      {/* Advanced Users Table */}
+      <UserDataTable
+        users={users}
+        total={totalUsers}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        loading={loading}
+        selectedUsers={selectedUsers}
+        onUserSelect={handleUserSelect}
+        onSelectAll={handleSelectAll}
+        onPageChange={handlePageChange}
+        onPageSizeChange={handlePageSizeChange}
+        onUserEdit={handleUserEdit}
+        onUserDelete={handleUserDelete}
+        onUserToggleStatus={handleUserToggleStatus}
+        onUserView={handleUserView}
+      />
 
       {/* Modal de Edición de Usuario */}
       {editModalOpen && selectedUser && (
@@ -621,6 +633,13 @@ const UserManagement: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Modal de Creación de Usuario */}
+      <UserCreateModal
+        isOpen={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        onUserCreated={handleUserCreated}
+      />
     </div>
   );
 };

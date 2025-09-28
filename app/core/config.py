@@ -146,7 +146,7 @@ class Settings(BaseSettings):
         description="Allowed HTTP methods for CORS"
     )
     CORS_ALLOW_HEADERS: str = Field(
-        default="Authorization,Content-Type,Accept,X-Requested-With,Cache-Control,X-API-Key",
+        default="Authorization,Content-Type,Accept,X-Requested-With,Cache-Control,X-API-Key,X-CSRF-Token",
         description="Allowed headers for CORS requests"
     )
 

@@ -165,7 +165,7 @@ class SuperuserService:
 
             # Obtener total antes de paginación
             count_query = select(func.count()).select_from(query.subquery())
-            total_result = self.db.execute(count_query)
+            total_result = await self.db.execute(count_query)
             total = total_result.scalar()
 
             # Aplicar ordenamiento
@@ -181,7 +181,7 @@ class SuperuserService:
                 selectinload(User.transacciones_vendedor)
             )
 
-            result = self.db.execute(query)
+            result = await self.db.execute(query)
             users = result.scalars().all()
 
             # Convertir a UserSummary con información calculada
@@ -205,7 +205,7 @@ class SuperuserService:
             summary_stats = await self._calculate_result_stats(user_summaries)
 
             # Log de auditoría
-            await self._log_admin_action(
+            self._log_admin_action(
                 current_user.id,
                 "list_users",
                 f"Listed {len(user_summaries)} users with filters: {filters_applied}"
@@ -318,7 +318,7 @@ class SuperuserService:
         """
         try:
             query = select(User).where(User.id == user_id)
-            result = self.db.execute(query)
+            result = await self.db.execute(query)
             user = result.scalar_one_or_none()
 
             if not user:
@@ -328,7 +328,7 @@ class SuperuserService:
                 )
 
             # Log de auditoría
-            await self._log_admin_action(
+            self._log_admin_action(
                 current_user.id,
                 "view_user_details",
                 f"Viewed details for user {user.email} (ID: {user_id})"
@@ -445,7 +445,7 @@ class SuperuserService:
             await self.db.refresh(new_user)
 
             # Log de auditoría
-            await self._log_admin_action(
+            self._log_admin_action(
                 current_user.id,
                 "create_user",
                 f"Created user {new_user.email} (ID: {new_user.id}) with type {user_data.user_type.value}",
@@ -489,7 +489,7 @@ class SuperuserService:
         try:
             # Obtener usuario existente
             query = select(User).where(User.id == user_id)
-            result = self.db.execute(query)
+            result = await self.db.execute(query)
             user = result.scalar_one_or_none()
 
             if not user:
@@ -526,7 +526,7 @@ class SuperuserService:
             await self.db.refresh(user)
 
             # Log de auditoría
-            await self._log_admin_action(
+            self._log_admin_action(
                 current_user.id,
                 "update_user",
                 f"Updated user {user.email} (ID: {user_id}). Changes: {', '.join(changes)}",
@@ -568,9 +568,14 @@ class SuperuserService:
             HTTPException: Si hay dependencias o errores
         """
         try:
+            logger.info(f"DEBUGGING: Starting delete_user for user_id: {user_id}")
+            logger.info(f"DEBUGGING: self.db = {self.db}")
             # Obtener usuario
             query = select(User).where(User.id == user_id)
-            result = self.db.execute(query)
+            logger.info(f"DEBUGGING: query = {query}")
+            logger.info(f"DEBUGGING: About to execute query")
+            result = await self.db.execute(query)
+            logger.info(f"DEBUGGING: Query executed successfully")
             user = result.scalar_one_or_none()
 
             if not user:
@@ -586,8 +591,10 @@ class SuperuserService:
                     detail="No puedes eliminarte a ti mismo"
                 )
 
+            logger.info(f"DEBUGGING: About to check user dependencies")
             # Verificar dependencias críticas
             dependencies_check = await self._check_user_dependencies(user)
+            logger.info(f"DEBUGGING: Dependencies check completed: {dependencies_check}")
 
             if dependencies_check["has_critical_dependencies"]:
                 raise HTTPException(
@@ -599,11 +606,11 @@ class SuperuserService:
             cleanup_results = await self._cleanup_user_dependencies(user)
 
             # Eliminar usuario
-            await self.db.delete(user)
+            self.db.delete(user)
             await self.db.commit()
 
             # Log de auditoría
-            await self._log_admin_action(
+            self._log_admin_action(
                 current_user.id,
                 "delete_user",
                 f"Deleted user {user.email} (ID: {user_id}). Reason: {reason or 'Not specified'}",
@@ -673,7 +680,7 @@ class SuperuserService:
             type_stats = {}
             for user_type in UserType:
                 type_query = select(func.count(User.id)).filter(User.user_type == user_type)
-                type_result = self.db.execute(type_query)
+                type_result = await self.db.execute(type_query)
                 type_stats[user_type.value.lower()] = type_result.scalar()
 
             # Estadísticas de verificación
@@ -724,7 +731,7 @@ class SuperuserService:
             vendor_stats = await self._get_vendor_statistics()
 
             # Log de auditoría
-            await self._log_admin_action(
+            self._log_admin_action(
                 current_user.id,
                 "view_user_statistics",
                 "Viewed user statistics dashboard"
@@ -768,14 +775,14 @@ class SuperuserService:
             query = select(func.count(User.id)).filter(
                 and_(User.user_type == UserType.VENDOR, User.vendor_status == vendor_status)
             )
-            result = self.db.execute(query)
+            result = await self.db.execute(query)
             vendor_stats[f"vendor_{vendor_status.value}"] = result.scalar()
 
         # Vendors con productos
         vendors_with_products_query = select(func.count(func.distinct(Product.vendedor_id))).filter(
             Product.vendedor_id.is_not(None)
         )
-        result = self.db.execute(vendors_with_products_query)
+        result = await self.db.execute(vendors_with_products_query)
         vendor_stats["vendors_with_products"] = result.scalar()
 
         return vendor_stats
@@ -806,7 +813,7 @@ class SuperuserService:
         try:
             # Verificar que los usuarios existen
             users_query = select(User).filter(User.id.in_(action_request.user_ids))
-            result = self.db.execute(users_query)
+            result = await self.db.execute(users_query)
             users = result.scalars().all()
 
             found_ids = {str(user.id) for user in users}
@@ -840,7 +847,7 @@ class SuperuserService:
                 await self.db.commit()
 
             # Log de auditoría
-            await self._log_admin_action(
+            self._log_admin_action(
                 current_user.id,
                 f"bulk_{action_request.action}",
                 f"Bulk action {action_request.action} on {len(action_request.user_ids)} users. {len(successful_users)} successful, {len(failed_users)} failed",
@@ -906,13 +913,13 @@ class SuperuserService:
     async def _check_user_exists_by_email(self, email: str) -> Optional[User]:
         """Verificar si existe usuario con email específico."""
         query = select(User).where(User.email == email)
-        result = self.db.execute(query)
+        result = await self.db.execute(query)
         return result.scalar_one_or_none()
 
     async def _check_user_exists_by_cedula(self, cedula: str) -> Optional[User]:
         """Verificar si existe usuario con cédula específica."""
         query = select(User).where(User.cedula == cedula)
-        result = self.db.execute(query)
+        result = await self.db.execute(query)
         return result.scalar_one_or_none()
 
     async def _check_user_dependencies(self, user: User) -> Dict[str, Any]:
@@ -925,8 +932,8 @@ class SuperuserService:
         # Verificar productos como vendor
         if user.user_type == UserType.VENDOR:
             products_query = select(func.count(Product.id)).filter(Product.vendedor_id == user.id)
-            products_result = self.db.execute(products_query)
-            products_count = products_result.scalar()
+            products_result = await self.db.execute(products_query)
+            products_count = products_result.scalar() or 0
 
             dependencies_checked.append(f"products: {products_count}")
             if products_count > 0:
@@ -941,8 +948,8 @@ class SuperuserService:
             self.db.execute(vendor_transactions_query)
         )
 
-        buyer_transactions = buyer_result.scalar()
-        vendor_transactions = vendor_result.scalar()
+        buyer_transactions = buyer_result.scalar() or 0
+        vendor_transactions = vendor_result.scalar() or 0
 
         dependencies_checked.extend([
             f"buyer_transactions: {buyer_transactions}",
@@ -972,8 +979,8 @@ class SuperuserService:
                 .where(Product.vendedor_id == user.id)
                 .values(status=ProductStatus.INACTIVE, updated_at=datetime.now())
             )
-            result = self.db.execute(products_update)
-            cleanup_results["products_deactivated"] = result.rowcount
+            result = await self.db.execute(products_update)
+            cleanup_results["products_deactivated"] = result.rowcount if result else 0
 
         return cleanup_results
 
