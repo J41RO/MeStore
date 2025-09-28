@@ -137,7 +137,7 @@ class Settings(BaseSettings):
 
     # CORS Configuration - SECURITY FIX: No wildcard origins
     CORS_ORIGINS: str = Field(
-        default="http://localhost:5173,http://localhost:3000,http://192.168.1.137:5173,http://192.168.1.137:5175",
+        default="http://localhost:5173,http://localhost:3000,http://192.168.1.137:5173,http://192.168.1.137:5175,http://192.168.1.137:5176",
         description="Comma-separated list of allowed CORS origins (NO WILDCARDS for security)"
     )
     CORS_ALLOW_CREDENTIALS: bool = True

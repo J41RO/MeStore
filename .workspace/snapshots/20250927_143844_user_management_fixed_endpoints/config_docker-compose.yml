@@ -1,0 +1,208 @@
+# ~/docker-compose.yml
+# ---------------------------------------------------------------------------------------------
+# MESTOCKER - Docker Compose Development Configuration
+# Copyright (c) 2025 Jairo. Todos los derechos reservados.
+# Licensed under the proprietary license detailed in a LICENSE file in the root of this project.
+# ---------------------------------------------------------------------------------------------
+#
+# Nombre del Archivo: docker-compose.yml
+# Ruta: ~/docker-compose.yml
+# Autor: Jairo
+# Fecha de Creación: 2025-07-17
+# Última Actualización: 2025-07-17
+# Versión: 1.0.0
+# Propósito: Orquestación de servicios para desarrollo local
+#            Backend + Frontend + PostgreSQL + Redis
+#
+# Modificaciones:
+# 2025-07-17 - Configuración inicial docker-compose
+#
+# ---------------------------------------------------------------------------------------------
+
+# docker-compose.yml - MeStore Development Stack
+
+services:
+  # ===== MIGRATION SERVICE =====
+  migrations:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mestocker_migrations
+    volumes:
+      - .:/app
+      - /app/.venv  # Excluir .venv del mount
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgresql+asyncpg://mestocker_user:mestocker_secure_2024@postgres:5432/mestocker_dev
+      - POSTGRES_PASSWORD=postgres_secure_2024
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    working_dir: /app
+    command: ["bash", "-c", "./scripts/run_migrations.sh --force development && echo 'Migraciones completadas exitosamente'"]
+    networks:
+      - mestore_network
+    profiles:
+      - migration
+
+  # ===== BACKEND SERVICE =====
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mestocker_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - /app/.venv  # Excluir .venv del mount
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/mestocker_dev
+      - REDIS_URL=redis://redis:6379
+      - SECRET_KEY=dev-secret-key-change-in-production
+    depends_on:
+      - db
+      - redis
+    networks:
+      - mestocker_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ===== FRONTEND SERVICE =====
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: mestocker_frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    networks:
+      - mestocker_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ===== DATABASE SERVICE =====
+  db:
+    image: postgres:15-alpine
+    container_name: mestocker_postgres
+    environment:
+      POSTGRES_DB: mestocker_dev
+      POSTGRES_USER: mestocker_user
+      POSTGRES_PASSWORD: secure_dev_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=en_US.UTF-8 --lc-ctype=en_US.UTF-8"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - mestocker_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d mestocker_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===== REDIS SERVICE - SECURITY BACKEND AI SECURE CONFIGURATION =====
+  redis:
+    image: redis:7-alpine
+    container_name: mestocker_redis
+    ports:
+      - "127.0.0.1:6379:6379"  # Bind to localhost only for security
+    volumes:
+      - redis_data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    networks:
+      - mestocker_network
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: mestore-redis-secure-password-2025-min-32-chars
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "mestore-redis-secure-password-2025-min-32-chars", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    command: >
+      redis-server
+      --requirepass mestore-redis-secure-password-2025-min-32-chars
+      --bind 127.0.0.1
+      --protected-mode yes
+      --appendonly yes
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+      --slowlog-log-slower-than 10000
+      --databases 16
+
+  # ===== NGINX REVERSE PROXY (OPCIONAL) =====
+  nginx:
+    image: nginx:stable-alpine
+    container_name: mestocker_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - mestocker_network
+    restart: unless-stopped
+    profiles:
+      - production  # Solo para producción
+
+# ===== VOLUMES =====
+volumes:
+  db_data:
+    driver: local
+    name: mestocker_db_data
+  redis_data:
+    driver: local
+    name: mestocker_redis_data
+
+# ===== NETWORKS =====
+networks:
+  mestocker_network:
+    driver: bridge
+    name: mestocker_network
+  # Servicio para ejecutar migraciones en deployment
+  migrations:
+    build: .
+    container_name: mestore_migrations
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+    depends_on:
+      - postgres
+    volumes:
+      - ./scripts:/app/scripts
+      - ./alembic:/app/alembic
+      - ./logs:/app/logs
+    working_dir: /app
+    profiles:
+      - migrations
+    command: python3 scripts/run_migrations.py --env production --validate

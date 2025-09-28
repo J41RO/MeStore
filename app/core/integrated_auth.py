@@ -115,9 +115,9 @@ class IntegratedAuthService:
 
     async def authenticate_user(
         self,
+        db: AsyncSession,
         email: str,
         password: str,
-        db: AsyncSession,
         ip_address: str = None,
         user_agent: str = None
     ) -> Optional[User]:
@@ -127,9 +127,9 @@ class IntegratedAuthService:
         Uses SecureAuthService if migration is enabled, falls back to legacy auth.
 
         Args:
+            db: Database session
             email: User email
             password: Plain password
-            db: Database session
             ip_address: Client IP address for security logging
             user_agent: Client user agent for security logging
 

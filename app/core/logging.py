@@ -40,3 +40,6 @@ class AuditLogger:
 
 # Global audit logger instance
 audit_logger = AuditLogger()
+
+# Export logger for compatibility
+logger = audit_logger

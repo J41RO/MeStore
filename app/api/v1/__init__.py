@@ -37,6 +37,7 @@ from app.api.v1.endpoints.vendor_profile import router as vendor_profile_router
 from app.api.v1.endpoints.payments import router as payments_router
 from app.api.v1.endpoints.orders import router as orders_router
 from app.api.v1.endpoints.database_reset import router as database_reset_router
+from app.api.v1.endpoints.user_management_enterprise import router as user_management_router
 
 # Router principal que unifica todos los endpoints v1
 api_router = APIRouter()
@@ -96,7 +97,10 @@ api_router.include_router(admin_users_router, prefix="/admin", tags=["admin-user
 
 # Superuser admin portal - Advanced user management
 from app.api.v1.endpoints.superuser_admin import router as superuser_admin_router
-api_router.include_router(superuser_admin_router, prefix="/superuser", tags=["superuser-admin"])
+api_router.include_router(superuser_admin_router, prefix="/superuser-admin", tags=["superuser-admin"])
+
+# User management enterprise - User actions
+api_router.include_router(user_management_router, prefix="/user-management", tags=["user-management"])
 
 # Database reset operations (dev/test only)
 api_router.include_router(database_reset_router, prefix="/admin", tags=["database-reset"])
@@ -150,3 +154,5 @@ api_router.include_router(pagos_router, prefix="/pagos", tags=["pagos-testing"])
 # - pagos_router (Spanish) -> Use /payments (but restored for testing)
 # - vendedores_router (Spanish) -> Use /vendors (but also available for testing)
 # ==================================================
+
+# Endpoint simple for frontend compatibility will be added to existing superuser_admin

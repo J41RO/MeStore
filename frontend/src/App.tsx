@@ -422,7 +422,7 @@ function App() {
                     {/* USERS Category Routes */}
                     <Route path='users' element={
                       <RoleGuard roles={[UserType.ADMIN, UserType.SUPERUSER]} strategy="any">
-                        <UsersPage />
+                        <UserManagement />
                       </RoleGuard>
                     } />
                     <Route path='roles' element={

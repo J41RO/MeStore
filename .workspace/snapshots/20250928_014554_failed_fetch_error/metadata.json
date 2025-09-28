@@ -1,0 +1,28 @@
+{
+  "snapshot_id": "20250928_014554_failed_fetch_error",
+  "feature_name": "failed_fetch_error",
+  "description": "Estado antes de diagnosticar error Failed to fetch",
+  "agent_name": "claude-code",
+  "timestamp": "2025-09-28T01:45:54.817642",
+  "status": "working",
+  "files_backed_up": [
+    "frontend/src/pages/admin/UserManagement.tsx",
+    "frontend/src/hooks/admin/useUserManagement.ts",
+    "frontend/src/components/admin/UserDataTable.tsx",
+    "frontend/src/components/admin/UserDetailsModal.tsx",
+    "frontend/src/components/admin/UserCreateModal.tsx",
+    "frontend/src/services/superuserService.ts",
+    "app/api/v1/endpoints/superuser_admin.py",
+    "app/api/v1/endpoints/superuser_admin_users.py",
+    "app/api/v1/endpoints/user_management_enterprise.py",
+    "app/api/v1/endpoints/auth.py",
+    "app/api/v1/endpoints/secure_auth.py",
+    "app/services/superuser_service.py",
+    "app/models/user.py",
+    "app/schemas/user.py",
+    "mestore_development.db",
+    "app/main.py",
+    "frontend/vite.config.ts",
+    "docker-compose.yml"
+  ]
+}

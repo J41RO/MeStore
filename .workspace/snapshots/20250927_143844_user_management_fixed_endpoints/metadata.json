@@ -1,0 +1,28 @@
+{
+  "snapshot_id": "20250927_143844_user_management_fixed_endpoints",
+  "feature_name": "user_management_fixed_endpoints",
+  "description": "Endpoints corregidos en UserManagement.tsx - usando superuser-admin",
+  "agent_name": "claude-code",
+  "timestamp": "2025-09-27T14:38:44.669935",
+  "status": "working",
+  "files_backed_up": [
+    "frontend/src/pages/admin/UserManagement.tsx",
+    "frontend/src/hooks/admin/useUserManagement.ts",
+    "frontend/src/components/admin/UserDataTable.tsx",
+    "frontend/src/components/admin/UserDetailsModal.tsx",
+    "frontend/src/components/admin/UserCreateModal.tsx",
+    "frontend/src/services/superuserService.ts",
+    "app/api/v1/endpoints/superuser_admin.py",
+    "app/api/v1/endpoints/superuser_admin_users.py",
+    "app/api/v1/endpoints/user_management_enterprise.py",
+    "app/api/v1/endpoints/auth.py",
+    "app/api/v1/endpoints/secure_auth.py",
+    "app/services/superuser_service.py",
+    "app/models/user.py",
+    "app/schemas/user.py",
+    "mestore_development.db",
+    "app/main.py",
+    "frontend/vite.config.ts",
+    "docker-compose.yml"
+  ]
+}

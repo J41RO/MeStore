@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Users, UserCheck, UserX, Shield, Plus, Edit, Trash2, UserMinus, CheckCircle } from 'lucide-react';
+import DeleteDiagnostic from '../../components/admin/DeleteDiagnostic';
 
 interface User {
   id: string;
@@ -28,6 +29,8 @@ const UserManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   useEffect(() => {
     loadUserData();
@@ -95,21 +98,144 @@ const UserManagement: React.FC = () => {
       setActionLoading(userId);
       const token = localStorage.getItem('access_token');
 
+      // 🔐 ENHANCED TOKEN VALIDATION
+      if (!token) {
+        alert('❌ No hay token de autenticación. Por favor, inicia sesión nuevamente.');
+        return;
+      }
+
+      // Verificar que el token no esté expirado
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const currentTime = Math.floor(Date.now() / 1000);
+        if (payload.exp < currentTime) {
+          alert('❌ Token expirado. Por favor, inicia sesión nuevamente.');
+          return;
+        }
+        console.log('🔐 Token válido, expira en:', new Date(payload.exp * 1000));
+      } catch (e) {
+        console.error('❌ Error validando token:', e);
+        alert('❌ Token inválido. Por favor, inicia sesión nuevamente.');
+        return;
+      }
+
+      let updateData = {};
+      let actionText = '';
+
+      // Preparar datos según la acción
+      switch (action) {
+        case 'activate':
+          updateData = { is_active: true, admin_notes: reason };
+          actionText = 'Usuario activado correctamente';
+          break;
+        case 'suspend':
+          updateData = { is_active: false, admin_notes: reason };
+          actionText = 'Usuario suspendido correctamente';
+          break;
+        case 'verify':
+          updateData = { is_verified: true, admin_notes: reason };
+          actionText = 'Usuario verificado correctamente';
+          break;
+        case 'delete':
+          // 🚨 ENHANCED DELETE WITH DETAILED LOGGING
+          console.log('🗑️ Iniciando DELETE para usuario:', userId);
+          console.log('🔑 Token being used:', token.substring(0, 20) + '...');
+
+          const deleteUrl = `http://192.168.1.137:8000/api/v1/superuser-admin/users/${userId}?reason=${encodeURIComponent(reason || 'Eliminado por admin')}`;
+          console.log('🌐 DELETE URL:', deleteUrl);
+
+          const deleteHeaders = {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache'
+          };
+          console.log('📤 DELETE Headers:', deleteHeaders);
+
+          try {
+            const deleteResponse = await fetch(deleteUrl, {
+              method: 'DELETE',
+              headers: deleteHeaders,
+              credentials: 'omit' // Avoid CORS issues with credentials
+            });
+
+            console.log('📡 DELETE Response status:', deleteResponse.status);
+            console.log('📡 DELETE Response headers:', Object.fromEntries(deleteResponse.headers.entries()));
+
+            if (deleteResponse.ok) {
+              const responseData = await deleteResponse.json();
+              console.log('✅ DELETE Success:', responseData);
+              alert('✅ Usuario eliminado correctamente');
+              await loadUserData();
+            } else {
+              // Enhanced error handling
+              let errorMessage = 'Error desconocido';
+              try {
+                const errorData = await deleteResponse.json();
+                errorMessage = errorData.detail || errorData.message || `HTTP ${deleteResponse.status}`;
+                console.log('❌ DELETE Error Data:', errorData);
+              } catch (parseError) {
+                console.log('❌ Could not parse error response, status:', deleteResponse.status);
+                errorMessage = `HTTP ${deleteResponse.status}: ${deleteResponse.statusText}`;
+              }
+              alert(`❌ Error eliminando usuario: ${errorMessage}`);
+            }
+          } catch (fetchError) {
+            console.error('🔥 DELETE Fetch Error:', fetchError);
+
+            // Check if this is a CORS error masking an auth issue
+            if (fetchError.message.includes('CORS') || fetchError.message.includes('fetch')) {
+              console.log('🚨 Possible CORS issue - checking if token is valid by testing a GET request first...');
+
+              // Test token with a simple GET request
+              try {
+                const testResponse = await fetch('http://192.168.1.137:8000/api/v1/superuser-admin/users/stats', {
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                  }
+                });
+
+                if (testResponse.ok) {
+                  alert('❌ Error de red en DELETE. Token válido pero DELETE falló. Contacta al administrador.');
+                } else {
+                  alert('❌ Token inválido o expirado. Por favor, inicia sesión nuevamente.');
+                }
+              } catch (testError) {
+                alert('❌ Error de conexión. Verifica la red y prueba nuevamente.');
+              }
+            } else {
+              alert(`❌ Error de red: ${fetchError.message}`);
+            }
+          }
+          return;
+        default:
+          alert('❌ Acción no reconocida');
+          return;
+      }
+
+      // Para activate, suspend, verify usamos PUT
+      console.log(`🔄 Ejecutando ${action} para usuario:`, userId);
+      console.log('📦 Update data:', updateData);
+
       const response = await fetch(`http://192.168.1.137:8000/api/v1/superuser-admin/users/${userId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
-        body: JSON.stringify({ action, reason })
+        body: JSON.stringify(updateData)
       });
 
+      console.log(`📡 ${action.toUpperCase()} Response status:`, response.status);
+
       if (response.ok) {
-        const result = await response.json();
-        alert(`✅ ${result.message}`);
+        alert(`✅ ${actionText}`);
         await loadUserData(); // Recargar datos
       } else {
         const error = await response.json();
+        console.log(`❌ ${action.toUpperCase()} Error:`, error);
         alert(`❌ Error: ${error.detail || 'Action failed'}`);
       }
     } catch (err) {
@@ -146,7 +272,43 @@ const UserManagement: React.FC = () => {
   };
 
   const handleEditUser = (userId: string) => {
-    console.log('Modificar usuario:', userId);
+    const user = users.find(u => u.id === userId);
+    if (user) {
+      setSelectedUser(user);
+      setEditModalOpen(true);
+    }
+  };
+
+  const handleUpdateUser = async (updatedData: Partial<User>) => {
+    if (!selectedUser) return;
+
+    try {
+      setActionLoading(selectedUser.id);
+      const token = localStorage.getItem('access_token');
+
+      const response = await fetch(`http://192.168.1.137:8000/api/v1/superuser-admin/users/${selectedUser.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updatedData)
+      });
+
+      if (response.ok) {
+        alert('✅ Usuario actualizado correctamente');
+        await loadUserData();
+        setEditModalOpen(false);
+        setSelectedUser(null);
+      } else {
+        const error = await response.json();
+        alert(`❌ Error actualizando: ${error.detail || 'Update failed'}`);
+      }
+    } catch (err) {
+      alert(`❌ Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   const handleDeleteUserConsole = (userId: string) => {
@@ -283,6 +445,9 @@ const UserManagement: React.FC = () => {
 
   return (
     <div className="p-6 space-y-6">
+      {/* DELETE Diagnostic Tool - TEMPORARY */}
+      <DeleteDiagnostic />
+
       {/* Header */}
       <div className="border-b border-gray-200 pb-4">
         <div className="flex justify-between items-center">
@@ -434,7 +599,120 @@ const UserManagement: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Modal de Edición de Usuario */}
+      {editModalOpen && selectedUser && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Modificar Usuario: {selectedUser.email}
+              </h3>
+              <EditUserForm
+                user={selectedUser}
+                onSave={handleUpdateUser}
+                onCancel={() => {
+                  setEditModalOpen(false);
+                  setSelectedUser(null);
+                }}
+                loading={actionLoading === selectedUser.id}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+  );
+};
+
+// Componente simple para editar usuario
+interface EditUserFormProps {
+  user: User;
+  onSave: (data: Partial<User>) => void;
+  onCancel: () => void;
+  loading: boolean;
+}
+
+const EditUserForm: React.FC<EditUserFormProps> = ({ user, onSave, onCancel, loading }) => {
+  const [nombre, setNombre] = useState(user.nombre || '');
+  const [apellido, setApellido] = useState(user.apellido || '');
+  const [isActive, setIsActive] = useState(user.is_active);
+  const [isVerified, setIsVerified] = useState(user.is_verified);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave({
+      nombre: nombre.trim() || null,
+      apellido: apellido.trim() || null,
+      is_active: isActive,
+      is_verified: isVerified
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700">Nombre</label>
+        <input
+          type="text"
+          value={nombre}
+          onChange={(e) => setNombre(e.target.value)}
+          className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          placeholder="Nombre del usuario"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700">Apellido</label>
+        <input
+          type="text"
+          value={apellido}
+          onChange={(e) => setApellido(e.target.value)}
+          className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          placeholder="Apellido del usuario"
+        />
+      </div>
+
+      <div className="flex items-center space-x-4">
+        <label className="flex items-center">
+          <input
+            type="checkbox"
+            checked={isActive}
+            onChange={(e) => setIsActive(e.target.checked)}
+            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          />
+          <span className="ml-2 text-sm text-gray-700">Usuario Activo</span>
+        </label>
+
+        <label className="flex items-center">
+          <input
+            type="checkbox"
+            checked={isVerified}
+            onChange={(e) => setIsVerified(e.target.checked)}
+            className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+          />
+          <span className="ml-2 text-sm text-gray-700">Usuario Verificado</span>
+        </label>
+      </div>
+
+      <div className="flex justify-end space-x-3 pt-4">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+          disabled={loading}
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md disabled:opacity-50"
+          disabled={loading}
+        >
+          {loading ? 'Guardando...' : 'Guardar Cambios'}
+        </button>
+      </div>
+    </form>
   );
 };
 
