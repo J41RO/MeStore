@@ -68,13 +68,20 @@ class SimpleRateLimiter:
 rate_limiter = SimpleRateLimiter()
 
 
-def check_admin_rate_limit(user_id: str) -> None:
+def check_admin_rate_limit(user_id: str, action: str = None) -> None:
     """
     Check rate limit for admin user and raise exception if exceeded
 
-    This is the minimal implementation to make the test pass.
+    Args:
+        user_id: ID of the user to check rate limit for
+        action: Optional action type for more specific rate limiting
     """
-    if not rate_limiter.check_rate_limit(f"admin_{user_id}"):
+    # Create identifier based on user_id and optional action
+    identifier = f"admin_{user_id}"
+    if action:
+        identifier = f"admin_{user_id}_{action}"
+
+    if not rate_limiter.check_rate_limit(identifier):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="Rate limit exceeded. Please try again later."
