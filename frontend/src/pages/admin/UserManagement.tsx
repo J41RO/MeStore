@@ -3,6 +3,7 @@ import { Users, UserCheck, UserX, Shield, Plus, Edit, Trash2, UserMinus, CheckCi
 import DeleteDiagnostic from '../../components/admin/DeleteDiagnostic';
 import UserDataTable from '../../components/admin/UserDataTable';
 import UserCreateModal from '../../components/admin/UserCreateModal';
+import UserDetailsModal from '../../components/admin/UserDetailsModal';
 import { User } from '../../services/superuserService';
 
 // User interface now imported from superuserService
@@ -24,6 +25,7 @@ const UserManagement: React.FC = () => {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   // UserDataTable state
@@ -388,14 +390,21 @@ const UserManagement: React.FC = () => {
   };
 
   const handleUserView = (user: User) => {
-    // Show user details modal or navigate to user detail page
-    alert(`Ver detalles de: ${user.email}\n\nFuncionalidad de vista detallada disponible próximamente.`);
+    setSelectedUser(user);
+    setDetailsModalOpen(true);
   };
 
   const handleUserCreated = (newUser: User) => {
     // Refresh the user list after creating a new user
     loadUserData('✅ Usuario creado exitosamente');
     setCreateModalOpen(false);
+  };
+
+  const handleUserUpdated = (updatedUser: User) => {
+    // Refresh the user list after updating a user
+    loadUserData('✅ Usuario actualizado exitosamente');
+    setDetailsModalOpen(false);
+    setSelectedUser(null);
   };
 
   const getUserActions = (user: User) => {
@@ -641,6 +650,20 @@ const UserManagement: React.FC = () => {
         onClose={() => setCreateModalOpen(false)}
         onUserCreated={handleUserCreated}
       />
+
+      {/* Modal de Detalles de Usuario */}
+      {detailsModalOpen && selectedUser && (
+        <UserDetailsModal
+          isOpen={detailsModalOpen}
+          onClose={() => {
+            setDetailsModalOpen(false);
+            setSelectedUser(null);
+          }}
+          user={selectedUser}
+          onUserUpdated={handleUserUpdated}
+          mode="view"
+        />
+      )}
     </div>
   );
 };

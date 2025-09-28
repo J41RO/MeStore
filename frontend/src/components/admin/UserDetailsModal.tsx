@@ -44,7 +44,7 @@ const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
         is_active: user.is_active,
         is_verified: user.is_verified,
         telefono: user.telefono,
-        documento: user.documento,
+        cedula: user.cedula,
       });
       loadAuditLog();
     }
@@ -81,14 +81,13 @@ const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
   };
 
   const resetPassword = async () => {
-    const newPassword = prompt('Enter new password for user:');
-    if (newPassword && newPassword.length >= 6) {
+    if (confirm('¿Confirmas que quieres forzar el cambio de contraseña para este usuario? El usuario deberá cambiar su contraseña en el próximo login.')) {
       try {
         setSaving(true);
-        await superuserService.resetUserPassword(user.id, newPassword);
-        alert('Password reset successfully');
+        await superuserService.resetUserPassword(user.id);
+        alert('✅ Password reset scheduled - User will be required to change password on next login');
       } catch (error: any) {
-        alert('Error resetting password: ' + (error.response?.data?.detail || error.message));
+        alert('❌ Error scheduling password reset: ' + (error.response?.data?.detail || error.message));
       } finally {
         setSaving(false);
       }
@@ -310,17 +309,17 @@ const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
 
                       <div>
                         <label className="block text-sm font-medium text-gray-700">
-                          Document
+                          Document (Cédula)
                         </label>
                         {currentMode === 'edit' ? (
                           <input
                             type="text"
-                            value={formData.documento || ''}
-                            onChange={(e) => handleInputChange('documento', e.target.value)}
+                            value={formData.cedula || ''}
+                            onChange={(e) => handleInputChange('cedula', e.target.value)}
                             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                           />
                         ) : (
-                          <p className="mt-1 text-sm text-gray-900">{user.documento || 'Not provided'}</p>
+                          <p className="mt-1 text-sm text-gray-900">{user.cedula || 'Not provided'}</p>
                         )}
                       </div>
                     </div>
@@ -464,14 +463,14 @@ const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
                     <div className="p-4 border border-gray-200 rounded-lg">
                       <h5 className="font-medium text-gray-900 mb-2">Password Management</h5>
                       <p className="text-sm text-gray-600 mb-3">
-                        Reset the user's password. They will need to log in with the new password.
+                        Force user to change password on next login. Current password will remain valid until next login.
                       </p>
                       <button
                         onClick={resetPassword}
                         disabled={saving}
                         className="px-4 py-2 bg-yellow-600 text-white text-sm rounded-md hover:bg-yellow-700 disabled:opacity-50"
                       >
-                        🔑 Reset Password
+                        🔑 Force Password Change
                       </button>
                     </div>
 
