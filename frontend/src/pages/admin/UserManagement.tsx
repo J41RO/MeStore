@@ -9,12 +9,14 @@ import { User } from '../../services/superuserService';
 // User interface now imported from superuserService
 
 interface UserStats {
-  total_users: number;
-  total_vendors: number;
-  total_admins: number;
-  verified_users: number;
-  pending_vendors: number;
-  recent_registrations: number;
+  totalUsers: number;
+  totalVendors: number;
+  totalAdmins: number;
+  verifiedUsers: number;
+  activeUsers: number;
+  inactiveUsers: number;
+  pendingVendors: number;
+  recentRegistrations: number;
 }
 
 const UserManagement: React.FC = () => {
@@ -69,7 +71,9 @@ const UserManagement: React.FC = () => {
           totalAdmins: 1,
           verifiedUsers: 2,
           activeUsers: 2,
-          inactiveUsers: 0
+          inactiveUsers: 0,
+          pendingVendors: 0,
+          recentRegistrations: 0
         });
       }
 
@@ -567,7 +571,7 @@ const UserManagement: React.FC = () => {
               <Users className="h-8 w-8 text-blue-500" />
               <div className="ml-3">
                 <p className="text-sm font-medium text-gray-500">Total Usuarios</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.total_users}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalUsers}</p>
               </div>
             </div>
           </div>
@@ -577,7 +581,7 @@ const UserManagement: React.FC = () => {
               <UserCheck className="h-8 w-8 text-green-500" />
               <div className="ml-3">
                 <p className="text-sm font-medium text-gray-500">Verificados</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.verified_users}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.verifiedUsers}</p>
               </div>
             </div>
           </div>
@@ -587,7 +591,7 @@ const UserManagement: React.FC = () => {
               <Shield className="h-8 w-8 text-purple-500" />
               <div className="ml-3">
                 <p className="text-sm font-medium text-gray-500">Vendedores</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.total_vendors}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalVendors}</p>
               </div>
             </div>
           </div>
@@ -597,7 +601,7 @@ const UserManagement: React.FC = () => {
               <UserX className="h-8 w-8 text-red-500" />
               <div className="ml-3">
                 <p className="text-sm font-medium text-gray-500">Vendedores Pendientes</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.pending_vendors}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.pendingVendors}</p>
               </div>
             </div>
           </div>
