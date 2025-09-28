@@ -485,8 +485,8 @@ async def check_user_dependencies(
         from app.models.product import Product
         from app.models.transaction import Transaction
 
-        # Obtener usuario
-        query = select(User).where(User.id == str(user_id))
+        # Obtener usuario - Excluir soft-deleted
+        query = select(User).where(User.id == str(user_id), User.deleted_at.is_(None))
         result = await db.execute(query)
         user = result.scalar_one_or_none()
 

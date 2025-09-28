@@ -34,7 +34,7 @@ const UserManagement: React.FC = () => {
 
   useEffect(() => {
     loadUserData();
-  }, []);
+  }, [currentPage, pageSize]);
 
   const loadUserData = async (showSuccessMessage?: string) => {
     try {
@@ -71,8 +71,8 @@ const UserManagement: React.FC = () => {
         });
       }
 
-      // Cargar lista de usuarios
-      const usersResponse = await fetch('http://192.168.1.137:8000/api/v1/superuser-admin/users?limit=50', {
+      // Cargar lista de usuarios con paginación
+      const usersResponse = await fetch(`http://192.168.1.137:8000/api/v1/superuser-admin/users?page=${currentPage}&size=${pageSize}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -353,6 +353,7 @@ const UserManagement: React.FC = () => {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+    // useEffect will trigger loadUserData automatically
   };
 
   const handlePageSizeChange = (size: number) => {

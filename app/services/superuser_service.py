@@ -93,8 +93,8 @@ class SuperuserService:
             HTTPException: Si hay errores en los filtros o consulta
         """
         try:
-            # Construir query base
-            query = select(User)
+            # Construir query base - Excluir usuarios soft-deleted
+            query = select(User).filter(User.deleted_at.is_(None))
 
             # Aplicar filtros de búsqueda
             if filters.search:
@@ -317,7 +317,8 @@ class SuperuserService:
             HTTPException: Si el usuario no existe
         """
         try:
-            query = select(User).where(User.id == user_id)
+            # Excluir usuarios soft-deleted al buscar por ID
+            query = select(User).where(User.id == user_id, User.deleted_at.is_(None))
             result = await self.db.execute(query)
             user = result.scalar_one_or_none()
 
@@ -487,8 +488,8 @@ class SuperuserService:
             HTTPException: Si el usuario no existe o hay errores de validación
         """
         try:
-            # Obtener usuario existente
-            query = select(User).where(User.id == user_id)
+            # Obtener usuario existente - Excluir soft-deleted
+            query = select(User).where(User.id == user_id, User.deleted_at.is_(None))
             result = await self.db.execute(query)
             user = result.scalar_one_or_none()
 
@@ -570,8 +571,8 @@ class SuperuserService:
         try:
             logger.info(f"DEBUGGING: Starting delete_user for user_id: {user_id}")
             logger.info(f"DEBUGGING: self.db = {self.db}")
-            # Obtener usuario
-            query = select(User).where(User.id == user_id)
+            # Obtener usuario - Excluir soft-deleted
+            query = select(User).where(User.id == user_id, User.deleted_at.is_(None))
             logger.info(f"DEBUGGING: query = {query}")
             logger.info(f"DEBUGGING: About to execute query")
             result = await self.db.execute(query)
@@ -605,8 +606,8 @@ class SuperuserService:
             # Realizar cleanup de dependencias no críticas
             cleanup_results = await self._cleanup_user_dependencies(user)
 
-            # Eliminar usuario
-            self.db.delete(user)
+            # Soft delete: Marcar usuario como eliminado en lugar de borrar físicamente
+            user.deleted_at = datetime.now()
             await self.db.commit()
 
             # Log de auditoría
@@ -660,10 +661,10 @@ class SuperuserService:
             UserStatsResponse: Estadísticas completas
         """
         try:
-            # Consultas base para estadísticas
-            total_users_query = select(func.count(User.id))
-            active_users_query = select(func.count(User.id)).filter(User.is_active == True)
-            verified_users_query = select(func.count(User.id)).filter(User.is_verified == True)
+            # Consultas base para estadísticas - Excluir usuarios soft-deleted
+            total_users_query = select(func.count(User.id)).filter(User.deleted_at.is_(None))
+            active_users_query = select(func.count(User.id)).filter(User.is_active == True, User.deleted_at.is_(None))
+            verified_users_query = select(func.count(User.id)).filter(User.is_verified == True, User.deleted_at.is_(None))
 
             # Ejecutar consultas básicas en paralelo
             total_result, active_result, verified_result = await asyncio.gather(
@@ -676,18 +677,18 @@ class SuperuserService:
             active_users = active_result.scalar()
             verified_users = verified_result.scalar()
 
-            # Estadísticas por tipo de usuario
+            # Estadísticas por tipo de usuario - Excluir soft-deleted
             type_stats = {}
             for user_type in UserType:
-                type_query = select(func.count(User.id)).filter(User.user_type == user_type)
+                type_query = select(func.count(User.id)).filter(User.user_type == user_type, User.deleted_at.is_(None))
                 type_result = await self.db.execute(type_query)
                 type_stats[user_type.value.lower()] = type_result.scalar()
 
-            # Estadísticas de verificación
-            email_verified_query = select(func.count(User.id)).filter(User.email_verified == True)
-            phone_verified_query = select(func.count(User.id)).filter(User.phone_verified == True)
+            # Estadísticas de verificación - Excluir soft-deleted
+            email_verified_query = select(func.count(User.id)).filter(User.email_verified == True, User.deleted_at.is_(None))
+            phone_verified_query = select(func.count(User.id)).filter(User.phone_verified == True, User.deleted_at.is_(None))
             both_verified_query = select(func.count(User.id)).filter(
-                and_(User.email_verified == True, User.phone_verified == True)
+                and_(User.email_verified == True, User.phone_verified == True, User.deleted_at.is_(None))
             )
 
             email_verified_result, phone_verified_result, both_verified_result = await asyncio.gather(
@@ -703,19 +704,24 @@ class SuperuserService:
             day_ago = datetime.now() - timedelta(days=1)
 
             created_today_query = select(func.count(User.id)).filter(
-                func.date(User.created_at) == today
+                func.date(User.created_at) == today,
+                User.deleted_at.is_(None)
             )
             created_week_query = select(func.count(User.id)).filter(
-                User.created_at >= week_ago
+                User.created_at >= week_ago,
+                User.deleted_at.is_(None)
             )
             created_month_query = select(func.count(User.id)).filter(
-                User.created_at >= month_ago
+                User.created_at >= month_ago,
+                User.deleted_at.is_(None)
             )
             recent_logins_query = select(func.count(User.id)).filter(
-                User.last_login >= day_ago
+                User.last_login >= day_ago,
+                User.deleted_at.is_(None)
             )
             locked_accounts_query = select(func.count(User.id)).filter(
-                User.account_locked_until > datetime.now()
+                User.account_locked_until > datetime.now(),
+                User.deleted_at.is_(None)
             )
 
             # Ejecutar consultas temporales
@@ -770,10 +776,10 @@ class SuperuserService:
         """Obtener estadísticas específicas de vendors."""
         vendor_stats = {}
 
-        # Por status de vendor
+        # Por status de vendor - Excluir soft-deleted
         for vendor_status in VendorStatus:
             query = select(func.count(User.id)).filter(
-                and_(User.user_type == UserType.VENDOR, User.vendor_status == vendor_status)
+                and_(User.user_type == UserType.VENDOR, User.vendor_status == vendor_status, User.deleted_at.is_(None))
             )
             result = await self.db.execute(query)
             vendor_stats[f"vendor_{vendor_status.value}"] = result.scalar()
@@ -811,8 +817,8 @@ class SuperuserService:
         warnings = []
 
         try:
-            # Verificar que los usuarios existen
-            users_query = select(User).filter(User.id.in_(action_request.user_ids))
+            # Verificar que los usuarios existen - Excluir soft-deleted
+            users_query = select(User).filter(User.id.in_(action_request.user_ids), User.deleted_at.is_(None))
             result = await self.db.execute(users_query)
             users = result.scalars().all()
 
@@ -911,14 +917,14 @@ class SuperuserService:
     # =================================================================
 
     async def _check_user_exists_by_email(self, email: str) -> Optional[User]:
-        """Verificar si existe usuario con email específico."""
-        query = select(User).where(User.email == email)
+        """Verificar si existe usuario con email específico - Excluir soft-deleted."""
+        query = select(User).where(User.email == email, User.deleted_at.is_(None))
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
 
     async def _check_user_exists_by_cedula(self, cedula: str) -> Optional[User]:
-        """Verificar si existe usuario con cédula específica."""
-        query = select(User).where(User.cedula == cedula)
+        """Verificar si existe usuario con cédula específica - Excluir soft-deleted."""
+        query = select(User).where(User.cedula == cedula, User.deleted_at.is_(None))
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
 
@@ -977,7 +983,7 @@ class SuperuserService:
             products_update = (
                 update(Product)
                 .where(Product.vendedor_id == user.id)
-                .values(status=ProductStatus.INACTIVE, updated_at=datetime.now())
+                .values(status=ProductStatus.VENDIDO, updated_at=datetime.now())
             )
             result = await self.db.execute(products_update)
             cleanup_results["products_deactivated"] = result.rowcount if result else 0
