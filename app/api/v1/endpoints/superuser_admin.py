@@ -28,6 +28,7 @@ Este módulo proporciona endpoints especializados para administradores superusua
 
 from typing import List, Optional, Dict, Any
 from uuid import UUID
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -245,6 +246,103 @@ async def get_user_stats(
         raise HTTPException(
             status_code=500,
             detail=f"Database error in stats: {str(e)}"
+        )
+
+
+@router.get("/users/deleted", response_model=UserListResponse)
+async def get_deleted_users(
+    *,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserRead = Depends(require_superuser),
+    page: int = Query(1, ge=1, description="Número de página"),
+    size: int = Query(10, ge=1, le=100, description="Elementos por página"),
+    search: Optional[str] = Query(None, description="Búsqueda en email, nombre, apellido")
+):
+    """
+    Obtener lista de usuarios eliminados (soft-deleted).
+
+    **Permisos requeridos:** SUPERUSER
+
+    **Funcionalidades:**
+    - Solo usuarios con deleted_at no nulo
+    - Búsqueda de texto libre en campos básicos
+    - Paginación optimizada
+    - Información de cuándo fueron eliminados
+    """
+    try:
+        from sqlalchemy import select, func, or_
+
+        # Query base: solo usuarios soft-deleted
+        query = select(User).where(User.deleted_at.is_not(None))
+
+        # Aplicar búsqueda si se proporciona
+        if search:
+            search_filter = or_(
+                User.email.ilike(f"%{search}%"),
+                User.nombre.ilike(f"%{search}%"),
+                User.apellido.ilike(f"%{search}%")
+            )
+            query = query.where(search_filter)
+
+        # Contar total
+        count_query = select(func.count(User.id)).where(User.deleted_at.is_not(None))
+        if search:
+            count_query = count_query.where(search_filter)
+
+        total_result = await db.execute(count_query)
+        total = total_result.scalar() or 0
+
+        # Aplicar paginación y ordenamiento (más reciente primero)
+        query = query.order_by(User.deleted_at.desc()).offset((page - 1) * size).limit(size)
+
+        result = await db.execute(query)
+        users = result.scalars().all()
+
+        # Convertir a formato de respuesta
+        user_summaries = []
+        for user in users:
+            user_summary = {
+                "id": user.id,
+                "email": user.email,
+                "nombre": user.nombre,
+                "apellido": user.apellido,
+                "full_name": f"{user.nombre or ''} {user.apellido or ''}".strip(),
+                "user_type": user.user_type.value,
+                "is_active": user.is_active,
+                "is_verified": user.is_verified,
+                "email_verified": getattr(user, 'email_verified', False),
+                "phone_verified": getattr(user, 'phone_verified', False),
+                "created_at": user.created_at.isoformat() if user.created_at else None,
+                "deleted_at": user.deleted_at.isoformat() if user.deleted_at else None,
+                "last_login": getattr(user, 'last_login', None),
+                "vendor_status": None,
+                "business_name": getattr(user, 'empresa', None),
+                "security_clearance_level": getattr(user, 'security_clearance_level', 1),
+                "department_id": None,
+                "failed_login_attempts": getattr(user, 'failed_login_attempts', 0),
+                "account_locked": False
+            }
+            user_summaries.append(user_summary)
+
+        logger.info(f"Superuser {current_user.email} listed {total} deleted users")
+
+        return {
+            "users": user_summaries,
+            "total": total,
+            "page": page,
+            "size": size,
+            "total_pages": (total + size - 1) // size,
+            "has_next": page * size < total,
+            "has_previous": page > 1,
+            "filters_applied": {"deleted_only": True, "search": search},
+            "summary_stats": {"deleted_users": total}
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting deleted users: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error obteniendo usuarios eliminados: {str(e)}"
         )
 
 
@@ -588,6 +686,195 @@ async def check_user_dependencies(
         )
 
 
+
+@router.delete("/users/{user_id}/permanent")
+async def permanently_delete_user(
+    *,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserRead = Depends(require_superuser),
+    user_id: UUID,
+    reason: Optional[str] = Query(None, description="Razón de la eliminación permanente"),
+    confirm: bool = Query(False, description="Confirmación requerida para eliminación permanente")
+):
+    """
+    Eliminar usuario PERMANENTEMENTE de la base de datos.
+
+    **⚠️ OPERACIÓN CRÍTICA - IRREVERSIBLE**
+
+    Esta operación elimina completamente el usuario de la base de datos.
+    NO se puede deshacer. Requiere confirmación explícita.
+
+    **Permisos requeridos:** SUPERUSER
+
+    **Verificaciones de seguridad:**
+    - Usuario debe estar previamente soft-deleted
+    - Prevención de auto-eliminación
+    - Verificación de dependencias críticas
+    - Confirmación explícita requerida
+    - Cleanup de dependencias no críticas
+    """
+    try:
+        if not confirm:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Eliminación permanente requiere confirmación explícita con confirm=true"
+            )
+
+        # Prevenir auto-eliminación
+        if str(user_id) == str(current_user.id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No puedes eliminarte permanentemente a ti mismo"
+            )
+
+        # Verificar que el usuario existe y está soft-deleted
+        from sqlalchemy import select
+        query = select(User).where(User.id == str(user_id))
+        result = await db.execute(query)
+        user = result.scalar_one_or_none()
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Usuario no encontrado"
+            )
+
+        if user.deleted_at is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Solo se pueden eliminar permanentemente usuarios que ya estén soft-deleted. Usa DELETE /users/{id} primero."
+            )
+
+        # Verificar dependencias críticas
+        from app.models.transaction import Transaction
+        from sqlalchemy import func
+
+        transaction_query = select(func.count(Transaction.id)).where(
+            (Transaction.comprador_id == user.id) | (Transaction.vendedor_id == user.id)
+        )
+        transaction_result = await db.execute(transaction_query)
+        transaction_count = transaction_result.scalar()
+
+        if transaction_count > 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"No se puede eliminar permanentemente: usuario tiene {transaction_count} transacciones asociadas"
+            )
+
+        # Cleanup de productos si es vendor (desactivar, no eliminar)
+        if user.user_type.value == "VENDOR":
+            from app.models.product import Product
+            products_query = select(Product).where(Product.vendedor_id == user.id)
+            products_result = await db.execute(products_query)
+            products = products_result.scalars().all()
+
+            for product in products:
+                product.is_active = False
+                product.updated_at = datetime.utcnow()
+
+        # Guardar información para logging
+        user_info = {
+            "id": str(user.id),
+            "email": user.email,
+            "user_type": user.user_type.value,
+            "deleted_at": user.deleted_at.isoformat() if user.deleted_at else None
+        }
+
+        # ELIMINACIÓN PERMANENTE
+        await db.delete(user)
+        await db.commit()
+
+        logger.critical(f"PERMANENT DELETION: Superuser {current_user.email} permanently deleted user {user_info['email']} (ID: {user_info['id']}) - Reason: {reason}")
+
+        return {
+            "success": True,
+            "message": f"Usuario {user_info['email']} eliminado permanentemente",
+            "deleted_user": user_info,
+            "performed_by": current_user.email,
+            "reason": reason,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error permanently deleting user {user_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error eliminando permanentemente usuario: {str(e)}"
+        )
+
+
+@router.post("/users/{user_id}/restore")
+async def restore_deleted_user(
+    *,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserRead = Depends(require_superuser),
+    user_id: UUID,
+    reason: Optional[str] = Query(None, description="Razón de la restauración")
+):
+    """
+    Restaurar usuario soft-deleted.
+
+    Permite restaurar un usuario que fue eliminado lógicamente,
+    quitando el timestamp de deleted_at.
+
+    **Permisos requeridos:** SUPERUSER
+    """
+    try:
+        from sqlalchemy import select
+
+        # Verificar que el usuario existe y está soft-deleted
+        query = select(User).where(User.id == str(user_id))
+        result = await db.execute(query)
+        user = result.scalar_one_or_none()
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Usuario no encontrado"
+            )
+
+        if user.deleted_at is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El usuario no está eliminado"
+            )
+
+        # Restaurar usuario
+        user.deleted_at = None
+        user.updated_at = datetime.utcnow()
+
+        await db.commit()
+        await db.refresh(user)
+
+        logger.info(f"Superuser {current_user.email} restored user {user.email} (ID: {user_id}) - Reason: {reason}")
+
+        return {
+            "success": True,
+            "message": f"Usuario {user.email} restaurado exitosamente",
+            "restored_user": {
+                "id": str(user.id),
+                "email": user.email,
+                "user_type": user.user_type.value
+            },
+            "performed_by": current_user.email,
+            "reason": reason,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error restoring user {user_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error restaurando usuario: {str(e)}"
+        )
+
+
 @router.get("/health")
 async def superuser_admin_health():
     """
@@ -604,11 +891,14 @@ async def superuser_admin_health():
         "version": "1.0.0",
         "endpoints_available": [
             "GET /users - Lista paginada de usuarios",
+            "GET /users/deleted - Lista de usuarios eliminados",
             "GET /users/stats - Estadísticas de usuarios",
             "GET /users/{id} - Detalles de usuario",
             "POST /users - Crear usuario",
             "PUT /users/{id} - Actualizar usuario",
-            "DELETE /users/{id} - Eliminar usuario",
+            "DELETE /users/{id} - Eliminar usuario (soft delete)",
+            "DELETE /users/{id}/permanent - Eliminar usuario permanentemente",
+            "POST /users/{id}/restore - Restaurar usuario eliminado",
             "POST /users/bulk-action - Operaciones masivas",
             "GET /users/{id}/dependencies - Verificar dependencias"
         ]

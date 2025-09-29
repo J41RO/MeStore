@@ -42,9 +42,12 @@ const UserManagement: React.FC = () => {
   // UserFilters state
   const [filters, setFilters] = useState<UserFiltersType>({});
 
+  // Toggle for showing deleted users
+  const [showDeletedUsers, setShowDeletedUsers] = useState(false);
+
   useEffect(() => {
     loadUserData();
-  }, [currentPage, pageSize, filters]);
+  }, [currentPage, pageSize, filters, showDeletedUsers]);
 
   const loadUserData = async (showSuccessMessage?: string) => {
     try {
@@ -98,7 +101,11 @@ const UserManagement: React.FC = () => {
         }
       });
 
-      const usersResponse = await fetch(`http://192.168.1.137:8000/api/v1/superuser-admin/users?${params}`, {
+      const endpoint = showDeletedUsers
+        ? `http://192.168.1.137:8000/api/v1/superuser-admin/users/deleted?${params}`
+        : `http://192.168.1.137:8000/api/v1/superuser-admin/users?${params}`;
+
+      const usersResponse = await fetch(endpoint, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
