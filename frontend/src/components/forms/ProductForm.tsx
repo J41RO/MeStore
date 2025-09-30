@@ -878,13 +878,34 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
                 console.log('📤 Datos preparados:', productData);
 
-                // Obtener token
-                const token = localStorage.getItem('token');
+                // Buscar token en múltiples ubicaciones
+                console.log('🔍 Buscando token en localStorage...');
+                console.log('📋 localStorage keys:', Object.keys(localStorage));
+
+                let token = localStorage.getItem('token')
+                         || localStorage.getItem('access_token')
+                         || localStorage.getItem('authToken')
+                         || localStorage.getItem('accessToken');
+
+                console.log('🔍 Token desde localStorage:', token ? '✅ Encontrado' : '❌ No encontrado');
+
+                // Si no está en localStorage, intentar obtenerlo de sessionStorage
                 if (!token) {
-                  throw new Error('No hay token de autenticación');
+                  console.log('🔍 Intentando sessionStorage...');
+                  token = sessionStorage.getItem('token')
+                       || sessionStorage.getItem('access_token')
+                       || sessionStorage.getItem('authToken');
+                  console.log('🔍 Token desde sessionStorage:', token ? '✅ Encontrado' : '❌ No encontrado');
                 }
 
-                console.log('🔑 Token encontrado');
+                if (!token) {
+                  console.error('❌ NO SE ENCONTRÓ TOKEN EN NINGÚN LADO');
+                  console.log('📋 Valores de localStorage:', { ...localStorage });
+                  console.log('📋 Valores de sessionStorage:', { ...sessionStorage });
+                  throw new Error('No se encontró token de autenticación. Por favor inicia sesión nuevamente.');
+                }
+
+                console.log('🔑 Token encontrado:', token.substring(0, 20) + '...');
                 console.log('📡 Enviando a backend...');
 
                 const response = await fetch('http://192.168.1.137:8000/api/v1/productos', {
