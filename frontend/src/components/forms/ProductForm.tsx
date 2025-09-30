@@ -176,23 +176,23 @@ const ProductForm: React.FC<ProductFormProps> = ({
   const validateDimensions = useCallback((largo: number, ancho: number, alto: number, peso: number) => {
     const volumen = largo * ancho * alto; // cm³
     const densidad = peso / (volumen / 1000000); // kg/m³
-    
+
     const isReasonable = densidad > 0.1 && densidad < 10000; // Rango razonable
     setValidationState(prev => ({ ...prev, dimensionsValid: isReasonable }));
-    
+
     return isReasonable;
-  }, []);
+  }, [setValidationState]);
 
   // Validación de margen de ganancia
   const validateMargin = useCallback((precioVenta: number, precioCosto: number) => {
     if (!precioVenta || !precioCosto) return true;
-    
+
     const margen = ((precioVenta - precioCosto) / precioVenta) * 100;
     const isHealthy = margen >= 10 && margen <= 80;
-    
+
     setValidationState(prev => ({ ...prev, marginHealthy: isHealthy }));
     return isHealthy;
-  }, []);
+  }, [setValidationState]);
 
   useEffect(() => {
     if (mode === 'edit' && initialData) {
