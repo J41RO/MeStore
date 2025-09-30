@@ -9,7 +9,7 @@ const baseApi = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
-    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    // REMOVIDO: 'User-Agent' - No permitido en navegadores (causa error "Refused to set unsafe header")
   }
 });
 

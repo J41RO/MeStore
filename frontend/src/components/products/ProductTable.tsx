@@ -306,20 +306,20 @@ const ProductTable: React.FC<ProductTableProps> = ({
                   </span>
                 </td>
                 <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
-                  ${product.price.toLocaleString()}
+                  ${(product.precio_venta || product.price || 0).toLocaleString()}
                 </td>
                 <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
                   <span
                     className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      product.stock > 10
+                      (product.stock_quantity || product.stock || 0) > 10
                         ? 'bg-green-100 text-green-800'
-                        : product.stock > 0
+                        : (product.stock_quantity || product.stock || 0) > 0
                           ? 'bg-yellow-100 text-yellow-800'
                           : 'bg-red-100 text-red-800'
                     }`}
                   >
-                    {product.stock > 0
-                      ? `${product.stock} unidades`
+                    {(product.stock_quantity || product.stock || 0) > 0
+                      ? `${product.stock_quantity || product.stock} unidades`
                       : 'Sin stock'}
                   </span>
                 </td>
