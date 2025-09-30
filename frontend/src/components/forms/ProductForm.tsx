@@ -196,8 +196,25 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
   useEffect(() => {
     if (mode === 'edit' && initialData) {
-      Object.entries(initialData).forEach(([key, value]) => {
-        setValue(key as keyof ProductFormData, value);
+      console.log('📦 Cargando producto para editar:', initialData);
+
+      // Mapear campos del backend a campos del formulario
+      const mappedData: any = {
+        ...initialData,
+        // Mapear price/precio_venta
+        precio_venta: initialData.price || initialData.precio_venta || 0,
+        // Mapear cost/precio_costo
+        precio_costo: initialData.cost || initialData.precio_costo || 0,
+        // Mapear category/categoria
+        category: initialData.category || initialData.categoria || '',
+      };
+
+      console.log('🔄 Datos mapeados para formulario:', mappedData);
+
+      Object.entries(mappedData).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          setValue(key as keyof ProductFormData, value);
+        }
       });
     }
   }, [mode, initialData, setValue]);
@@ -823,24 +840,26 @@ const ProductForm: React.FC<ProductFormProps> = ({
           helpText="Código único de producto"
         />
 
-        {/* Progreso del Formulario - Versión Minimalista */}
-        <div className='mt-6 p-4 bg-slate-700/50 border border-slate-600/50 rounded-lg'>
-          <div className='flex items-center justify-between mb-3'>
-            <span className='text-sm font-medium text-white'>Progreso del formulario</span>
-            <span className='text-sm font-bold text-blue-400'>
-              {formProgress.progressPercent}% ({formProgress.completedCount}/7 campos)
-            </span>
+        {/* Progreso del Formulario - Solo en modo CREAR */}
+        {mode === 'create' && (
+          <div className='mt-6 p-4 bg-slate-700/50 border border-slate-600/50 rounded-lg'>
+            <div className='flex items-center justify-between mb-3'>
+              <span className='text-sm font-medium text-white'>Progreso del formulario</span>
+              <span className='text-sm font-bold text-blue-400'>
+                {formProgress.progressPercent}% ({formProgress.completedCount}/7 campos)
+              </span>
+            </div>
+            <div className='w-full bg-slate-600 rounded-full h-2'>
+              <div
+                className='bg-gradient-to-r from-blue-500 to-indigo-500 h-2 rounded-full transition-all duration-500'
+                style={{ width: `${formProgress.progressPercent}%` }}
+              />
+            </div>
+            {isFormValid && (
+              <p className='mt-3 text-sm text-emerald-400 text-center'>Formulario completo</p>
+            )}
           </div>
-          <div className='w-full bg-slate-600 rounded-full h-2'>
-            <div
-              className='bg-gradient-to-r from-blue-500 to-indigo-500 h-2 rounded-full transition-all duration-500'
-              style={{ width: `${formProgress.progressPercent}%` }}
-            />
-          </div>
-          {isFormValid && (
-            <p className='mt-3 text-sm text-emerald-400 text-center'>Formulario completo</p>
-          )}
-        </div>
+        )}
 
         <div className='flex gap-4 pt-8'>
           <button
@@ -950,9 +969,9 @@ const ProductForm: React.FC<ProductFormProps> = ({
                 setLoading(false);
               }
             }}
-            disabled={loading || uploadingImages || !isFormValid}
+            disabled={mode === 'edit' ? (loading || uploadingImages) : (loading || uploadingImages || !isFormValid)}
             className={`flex-1 px-8 py-4 rounded-xl font-bold text-lg flex items-center justify-center transition-all duration-300 transform ${
-              loading || uploadingImages || !isFormValid
+              (mode === 'edit' ? (loading || uploadingImages) : (loading || uploadingImages || !isFormValid))
                 ? 'bg-slate-400 text-slate-200 cursor-not-allowed opacity-60 shadow-none'
                 : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-xl hover:shadow-2xl hover:scale-105 hover:from-blue-700 hover:to-blue-800 active:scale-95'
             }`}
