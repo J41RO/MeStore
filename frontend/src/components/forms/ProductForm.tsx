@@ -261,14 +261,24 @@ const ProductForm: React.FC<ProductFormProps> = ({
   };
 
   const onFormSubmit = async (data: ProductFormData) => {
+    console.log('🔵🔵🔵 onFormSubmit EJECUTADO - INICIO');
+    console.log('📦 Data recibida:', data);
+    console.log('🎯 Mode:', mode);
+
     setLoading(true);
     clearMessage();
 
     try {
+      console.log('✅ Validando formulario...');
       // Validación final antes de envío
       const isFormValid = await trigger();
-      if (!isFormValid) return;
+      console.log('🔍 isFormValid:', isFormValid);
+      if (!isFormValid) {
+        console.log('❌ Validación FALLIDA - Abortando');
+        return;
+      }
 
+      console.log('🔄 Transformando datos para API...');
       // Transform form data to API format
       const apiData: CreateProductData = {
         name: data.name,
@@ -289,12 +299,17 @@ const ProductForm: React.FC<ProductFormProps> = ({
         }
       };
 
+      console.log('📤 apiData preparada:', apiData);
+
       let productId: string;
 
       if (mode === 'create') {
+        console.log('🆕 Modo CREATE - Llamando a api.products.create()...');
         const response = await api.products.create(apiData);
+        console.log('✅ Respuesta de API:', response);
         productId = response.data.id;
         showMessage('Producto creado exitosamente', 'success');
+        console.log('🎉 Producto creado con ID:', productId);
       } else {
         const productIdString = (initialData as any)?.id;
         if (!productIdString) {
@@ -357,15 +372,20 @@ const ProductForm: React.FC<ProductFormProps> = ({
         });
       }
     } catch (error) {
-      console.error('Error al procesar producto:', error);
+      console.error('❌❌❌ ERROR CAPTURADO en onFormSubmit:', error);
+      console.error('❌ Error type:', typeof error);
+      console.error('❌ Error details:', JSON.stringify(error, null, 2));
 
       let errorMessage = 'Error al procesar el producto';
 
       if (error instanceof Error) {
         errorMessage = error.message;
+        console.error('❌ Error.message:', error.message);
+        console.error('❌ Error.stack:', error.stack);
       }
 
       showMessage(errorMessage, 'error');
+      console.log('🔴 Mensaje de error mostrado al usuario:', errorMessage);
     } finally {
       setLoading(false);
     }
