@@ -52,8 +52,12 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       console.warn('⚠️ onProductCreated no está definido en props');
     }
 
-    console.log('🚪 Cerrando modal...');
-    onClose();
+    // Dar tiempo para que el refresh se ejecute antes de cerrar el modal
+    console.log('⏳ Esperando 500ms para que el refresh se complete...');
+    setTimeout(() => {
+      console.log('🚪 Cerrando modal después de refresh...');
+      onClose();
+    }, 500);
   };
 
   if (!isOpen) return null;
