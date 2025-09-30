@@ -238,10 +238,13 @@ class VendedorLogin(BaseModel):
 # =============================================================================
 
 class VendedorDashboardResumen(BaseModel):
-    """Schema para el resumen del dashboard del vendedor."""
-    
+    """Schema para el resumen del dashboard del vendedor con estados de productos."""
+
     total_productos: int = Field(0, description="Total de productos del vendedor")
-    productos_activos: int = Field(0, description="Productos publicados y activos")
+    productos_aprobados: int = Field(0, description="Productos aprobados y visibles en marketplace")
+    productos_pendientes: int = Field(0, description="Productos pendientes de aprobación")
+    productos_rechazados: int = Field(0, description="Productos rechazados por el administrador")
+    productos_activos: int = Field(0, description="Productos publicados y activos (legacy)")
     ventas_mes: int = Field(0, description="Ventas realizadas este mes")
     ingresos_mes: Decimal = Field(Decimal("0.0"), description="Ingresos generados este mes")
     comision_total: Decimal = Field(Decimal("0.0"), description="Comisión total acumulada")

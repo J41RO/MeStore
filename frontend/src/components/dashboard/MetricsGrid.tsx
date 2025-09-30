@@ -50,8 +50,24 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({
       change: metrics?.productosChange || 0,
       icon: PackageIcon,
       color: 'blue',
-      description: `${metrics?.productosActivos || 0} activos`,
+      description: 'Todos tus productos',
       trend: (metrics?.productosChange || 0) > 0 ? 'up' : 'neutral'
+    },
+    {
+      title: 'Productos Aprobados',
+      value: metrics?.productosAprobados || 0,
+      icon: PackageIcon,
+      color: 'green',
+      description: 'Visibles en marketplace',
+      trend: 'neutral'
+    },
+    {
+      title: 'Pendientes Aprobación',
+      value: metrics?.productosPendientes || 0,
+      icon: PackageIcon,
+      color: 'yellow',
+      description: 'Esperando revisión admin',
+      trend: 'neutral'
     },
     {
       title: 'Ventas del Mes', 

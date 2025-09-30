@@ -360,7 +360,31 @@ async def get_dashboard_resumen(
     )
     total_productos = total_productos_result.scalar() or 0
 
-    # 2. Productos activos (DISPONIBLE es el estado activo para venta)
+    # 2. Productos aprobados (APPROVED - aprobados por admin)
+    productos_aprobados_result = await db.execute(
+        select(func.count(Product.id)).where(
+            and_(Product.vendedor_id == current_user.id, Product.status == ProductStatus.APPROVED)
+        )
+    )
+    productos_aprobados = productos_aprobados_result.scalar() or 0
+
+    # 3. Productos pendientes (PENDING - esperando aprobación)
+    productos_pendientes_result = await db.execute(
+        select(func.count(Product.id)).where(
+            and_(Product.vendedor_id == current_user.id, Product.status == ProductStatus.PENDING)
+        )
+    )
+    productos_pendientes = productos_pendientes_result.scalar() or 0
+
+    # 4. Productos rechazados (REJECTED - rechazados por admin)
+    productos_rechazados_result = await db.execute(
+        select(func.count(Product.id)).where(
+            and_(Product.vendedor_id == current_user.id, Product.status == ProductStatus.REJECTED)
+        )
+    )
+    productos_rechazados = productos_rechazados_result.scalar() or 0
+
+    # 5. Productos activos (DISPONIBLE - legacy, mantener para compatibilidad)
     productos_activos_result = await db.execute(
         select(func.count(Product.id)).where(
             and_(Product.vendedor_id == current_user.id, Product.status == ProductStatus.DISPONIBLE)
@@ -402,7 +426,10 @@ async def get_dashboard_resumen(
 
     return VendedorDashboardResumen(
         total_productos=total_productos,
-        productos_activos=productos_activos,
+        productos_aprobados=productos_aprobados,
+        productos_pendientes=productos_pendientes,
+        productos_rechazados=productos_rechazados,
+        productos_activos=productos_activos,  # Legacy
         ventas_mes=ventas_mes,
         ingresos_mes=ingresos_mes,
         comision_total=comision_total,

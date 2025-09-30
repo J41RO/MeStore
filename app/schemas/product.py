@@ -39,10 +39,10 @@ Validaciones implementadas:
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from uuid import UUID
 
-from pydantic import UUID4, BaseModel, Field, field_validator, model_validator
+from pydantic import UUID4, BaseModel, Field, field_validator, model_validator, model_serializer
 
 from app.models.product import ProductStatus
 
@@ -272,6 +272,7 @@ class ProductCreate(ProductBase):
 
     Hereda ProductBase con campos obligatorios para creación.
     Incluye validaciones adicionales para nuevos productos.
+    Acepta alias para compatibilidad con frontend (price, category).
     """
 
     # Campos obligatorios para creación
@@ -287,6 +288,31 @@ class ProductCreate(ProductBase):
         max_length=200,
         description="Nombre del producto (obligatorio)",
     )
+
+    # Alias para compatibilidad con frontend
+    price: Optional[Decimal] = Field(None, description="Alias de precio_venta")
+    category: Optional[str] = Field(None, description="Alias de categoria")
+    category_id: Optional[str] = Field(None, description="UUID de categoría (se convertirá a nombre)")
+    stock_quantity: Optional[int] = Field(None, ge=0, description="Cantidad en stock")
+
+    @model_validator(mode='before')
+    @classmethod
+    def map_frontend_fields(cls, data: Any) -> Any:
+        """
+        Mapear campos del frontend a campos del backend.
+        Convierte price → precio_venta y category → categoria si vienen.
+        Nota: category_id se manejará en el endpoint para buscar el nombre.
+        """
+        if isinstance(data, dict):
+            # Mapear price → precio_venta
+            if 'price' in data and data['price'] is not None and 'precio_venta' not in data:
+                data['precio_venta'] = data['price']
+
+            # Mapear category → categoria
+            if 'category' in data and data['category'] and 'categoria' not in data:
+                data['categoria'] = data['category']
+
+        return data
 
     class Config(ProductConfig):
         json_schema_extra = {
@@ -557,9 +583,55 @@ class ProductResponse(ProductRead):
 
     Idéntico a ProductRead pero con nombre más semántico para APIs.
     Usado en endpoints que retornan productos completos.
+    Incluye alias para compatibilidad con frontend.
     """
 
-    pass
+    stock_quantity: Optional[int] = Field(
+        default=0,
+        description="Cantidad en stock (viene de inventario)"
+    )
+
+    @model_serializer(mode='wrap')
+    def serialize_model(self, serializer: Any) -> Dict[str, Any]:
+        """
+        Custom serializer para agregar alias de compatibilidad con frontend.
+        Agrega campos: price, category, stock como alias de los campos backend.
+        """
+        data = serializer(self)
+
+        # Agregar alias para compatibilidad frontend
+        data['price'] = float(data.get('precio_venta', 0)) if data.get('precio_venta') else None
+        data['category'] = data.get('categoria')
+        data['stock'] = data.get('stock_quantity', 0)
+
+        return data
+
+    class Config(ProductConfig):
+        json_schema_extra = {
+            "example": {
+                "id": "550e8400-e29b-41d4-a716-446655440000",
+                "sku": "ELEC-LAPTOP-001",
+                "name": "Laptop Gaming RGB",
+                "description": "Laptop gaming de alta gama con iluminación RGB",
+                "status": "disponible",
+                "precio_venta": 2500000.00,
+                "price": 2500000.00,  # Alias
+                "precio_costo": 2000000.00,
+                "comision_mestocker": 250000.00,
+                "peso": 2.500,
+                "dimensiones": {"largo": 35.0, "ancho": 25.0, "alto": 3.0},
+                "categoria": "Electronics",
+                "category": "Electronics",  # Alias
+                "tags": ["laptop", "gaming", "rgb"],
+                "stock_quantity": 12,
+                "stock": 12,  # Alias
+                "vendedor_id": "550e8400-e29b-41d4-a716-446655440001",
+                "version": 1,
+                "created_at": "2025-01-28T10:30:00",
+                "updated_at": "2025-01-28T10:30:00",
+                "deleted_at": None,
+            }
+        }
 
 
 class ProductPatch(BaseModel):

@@ -54,8 +54,8 @@ from sqlalchemy import and_, asc, desc, or_, select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.models.product import Product
-from app.models.user import User
+from app.models.product import Product, ProductStatus
+from app.models.user import User, UserType
 from app.models.product_image import ProductImage
 from app.schemas.product import (
     ProductCreate,
@@ -129,9 +129,32 @@ async def create_producto(
                 detail=f"Producto con SKU {producto_data.sku} ya existe",
             )
 
-        # Crear nuevo producto con vendedor_id automático
-        product_dict = producto_data.model_dump()
+        # Crear nuevo producto con vendedor_id automático y status PENDING
+        product_dict = producto_data.model_dump(exclude={'category_id'})
+
+        # Si viene category_id, buscar el nombre de la categoría
+        if producto_data.category_id:
+            try:
+                from app.models.category import Category
+                category_stmt = select(Category).where(Category.id == producto_data.category_id)
+                category_result = await db.execute(category_stmt)
+                category = category_result.scalar_one_or_none()
+
+                if category:
+                    product_dict['categoria'] = category.name
+                    logger.info(f"Categoría encontrada: {category.name} para category_id: {producto_data.category_id}")
+                else:
+                    logger.warning(f"Category ID {producto_data.category_id} no encontrada, usando None")
+            except Exception as cat_error:
+                logger.error(f"Error buscando categoría: {str(cat_error)}")
+
         product_dict['vendedor_id'] = current_user.id  # Asignar vendedor automáticamente
+        product_dict['status'] = ProductStatus.PENDING  # Estado inicial: requiere aprobación de admin
+
+        # Remover campos que no son del modelo Product
+        product_dict.pop('price', None)
+        product_dict.pop('category', None)
+        product_dict.pop('stock_quantity', None)  # El stock se maneja en Inventory
 
         db_product = Product(**product_dict)
         db.add(db_product)
@@ -139,7 +162,7 @@ async def create_producto(
         await db.refresh(db_product)
 
         logger.info(
-            f"Producto creado exitosamente: SKU={db_product.sku}, ID={db_product.id}"
+            f"Producto creado exitosamente: SKU={db_product.sku}, ID={db_product.id}, Categoría={db_product.categoria}"
         )
 
         # Convertir a ProductResponse
@@ -257,9 +280,16 @@ async def get_productos(
 
         logger.info(f"Obtenidos {len(productos)} productos de {total} totales (página {page})")
 
-        # Crear respuesta paginada
+        # Crear respuesta paginada - agregar stock_quantity como 0 por defecto
+        # El stock real se manejará en una fase posterior con eager loading
+        productos_response = []
+        for producto in productos:
+            # Crear dict del producto sin intentar acceder a relaciones
+            producto_data = ProductResponse.model_validate(producto)
+            productos_response.append(producto_data)
+
         return PaginatedResponse(
-            data=[ProductResponse.model_validate(producto) for producto in productos],
+            data=productos_response,
             pagination=PaginationMeta.create(page=page, size=limit, total=total),
             message=f"Productos obtenidos exitosamente"
         )
@@ -946,4 +976,187 @@ async def check_product_name(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error interno del servidor"
+        )
+
+# =============================================================================
+# ADMIN ENDPOINTS - Product Approval Workflow
+# =============================================================================
+
+@router.post(
+    "/{product_id}/approve",
+    response_model=ProductResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Aprobar producto (SOLO ADMIN)",
+    tags=["admin", "products"]
+)
+async def approve_product(
+    product_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> ProductResponse:
+    """
+    Aprobar un producto pendiente para que sea visible en el marketplace.
+    
+    **Requiere rol SUPER_ADMIN**
+    
+    - Cambia el estado del producto de PENDING a APPROVED
+    - Solo productos en estado PENDING pueden ser aprobados
+    - El producto se vuelve visible en el marketplace público
+    
+    Args:
+        product_id: UUID del producto a aprobar
+        current_user: Usuario autenticado (debe ser SUPER_ADMIN)
+        db: Sesión de base de datos
+        
+    Returns:
+        ProductResponse: Producto aprobado con estado APPROVED
+        
+    Raises:
+        403: Si el usuario no es SUPER_ADMIN
+        404: Si el producto no existe
+        400: Si el producto no está en estado PENDING
+    """
+    # Verificar que el usuario sea admin
+    if current_user.user_type != UserType.SUPER_ADMIN:
+        logger.warning(
+            f"Usuario no autorizado intentó aprobar producto: {current_user.email}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo administradores pueden aprobar productos"
+        )
+    
+    try:
+        # Validar y obtener producto
+        product_uuid = validate_product_id(product_id)
+        
+        stmt = select(Product).where(
+            and_(Product.id == product_uuid, Product.deleted_at.is_(None))
+        )
+        result = await db.execute(stmt)
+        product = result.scalar_one_or_none()
+        
+        if not product:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Producto con ID {product_id} no encontrado"
+            )
+        
+        # Verificar que el producto esté en estado PENDING
+        if product.status != ProductStatus.PENDING:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Producto debe estar en estado PENDING para ser aprobado. Estado actual: {product.status}"
+            )
+        
+        # Aprobar producto
+        product.status = ProductStatus.APPROVED
+        product.updated_at = datetime.utcnow()
+        
+        await db.commit()
+        await db.refresh(product)
+        
+        logger.info(
+            f"Producto {product.sku} aprobado por admin {current_user.email}"
+        )
+        
+        return ProductResponse.model_validate(product)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error aprobando producto {product_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno al aprobar producto"
+        )
+
+
+@router.post(
+    "/{product_id}/reject",
+    response_model=ProductResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Rechazar producto (SOLO ADMIN)",
+    tags=["admin", "products"]
+)
+async def reject_product(
+    product_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> ProductResponse:
+    """
+    Rechazar un producto pendiente.
+    
+    **Requiere rol SUPER_ADMIN**
+    
+    - Cambia el estado del producto de PENDING a REJECTED
+    - Solo productos en estado PENDING pueden ser rechazados
+    - El producto NO será visible en el marketplace público
+    
+    Args:
+        product_id: UUID del producto a rechazar
+        current_user: Usuario autenticado (debe ser SUPER_ADMIN)
+        db: Sesión de base de datos
+        
+    Returns:
+        ProductResponse: Producto rechazado con estado REJECTED
+        
+    Raises:
+        403: Si el usuario no es SUPER_ADMIN
+        404: Si el producto no existe
+        400: Si el producto no está en estado PENDING
+    """
+    # Verificar que el usuario sea admin
+    if current_user.user_type != UserType.SUPER_ADMIN:
+        logger.warning(
+            f"Usuario no autorizado intentó rechazar producto: {current_user.email}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo administradores pueden rechazar productos"
+        )
+    
+    try:
+        # Validar y obtener producto
+        product_uuid = validate_product_id(product_id)
+        
+        stmt = select(Product).where(
+            and_(Product.id == product_uuid, Product.deleted_at.is_(None))
+        )
+        result = await db.execute(stmt)
+        product = result.scalar_one_or_none()
+        
+        if not product:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Producto con ID {product_id} no encontrado"
+            )
+        
+        # Verificar que el producto esté en estado PENDING
+        if product.status != ProductStatus.PENDING:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Producto debe estar en estado PENDING para ser rechazado. Estado actual: {product.status}"
+            )
+        
+        # Rechazar producto
+        product.status = ProductStatus.REJECTED
+        product.updated_at = datetime.utcnow()
+        
+        await db.commit()
+        await db.refresh(product)
+        
+        logger.info(
+            f"Producto {product.sku} rechazado por admin {current_user.email}"
+        )
+        
+        return ProductResponse.model_validate(product)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error rechazando producto {product_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno al rechazar producto"
         )

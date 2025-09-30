@@ -293,6 +293,22 @@ const ProductTable: React.FC<ProductTableProps> = ({
                             {product.images.length} fotos
                           </span>
                         )}
+                        {/* Status Badge */}
+                        {product.status && (
+                          <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                            product.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                            product.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
+                            product.status === 'REJECTED' ? 'bg-red-100 text-red-800' :
+                            product.status === 'DRAFT' ? 'bg-gray-100 text-gray-800' :
+                            'bg-blue-100 text-blue-800'
+                          }`}>
+                            {product.status === 'PENDING' ? 'Pendiente' :
+                             product.status === 'APPROVED' ? 'Aprobado' :
+                             product.status === 'REJECTED' ? 'Rechazado' :
+                             product.status === 'DRAFT' ? 'Borrador' :
+                             product.status}
+                          </span>
+                        )}
                       </div>
                       <div className='text-sm text-gray-500 truncate max-w-xs'>
                         {product.description}

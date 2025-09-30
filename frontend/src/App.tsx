@@ -38,6 +38,7 @@ const VendorApplicationsPage = lazy(() => import('./pages/admin/vendors/VendorAp
 const VendorProductsPage = lazy(() => import('./pages/admin/vendors/VendorProductsPage'));
 const VendorOrdersPage = lazy(() => import('./pages/admin/vendors/VendorOrdersPage'));
 const VendorCommissionsPage = lazy(() => import('./pages/admin/vendors/VendorCommissionsPage'));
+const ProductApprovalPage = lazy(() => import('./pages/admin/ProductApprovalPage'));
 
 // Enterprise Navigation Pages - Analytics Category
 const AnalyticsDashboard = lazy(() => import('./pages/admin/analytics/AnalyticsDashboard'));
@@ -455,6 +456,11 @@ function App() {
                     <Route path='vendor-products' element={
                       <RoleGuard roles={[UserType.ADMIN, UserType.SUPERUSER]} strategy="any">
                         <VendorProductsPage />
+                      </RoleGuard>
+                    } />
+                    <Route path='product-approval' element={
+                      <RoleGuard roles={[UserType.ADMIN, UserType.SUPERUSER]} strategy="any">
+                        <ProductApprovalPage />
                       </RoleGuard>
                     } />
                     <Route path='vendor-orders' element={

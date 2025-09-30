@@ -26,7 +26,8 @@ import {
   Lock,
   Database,
   Bell,
-  Globe
+  Globe,
+  CheckCircle
 } from 'lucide-react';
 
 import type { NavigationCategory, CategoryTheme } from './NavigationTypes';
@@ -172,6 +173,19 @@ const vendorsCategory: NavigationCategory = {
       }
     },
     {
+      id: 'product-approval',
+      title: 'Product Approval',
+      path: '/admin-secure-portal/product-approval',
+      icon: CheckCircle,
+      description: 'Review and approve pending vendor products',
+      requiredRole: UserRole.ADMIN,
+      metadata: {
+        keywords: ['products', 'approval', 'pending', 'review'],
+        analyticsId: 'nav_product_approval',
+        priority: 3
+      }
+    },
+    {
       id: 'vendor-products',
       title: 'Product Catalog',
       path: '/admin-secure-portal/vendor-products',
@@ -181,7 +195,7 @@ const vendorsCategory: NavigationCategory = {
       metadata: {
         keywords: ['products', 'catalog', 'inventory'],
         analyticsId: 'nav_vendor_products',
-        priority: 3
+        priority: 4
       }
     },
     {
@@ -194,7 +208,7 @@ const vendorsCategory: NavigationCategory = {
       metadata: {
         keywords: ['orders', 'fulfillment', 'shipping'],
         analyticsId: 'nav_vendor_orders',
-        priority: 4
+        priority: 5
       }
     },
     {
@@ -207,7 +221,7 @@ const vendorsCategory: NavigationCategory = {
       metadata: {
         keywords: ['commissions', 'payouts', 'earnings'],
         analyticsId: 'nav_vendor_commissions',
-        priority: 5
+        priority: 6
       }
     }
   ]

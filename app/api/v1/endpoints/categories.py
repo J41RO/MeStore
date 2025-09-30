@@ -65,7 +65,7 @@ from app.services.category_service import CategoryService
 logger = logging.getLogger(__name__)
 
 # Router para endpoints de categorías
-router = APIRouter(prefix="/categories", tags=["Categories"])
+router = APIRouter(tags=["Categories"])
 
 
 # Decorador para validar permisos de administrador
@@ -271,16 +271,63 @@ async def list_categories(
     - **Features**: Filtros múltiples, ordenamiento, paginación
     """
     try:
-        # TODO: Implementar consulta con filtros
         logger.info(f"Listando categorías - página {page}, tamaño {size}")
 
-        # Placeholder response
+        # Import Category model
+        from app.models.category import Category
+        from sqlalchemy import select, func
+
+        # Build query with filters
+        query = select(Category)
+
+        # Apply filters
+        if search:
+            search_filter = or_(
+                Category.name.ilike(f"%{search}%"),
+                Category.description.ilike(f"%{search}%")
+            )
+            query = query.where(search_filter)
+
+        if parent_id is not None:
+            query = query.where(Category.parent_id == parent_id)
+
+        if level is not None:
+            query = query.where(Category.level == level)
+
+        if is_active is not None:
+            query = query.where(Category.is_active == is_active)
+
+        # Count total
+        count_query = select(func.count()).select_from(query.subquery())
+        total_result = await db.execute(count_query)
+        total = total_result.scalar() or 0
+
+        # Apply sorting
+        if sort_desc:
+            query = query.order_by(desc(getattr(Category, sort_by, Category.sort_order)))
+        else:
+            query = query.order_by(getattr(Category, sort_by, Category.sort_order))
+
+        # Apply pagination
+        offset = (page - 1) * size
+        query = query.offset(offset).limit(size)
+
+        # Execute query
+        result = await db.execute(query)
+        categories = result.scalars().all()
+
+        # Calculate pages
+        pages = (total + size - 1) // size if total > 0 else 0
+
+        # Convert to CategoryRead
+        category_reads = [CategoryRead.model_validate(cat) for cat in categories]
+
         return CategoryListResponse(
-            categories=[],
-            total=0,
+            categories=category_reads,
+            total=total,
             page=page,
             size=size,
-            pages=0
+            pages=pages
         )
 
     except Exception as e:

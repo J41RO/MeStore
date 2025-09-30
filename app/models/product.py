@@ -66,16 +66,26 @@ class ProductStatus(PyEnum):
     Enumeración para estados del producto en el marketplace.
 
     Estados del flujo de vida del producto:
+        DRAFT: Borrador - Vendedor está editando el producto
+        PENDING: Pendiente - Esperando revisión del administrador
+        APPROVED: Aprobado - Producto aprobado y visible en marketplace
+        REJECTED: Rechazado - Producto rechazado por el administrador
         TRANSITO: Producto en tránsito hacia almacén
         VERIFICADO: Producto verificado y en proceso de catalogación
-        DISPONIBLE: Producto disponible para venta
+        DISPONIBLE: Producto disponible para venta (legacy - usar APPROVED)
         VENDIDO: Producto vendido y no disponible
+        INACTIVE: Producto desactivado temporalmente
     """
 
+    DRAFT = "DRAFT"
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
     TRANSITO = "TRANSITO"
     VERIFICADO = "VERIFICADO"
-    DISPONIBLE = "DISPONIBLE"
+    DISPONIBLE = "DISPONIBLE"  # Legacy - mantener para compatibilidad
     VENDIDO = "VENDIDO"
+    INACTIVE = "INACTIVE"
 
 
 class Product(BaseModel):

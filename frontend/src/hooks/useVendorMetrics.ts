@@ -2,9 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { vendorApi } from '../services/api_vendor';
 
 export interface VendorMetrics {
-  // Productos
+  // Productos - con estados de aprobación
   totalProductos?: number;
-  productosActivos?: number;
+  productosAprobados?: number;      // Productos aprobados por admin
+  productosPendientes?: number;      // Productos esperando aprobación
+  productosRechazados?: number;      // Productos rechazados por admin
+  productosActivos?: number;         // Legacy - mantener compatibilidad
   productosInactivos?: number;
   productosChange?: number;
   
@@ -72,10 +75,13 @@ export const useVendorMetrics = (vendorId?: string): UseVendorMetricsResult => {
 
       // Mapear la respuesta de la API a la interfaz VendorMetrics
       const mappedMetrics: VendorMetrics = {
-        // Productos - desde API
+        // Productos - desde API con estados de aprobación
         totalProductos: apiData.total_productos || 0,
-        productosActivos: apiData.productos_activos || 0,
-        productosInactivos: (apiData.total_productos || 0) - (apiData.productos_activos || 0),
+        productosAprobados: apiData.productos_aprobados || 0,
+        productosPendientes: apiData.productos_pendientes || 0,
+        productosRechazados: apiData.productos_rechazados || 0,
+        productosActivos: apiData.productos_activos || 0,  // Legacy
+        productosInactivos: (apiData.total_productos || 0) - (apiData.productos_aprobados || 0),
         productosChange: 0, // TODO: Calcular cambio vs período anterior cuando esté disponible
 
         // Ventas - desde API

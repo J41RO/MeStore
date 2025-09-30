@@ -395,6 +395,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
   const currentError = createError || updateError;
   const isSubmitting = isCreating || isUpdating || isSaving;
+  const isEditMode = !!product; // Determine if we're editing
 
   return (
     <div className="max-w-4xl mx-auto">

@@ -280,8 +280,8 @@ const DashboardHeader: React.FC<{ user: any; metrics: any; onRefresh: () => void
               <RefreshCwIcon className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
             </button>
           </div>
-          <p className="text-sm text-blue-200">Productos activos</p>
-          <p className="text-3xl font-bold">{metrics?.productosActivos || 0}</p>
+          <p className="text-sm text-blue-200">Productos aprobados</p>
+          <p className="text-3xl font-bold">{metrics?.productosAprobados || 0}</p>
         </div>
       </div>
     </div>
