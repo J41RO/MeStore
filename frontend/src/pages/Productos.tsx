@@ -83,8 +83,12 @@ const Productos: React.FC = () => {
   };
 
   const handleProductCreated = () => {
+    console.log('🔄 Productos.handleProductCreated ejecutado');
+    console.log('🔍 refreshProducts type:', typeof refreshProducts);
     // Refrescar la lista cuando se crea un producto
+    console.log('📋 Llamando a refreshProducts()...');
     refreshProducts();
+    console.log('✅ refreshProducts() llamado');
   };
 
   const handleProductUpdated = () => {

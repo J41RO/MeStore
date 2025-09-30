@@ -40,10 +40,19 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
   };
 
   const handleSuccess = () => {
+    console.log('🎉 AddProductModal.handleSuccess ejecutado');
+    console.log('🔍 onProductCreated type:', typeof onProductCreated);
+
     // Notificar al componente padre que se creó un producto
     if (onProductCreated) {
+      console.log('✅ Llamando a onProductCreated()...');
       onProductCreated();
+      console.log('✅ onProductCreated() completado');
+    } else {
+      console.warn('⚠️ onProductCreated no está definido en props');
     }
+
+    console.log('🚪 Cerrando modal...');
     onClose();
   };
 

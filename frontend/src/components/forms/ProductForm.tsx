@@ -930,10 +930,17 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
                 alert('¡Producto creado exitosamente!');
 
+                console.log('🔔 Llamando a onSuccess callback...');
+                console.log('🔍 onSuccess type:', typeof onSuccess);
                 if (onSuccess) {
+                  console.log('✅ Ejecutando onSuccess()...');
                   onSuccess();
+                  console.log('✅ onSuccess() completado');
+                } else {
+                  console.warn('⚠️ onSuccess no está definido');
                 }
 
+                console.log('🔄 Cerrando modal y recargando lista...');
                 setLoading(false);
               } catch (error) {
                 console.error('❌❌❌ ERROR:', error);
