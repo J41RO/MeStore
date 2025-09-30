@@ -78,16 +78,27 @@ export const useProductList = (): UseProductListReturn => {
 
   const fetchProducts = useCallback(
     async (filters: ProductFilters, page: number) => {
+      console.log('📥 useProductList.fetchProducts llamado');
+      console.log('🔍 Filters:', filters);
+      console.log('🔍 Page:', page);
+
       setState(prev => ({ ...prev, loading: true, error: null }));
 
       try {
         const currentLimit = state.pagination?.limit || 10;
+        console.log('📤 Llamando a api.products.getWithFilters...');
+        console.log('📦 Params:', { ...filters, page, limit: currentLimit });
+
         const response = await api.products.getWithFilters({
           ...filters,
           page: page,
           limit: currentLimit
         });
+
+        console.log('✅ Response recibida:', response);
         const data: PaginatedResponse<Product> = response.data;
+        console.log('📊 Data parseada:', data);
+        console.log('🔢 Productos encontrados:', data.data?.length || 0);
 
         setState(prev => ({
           ...prev,
@@ -95,7 +106,12 @@ export const useProductList = (): UseProductListReturn => {
           pagination: data.pagination,
           loading: false,
         }));
+
+        console.log('✅ Estado actualizado con productos');
       } catch (error) {
+        console.error('❌ Error en fetchProducts:', error);
+        console.error('📍 Error details:', error instanceof Error ? error.message : error);
+
         setState(prev => ({
           ...prev,
           error:
@@ -133,6 +149,10 @@ export const useProductList = (): UseProductListReturn => {
   }, []);
 
   const refreshProducts = useCallback(() => {
+    console.log('🔄 useProductList.refreshProducts llamado');
+    console.log('🔍 Current filters:', state.filters);
+    console.log('🔍 Current page:', state.pagination?.page || 1);
+    console.log('📞 Llamando a fetchProducts...');
     fetchProducts(state.filters, state.pagination?.page || 1);
   }, [fetchProducts, state.filters, state.pagination?.page]);
 
