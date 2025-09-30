@@ -846,27 +846,78 @@ const ProductForm: React.FC<ProductFormProps> = ({
           <button
             type='button'
             onClick={async (e) => {
-              console.log('🔴🔴🔴 BOTÓN CLICKEADO');
-              console.log('🔍 isFormValid:', isFormValid);
-              console.log('🔍 loading:', loading);
-              console.log('🔍 uploadingImages:', uploadingImages);
-              console.log('🔍 errors:', errors);
-              console.log('🔍 Disabled?:', loading || uploadingImages || !isFormValid);
-              console.log('🔍 onFormSubmit type:', typeof onFormSubmit);
-              console.log('🔍 handleSubmit type:', typeof handleSubmit);
-
+              console.log('🔴🔴🔴 BOTÓN CLICKEADO - BYPASS REACT HOOK FORM');
               e.preventDefault();
 
               try {
-                console.log('⚡ Llamando a handleSubmit(onFormSubmit)...');
-                const submitHandler = handleSubmit(onFormSubmit as any);
-                console.log('🔍 submitHandler type:', typeof submitHandler);
-                console.log('📞 Ejecutando submitHandler(e)...');
-                const result = await submitHandler(e);
-                console.log('✅ submitHandler completado. Result:', result);
+                setLoading(true);
+
+                // Obtener datos del formulario manualmente
+                const formValues = watch();
+                console.log('📦 Form values:', formValues);
+
+                // Preparar datos para API
+                const productData = {
+                  name: formValues.name,
+                  description: formValues.description,
+                  price: parseFloat(formValues.precio_venta as any),
+                  stock: parseInt(formValues.stock as any),
+                  category: formValues.category,
+                  sku: formValues.sku || `PROD-${Date.now()}`,
+                  dimensions: {
+                    length: parseFloat(formValues.largo as any) || 0,
+                    width: parseFloat(formValues.ancho as any) || 0,
+                    height: parseFloat(formValues.alto as any) || 0,
+                    unit: 'cm'
+                  },
+                  weight: {
+                    value: parseFloat(formValues.peso as any) || 0,
+                    unit: 'kg'
+                  }
+                };
+
+                console.log('📤 Datos preparados:', productData);
+
+                // Obtener token
+                const token = localStorage.getItem('token');
+                if (!token) {
+                  throw new Error('No hay token de autenticación');
+                }
+
+                console.log('🔑 Token encontrado');
+                console.log('📡 Enviando a backend...');
+
+                const response = await fetch('http://192.168.1.137:8000/api/v1/productos', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                  },
+                  body: JSON.stringify(productData)
+                });
+
+                console.log('📥 Response status:', response.status);
+
+                if (!response.ok) {
+                  const errorData = await response.json();
+                  console.error('❌ Error del servidor:', errorData);
+                  throw new Error(JSON.stringify(errorData));
+                }
+
+                const result = await response.json();
+                console.log('✅✅✅ PRODUCTO CREADO:', result);
+
+                alert('¡Producto creado exitosamente!');
+
+                if (onSuccess) {
+                  onSuccess();
+                }
+
+                setLoading(false);
               } catch (error) {
-                console.error('❌ ERROR en onClick:', error);
-                console.error('📍 Stack:', error instanceof Error ? error.stack : 'No stack');
+                console.error('❌❌❌ ERROR:', error);
+                alert('Error al crear producto: ' + (error instanceof Error ? error.message : 'Unknown error'));
+                setLoading(false);
               }
             }}
             disabled={loading || uploadingImages || !isFormValid}
