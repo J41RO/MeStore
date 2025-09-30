@@ -928,8 +928,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
                 const result = await response.json();
                 console.log('✅✅✅ PRODUCTO CREADO:', result);
 
-                alert('¡Producto creado exitosamente!');
-
+                // Ejecutar onSuccess ANTES del alert para no bloquear
                 console.log('🔔 Llamando a onSuccess callback...');
                 console.log('🔍 onSuccess type:', typeof onSuccess);
                 if (onSuccess) {
@@ -942,6 +941,9 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
                 console.log('🔄 Cerrando modal y recargando lista...');
                 setLoading(false);
+
+                // Alert al final para no bloquear el refresh
+                alert('¡Producto creado exitosamente!');
               } catch (error) {
                 console.error('❌❌❌ ERROR:', error);
                 alert('Error al crear producto: ' + (error instanceof Error ? error.message : 'Unknown error'));

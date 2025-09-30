@@ -71,6 +71,7 @@ from app.schemas.product_image import (
 )
 from app.utils.file_validator import validate_multiple_files, get_image_dimensions, compress_image_multiple_resolutions, delete_image_files
 from app.api.v1.endpoints.vendor_profile import get_current_vendor
+from app.api.v1.deps.auth import get_current_user
 
 
 # Configurar logging
@@ -92,7 +93,9 @@ router = APIRouter()
     tags=["productos"],
 )
 async def create_producto(
-    producto_data: ProductCreate, db: AsyncSession = Depends(get_db)
+    producto_data: ProductCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ) -> ProductResponse:
     """
     Crear un nuevo producto en el marketplace.
@@ -100,6 +103,7 @@ async def create_producto(
     Args:
         producto_data: Datos del producto con validaciones
         db: Sesión de base de datos async
+        current_user: Usuario autenticado (automáticamente asignado como vendedor)
 
     Returns:
         ProductResponse: Producto creado con información completa
@@ -109,7 +113,7 @@ async def create_producto(
         HTTPException 500: Error interno del servidor
     """
     try:
-        logger.info(f"Creando producto con SKU: {producto_data.sku}")
+        logger.info(f"Creando producto con SKU: {producto_data.sku} para vendedor: {current_user.email}")
 
         # Verificar que SKU no existe
         stmt = select(Product).where(Product.sku == producto_data.sku)
@@ -125,8 +129,11 @@ async def create_producto(
                 detail=f"Producto con SKU {producto_data.sku} ya existe",
             )
 
-        # Crear nuevo producto
-        db_product = Product(**producto_data.model_dump())
+        # Crear nuevo producto con vendedor_id automático
+        product_dict = producto_data.model_dump()
+        product_dict['vendedor_id'] = current_user.id  # Asignar vendedor automáticamente
+
+        db_product = Product(**product_dict)
         db.add(db_product)
         await db.commit()
         await db.refresh(db_product)
