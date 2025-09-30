@@ -50,7 +50,7 @@ from app.api.v1.deps.database import get_product_or_404
 import aiofiles
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from PIL import Image
-from sqlalchemy import and_, asc, desc, or_, select
+from sqlalchemy import and_, asc, desc, or_, select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -63,6 +63,7 @@ from app.schemas.product import (
     ProductResponse,
     ProductUpdate,
 )
+from app.schemas.common import PaginatedResponse, PaginationMeta
 from app.schemas.product_image import (
     ProductImageDeleteResponse,
     ProductImageResponse,
@@ -150,7 +151,7 @@ async def create_producto(
 
 @router.get(
     "/",
-    response_model=List[ProductResponse],
+    response_model=PaginatedResponse[ProductResponse],
     status_code=status.HTTP_200_OK,
     summary="Listar productos",
     description="Obtener lista de productos con filtros avanzados y paginación",
@@ -173,18 +174,15 @@ async def get_productos(
     sort_order: Optional[str] = Query(
         "desc", pattern="^(asc|desc)$", description="Orden de clasificación"
     ),
-    # Paginación básica
-    skip: int = Query(0, ge=0, description="Elementos a saltar"),
-    limit: int = Query(100, ge=1, le=500, description="Límite de elementos"),
+    # Paginación
+    page: int = Query(1, ge=1, description="Página actual (1-indexed)"),
+    limit: int = Query(10, ge=1, le=500, description="Elementos por página"),
     db: AsyncSession = Depends(get_db),
-) -> List[ProductResponse]:
+) -> PaginatedResponse[ProductResponse]:
     """
     Obtener lista de productos con paginación básica.
     """
     try:
-        # Construir query base
-        stmt = select(Product)
-
         # Lista para condiciones WHERE
         where_conditions = []
         # Siempre excluir productos eliminados (soft delete)
@@ -212,9 +210,20 @@ async def get_productos(
         if precio_max is not None:
             where_conditions.append(Product.precio_venta <= precio_max)
 
-        # Aplicar condiciones WHERE si existen
-        if where_conditions:
-            stmt = stmt.where(and_(*where_conditions))
+        # Construir condiciones WHERE combinadas
+        where_clause = and_(*where_conditions) if where_conditions else None
+
+        # Contar total de registros (sin paginación)
+        count_stmt = select(func.count(Product.id))
+        if where_clause is not None:
+            count_stmt = count_stmt.where(where_clause)
+        count_result = await db.execute(count_stmt)
+        total = count_result.scalar() or 0
+
+        # Construir query para datos
+        stmt = select(Product)
+        if where_clause is not None:
+            stmt = stmt.where(where_clause)
 
         # Aplicar ordenamiento
         if sort_by == "precio_venta":
@@ -231,14 +240,22 @@ async def get_productos(
         else:
             stmt = stmt.order_by(asc(order_field))
 
+        # Calcular skip desde page
+        skip = (page - 1) * limit
+
         # Aplicar paginación
         stmt = stmt.offset(skip).limit(limit)
         result = await db.execute(stmt)
         productos = result.scalars().all()
 
-        logger.info(f"Obtenidos {len(productos)} productos con filtros aplicados")
+        logger.info(f"Obtenidos {len(productos)} productos de {total} totales (página {page})")
 
-        return [ProductResponse.model_validate(producto) for producto in productos]
+        # Crear respuesta paginada
+        return PaginatedResponse(
+            data=[ProductResponse.model_validate(producto) for producto in productos],
+            pagination=PaginationMeta.create(page=page, size=limit, total=total),
+            message=f"Productos obtenidos exitosamente"
+        )
 
     except Exception as e:
         logger.error(f"Error al obtener productos: {str(e)}")
