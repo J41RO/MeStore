@@ -844,7 +844,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
         <div className='flex gap-4 pt-8'>
           <button
-            type='submit'
+            type='button'
             onClick={(e) => {
               console.log('🔴🔴🔴 BOTÓN CLICKEADO');
               console.log('🔍 isFormValid:', isFormValid);
@@ -852,11 +852,12 @@ const ProductForm: React.FC<ProductFormProps> = ({
               console.log('🔍 uploadingImages:', uploadingImages);
               console.log('🔍 errors:', errors);
               console.log('🔍 Disabled?:', loading || uploadingImages || !isFormValid);
-              if (!isFormValid) {
-                console.log('⚠️ BOTÓN DESHABILITADO - Forzando submit de todos modos...');
-                e.preventDefault();
-                handleSubmit(onFormSubmit as any)();
-              }
+              console.log('🔍 onFormSubmit type:', typeof onFormSubmit);
+              console.log('🔍 handleSubmit type:', typeof handleSubmit);
+
+              e.preventDefault();
+              console.log('⚡ Llamando a handleSubmit(onFormSubmit)...');
+              handleSubmit(onFormSubmit as any)(e);
             }}
             disabled={loading || uploadingImages || !isFormValid}
             className={`flex-1 px-8 py-4 rounded-xl font-bold text-lg flex items-center justify-center transition-all duration-300 transform ${
