@@ -210,24 +210,33 @@ export default defineConfig({
         mode: 'production'
       },
       devOptions: {
-        enabled: true,
+        enabled: false, // DESACTIVADO: Service Worker causaba caché agresivo en desarrollo
         type: 'module'
       }
     })
   ],
   server: {
-    host: true,
+    host: '0.0.0.0',
     port: 5173,
-    allowedHosts: ['localhost', '127.0.0.1', '192.168.1.137', 'admin.mestocker.com', 'mestocker.com'],
-    // Proxy disabled - using direct VITE_API_BASE_URL configuration
-    // proxy: {
-    //   "/api/v1": {
-    //     target: "http://192.168.1.137:8000",
-    //     changeOrigin: true,
-    //     secure: false,
-    //     logLevel: 'debug'
-    //   }
-    // }
+    allowedHosts: [
+      'mestocker.local',
+      'localhost',
+      '127.0.0.1',
+      '192.168.1.137',
+      'admin.mestocker.com',
+      'mestocker.com',
+      'proprivilege-nonnautically-debl.ngrok-free.dev',
+      '.ngrok-free.dev'
+    ],
+    // Proxy enabled for development - forwards API requests to backend
+    proxy: {
+      "/api": {
+        target: "http://192.168.1.137:8000",
+        changeOrigin: true,
+        secure: false,
+        // Proxy /api/* to backend (backend handles /api/v1 prefix)
+      }
+    }
   },
   build: {
     rollupOptions: {

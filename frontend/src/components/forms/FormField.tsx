@@ -135,7 +135,8 @@ const FormField = React.memo(<T extends FieldValues = FieldValues>({
       {helpText && !error && (
         <p
           id={helpId()}
-          className="mt-1 text-xs text-slate-400 font-medium"
+          className="mt-1 text-xs font-medium"
+          style={{ color: '#cbd5e1 !important' }}
         >
           {helpText}
         </p>

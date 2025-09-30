@@ -185,23 +185,68 @@ const VendorDashboard: React.FC<VendorDashboardProps> = ({
     );
   }
 
+  // Check if vendor is new (no products)
+  const isNewVendor = (metrics?.totalProductos || 0) === 0;
+
   return (
     <div className={`vendor-dashboard space-y-6 ${className}`}>
       {/* Dashboard Header */}
       <DashboardHeader user={user} metrics={metrics} onRefresh={refreshMetrics} isRefreshing={isRefreshing} />
-      
+
+      {/* Welcome Card for New Vendors */}
+      {isNewVendor && (
+        <div className="bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-200 rounded-lg p-6">
+          <div className="flex items-start space-x-4">
+            <div className="flex-shrink-0">
+              <PackageIcon className="h-12 w-12 text-green-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                ¡Bienvenido a MeStocker! 🎉
+              </h3>
+              <p className="text-gray-700 mb-4">
+                Comienza tu viaje como vendedor subiendo tu primer producto. Es rápido y fácil.
+              </p>
+              <div className="space-y-2 mb-4">
+                <div className="flex items-center text-sm text-gray-600">
+                  <span className="mr-2">✓</span>
+                  <span>Agrega fotos y descripciones detalladas</span>
+                </div>
+                <div className="flex items-center text-sm text-gray-600">
+                  <span className="mr-2">✓</span>
+                  <span>Define precios competitivos</span>
+                </div>
+                <div className="flex items-center text-sm text-gray-600">
+                  <span className="mr-2">✓</span>
+                  <span>Gestiona tu inventario fácilmente</span>
+                </div>
+              </div>
+              <Link
+                to="/app/productos"
+                className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <PlusIcon className="h-5 w-5 mr-2" />
+                Subir Mi Primer Producto
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Metrics Grid */}
       <MetricsGrid metrics={metrics} loading={loading} className="" />
-      
+
       {/* Charts Section */}
-      <ChartsSection metrics={metrics} />
-      
+      {!isNewVendor && <ChartsSection metrics={metrics} />}
+
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <TopProductsWidget className="" maxProducts={5} />
-        <OrdenesBasicaSection ordenes={ordenesRecientes} />
-      </div>
-      
+      {!isNewVendor && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <TopProductsWidget className="" maxProducts={5} />
+          <OrdenesBasicaSection ordenes={ordenesRecientes} />
+        </div>
+      )}
+
       {/* Quick Actions Footer */}
       <QuickActionsFooter />
     </div>
@@ -297,8 +342,8 @@ const _ProductosRecientesSection: React.FC<{ productos: ProductoReciente[] }> = 
       </div>
       
       <div className="mt-4 pt-4 border-t">
-        <Link 
-          to="/app/productos/nuevo"
+        <Link
+          to="/app/productos"
           className="inline-flex items-center px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
           <PlusIcon className="h-4 w-4 mr-2" />
@@ -372,8 +417,8 @@ const QuickActionsFooter: React.FC = () => {
     <div className="bg-white rounded-lg shadow p-6">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">Acciones Rápidas</h3>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Link 
-          to="/app/productos/nuevo"
+        <Link
+          to="/app/productos"
           className="flex flex-col items-center p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
         >
           <PlusIcon className="h-8 w-8 text-blue-600 mb-2" />

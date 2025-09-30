@@ -601,6 +601,36 @@ const UserManagement: React.FC = () => {
         </div>
       </div>
 
+      {/* Toggle for Deleted Users */}
+      <div className="bg-gray-50 p-4 rounded-lg border">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <label className="flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showDeletedUsers}
+                onChange={(e) => setShowDeletedUsers(e.target.checked)}
+                className="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 rounded focus:ring-red-500"
+              />
+              <span className="ml-2 text-sm font-medium text-gray-700">
+                Mostrar usuarios eliminados
+              </span>
+            </label>
+            {showDeletedUsers && (
+              <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                Vista de usuarios eliminados activa
+              </span>
+            )}
+          </div>
+          <div className="text-sm text-gray-500">
+            {showDeletedUsers
+              ? `Mostrando ${totalUsers} usuarios eliminados`
+              : `Mostrando ${totalUsers} usuarios activos`
+            }
+          </div>
+        </div>
+      </div>
+
       {/* User Filters */}
       <UserFilters
         filters={filters}

@@ -10,7 +10,7 @@ import { FaFacebook } from 'react-icons/fa';
 import type { ImageFile } from '../components/ui/ImageUpload/ImageUpload.types';
 
 // Schema de validación para datos básicos (Paso 1)
-const basicDataSchema = yup.object({
+const createBasicDataSchema = (isOAuthUser: boolean) => yup.object({
   nombre: yup
     .string()
     .required('Nombre completo es requerido')
@@ -35,18 +35,22 @@ const basicDataSchema = yup.object({
       // US format: 555 123 4567 (10 digits)
       return /^\d{3}\s\d{3}\s\d{4}$/.test(value);
     }),
-  password: yup
-    .string()
-    .required('Contraseña es requerida')
-    .min(8, 'La contraseña debe tener al menos 8 caracteres')
-    .matches(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/,
-      'La contraseña debe contener al menos: 1 mayúscula, 1 minúscula, 1 número y 1 carácter especial'
-    ),
-  confirmPassword: yup
-    .string()
-    .required('Confirmar contraseña es requerida')
-    .oneOf([yup.ref('password')], 'Las contraseñas deben coincidir'),
+  password: isOAuthUser
+    ? yup.string().optional()
+    : yup
+        .string()
+        .required('Contraseña es requerida')
+        .min(8, 'La contraseña debe tener al menos 8 caracteres')
+        .matches(
+          /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/,
+          'La contraseña debe contener al menos: 1 mayúscula, 1 minúscula, 1 número y 1 carácter especial'
+        ),
+  confirmPassword: isOAuthUser
+    ? yup.string().optional()
+    : yup
+        .string()
+        .required('Confirmar contraseña es requerida')
+        .oneOf([yup.ref('password')], 'Las contraseñas deben coincidir'),
 });
 
 // Tipo unificado para formulario Paso 3 (compradores y vendedores)
@@ -139,6 +143,7 @@ const RegisterVendor: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<'google' | 'facebook' | null>(null);
   const [registrationError, setRegistrationError] = useState<string>('');
+  const [isOAuthUser, setIsOAuthUser] = useState(false);
 
   // Country code selector state
   const [selectedCountry, setSelectedCountry] = useState({
@@ -192,7 +197,7 @@ const RegisterVendor: React.FC = () => {
     watch,
     setValue,
   } = useForm({
-    resolver: yupResolver(basicDataSchema),
+    resolver: yupResolver(createBasicDataSchema(isOAuthUser)),
     mode: 'onChange',
   });
 
@@ -238,23 +243,39 @@ const RegisterVendor: React.FC = () => {
   const handleGoogleSuccess = async (credentialResponse: any) => {
     setOauthLoading('google');
     try {
-      // TODO: Integración real con Google OAuth
       console.log('Google OAuth Success:', credentialResponse);
-      
-      // Simulación de datos del usuario desde Google
-      const mockUserData = {
-        nombre: 'Usuario Google',
-        email: 'usuario@gmail.com',
-        telefono: '', // El usuario deberá completar este campo
-      };
-      
-      // Pre-llenar formulario con datos de Google
-      setValue('nombre', mockUserData.nombre);
-      setValue('email', mockUserData.email);
-      
-      // Mostrar mensaje de éxito
-      alert('Datos de Google cargados. Por favor completa el número de teléfono.');
-      
+
+      // Llamar a nuestro backend para verificar el token de Google
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/google/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id_token: credentialResponse.credential,
+          user_type: 'VENDOR' // Siempre registro como vendor en esta página
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.user) {
+        // Pre-llenar formulario con datos reales de Google
+        const fullName = `${data.user.nombre || ''} ${data.user.apellido || ''}`.trim();
+        setValue('nombre', fullName);
+        setValue('email', data.user.email);
+
+        // Marcar como usuario OAuth
+        setIsOAuthUser(true);
+
+        // Mostrar mensaje de éxito
+        alert(`¡Bienvenido ${fullName}! Datos de Google cargados. Por favor completa el número de teléfono para continuar con el registro.`);
+
+      } else {
+        throw new Error(data.message || 'Error en la respuesta del servidor');
+      }
+
     } catch (error) {
       console.error('Error en autenticación con Google:', error);
       alert('Error al conectar con Google. Intenta nuevamente.');
@@ -263,9 +284,42 @@ const RegisterVendor: React.FC = () => {
     }
   };
 
-  const handleGoogleError = () => {
-    console.error('Error en Google OAuth');
-    alert('Error al conectar con Google. Intenta nuevamente.');
+  const handleGoogleError = (error: any) => {
+    console.error('Error en Google OAuth:', error);
+    console.error('Error details:', JSON.stringify(error, null, 2));
+
+    // Información adicional para debugging
+    console.log('Current URL:', window.location.href);
+    console.log('Client ID from env:', import.meta.env.VITE_GOOGLE_CLIENT_ID);
+
+    // Análisis específico de errores comunes
+    let errorMessage = 'Error desconocido';
+
+    if (error?.error === 'popup_blocked') {
+      errorMessage = 'El popup fue bloqueado por el navegador. Permite popups y reintenta.';
+    } else if (error?.error === 'access_denied') {
+      errorMessage = 'Acceso denegado por el usuario.';
+    } else if (typeof error === 'string' && error.includes('400')) {
+      errorMessage = `Error 400: URL no autorizada en Google Cloud Console.
+
+🚨 SOLUCIÓN REQUERIDA:
+1. Ve a https://console.cloud.google.com/apis/credentials
+2. Busca el proyecto con Client ID: ${import.meta.env.VITE_GOOGLE_CLIENT_ID}
+3. En "Orígenes de JavaScript autorizados", agrega:
+   - http://192.168.1.137:5173
+4. En "URIs de redirección autorizados", agrega:
+   - http://192.168.1.137:5173
+5. Guarda los cambios y espera unos minutos.
+
+ALTERNATIVA INMEDIATA: Usa localhost:5173 en lugar de 192.168.1.137:5173`;
+    } else if (error?.error) {
+      errorMessage = `Error de Google OAuth: ${error.error}`;
+    } else {
+      errorMessage = `Error al conectar con Google: ${error?.error || 'Error desconocido'}. Revisa la consola para más detalles.`;
+    }
+
+    console.error('🚨 DIAGNÓSTICO DEL ERROR:', errorMessage);
+    alert(errorMessage);
     setOauthLoading(null);
   };
 
@@ -373,7 +427,7 @@ const RegisterVendor: React.FC = () => {
         password: basicFormData.password,
         nombre: basicFormData.nombre,
         telefono: `${selectedCountry.prefix}${basicFormData.telefono.replace(/\s/g, '')}`,
-        user_type: 'BUYER' // Temporalmente, se cambiará en paso 4
+        user_type: 'VENDOR'
       };
 
       console.log('🚀 Registrando usuario para SMS verification:', registrationData);
@@ -844,43 +898,61 @@ const RegisterVendor: React.FC = () => {
                       )}
                     </div>
 
-                    {/* Contraseña */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Contraseña *
-                      </label>
-                      <div className="relative">
-                        <input
-                          {...register('password')}
-                          type="password"
-                          placeholder="Mínimo 8 caracteres"
-                          className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('password', errors, watchedFields)} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
-                        />
-                        {renderValidationIcon('password', errors, watchedFields)}
+                    {/* Contraseña - Solo mostrar si no es usuario OAuth */}
+                    {!isOAuthUser && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Contraseña *
+                        </label>
+                        <div className="relative">
+                          <input
+                            {...register('password')}
+                            type="password"
+                            placeholder="Mínimo 8 caracteres"
+                            className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('password', errors, watchedFields)} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
+                          />
+                          {renderValidationIcon('password', errors, watchedFields)}
+                        </div>
+                        {errors.password && (
+                          <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+                        )}
                       </div>
-                      {errors.password && (
-                        <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
-                      )}
-                    </div>
+                    )}
 
-                    {/* Confirmar Contraseña */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Confirmar Contraseña *
-                      </label>
-                      <div className="relative">
-                        <input
-                          {...register('confirmPassword')}
-                          type="password"
-                          placeholder="Repite tu contraseña"
-                          className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('confirmPassword', errors, watchedFields)} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
-                        />
-                        {renderValidationIcon('confirmPassword', errors, watchedFields)}
+                    {/* Confirmar Contraseña - Solo mostrar si no es usuario OAuth */}
+                    {!isOAuthUser && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Confirmar Contraseña *
+                        </label>
+                        <div className="relative">
+                          <input
+                            {...register('confirmPassword')}
+                            type="password"
+                            placeholder="Repite tu contraseña"
+                            className={`w-full px-4 py-3 rounded-lg border ${getInputBorderClass('confirmPassword', errors, watchedFields)} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
+                          />
+                          {renderValidationIcon('confirmPassword', errors, watchedFields)}
+                        </div>
+                        {errors.confirmPassword && (
+                          <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
+                        )}
                       </div>
-                      {errors.confirmPassword && (
-                        <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
-                      )}
-                    </div>
+                    )}
+
+                    {/* Mensaje informativo para usuarios OAuth */}
+                    {isOAuthUser && (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <div className="flex items-center">
+                          <svg className="w-5 h-5 text-green-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                          </svg>
+                          <p className="text-sm text-green-800">
+                            ¡Perfecto! Te has autenticado con Google. No necesitas crear una contraseña.
+                          </p>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Botón continuar */}
                     <button

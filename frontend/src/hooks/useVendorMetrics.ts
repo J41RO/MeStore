@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-// import { vendorApi } from '../services/api_vendor';
+import { vendorApi } from '../services/api_vendor';
 
 export interface VendorMetrics {
   // Productos
@@ -65,50 +65,53 @@ export const useVendorMetrics = (vendorId?: string): UseVendorMetricsResult => {
       }
       
       setError(null);
-      
-      // Datos simulados temporalmente hasta que la API esté funcionando
-      // TODO: Reemplazar con llamada real a vendorApi.auth.dashboard.resumen()
+
+      // Llamada real a la API del backend
+      const response = await vendorApi.auth.dashboard.resumen();
+      const apiData = response.data;
+
+      // Mapear la respuesta de la API a la interfaz VendorMetrics
       const mappedMetrics: VendorMetrics = {
-        // Productos
-        totalProductos: 24,
-        productosActivos: 18,
-        productosInactivos: 6,
-        productosChange: 15.2,
-        
-        // Ventas 
-        totalVentas: 1250000,
-        ventasDelMes: 320000,
-        ventasDiarias: 12500,
-        ventasChange: 8.7,
-        
-        // Ingresos
-        ingresosTotales: 1250000,
-        ingresosMes: 320000,
-        ingresosPromedioDiario: 12500,
-        ingresosChange: 8.7,
-        comisionesTotales: 125000,
-        
-        // Órdenes
-        ordenesPendientes: 5,
-        ordenesCompletadas: 47,
-        ordenesTotales: 52,
-        ordenesChange: 12.5,
-        
-        // Performance
-        puntuacionVendedor: 4.3,
-        satisfaccionCliente: 4.5,
-        tiempoPromedioEntrega: 3,
-        
-        // Estadísticas adicionales
-        clientesUnicos: 18,
-        productoMasVendido: 'Smartphone Galaxy A54',
-        categoriaTopVentas: 'Electrónicos',
-        
+        // Productos - desde API
+        totalProductos: apiData.total_productos || 0,
+        productosActivos: apiData.productos_activos || 0,
+        productosInactivos: (apiData.total_productos || 0) - (apiData.productos_activos || 0),
+        productosChange: 0, // TODO: Calcular cambio vs período anterior cuando esté disponible
+
+        // Ventas - desde API
+        totalVentas: parseFloat(apiData.ingresos_mes || '0'),
+        ventasDelMes: apiData.ventas_mes || 0,
+        ventasDiarias: 0, // TODO: Agregar este campo al backend cuando esté disponible
+        ventasChange: 0, // TODO: Calcular cambio vs período anterior
+
+        // Ingresos - desde API
+        ingresosTotales: parseFloat(apiData.ingresos_mes || '0'),
+        ingresosMes: parseFloat(apiData.ingresos_mes || '0'),
+        ingresosPromedioDiario: 0, // TODO: Calcular cuando esté disponible
+        ingresosChange: 0, // TODO: Calcular cambio vs período anterior
+        comisionesTotales: parseFloat(apiData.comision_total || '0'),
+
+        // Órdenes - valores por defecto (TODO: agregar al backend)
+        ordenesPendientes: 0,
+        ordenesCompletadas: 0,
+        ordenesTotales: 0,
+        ordenesChange: 0,
+
+        // Performance - valores por defecto (TODO: agregar al backend)
+        puntuacionVendedor: 0,
+        satisfaccionCliente: 0,
+        tiempoPromedioEntrega: 0,
+
+        // Estadísticas adicionales - valores por defecto (TODO: agregar al backend)
+        clientesUnicos: 0,
+        productoMasVendido: 'N/A',
+        categoriaTopVentas: 'N/A',
+
         // Fechas
-        ultimaVenta: new Date(Date.now() - 2 * 3600000).toISOString(),
+        ultimaVenta: undefined,
         ultimaActualizacion: new Date().toISOString()
       };
-      
+
       setMetrics(mappedMetrics);
       
     } catch (err: any) {

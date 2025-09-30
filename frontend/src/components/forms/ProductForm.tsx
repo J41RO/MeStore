@@ -41,6 +41,7 @@ interface ValidationState {
   marginHealthy: boolean | null;
 }
 
+// TEST: Force HMR update - timestamp: 2025-09-29 20:23
 const ProductForm: React.FC<ProductFormProps> = ({
   mode,
   initialData,
@@ -95,8 +96,8 @@ const ProductForm: React.FC<ProductFormProps> = ({
   const watchedPeso = watch('peso');
   const watchedDimensions = watch(['largo', 'ancho', 'alto', 'peso']);
 
-  // Cálculo de validación personalizado (consistente con checklist)
-  const isFormValid = useMemo(() => {
+  // Cálculo de validación personalizado con progreso
+  const formProgress = useMemo(() => {
     const requiredFields = [
       { name: 'name', value: watchedName, minLength: 3 },
       { name: 'description', value: watchedDescription, minLength: 10 },
@@ -107,18 +108,37 @@ const ProductForm: React.FC<ProductFormProps> = ({
       { name: 'peso', value: watchedPeso, minValue: 0.01 }
     ];
 
-    const allFieldsValid = requiredFields.every(field => {
+    const completedCount = requiredFields.filter(field => {
+      // Si hay error, no cuenta
       if (errors[field.name]) return false;
-      if (!field.value && field.value !== 0) return false;
-      if (field.minLength && field.value.length < field.minLength) return false;
-      if (field.minValue && field.value < field.minValue) return false;
-      return true;
-    });
 
-    // Validación adicional: precio_costo debe ser menor que precio_venta
+      // Campos de texto: deben existir y cumplir longitud mínima
+      if (field.minLength) {
+        if (!field.value || field.value.length < field.minLength) return false;
+      }
+
+      // Campos numéricos: deben tener valor real (no undefined/null/empty) y cumplir valor mínimo
+      if (field.minValue !== undefined) {
+        if (field.value === undefined || field.value === null || field.value === '') return false;
+        if (field.value < field.minValue) return false;
+      }
+
+      // Campo select (category): debe tener valor
+      if (field.name === 'category') {
+        if (!field.value || field.value === '') return false;
+      }
+
+      return true;
+    }).length;
+
+    const allFieldsValid = completedCount === 7;
     const pricesValid = watchedPrecioCosto && watchedPrecioVenta && watchedPrecioCosto < watchedPrecioVenta;
 
-    return allFieldsValid && pricesValid;
+    return {
+      completedCount,
+      progressPercent: Math.round((completedCount / 7) * 100),
+      isValid: allFieldsValid && pricesValid
+    };
   }, [
     errors,
     watchedName,
@@ -129,6 +149,8 @@ const ProductForm: React.FC<ProductFormProps> = ({
     watchedStock,
     watchedPeso
   ]);
+
+  const isFormValid = formProgress.isValid;
 
   // Validación asíncrona de nombre único
   const checkNameAvailability = useCallback(
@@ -576,44 +598,48 @@ const ProductForm: React.FC<ProductFormProps> = ({
           </h3>
           <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
             <NumberField
-              label="Largo"
+              label="Largo*"
               name="largo"
               register={register}
               error={errors.largo?.message}
-              min={1}
+              min={0}
+              step={1}
               max={500}
               unit="cm"
               placeholder="0"
               required
             />
             <NumberField
-              label="Ancho"
+              label="Ancho*"
               name="ancho"
               register={register}
               error={errors.ancho?.message}
-              min={1}
+              min={0}
+              step={1}
               max={500}
               unit="cm"
               placeholder="0"
               required
             />
             <NumberField
-              label="Alto"
+              label="Alto*"
               name="alto"
               register={register}
               error={errors.alto?.message}
-              min={1}
+              min={0}
+              step={1}
               max={500}
               unit="cm"
               placeholder="0"
               required
             />
             <NumberField
-              label="Peso"
+              label="Peso*"
               name="peso"
               register={register}
               error={errors.peso?.message}
-              min={0.01}
+              min={0}
+              step={0.01}
               max={1000}
               unit="kg"
               placeholder="0.00"
@@ -751,7 +777,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
             <p className="text-sm text-slate-300 font-medium">
               📋 Requisitos de imágenes:
             </p>
-            <ul className="text-xs text-slate-400 mt-2 space-y-1">
+            <ul className="text-xs mt-2 space-y-1" style={{ color: '#cbd5e1 !important' }}>
               <li>• Máximo 5 imágenes total (JPG, PNG, WebP, GIF)</li>
               <li>• Máximo 5MB por imagen</li>
               <li>• Resolución recomendada: 800x800px o superior</li>
@@ -774,246 +800,22 @@ const ProductForm: React.FC<ProductFormProps> = ({
           helpText="Código único de producto"
         />
 
-        {/* Sección de Ayuda y Requerimientos - DINÁMICO EN TIEMPO REAL */}
-        <div className='mt-6 p-6 bg-gradient-to-br from-slate-800 via-slate-700 to-slate-800 border border-slate-600 rounded-xl shadow-xl'>
-          <h4 className='text-base font-bold text-white mb-4 flex items-center'>
-            🎯 Progreso del Formulario ({(() => {
-              // Cálculo correcto de campos completados
-              const requiredFields = [
-                { name: 'name', value: watchedName, minLength: 3 },
-                { name: 'description', value: watchedDescription, minLength: 10 },
-                { name: 'category', value: watchedCategory },
-                { name: 'precio_venta', value: watchedPrecioVenta, minValue: 1000 },
-                { name: 'precio_costo', value: watchedPrecioCosto, minValue: 1 },
-                { name: 'stock', value: watchedStock, minValue: 0 },
-                { name: 'peso', value: watchedPeso, minValue: 0.01 }
-              ];
-
-              const completedCount = requiredFields.filter(field => {
-                if (errors[field.name]) return false;
-                if (!field.value && field.value !== 0) return false;
-                if (field.minLength && field.value.length < field.minLength) return false;
-                if (field.minValue && field.value < field.minValue) return false;
-                return true;
-              }).length;
-
-              return completedCount;
-            })()}/7 completados)
-          </h4>
-
-          {/* Barra de progreso dinámica */}
-          <div className='mb-6'>
-            <div className='flex justify-between items-center mb-3'>
-              <span className='text-sm font-medium text-slate-300'>Completado</span>
-              <span className='text-sm font-bold text-emerald-400'>
-                {Math.round(((() => {
-                  const requiredFields = [
-                    { name: 'name', value: watchedName, minLength: 3 },
-                    { name: 'description', value: watchedDescription, minLength: 10 },
-                    { name: 'category', value: watchedCategory },
-                    { name: 'precio_venta', value: watchedPrecioVenta, minValue: 1000 },
-                    { name: 'precio_costo', value: watchedPrecioCosto, minValue: 1 },
-                    { name: 'stock', value: watchedStock, minValue: 0 },
-                    { name: 'peso', value: watchedPeso, minValue: 0.01 }
-                  ];
-
-                  const completedCount = requiredFields.filter(field => {
-                    if (errors[field.name]) return false;
-                    if (!field.value && field.value !== 0) return false;
-                    if (field.minLength && field.value.length < field.minLength) return false;
-                    if (field.minValue && field.value < field.minValue) return false;
-                    return true;
-                  }).length;
-
-                  return (completedCount / 7) * 100;
-                })()))}%
-              </span>
-            </div>
-            <div className='w-full bg-slate-600 rounded-full h-3 shadow-inner'>
-              <div
-                className='bg-gradient-to-r from-emerald-500 via-blue-500 to-emerald-500 h-3 rounded-full transition-all duration-700 ease-out shadow-lg'
-                style={{
-                  width: `${(() => {
-                    const requiredFields = [
-                      { name: 'name', value: watchedName, minLength: 3 },
-                      { name: 'description', value: watchedDescription, minLength: 10 },
-                      { name: 'category', value: watchedCategory },
-                      { name: 'precio_venta', value: watchedPrecioVenta, minValue: 1000 },
-                      { name: 'precio_costo', value: watchedPrecioCosto, minValue: 1 },
-                      { name: 'stock', value: watchedStock, minValue: 0 },
-                      { name: 'peso', value: watchedPeso, minValue: 0.01 }
-                    ];
-
-                    const completedCount = requiredFields.filter(field => {
-                      if (errors[field.name]) return false;
-                      if (!field.value && field.value !== 0) return false;
-                      if (field.minLength && field.value.length < field.minLength) return false;
-                      if (field.minValue && field.value < field.minValue) return false;
-                      return true;
-                    }).length;
-
-                    return (completedCount / 7) * 100;
-                  })()}%`
-                }}
-              ></div>
-            </div>
+        {/* Progreso del Formulario - Versión Minimalista */}
+        <div className='mt-6 p-4 bg-slate-700/50 border border-slate-600/50 rounded-lg'>
+          <div className='flex items-center justify-between mb-3'>
+            <span className='text-sm font-medium text-white'>Progreso del formulario</span>
+            <span className='text-sm font-bold text-blue-400'>
+              {formProgress.progressPercent}% ({formProgress.completedCount}/7 campos)
+            </span>
           </div>
-
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-3 text-sm'>
-            {/* Nombre del producto */}
-            <div className={`flex items-center space-x-3 p-3 rounded-lg border transition-all duration-300 ${
-              !errors.name && watchedName?.length >= 3
-                ? 'bg-emerald-50 border-emerald-200 text-emerald-800 shadow-emerald-100'
-                : errors.name
-                  ? 'bg-red-50 border-red-200 text-red-800 shadow-red-100'
-                  : 'bg-slate-100 border-slate-300 text-slate-600'
-            } shadow-sm`}>
-              <span className='text-xl'>
-                {!errors.name && watchedName?.length >= 3 ? '✅' : errors.name ? '❌' : '⏳'}
-              </span>
-              <div className='flex-1'>
-                <span className='font-medium'>Nombre del producto</span>
-                {watchedName && (
-                  <div className='text-xs opacity-75 mt-1'>Longitud: {watchedName.length}/100 caracteres</div>
-                )}
-              </div>
-            </div>
-
-            {/* Descripción */}
-            <div className={`flex items-center space-x-3 p-3 rounded-lg border transition-all duration-300 ${
-              !errors.description && watch('description')?.length >= 10
-                ? 'bg-emerald-50 border-emerald-200 text-emerald-800 shadow-emerald-100'
-                : errors.description
-                  ? 'bg-red-50 border-red-200 text-red-800 shadow-red-100'
-                  : 'bg-slate-100 border-slate-300 text-slate-600'
-            } shadow-sm`}>
-              <span className='text-xl'>
-                {!errors.description && watch('description')?.length >= 10 ? '✅' : errors.description ? '❌' : '⏳'}
-              </span>
-              <div className='flex-1'>
-                <span className='font-medium'>Descripción</span>
-                {watch('description') && (
-                  <div className='text-xs opacity-75 mt-1'>Longitud: {watch('description').length}/1000 caracteres</div>
-                )}
-              </div>
-            </div>
-
-            {/* Precio de venta */}
-            <div className={`flex items-center space-x-3 p-3 rounded-lg border transition-all duration-300 ${
-              !errors.precio_venta && precioVenta >= 1000
-                ? 'bg-emerald-50 border-emerald-200 text-emerald-800 shadow-emerald-100'
-                : errors.precio_venta
-                  ? 'bg-red-50 border-red-200 text-red-800 shadow-red-100'
-                  : 'bg-slate-100 border-slate-300 text-slate-600'
-            } shadow-sm`}>
-              <span className='text-xl'>
-                {!errors.precio_venta && precioVenta >= 1000 ? '✅' : errors.precio_venta ? '❌' : '⏳'}
-              </span>
-              <div className='flex-1'>
-                <span className='font-medium'>Precio de venta</span>
-                {precioVenta > 0 && (
-                  <div className='text-xs opacity-75 mt-1'>${precioVenta.toLocaleString()} COP</div>
-                )}
-              </div>
-            </div>
-
-            {/* Precio de costo */}
-            <div className={`flex items-center space-x-3 p-3 rounded-lg border transition-all duration-300 ${
-              !errors.precio_costo && precioCosto > 0 && precioCosto < precioVenta
-                ? 'bg-emerald-50 border-emerald-200 text-emerald-800 shadow-emerald-100'
-                : errors.precio_costo
-                  ? 'bg-red-50 border-red-200 text-red-800 shadow-red-100'
-                  : 'bg-slate-100 border-slate-300 text-slate-600'
-            } shadow-sm`}>
-              <span className='text-xl'>
-                {!errors.precio_costo && precioCosto > 0 && precioCosto < precioVenta ? '✅' : errors.precio_costo ? '❌' : '⏳'}
-              </span>
-              <div className='flex-1'>
-                <span className='font-medium'>Precio de costo</span>
-                {precioCosto > 0 && (
-                  <div className='text-xs opacity-75 mt-1'>${precioCosto.toLocaleString()} COP</div>
-                )}
-              </div>
-            </div>
-
-            {/* Stock */}
-            <div className={`flex items-center space-x-3 p-3 rounded-lg border transition-all duration-300 ${
-              !errors.stock && watch('stock') >= 0
-                ? 'bg-emerald-50 border-emerald-200 text-emerald-800 shadow-emerald-100'
-                : errors.stock
-                  ? 'bg-red-50 border-red-200 text-red-800 shadow-red-100'
-                  : 'bg-slate-100 border-slate-300 text-slate-600'
-            } shadow-sm`}>
-              <span className='text-xl'>
-                {!errors.stock && watch('stock') >= 0 ? '✅' : errors.stock ? '❌' : '⏳'}
-              </span>
-              <div className='flex-1'>
-                <span className='font-medium'>Stock inicial</span>
-                <div className='text-xs opacity-75 mt-1'>{watch('stock') || 0} unidades disponibles</div>
-              </div>
-            </div>
-
-            {/* Categoría */}
-            <div className={`flex items-center space-x-3 p-3 rounded-lg border transition-all duration-300 ${
-              !errors.category && watch('category')
-                ? 'bg-emerald-50 border-emerald-200 text-emerald-800 shadow-emerald-100'
-                : errors.category
-                  ? 'bg-red-50 border-red-200 text-red-800 shadow-red-100'
-                  : 'bg-slate-100 border-slate-300 text-slate-600'
-            } shadow-sm`}>
-              <span className='text-xl'>
-                {!errors.category && watch('category') ? '✅' : errors.category ? '❌' : '⏳'}
-              </span>
-              <div className='flex-1'>
-                <span className='font-medium'>Categoría</span>
-                {watch('category') && (
-                  <div className='text-xs opacity-75 mt-1 capitalize'>{watch('category')}</div>
-                )}
-              </div>
-            </div>
-
-            {/* SKU */}
-            <div className={`flex items-center space-x-3 p-3 rounded-lg border transition-all duration-300 ${
-              !errors.sku && watch('sku')?.length >= 3
-                ? 'bg-emerald-50 border-emerald-200 text-emerald-800 shadow-emerald-100'
-                : errors.sku
-                  ? 'bg-red-50 border-red-200 text-red-800 shadow-red-100'
-                  : 'bg-slate-100 border-slate-300 text-slate-600'
-            } shadow-sm`}>
-              <span className='text-xl'>
-                {!errors.sku && watch('sku')?.length >= 3 ? '✅' : errors.sku ? '❌' : '⏳'}
-              </span>
-              <div className='flex-1'>
-                <span className='font-medium'>SKU único</span>
-                {watch('sku') && (
-                  <div className='text-xs opacity-75 mt-1 font-mono'>{watch('sku')}</div>
-                )}
-              </div>
-            </div>
+          <div className='w-full bg-slate-600 rounded-full h-2'>
+            <div
+              className='bg-gradient-to-r from-blue-500 to-indigo-500 h-2 rounded-full transition-all duration-500'
+              style={{ width: `${formProgress.progressPercent}%` }}
+            />
           </div>
-
-          {/* Barra de progreso adicional */}
-          <div className='mt-6 pt-4 border-t border-slate-600'>
-            <div className='flex justify-between text-sm text-slate-300 mb-2'>
-              <span className='font-medium'>Validación de errores</span>
-              <span className='font-bold text-emerald-400'>{Math.round(((7 - Object.keys(errors).length) / 7) * 100)}%</span>
-            </div>
-            <div className='w-full bg-slate-600 rounded-full h-2 shadow-inner'>
-              <div
-                className='bg-gradient-to-r from-emerald-500 to-green-400 h-2 rounded-full transition-all duration-500 shadow-sm'
-                style={{ width: `${((7 - Object.keys(errors).length) / 7) * 100}%` }}
-              ></div>
-            </div>
-          </div>
-
           {isFormValid && (
-            <div className='mt-4 p-4 bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 rounded-xl text-emerald-800 text-sm text-center shadow-lg'>
-              <div className='flex items-center justify-center space-x-2'>
-                <span className='text-2xl'>🎉</span>
-                <span className='font-bold'>¡Formulario completo!</span>
-              </div>
-              <p className='mt-1 text-emerald-600'>El botón "Crear Producto" está habilitado y listo para usar.</p>
-            </div>
+            <p className='mt-3 text-sm text-emerald-400 text-center'>Formulario completo</p>
           )}
         </div>
 

@@ -1,9 +1,8 @@
 import axios, { AxiosInstance } from 'axios';
 
-// Configuración de baseURL: usar proxy en desarrollo, URL directa en producción
-const baseURL = import.meta.env.DEV
-  ? undefined  // Use Vite proxy in development
-  : (import.meta.env.VITE_API_BASE_URL || 'http://192.168.1.137:8000');
+// Configuración de baseURL: priorizar VITE_API_BASE_URL si está configurado
+const baseURL = import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.DEV ? undefined : 'http://192.168.1.137:8000');
 
 // Cliente axios con configuración base optimizada para CORS
 export const apiClient: AxiosInstance = axios.create({

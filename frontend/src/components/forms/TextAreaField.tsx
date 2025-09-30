@@ -198,24 +198,24 @@ const TextAreaField = React.memo(<T extends FieldValues = FieldValues>({
       {helpText && !error && (
         <div
           id={helpId()}
-          className="mt-1 text-xs text-slate-400 font-medium"
+          className="mt-1 text-xs font-medium"
         >
-          <p>{helpText}</p>
+          <p style={{ color: '#cbd5e1 !important' }}>{helpText}</p>
 
           {/* Additional context for Colombian users */}
           <div className="mt-1 space-y-1">
             {minLength && (
-              <p className="text-slate-500">
+              <p style={{ color: '#cbd5e1 !important' }}>
                 Mínimo: {minLength.toLocaleString('es-CO')} caracteres
               </p>
             )}
             {maxLength && (
-              <p className="text-slate-500">
+              <p style={{ color: '#cbd5e1 !important' }}>
                 Máximo: {maxLength.toLocaleString('es-CO')} caracteres
               </p>
             )}
             {autoResize && (
-              <p className="text-slate-500">
+              <p style={{ color: '#cbd5e1 !important' }}>
                 El campo se ajusta automáticamente al contenido
               </p>
             )}

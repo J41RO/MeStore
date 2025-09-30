@@ -77,11 +77,13 @@ body {
 }
 
 /* Headings with better contrast */
+/* DESHABILITADO: Sobrescribía colores de modales y componentes con fondos oscuros
 h1, h2, h3, h4, h5, h6 {
   color: rgb(var(--text-contrast)) !important;
   font-weight: 600;
   letter-spacing: -0.025em;
 }
+*/
 
 /* Improved text classes */
 .text-improved {
@@ -135,6 +137,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* Form elements improvements */
+/* DESHABILITADO: Sobrescribía colores de labels en formularios con fondos oscuros
 label {
   color: rgb(var(--text-primary)) !important;
   font-weight: 500;
@@ -146,12 +149,13 @@ input, select, textarea {
   font-weight: 400;
 }
 
-input::placeholder, 
-select option, 
+input::placeholder,
+select option,
 textarea::placeholder {
   color: rgb(var(--text-muted)) !important;
   font-weight: 400;
 }
+*/
 
 /* Button text improvements */
 button {

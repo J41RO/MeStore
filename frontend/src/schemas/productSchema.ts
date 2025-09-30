@@ -297,13 +297,13 @@ export const defaultProductValues: Partial<ProductFormData> = {
   name: '',
   description: '',
   category: undefined,
-  precio_venta: 1000, // Valor mínimo aceptable
-  precio_costo: 800,  // Precio de costo menor que venta
-  stock: 1,           // Stock inicial positivo
-  peso: 0.1,          // Peso positivo inicial
-  largo: 10,          // Dimensiones básicas
-  ancho: 10,
-  alto: 5,
+  precio_venta: undefined, // No prellenar - el usuario debe ingresar el valor
+  precio_costo: undefined, // No prellenar - el usuario debe ingresar el valor
+  stock: undefined,        // No prellenar - el usuario debe ingresar el valor
+  peso: undefined,         // No prellenar - el usuario debe ingresar el valor
+  largo: undefined,        // No prellenar - dimensiones opcionales
+  ancho: undefined,
+  alto: undefined,
   sku: '',
   tags: [],
   marca: '',

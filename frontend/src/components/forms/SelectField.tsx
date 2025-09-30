@@ -204,11 +204,12 @@ const SelectField = React.memo(<T extends FieldValues = FieldValues>({
       {helpText && !error && (
         <p
           id={helpId()}
-          className="mt-1 text-xs text-slate-400 font-medium"
+          className="mt-1 text-xs font-medium"
+          style={{ color: '#cbd5e1 !important' }}
         >
           {helpText}
           {multiple && (
-            <span className="block text-xs text-slate-500 mt-1">
+            <span className="block text-xs mt-1" style={{ color: '#cbd5e1 !important' }}>
               Mantén presionado Ctrl (o Cmd en Mac) para seleccionar múltiples opciones
             </span>
           )}

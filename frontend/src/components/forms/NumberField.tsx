@@ -98,12 +98,12 @@ const NumberField = React.memo(<T extends FieldValues = FieldValues>({
   // Computed ARIA attributes
   const ariaDescribedByIds = [ariaDescribedBy, errorId(), helpId()].filter(Boolean).join(' ') || undefined;
 
-  // Enhanced placeholder with Colombian context
+  // Enhanced placeholder with Colombian context - Updated for visibility
   const enhancedPlaceholder = useMemo(() => {
     if (placeholder) return placeholder;
     if (currency) return 'Ej: 150000';
     if (unit) return `Ingrese cantidad en ${unit}`;
-    return 'Ingrese un número';
+    return '0';
   }, [placeholder, currency, unit]);
 
   return (
@@ -111,12 +111,12 @@ const NumberField = React.memo(<T extends FieldValues = FieldValues>({
       {/* Enhanced label with better accessibility */}
       <label
         htmlFor={name}
-        className="block text-sm font-semibold text-slate-200 mb-2 transition-colors duration-200"
+        className="block text-sm font-semibold text-white mb-2 transition-colors duration-200"
       >
         {label}
         {required && (
           <span
-            className="text-red-400 ml-1"
+            className="text-red-300 ml-1"
             aria-label="campo requerido"
             role="img"
           >
@@ -148,6 +148,7 @@ const NumberField = React.memo(<T extends FieldValues = FieldValues>({
           max={max}
           step={optimizedStep}
           placeholder={enhancedPlaceholder}
+          defaultValue={0}
           disabled={disabled}
           aria-invalid={error ? 'true' : 'false'}
           aria-describedby={ariaDescribedByIds}
@@ -158,8 +159,8 @@ const NumberField = React.memo(<T extends FieldValues = FieldValues>({
             onChange
           })}
           className={`
-            w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-800
-            placeholder-slate-400 font-medium transition-all duration-300 transform
+            w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900
+            placeholder-slate-400 font-bold transition-all duration-300 transform
             hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-blue-500
             focus:border-blue-500 shadow-sm hover:shadow-md
             ${currencySymbol ? 'pl-20' : icon ? 'pl-12' : ''}
@@ -199,11 +200,12 @@ const NumberField = React.memo(<T extends FieldValues = FieldValues>({
       {helpText && !error && (
         <p
           id={helpId()}
-          className="mt-1 text-xs text-slate-400 font-medium"
+          className="mt-1 text-xs font-medium"
+          style={{ color: '#cbd5e1 !important' }}
         >
           {helpText}
           {currency && !helpText.includes('COP') && (
-            <span className="block text-xs text-slate-500 mt-1">
+            <span className="block text-xs mt-1" style={{ color: '#cbd5e1 !important' }}>
               Moneda: Pesos colombianos (COP)
             </span>
           )}
