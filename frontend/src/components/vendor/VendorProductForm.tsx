@@ -264,11 +264,15 @@ export const VendorProductForm: React.FC<VendorProductFormProps> = ({
   // Envío del formulario
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('🔵 SUBMIT CLICKED - handleSubmit ejecutado');
+    console.log('🔵 FormData:', formData);
 
     if (!validateForm()) {
+      console.log('❌ VALIDACIÓN FALLIDA:', errors);
       return;
     }
 
+    console.log('✅ VALIDACIÓN EXITOSA - Procediendo a enviar...');
     setIsSubmitting(true);
 
     try {
@@ -277,12 +281,19 @@ export const VendorProductForm: React.FC<VendorProductFormProps> = ({
         comision_mestocker: calc.comisionMestocker
       };
 
+      console.log('🔵 Datos a enviar:', submitData);
+      console.log('🔵 Llamando a onSubmit...');
+
       await onSubmit(submitData as any);
+
+      console.log('✅ onSubmit exitoso - Cerrando modal');
       onClose();
     } catch (error) {
-      console.error('Error al guardar producto:', error);
+      console.error('❌ ERROR al guardar producto:', error);
+      alert(`Error al crear producto: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     } finally {
       setIsSubmitting(false);
+      console.log('🔵 handleSubmit finalizado');
     }
   };
 

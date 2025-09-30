@@ -38,6 +38,8 @@ from app.api.v1.endpoints.payments import router as payments_router
 from app.api.v1.endpoints.orders import router as orders_router
 from app.api.v1.endpoints.database_reset import router as database_reset_router
 from app.api.v1.endpoints.user_management_enterprise import router as user_management_router
+from app.api.v1.endpoints.communication_config import router as communication_config_router
+from app.api.v1.endpoints.google_oauth import router as google_oauth_router
 
 # Router principal que unifica todos los endpoints v1
 api_router = APIRouter()
@@ -50,6 +52,9 @@ api_router = APIRouter()
 # ===== CORE BUSINESS ENDPOINTS =====
 # Authentication (English standard)
 api_router.include_router(auth_router, prefix="/auth", tags=["authentication"])
+
+# Google OAuth Authentication
+api_router.include_router(google_oauth_router, tags=["google-oauth"])
 
 # Products (Spanish - comprehensive implementation kept as primary)
 api_router.include_router(productos_router, prefix="/productos", tags=["products"])
@@ -107,6 +112,9 @@ api_router.include_router(database_reset_router, prefix="/admin", tags=["databas
 
 # System configuration
 api_router.include_router(system_config_router, prefix="/system", tags=["system"])
+
+# Communication configuration (SMS & Email)
+api_router.include_router(communication_config_router, tags=["communication"])
 
 # Alerts and notifications
 api_router.include_router(alerts_router, prefix="/alerts", tags=["alerts"])

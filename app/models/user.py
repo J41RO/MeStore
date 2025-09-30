@@ -186,6 +186,52 @@ class User(BaseModel):
         comment="Fecha y hora del último request de reset"
     )
 
+    # === CAMPOS GOOGLE OAUTH ===
+    google_id = Column(
+        String(100),
+        nullable=True,
+        unique=True,
+        index=True,
+        comment="ID único de Google para OAuth"
+    )
+
+    google_email = Column(
+        String(255),
+        nullable=True,
+        comment="Email desde Google OAuth (puede diferir del email principal)"
+    )
+
+    google_name = Column(
+        String(200),
+        nullable=True,
+        comment="Nombre completo desde Google OAuth"
+    )
+
+    google_picture = Column(
+        String(500),
+        nullable=True,
+        comment="URL de foto de perfil desde Google"
+    )
+
+    google_verified_email = Column(
+        Boolean,
+        default=False,
+        nullable=False,
+        comment="Si el email está verificado en Google"
+    )
+
+    oauth_provider = Column(
+        String(50),
+        nullable=True,
+        comment="Proveedor OAuth usado (google, facebook, etc.)"
+    )
+
+    oauth_linked_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Fecha cuando se vinculó la cuenta OAuth"
+    )
+
     # === CAMPOS DE AUTENTICACIÓN ===
     email = Column(
         String(255), 
@@ -578,11 +624,13 @@ class User(BaseModel):
     # === ÍNDICES OPTIMIZADOS ===
     __table_args__ = (
         Index('ix_user_type_active', 'user_type', 'is_active'),  # Vendedores activos
-        Index('ix_user_email_active', 'email', 'is_active'),     # Autenticación optimizada  
+        Index('ix_user_email_active', 'email', 'is_active'),     # Autenticación optimizada
         Index('ix_user_created_type', 'created_at', 'user_type'), # Reportes temporales
         Index('ix_user_active_created', 'is_active', 'created_at'), # Usuarios recientes activos
         Index('ix_user_otp_expires', 'otp_expires_at'),          # OTP expiración
         Index('ix_user_email_verified', 'email_verified'),       # Usuarios verificados
+        Index('ix_user_google_id', 'google_id'),                 # Google OAuth lookup
+        Index('ix_user_oauth_provider', 'oauth_provider'),       # OAuth provider search
     )
 
     def __init__(self, **kwargs):

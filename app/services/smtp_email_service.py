@@ -1,11 +1,11 @@
 # ~/app/services/smtp_email_service.py
 # ---------------------------------------------------------------------------------------------
-# MeStore - Servicio Email SMTP
+# MeStocker - Servicio Email SMTP
 # Copyright (c) 2025 Jairo. Todos los derechos reservados.
 # ---------------------------------------------------------------------------------------------
 
 """
-Servicio Email SMTP para MeStore.
+Servicio Email SMTP para MeStocker.
 
 Este módulo maneja el envío de emails usando SMTP (Gmail, Outlook, etc):
 - Emails de verificación con códigos OTP
@@ -24,6 +24,7 @@ from email.mime.base import MIMEBase
 from email import encoders
 from typing import Optional
 from email.header import Header
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +43,7 @@ class SMTPEmailConfig:
         self.EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
         self.EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'true').lower() == 'true'
         self.FROM_EMAIL = os.getenv('FROM_EMAIL', self.EMAIL_HOST_USER)
-        self.FROM_NAME = os.getenv('FROM_NAME', 'MeStore')
+        self.FROM_NAME = os.getenv('FROM_NAME', 'MeStocker')
 
     def _get_frontend_url(self) -> str:
         if self.ENVIRONMENT == 'production':
@@ -134,7 +135,7 @@ class SMTPEmailService:
                 return True
 
             # Preparar contenido del email
-            subject = f"MeStore - Código de verificación: {otp_code}"
+            subject = f"MeStocker - Código de verificación: {otp_code}"
 
             # Contenido HTML
             html_content = self._create_otp_html_template(
@@ -181,7 +182,7 @@ class SMTPEmailService:
                 print(f"   URL: {reset_url}")
                 return True
 
-            subject = "Recuperación de Contraseña - MeStore"
+            subject = "Recuperación de Contraseña - MeStocker"
             name = user_name or "Usuario"
 
             html_content = self._create_reset_html_template(reset_token, name)
@@ -219,7 +220,7 @@ class SMTPEmailService:
                 print(f"   Tipo: {user_type}")
                 return True
 
-            subject = "¡Bienvenido a MeStore! 🎉"
+            subject = "¡Bienvenido a MeStocker! 🎉"
 
             html_content = self._create_welcome_html_template(user_name, user_type)
             plain_content = self._create_welcome_plain_template(user_name, user_type)
@@ -238,18 +239,18 @@ class SMTPEmailService:
         <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Código de Verificación - MeStore</title>
+            <title>Código de Verificación - MeStocker</title>
         </head>
         <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-                <h1 style="color: white; margin: 0; font-size: 28px;">🛒 MeStore</h1>
+                <h1 style="color: white; margin: 0; font-size: 28px;">🛒 MeStocker</h1>
                 <p style="color: white; margin: 10px 0 0 0; opacity: 0.9;">Tu marketplace digital</p>
             </div>
 
             <div style="background: white; padding: 40px; border-radius: 0 0 10px 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
                 <h2 style="color: #333; margin-top: 0;">¡Hola {user_name}! 👋</h2>
 
-                <p>Gracias por registrarte en MeStore. Para completar tu registro, usa este código de verificación:</p>
+                <p>Gracias por registrarte en MeStocker. Para completar tu registro, usa este código de verificación:</p>
 
                 <div style="background: #f8f9fa; border: 2px dashed #667eea; border-radius: 10px; padding: 30px; text-align: center; margin: 30px 0;">
                     <div style="font-size: 36px; font-weight: bold; color: #667eea; letter-spacing: 8px; font-family: monospace;">
@@ -265,9 +266,9 @@ class SMTPEmailService:
                 </p>
 
                 <div style="text-align: center; margin-top: 30px;">
-                    <p style="color: #667eea; font-weight: bold;">¡Gracias por elegir MeStore!</p>
+                    <p style="color: #667eea; font-weight: bold;">¡Gracias por elegir MeStocker!</p>
                     <a href="{self.config.FRONTEND_URL}" style="background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 15px;">
-                        Ir a MeStore
+                        Ir a MeStocker
                     </a>
                 </div>
             </div>
@@ -280,7 +281,7 @@ class SMTPEmailService:
         return f"""
         ¡Hola {user_name}!
 
-        Gracias por registrarte en MeStore.
+        Gracias por registrarte en MeStocker.
 
         Tu código de verificación es: {otp_code}
 
@@ -288,7 +289,7 @@ class SMTPEmailService:
 
         Si no solicitaste este código, puedes ignorar este email.
 
-        ¡Gracias por elegir MeStore!
+        ¡Gracias por elegir MeStocker!
 
         Visita: {self.config.FRONTEND_URL}
         """
@@ -303,11 +304,11 @@ class SMTPEmailService:
         <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Recuperar Contraseña - MeStore</title>
+            <title>Recuperar Contraseña - MeStocker</title>
         </head>
         <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-                <h1 style="color: white; margin: 0; font-size: 28px;">🛒 MeStore</h1>
+                <h1 style="color: white; margin: 0; font-size: 28px;">🛒 MeStocker</h1>
                 <p style="color: white; margin: 10px 0 0 0; opacity: 0.9;">Recuperación de Contraseña</p>
             </div>
 
@@ -353,7 +354,7 @@ class SMTPEmailService:
         Si no solicitaste cambiar tu contraseña, puedes ignorar este email.
 
         Saludos,
-        El equipo de MeStore
+        El equipo de MeStocker
         """
 
     def _create_welcome_html_template(self, user_name: str, user_type: str) -> str:
@@ -370,18 +371,18 @@ class SMTPEmailService:
         <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>¡Bienvenido a MeStore!</title>
+            <title>¡Bienvenido a MeStocker!</title>
         </head>
         <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-                <h1 style="color: white; margin: 0; font-size: 28px;">🛒 MeStore</h1>
+                <h1 style="color: white; margin: 0; font-size: 28px;">🛒 MeStocker</h1>
                 <p style="color: white; margin: 10px 0 0 0; opacity: 0.9;">¡Bienvenido a tu marketplace!</p>
             </div>
 
             <div style="background: white; padding: 40px; border-radius: 0 0 10px 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
                 <h2 style="color: #333; margin-top: 0;">¡Hola {user_name}! 🎉</h2>
 
-                <p>¡Bienvenido a MeStore! Tu cuenta como <strong>{user_type_text}</strong> ha sido creada exitosamente.</p>
+                <p>¡Bienvenido a MeStocker! Tu cuenta como <strong>{user_type_text}</strong> ha sido creada exitosamente.</p>
 
                 <div style="background: #f8f9fa; border-left: 4px solid #667eea; padding: 20px; margin: 30px 0;">
                     <h3 style="margin-top: 0; color: #667eea;">¿Qué sigue?</h3>
@@ -399,7 +400,7 @@ class SMTPEmailService:
                 </div>
 
                 <p style="color: #666; font-size: 14px; border-top: 1px solid #eee; padding-top: 20px; margin-top: 30px;">
-                    ¡Gracias por unirte a MeStore! Si tienes preguntas, no dudes en contactarnos.
+                    ¡Gracias por unirte a MeStocker! Si tienes preguntas, no dudes en contactarnos.
                 </p>
             </div>
         </body>
@@ -417,20 +418,135 @@ class SMTPEmailService:
         return f"""
         ¡Hola {user_name}!
 
-        ¡Bienvenido a MeStore! Tu cuenta como {user_type_text} ha sido creada exitosamente.
+        ¡Bienvenido a MeStocker! Tu cuenta como {user_type_text} ha sido creada exitosamente.
 
         ¿Qué sigue?
         - Explora nuestro marketplace
         - Completa tu perfil
         - Comienza a {'vender' if user_type == 'VENDOR' else 'comprar'} productos
 
-        Visita MeStore: {self.config.FRONTEND_URL}
+        Visita MeStocker: {self.config.FRONTEND_URL}
 
-        ¡Gracias por unirte a MeStore!
+        ¡Gracias por unirte a MeStocker!
 
         Saludos,
-        El equipo de MeStore
+        El equipo de MeStocker
         """
+
+
+    async def send_otp_email_async(
+        self,
+        email: str,
+        otp_code: str,
+        user_name: Optional[str] = None
+    ) -> tuple[bool, str]:
+        """
+        Envía email con código OTP de verificación (async wrapper).
+
+        Args:
+            email: Email destino
+            otp_code: Código OTP de 6 dígitos
+            user_name: Nombre del usuario (opcional)
+
+        Returns:
+            tuple[bool, str]: (éxito, mensaje)
+        """
+        try:
+            if self.simulation_mode:
+                logger.info(f"SIMULACIÓN EMAIL OTP - Para: {email}, OTP: {otp_code}")
+                print(f"📧 SIMULACIÓN EMAIL OTP:")
+                print(f"   Para: {email}")
+                print(f"   Código: {otp_code}")
+                print(f"   Usuario: {user_name}")
+                print(f"   Timestamp: {datetime.now()}")
+                return True, f"Email OTP simulado enviado a {email}"
+
+            success = self.send_otp_email(email, otp_code, user_name or "Usuario")
+            if success:
+                return True, f"Email OTP enviado exitosamente a {email}"
+            else:
+                return False, "Error enviando email OTP"
+
+        except Exception as e:
+            logger.error(f"Error en send_otp_email: {str(e)}")
+            return False, f"Error interno: {str(e)}"
+
+    def get_service_status(self) -> dict:
+        """
+        Obtiene el estado del servicio de email SMTP.
+
+        Returns:
+            dict: Estado del servicio
+        """
+        status = {
+            "service_enabled": True,
+            "simulation_mode": self.simulation_mode,
+            "smtp_configured": bool(self.config.EMAIL_HOST_USER and self.config.EMAIL_HOST_PASSWORD),
+            "smtp_host": self.config.EMAIL_HOST,
+            "smtp_port": self.config.EMAIL_PORT,
+            "use_tls": self.config.EMAIL_USE_TLS,
+            "from_email": self.config.FROM_EMAIL,
+            "from_name": self.config.FROM_NAME
+        }
+
+        if not self.simulation_mode:
+            try:
+                # Test SMTP connection
+                import smtplib
+                server = smtplib.SMTP(self.config.EMAIL_HOST, self.config.EMAIL_PORT)
+                if self.config.EMAIL_USE_TLS:
+                    server.starttls()
+                server.login(self.config.EMAIL_HOST_USER, self.config.EMAIL_HOST_PASSWORD)
+                server.quit()
+                status["smtp_connection"] = "active"
+            except Exception as e:
+                status["smtp_connection"] = "failed"
+                status["connection_error"] = str(e)
+        else:
+            status["smtp_connection"] = "simulation"
+
+        return status
+
+    def get_setup_instructions(self) -> dict:
+        """
+        Obtiene instrucciones de configuración para email SMTP.
+
+        Returns:
+            dict: Instrucciones de configuración
+        """
+        return {
+            "gmail_setup": (
+                "Configuración Gmail SMTP:\n"
+                "1. Ve a https://myaccount.google.com/security\n"
+                "2. Activa 'Verificación en 2 pasos'\n"
+                "3. Ve a 'Contraseñas de aplicaciones'\n"
+                "4. Genera una nueva contraseña para 'MeStocker'\n"
+                "5. Agrega al .env:\n"
+                "   EMAIL_HOST=smtp.gmail.com\n"
+                "   EMAIL_PORT=587\n"
+                "   EMAIL_HOST_USER=tu-email@gmail.com\n"
+                "   EMAIL_HOST_PASSWORD=contraseña_aplicacion_16_chars\n"
+                "   EMAIL_USE_TLS=true"
+            ),
+            "outlook_setup": (
+                "Configuración Outlook SMTP:\n"
+                "1. Agrega al .env:\n"
+                "   EMAIL_HOST=smtp-mail.outlook.com\n"
+                "   EMAIL_PORT=587\n"
+                "   EMAIL_HOST_USER=tu-email@outlook.com\n"
+                "   EMAIL_HOST_PASSWORD=tu_contraseña\n"
+                "   EMAIL_USE_TLS=true"
+            ),
+            "environment_variables": {
+                "EMAIL_HOST": "SMTP server hostname",
+                "EMAIL_PORT": "SMTP server port (usually 587 for TLS)",
+                "EMAIL_HOST_USER": "Your email address",
+                "EMAIL_HOST_PASSWORD": "Your email password or app password",
+                "EMAIL_USE_TLS": "true to use TLS encryption",
+                "FROM_EMAIL": "Email address to send from",
+                "FROM_NAME": "Display name for sender"
+            }
+        }
 
 
 # Instancia global del servicio

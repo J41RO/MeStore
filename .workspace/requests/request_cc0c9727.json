@@ -1,0 +1,12 @@
+{
+  "id": "cc0c9727",
+  "timestamp": "2025-09-29T02:11:37.564258",
+  "requesting_agent": "agent-recruiter-ai",
+  "target_file": "app/api/v1/endpoints/database_reset.py",
+  "reason": "CR\u00cdTICO: Base de datos unificada en mestore_main.db. PROHIBIR operaciones de reset que creen bases adicionales. Solo reset de datos, NO nuevas bases.",
+  "status": "pending",
+  "contacted_agents": [],
+  "responses": [],
+  "escalation_level": 1,
+  "deadline": "2025-09-29T02:16:37.564267"
+}

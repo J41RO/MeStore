@@ -10,8 +10,8 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     # Database Configuration - Unified source of truth
     DATABASE_URL: str = Field(
-        default="postgresql+asyncpg://mestocker_user:secure_password@localhost:5432/mestocker_dev",
-        description="PostgreSQL database URL with asyncpg driver",
+        default="sqlite+aiosqlite:///./mestore.db",
+        description="SQLite database URL - ÚNICA BASE DE DATOS PARA TODO EL SISTEMA",
     )
     DB_ECHO: bool = Field(
         default=False, description="Enable SQL statement logging for debugging"
@@ -489,6 +489,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = [".env", ".env.production", ".env.test", ".env.development", ".env.local"]
         env_file_encoding = 'utf-8'
+        extra = 'allow'
 
 
 
@@ -498,6 +499,10 @@ class Settings(BaseSettings):
     EMAIL_HOST_USER: Optional[str] = Field(default=None, description="SMTP username")
     EMAIL_HOST_PASSWORD: Optional[str] = Field(default=None, description="SMTP password")
     EMAIL_USE_TLS: Optional[str] = Field(default=None, description="Use TLS for SMTP")
+
+    # Google OAuth Configuration
+    GOOGLE_CLIENT_ID: Optional[str] = Field(default=None, description="Google OAuth Client ID")
+    GOOGLE_CLIENT_SECRET: Optional[str] = Field(default=None, description="Google OAuth Client Secret")
 
     # Frontend Configuration
     DEV_FRONTEND_URL: Optional[str] = Field(default=None, description="Development frontend URL")

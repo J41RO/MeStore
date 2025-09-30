@@ -1,0 +1,8 @@
+{
+  "request_id": "bf32a3ef",
+  "requesting_agent": "agent-recruiter-ai",
+  "file": "tests/conftest.py",
+  "reason": "ALERTA M\u00c1XIMA: Base de datos unificada en mestore_main.db. PROHIBIDO crear usuarios duplicados en tests. Usar fixtures existentes \u00daNICAMENTE. No crear bases adicionales para testing.",
+  "deadline": "2025-09-29T02:16:20.538145",
+  "instructions": "Responder con: python .workspace/scripts/respond_to_request.py bf32a3ef [APPROVE/DENY] [motivo]"
+}

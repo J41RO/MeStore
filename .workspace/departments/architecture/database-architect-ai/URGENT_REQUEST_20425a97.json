@@ -1,0 +1,8 @@
+{
+  "request_id": "20425a97",
+  "requesting_agent": "agent-recruiter-ai",
+  "file": "app/models/user.py",
+  "reason": "CR\u00cdTICO: UNIFICACI\u00d3N DE BASE DE DATOS COMPLETADA. Base \u00fanica: mestore_main.db con 132 usuarios existentes. PROHIBICI\u00d3N ABSOLUTA de crear bases adicionales o duplicar usuarios. Configuraci\u00f3n en app/core/config.py l\u00ednea 13.",
+  "deadline": "2025-09-29T02:16:09.742573",
+  "instructions": "Responder con: python .workspace/scripts/respond_to_request.py 20425a97 [APPROVE/DENY] [motivo]"
+}

@@ -336,7 +336,7 @@ async def get_dashboard_resumen(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> VendedorDashboardResumen:
-    """Obtener KPIs principales del vendedor para dashboard."""
+    """Obtener KPIs principales del vendedor para dashboard con datos reales."""
     # Verificar que el usuario es vendedor
     if current_user.user_type != UserType.VENDOR:
         raise HTTPException(
@@ -344,100 +344,70 @@ async def get_dashboard_resumen(
             detail="Solo vendedores pueden acceder al dashboard"
         )
 
-    # Intentar consultas reales, fallback a datos simulados si falla
-    try:
-        from sqlalchemy import func, and_, extract
-        from datetime import datetime, timedelta
-        import calendar
-        import os
+    from sqlalchemy import func, and_
+    from datetime import datetime
+    import calendar
 
-        # Obtener mes actual para filtros
-        now = datetime.now()
-        inicio_mes = datetime(now.year, now.month, 1)
-        ultimo_dia = calendar.monthrange(now.year, now.month)[1]
-        fin_mes = datetime(now.year, now.month, ultimo_dia, 23, 59, 59)
+    # Obtener mes actual para filtros
+    now = datetime.now()
+    inicio_mes = datetime(now.year, now.month, 1)
+    ultimo_dia = calendar.monthrange(now.year, now.month)[1]
+    fin_mes = datetime(now.year, now.month, ultimo_dia, 23, 59, 59)
 
-        # Skip real database queries during testing to avoid performance issues
-        is_testing = (
-            os.getenv("PYTEST_CURRENT_TEST") is not None or
-            hasattr(db, '_mock_name') or
-            str(type(db)).find('Mock') != -1
-        )
-
-        # Consultas reales del vendedor
-        usar_datos_reales = not is_testing
-    except Exception as e:
-        # Fallback a datos simulados si hay error
-        usar_datos_reales = False
-    # Por ahora devolvemos datos simulados pero con estructura correcta
-
-    if usar_datos_reales:
-        # 1. Total productos del vendedor
-        total_productos_result = await db.execute(
-            select(func.count(Product.id)).where(Product.vendedor_id == current_user.id)
-        )
-        total_productos = total_productos_result.scalar() or 0
-        
-        # 2. Productos activos
-        productos_activos_result = await db.execute(
-            select(func.count(Product.id)).where(
-                and_(Product.vendedor_id == current_user.id, Product.status == ProductStatus.ACTIVO)
-            )
-        )
-        productos_activos = productos_activos_result.scalar() or 0
-        
-        # 3. Ventas del mes
-        ventas_mes_result = await db.execute(
-            select(func.count(Transaction.id)).where(
-                and_(
-                    Transaction.vendedor_id == current_user.id,
-                    Transaction.created_at >= inicio_mes,
-                    Transaction.created_at <= fin_mes
-                )
-            )
-        )
-        ventas_mes = ventas_mes_result.scalar() or 0
-        
-        # 4. Ingresos del mes
-        ingresos_result = await db.execute(
-            select(func.coalesce(func.sum(Transaction.monto), 0)).where(
-                and_(
-                    Transaction.vendedor_id == current_user.id,
-                    Transaction.created_at >= inicio_mes,
-                    Transaction.created_at <= fin_mes
-                )
-            )
-        )
-        ingresos_mes = Decimal(str(ingresos_result.scalar() or 0))
-        
-        # 5. Comisión total acumulada
-        comision_result = await db.execute(
-            select(func.coalesce(func.sum(
-                Transaction.monto * Transaction.porcentaje_mestocker / 100
-            ), 0)).where(Transaction.vendedor_id == current_user.id)
-        )
-        comision_total = Decimal(str(comision_result.scalar() or 0))
-        
-        kpis = VendedorDashboardResumen(
-            total_productos=total_productos,
-            productos_activos=productos_activos,
-            ventas_mes=ventas_mes,
-            ingresos_mes=ingresos_mes,
-            comision_total=comision_total,
-            estadisticas_mes=f"Datos reales - {now.strftime('%B %Y')}"
-        )
-    else:
-        # Simular datos realistas para el vendedor (fallback)
-        kpis = VendedorDashboardResumen(
-        total_productos=25,
-        productos_activos=23,
-        ventas_mes=42,
-        ingresos_mes=Decimal("15750.50"),
-        comision_total=Decimal("1890.06"),
-        estadisticas_mes="Incremento del 15% vs mes anterior"
+    # 1. Total productos del vendedor
+    total_productos_result = await db.execute(
+        select(func.count(Product.id)).where(Product.vendedor_id == current_user.id)
     )
+    total_productos = total_productos_result.scalar() or 0
 
-    return kpis
+    # 2. Productos activos (DISPONIBLE es el estado activo para venta)
+    productos_activos_result = await db.execute(
+        select(func.count(Product.id)).where(
+            and_(Product.vendedor_id == current_user.id, Product.status == ProductStatus.DISPONIBLE)
+        )
+    )
+    productos_activos = productos_activos_result.scalar() or 0
+
+    # 3. Ventas del mes
+    ventas_mes_result = await db.execute(
+        select(func.count(Transaction.id)).where(
+            and_(
+                Transaction.vendedor_id == current_user.id,
+                Transaction.created_at >= inicio_mes,
+                Transaction.created_at <= fin_mes
+            )
+        )
+    )
+    ventas_mes = ventas_mes_result.scalar() or 0
+
+    # 4. Ingresos del mes
+    ingresos_result = await db.execute(
+        select(func.coalesce(func.sum(Transaction.monto), 0)).where(
+            and_(
+                Transaction.vendedor_id == current_user.id,
+                Transaction.created_at >= inicio_mes,
+                Transaction.created_at <= fin_mes
+            )
+        )
+    )
+    ingresos_mes = Decimal(str(ingresos_result.scalar() or 0))
+
+    # 5. Comisión total acumulada
+    comision_result = await db.execute(
+        select(func.coalesce(func.sum(
+            Transaction.monto * Transaction.porcentaje_mestocker / 100
+        ), 0)).where(Transaction.vendedor_id == current_user.id)
+    )
+    comision_total = Decimal(str(comision_result.scalar() or 0))
+
+    return VendedorDashboardResumen(
+        total_productos=total_productos,
+        productos_activos=productos_activos,
+        ventas_mes=ventas_mes,
+        ingresos_mes=ingresos_mes,
+        comision_total=comision_total,
+        estadisticas_mes=f"Datos reales - {now.strftime('%B %Y')}"
+    )
 
 
 @router.get("/dashboard/ventas", response_model=DashboardVentasResponse, status_code=status.HTTP_200_OK)

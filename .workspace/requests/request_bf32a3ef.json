@@ -1,0 +1,20 @@
+{
+  "id": "bf32a3ef",
+  "timestamp": "2025-09-29T02:11:20.538137",
+  "requesting_agent": "agent-recruiter-ai",
+  "target_file": "tests/conftest.py",
+  "reason": "ALERTA M\u00c1XIMA: Base de datos unificada en mestore_main.db. PROHIBIDO crear usuarios duplicados en tests. Usar fixtures existentes \u00daNICAMENTE. No crear bases adicionales para testing.",
+  "status": "pending",
+  "contacted_agents": [
+    {
+      "timestamp": "2025-09-29T02:11:20.538386",
+      "agent": "tdd-specialist",
+      "type": "primary_contact",
+      "message": "Solicitud de agent-recruiter-ai para modificar tests/conftest.py",
+      "deadline": "2025-09-29T02:16:20.538145"
+    }
+  ],
+  "responses": [],
+  "escalation_level": 1,
+  "deadline": "2025-09-29T02:16:20.538145"
+}

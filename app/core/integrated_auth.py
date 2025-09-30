@@ -66,8 +66,10 @@ class IntegratedAuthService:
     async def _authenticate_user_simple(self, email: str, password: str) -> Optional[User]:
         """Simple SQLite-based authentication for debugging"""
         try:
-            # Direct SQLite query for testing
-            conn = sqlite3.connect('mestore_production.db')
+            # Direct SQLite query for testing - using settings.DATABASE_URL
+            from app.core.config import settings
+            db_path = settings.DATABASE_URL.replace("sqlite+aiosqlite://", "").replace("sqlite://", "").lstrip("/")
+            conn = sqlite3.connect(db_path)
             cursor = conn.execute(
                 'SELECT id, email, password_hash, user_type, nombre, is_active FROM users WHERE email = ?',
                 (email,)

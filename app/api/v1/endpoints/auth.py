@@ -349,7 +349,7 @@ async def register(
     try:
         # Crear nuevo usuario con datos adicionales
         new_user = await auth_service.create_user(
-            
+            db,
             email=user_data.email,
             password=user_data.password,
             user_type=user_data.user_type.value if user_data.user_type else "BUYER",

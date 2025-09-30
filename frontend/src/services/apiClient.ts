@@ -12,6 +12,7 @@ export const apiClient: AxiosInstance = axios.create({
     'Content-Type': 'application/json',
     'Accept': 'application/json',
     'X-Requested-With': 'XMLHttpRequest',
+    // REMOVIDO: 'User-Agent' - No permitido en navegadores (causa error "Refused to set unsafe header")
   },
   withCredentials: true, // Importante para CORS con credenciales
   maxRedirects: 5,

@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sess
 import os
 
 # Database URL from environment - SQLite for development
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./mestore_production.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./mestore.db")
 # Convert SQLite URL to async format for aiosqlite
 ASYNC_DATABASE_URL = DATABASE_URL.replace("sqlite://", "sqlite+aiosqlite://")
 

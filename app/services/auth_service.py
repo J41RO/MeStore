@@ -551,9 +551,11 @@ class AuthService:
 
             # Use raw SQL query to avoid SQLAlchemy model issues
             import sqlite3
+            from app.core.config import settings
 
-            # Connect directly to SQLite for authentication
-            conn = sqlite3.connect('mestore_production.db')
+            # Connect directly to SQLite for authentication - using settings
+            db_path = settings.DATABASE_URL.replace("sqlite+aiosqlite://", "").replace("sqlite://", "").lstrip("/")
+            conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
 
             # Get user from database
