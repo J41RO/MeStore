@@ -845,7 +845,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
         <div className='flex gap-4 pt-8'>
           <button
             type='button'
-            onClick={(e) => {
+            onClick={async (e) => {
               console.log('🔴🔴🔴 BOTÓN CLICKEADO');
               console.log('🔍 isFormValid:', isFormValid);
               console.log('🔍 loading:', loading);
@@ -856,8 +856,18 @@ const ProductForm: React.FC<ProductFormProps> = ({
               console.log('🔍 handleSubmit type:', typeof handleSubmit);
 
               e.preventDefault();
-              console.log('⚡ Llamando a handleSubmit(onFormSubmit)...');
-              handleSubmit(onFormSubmit as any)(e);
+
+              try {
+                console.log('⚡ Llamando a handleSubmit(onFormSubmit)...');
+                const submitHandler = handleSubmit(onFormSubmit as any);
+                console.log('🔍 submitHandler type:', typeof submitHandler);
+                console.log('📞 Ejecutando submitHandler(e)...');
+                const result = await submitHandler(e);
+                console.log('✅ submitHandler completado. Result:', result);
+              } catch (error) {
+                console.error('❌ ERROR en onClick:', error);
+                console.error('📍 Stack:', error instanceof Error ? error.stack : 'No stack');
+              }
             }}
             disabled={loading || uploadingImages || !isFormValid}
             className={`flex-1 px-8 py-4 rounded-xl font-bold text-lg flex items-center justify-center transition-all duration-300 transform ${
