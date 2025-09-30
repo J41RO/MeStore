@@ -202,7 +202,9 @@ const ProductForm: React.FC<ProductFormProps> = ({
     }
   }, [mode, initialData, setValue]);
 
-  // Watchers para validaciones en tiempo real
+  // DESHABILITADO TEMPORALMENTE: Watchers para validaciones en tiempo real
+  // CAUSA INFINITE LOOP - Necesita refactorización completa
+  /*
   useEffect(() => {
     if (watchedName) {
       checkNameAvailability(watchedName);
@@ -220,13 +222,14 @@ const ProductForm: React.FC<ProductFormProps> = ({
   useEffect(() => {
     if (precioVenta && precioCosto) {
       validateMargin(precioVenta, precioCosto);
-      
+
       const margen = ((precioVenta - precioCosto) / precioVenta) * 100;
       if (margen < 10) {
         showMessage('Margen de ganancia es menor al 10%', 'info');
       }
     }
   }, [precioVenta, precioCosto, validateMargin]);
+  */
 
   // Load existing images when in edit mode
   useEffect(() => {
