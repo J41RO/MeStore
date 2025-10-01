@@ -61,9 +61,10 @@ export interface UpdateCategoryRequest extends Partial<CreateCategoryRequest> {
 
 export interface CategoryListResponse {
   categories: Category[];
-  total_count: number;
+  total: number;
   page: number;
-  per_page: number;
+  size: number;
+  pages: number;
 }
 
 export interface CategoryTreeResponse {

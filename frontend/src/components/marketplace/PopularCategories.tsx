@@ -68,7 +68,8 @@ const PopularCategories: React.FC = () => {
         const response = await api.products.getCategories();
 
         // Filter active categories, sort by product count, and take top 8
-        const activeCategories = response.data
+        // Extract categories from paginated response
+        const activeCategories = (response.data.categories || [])
           .filter((cat: CategoryType) => cat.is_active)
           .sort((a: CategoryType, b: CategoryType) => (b.product_count || 0) - (a.product_count || 0))
           .slice(0, 8)

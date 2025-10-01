@@ -1,9 +1,9 @@
 import axios from 'axios';
 import type { CartItem, ShippingAddress, PaymentInfo } from '../stores/checkoutStore';
+import type { CategoryListResponse } from '../types/category.types';
 
-// Configuración base de axios - usar VITE_API_BASE_URL si está configurado, sino proxy en desarrollo
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ||
-  (import.meta.env.DEV ? undefined : 'http://192.168.1.137:8000');
+// Configuración base de axios - SIEMPRE usar backend directo (proxy de Vite no funciona en network IP)
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://192.168.1.137:8000';
 
 const baseApi = axios.create({
   baseURL: API_BASE_URL,
@@ -134,26 +134,26 @@ export const authAPI = {
 
 // ===== PRODUCTS API =====
 export const productsAPI = {
-  getAll: (params?: any) => baseApi.get('/api/v1/products', { params }),
+  getAll: (params?: any) => baseApi.get('/api/v1/products/', { params }),
   getById: (id: string) => baseApi.get(`/api/v1/products/${id}`),
-  create: (data: any) => baseApi.post('/api/v1/productos', data),
-  update: (id: string, data: any) => baseApi.put(`/api/v1/productos/${id}`, data),
-  getWithFilters: (filters: any) => baseApi.get('/api/v1/productos', { params: filters }),
+  create: (data: any) => baseApi.post('/api/v1/products/', data),
+  update: (id: string, data: any) => baseApi.put(`/api/v1/products/${id}`, data),
+  getWithFilters: (filters: any) => baseApi.get('/api/v1/products/', { params: filters }),
   // Additional product endpoints
   search: (query: string, filters?: any) => baseApi.get('/api/v1/search/products', {
     params: { q: query, ...filters }
   }),
-  getCategories: () => baseApi.get('/api/v1/categories'),
+  getCategories: (): Promise<{ data: CategoryListResponse }> => baseApi.get('/api/v1/categories/'),
   getByCategory: (categoryId: string, params?: any) => baseApi.get(`/api/v1/products/category/${categoryId}`, { params })
 };
 
 // ===== ORDERS API =====
 export const ordersAPI = {
   create: (orderData: CreateOrderRequest): Promise<{ data: OrderResponse }> =>
-    baseApi.post('/api/v1/orders', orderData),
+    baseApi.post('/api/v1/orders/', orderData),
 
   getAll: (params?: { skip?: number; limit?: number; status_filter?: string }) =>
-    baseApi.get('/api/v1/orders', { params }),
+    baseApi.get('/api/v1/orders/', { params }),
 
   getById: (orderId: string): Promise<{ data: OrderResponse }> =>
     baseApi.get(`/api/v1/orders/${orderId}`),

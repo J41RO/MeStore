@@ -68,7 +68,8 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
         const response = await api.products.getCategories();
 
         // Filter only active categories and sort by name
-        const activeCategories = response.data
+        // Extract categories from paginated response
+        const activeCategories = (response.data.categories || [])
           .filter((cat: Category) => cat.is_active)
           .sort((a: Category, b: Category) => a.name.localeCompare(b.name));
 

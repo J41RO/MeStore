@@ -71,7 +71,6 @@ const OTPVerification = lazy(() => import('./components/OTPVerification'));
 // Componentes de auth con lazy loading
 const OTPDemo = lazy(() => import('./components/OTPDemo'));
 const VendorTest = lazy(() => import('./pages/VendorTest'));
-const Marketplace = lazy(() => import('./pages/Marketplace'));
 const AdminRestricted = lazy(() => import('./pages/AdminRestricted'));
 const AdminRedirect = lazy(() => import('./components/AdminRedirect'));
 const Unauthorized = lazy(() => import('./pages/Unauthorized'));
@@ -98,6 +97,9 @@ const OrderTracking = lazy(() => import('./pages/OrderTracking'));
 
 // Vendor management pages
 const ProductsManagementPage = lazy(() => import('./pages/vendor/ProductsManagementPage'));
+
+// Checkout pages
+const ConfirmationPage = lazy(() => import('./pages/checkout/ConfirmationPage'));
 
 function App() {
   return (
@@ -158,6 +160,13 @@ function App() {
           </Suspense>
         } />
 
+        {/* Checkout Confirmation Page */}
+        <Route path="/checkout/confirmation" element={
+          <Suspense fallback={<PageLoader />}>
+            <ConfirmationPage />
+          </Suspense>
+        } />
+
         {/* Checkout Demo */}
         <Route path="/checkout-demo" element={
           <Suspense fallback={<PageLoader />}>
@@ -189,7 +198,7 @@ function App() {
           </Suspense>
         } />
 
-        {/* Portal Admin Corporativo - Página de presentación */}
+        {/* Portal Admin Corporativo - Pagina de presentacion */}
         <Route
           path="/admin-portal"
           element={
@@ -199,17 +208,11 @@ function App() {
           }
         />
 
-        {/* Ruta del Marketplace Original para compradores autenticados */}
-        <Route
-          path='/marketplace/app'
-          element={
-            <AuthGuard requiredRoles={[UserType.BUYER, UserType.VENDOR, UserType.ADMIN, UserType.SUPERUSER]}>
-              <Suspense fallback={<PageLoader />}>
-                <Marketplace />
-              </Suspense>
-            </AuthGuard>
-          }
-        />
+        {/*
+          REMOVED: /marketplace/app route (redundant with /marketplace)
+          Rationale: MarketplaceHome.tsx already provides full marketplace functionality
+          for both authenticated and unauthenticated users. No need for separate route.
+        */}
 
         {/* Rutas protegidas con Layout */}
         <Route
