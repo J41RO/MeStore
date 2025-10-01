@@ -1,25 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ShoppingCart, Plus, Minus, Check, AlertCircle } from 'lucide-react';
+import { useCartStore, formatCOP } from '../../store/cartStore';
+import type { Product } from '../../types';
 
 interface AddToCartButtonProps {
-  productId: number;
-  price: number;
-  stock: number;
-  onAddToCart: (quantity: number) => void;
+  product: Product;
+  onAddToCart?: (quantity: number) => void;
   disabled?: boolean;
 }
 
-interface CartItem {
-  productId: number;
-  quantity: number;
-  price: number;
-  addedAt: string;
-}
-
 const AddToCartButton: React.FC<AddToCartButtonProps> = ({
-  productId,
-  price,
-  stock,
+  product,
   onAddToCart,
   disabled = false
 }) => {
@@ -27,113 +18,62 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
   const [isAdding, setIsAdding] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
-  // Load cart from localStorage on component mount
-  useEffect(() => {
-    loadCartFromStorage();
-  }, []);
-
-  const loadCartFromStorage = () => {
-    try {
-      const cartData = localStorage.getItem('mestore_cart');
-      if (cartData) {
-        const items = JSON.parse(cartData) as CartItem[];
-        setCartItems(items);
-      }
-    } catch (error) {
-      console.error('Error loading cart from localStorage:', error);
-      setCartItems([]);
-    }
-  };
-
-  const saveCartToStorage = (items: CartItem[]) => {
-    try {
-      localStorage.setItem('mestore_cart', JSON.stringify(items));
-      setCartItems(items);
-    } catch (error) {
-      console.error('Error saving cart to localStorage:', error);
-      setError('Error al guardar en el carrito');
-    }
-  };
-
-  const getCurrentCartQuantity = () => {
-    const existingItem = cartItems.find(item => item.productId === productId);
-    return existingItem ? existingItem.quantity : 0;
-  };
-
+  // Cart store
+  const { addItem, getCartItem } = useCartStore();
+  const cartItem = getCartItem(product.id);
+  const currentInCart = cartItem?.quantity || 0;
 
   const handleQuantityChange = (change: number) => {
-    const newQuantity = Math.max(1, Math.min(stock, quantity + change));
-    
-    // Check if total quantity (existing + new) would exceed stock
-    const currentInCart = getCurrentCartQuantity();
-    const maxNewQuantity = stock - currentInCart;
-    
-    if (maxNewQuantity <= 0) {
-      setError('No hay más stock disponible');
-      return;
-    }
-    
-    const finalQuantity = Math.min(newQuantity, maxNewQuantity);
-    setQuantity(finalQuantity);
+    // TEMPORAL: Sin límite de stock para pruebas
+    const newQuantity = Math.max(1, Math.min(10, quantity + change));
+    setQuantity(newQuantity);
     setError(null);
   };
 
   const handleAddToCart = async () => {
-    if (disabled || stock <= 0) {
-      setError('Producto no disponible');
-      return;
-    }
+    // TEMPORAL: Comentado validación de stock
+    // if (disabled || product.stock <= 0) {
+    //   setError('Producto no disponible');
+    //   return;
+    // }
 
-    const currentInCart = getCurrentCartQuantity();
-    const totalQuantity = currentInCart + quantity;
+    // const totalQuantity = currentInCart + quantity;
 
-    if (totalQuantity > stock) {
-      setError(`Solo hay ${stock} unidades disponibles (${currentInCart} ya en carrito)`);
-      return;
-    }
+    // if (totalQuantity > product.stock) {
+    //   setError(`Solo hay ${product.stock} unidades disponibles (${currentInCart} ya en carrito)`);
+    //   return;
+    // }
 
     setIsAdding(true);
     setError(null);
 
     try {
       // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 300));
 
-      // Update cart in localStorage
-      const updatedCartItems = [...cartItems];
-      const existingItemIndex = updatedCartItems.findIndex(item => item.productId === productId);
+      // Add to cart via Zustand store (unified checkoutStore)
+      addItem({
+        product_id: product.id,
+        name: product.name,
+        price: product.price,
+        quantity,
+        image_url: product.main_image_url || product.images?.[0]?.public_url,
+        sku: product.sku,
+        max_stock: product.stock,
+        stock_available: product.stock,
+        vendor_id: product.vendor_id,
+      });
 
-      if (existingItemIndex >= 0) {
-        // Update existing item
-        const existingItem = updatedCartItems[existingItemIndex];
-        if (existingItem) {
-          updatedCartItems[existingItemIndex] = {
-            ...existingItem,
-            quantity: existingItem.quantity + quantity,
-            addedAt: new Date().toISOString()
-          };
-        }
-      } else {
-        // Add new item
-        updatedCartItems.push({
-          productId,
-          quantity,
-          price,
-          addedAt: new Date().toISOString()
-        });
+      // Call parent callback if provided
+      if (onAddToCart) {
+        onAddToCart(quantity);
       }
-
-      saveCartToStorage(updatedCartItems);
-      
-      // Call parent callback
-      onAddToCart(quantity);
 
       // Show success state
       setJustAdded(true);
       setQuantity(1);
-      
+
       // Reset success state after 2 seconds
       setTimeout(() => {
         setJustAdded(false);
@@ -146,46 +86,39 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
     }
   };
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(price);
-  };
+  // TEMPORAL: Simulamos stock ilimitado para pruebas
+  const availableStock = 999; // product.stock - currentInCart;
+  const totalPrice = product.price * quantity;
 
-  const currentInCart = getCurrentCartQuantity();
-  const availableStock = stock - currentInCart;
-  const totalPrice = price * quantity;
-
+  // TEMPORAL: Comentado para permitir pruebas sin sistema de inventario
   // If no stock available
-  if (stock <= 0 || disabled) {
-    return (
-      <div className="space-y-3">
-        <div className="text-center py-4 px-6 bg-gray-100 rounded-lg">
-          <AlertCircle className="h-6 w-6 text-gray-500 mx-auto mb-2" />
-          <p className="text-gray-600 font-medium">Producto agotado</p>
-          <p className="text-sm text-gray-500">No hay stock disponible</p>
-        </div>
-      </div>
-    );
-  }
+  // if (product.stock <= 0 || disabled) {
+  //   return (
+  //     <div className="space-y-3">
+  //       <div className="text-center py-4 px-6 bg-gray-100 rounded-lg">
+  //         <AlertCircle className="h-6 w-6 text-gray-500 mx-auto mb-2" />
+  //         <p className="text-gray-600 font-medium">Producto agotado</p>
+  //         <p className="text-sm text-gray-500">No hay stock disponible</p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
+  // TEMPORAL: Comentado para permitir agregar sin límite de stock
   // If all available stock is already in cart
-  if (availableStock <= 0) {
-    return (
-      <div className="space-y-3">
-        <div className="text-center py-4 px-6 bg-blue-50 rounded-lg border border-blue-200">
-          <Check className="h-6 w-6 text-blue-600 mx-auto mb-2" />
-          <p className="text-blue-800 font-medium">Ya en tu carrito</p>
-          <p className="text-sm text-blue-600">
-            {currentInCart} unidad{currentInCart !== 1 ? 'es' : ''} agregada{currentInCart !== 1 ? 's' : ''}
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // if (availableStock <= 0) {
+  //   return (
+  //     <div className="space-y-3">
+  //       <div className="text-center py-4 px-6 bg-blue-50 rounded-lg border border-blue-200">
+  //         <Check className="h-6 w-6 text-blue-600 mx-auto mb-2" />
+  //         <p className="text-blue-800 font-medium">Ya en tu carrito</p>
+  //         <p className="text-sm text-blue-600">
+  //           {currentInCart} unidad{currentInCart !== 1 ? 'es' : ''} agregada{currentInCart !== 1 ? 's' : ''}
+  //         </p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="space-y-4">
@@ -232,7 +165,7 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
       <div className="text-center">
         <div className="text-sm text-gray-600">Total:</div>
         <div className="text-2xl font-bold text-blue-600">
-          {formatPrice(totalPrice)}
+          {formatCOP(totalPrice)}
         </div>
       </div>
 

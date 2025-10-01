@@ -52,6 +52,7 @@ async def payments_info():
         "service": "MeStore Payments API",
         "version": "1.0.0",
         "endpoints": {
+            "config": "GET /config - Get payment gateway configuration",
             "process": "POST /process - Process payment for an order",
             "status": "GET /status/{order_id} - Get payment status",
             "methods": "GET /methods - Get available payment methods",
@@ -59,6 +60,38 @@ async def payments_info():
             "health": "GET /health - Service health check"
         },
         "status": "operational"
+    }
+
+
+@router.get("/config")
+async def get_payment_config():
+    """
+    Get payment gateway configuration for frontend.
+
+    Returns public configuration only (NEVER exposes private keys).
+    Used by frontend to initialize Wompi widget and payment forms.
+
+    Returns:
+        dict: Payment gateway configuration including:
+            - wompi_public_key: Public key for Wompi widget
+            - environment: test or production
+            - accepted_methods: List of accepted payment methods
+            - currency: Default currency (COP)
+            - test_mode: Whether in test environment
+
+    Security:
+        - Only exposes public keys (private keys never sent to frontend)
+        - No authentication required (public configuration)
+    """
+    from app.core.config import settings
+
+    return {
+        "wompi_public_key": settings.WOMPI_PUBLIC_KEY,
+        "environment": settings.WOMPI_ENVIRONMENT,
+        "accepted_methods": ["CARD", "PSE", "NEQUI"],
+        "currency": "COP",
+        "test_mode": settings.WOMPI_ENVIRONMENT == "test",
+        "base_url": settings.WOMPI_BASE_URL
     }
 
 # Request/Response Models

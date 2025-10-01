@@ -1,6 +1,13 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+// ========================================
+// COLOMBIAN CONSTANTS
+// ========================================
+const IVA_RATE = 0.19; // Colombian IVA 19%
+const FREE_SHIPPING_THRESHOLD = 200000; // Free shipping over $200,000 COP
+const SHIPPING_COST = 15000; // $15,000 COP shipping fee
+
 // Types for cart items
 export interface CartItem {
   id: string;
@@ -14,6 +21,7 @@ export interface CartItem {
   vendor_id?: string;
   vendor_name?: string;
   stock_available?: number;
+  max_stock?: number; // For stock validation
 }
 
 // Types for shipping address
@@ -59,6 +67,9 @@ export interface CheckoutState {
   cart_total: number;
   cart_count: number;
 
+  // UI state (from cartStore)
+  isDrawerOpen: boolean;
+
   // Checkout process state
   current_step: 'cart' | 'shipping' | 'payment' | 'confirmation';
   is_processing: boolean;
@@ -84,6 +95,11 @@ export interface CheckoutState {
   removeItem: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
+
+  // Drawer actions (from cartStore)
+  openDrawer: () => void;
+  closeDrawer: () => void;
+  toggleDrawer: () => void;
 
   // Checkout flow actions
   setCurrentStep: (step: CheckoutState['current_step']) => void;
@@ -117,6 +133,17 @@ export interface CheckoutState {
   validateCurrentStep: () => boolean;
   canProceedToNextStep: () => boolean;
 
+  // Colombian calculations (from cartStore)
+  getSubtotal: () => number;
+  getIVA: () => number;
+  getShipping: () => number;
+  getTotal: () => number;
+  getTotalItems: () => number;
+
+  // Cart utilities (from cartStore)
+  getCartItem: (product_id: string) => CartItem | undefined;
+  hasItem: (product_id: string) => boolean;
+
   // Reset checkout
   resetCheckout: () => void;
 }
@@ -140,6 +167,7 @@ export const useCheckoutStore = create<CheckoutState>()(
       cart_items: [],
       cart_total: 0,
       cart_count: 0,
+      isDrawerOpen: false, // UI state from cartStore
       current_step: 'cart',
       is_processing: false,
       shipping_address: null,
@@ -162,17 +190,32 @@ export const useCheckoutStore = create<CheckoutState>()(
         let newItems: CartItem[];
 
         if (existingItemIndex >= 0) {
-          // Update existing item quantity
-          newItems = state.cart_items.map((cartItem, index) =>
-            index === existingItemIndex
-              ? { ...cartItem, quantity: cartItem.quantity + item.quantity }
-              : cartItem
-          );
+          // Update existing item quantity with stock validation
+          const existingItem = state.cart_items[existingItemIndex];
+          if (existingItem) {
+            const newQuantity = existingItem.quantity + item.quantity;
+            const maxStock = existingItem.max_stock || existingItem.stock_available || item.stock_available || 999;
+
+            // Validate stock limit
+            if (newQuantity > maxStock) {
+              console.warn(`Cannot add more than ${maxStock} items to cart`);
+              return;
+            }
+
+            newItems = state.cart_items.map((cartItem, index) =>
+              index === existingItemIndex
+                ? { ...cartItem, quantity: newQuantity }
+                : cartItem
+            );
+          } else {
+            return;
+          }
         } else {
           // Add new item
           const newItem: CartItem = {
             ...item,
-            id: generateId()
+            id: generateId(),
+            max_stock: item.max_stock || item.stock_available
           };
           newItems = [...state.cart_items, newItem];
         }
@@ -182,7 +225,8 @@ export const useCheckoutStore = create<CheckoutState>()(
         set({
           cart_items: newItems,
           cart_total: subtotal,
-          cart_count: count
+          cart_count: count,
+          isDrawerOpen: true // Open drawer on add (UX feedback)
         });
       },
 
@@ -366,6 +410,68 @@ export const useCheckoutStore = create<CheckoutState>()(
         return state.validateCurrentStep() && !state.is_processing;
       },
 
+      // ========================================
+      // COLOMBIAN CALCULATIONS (from cartStore)
+      // ========================================
+
+      getSubtotal: () => {
+        const { cart_items } = get();
+        return cart_items.reduce((total, item) => total + item.price * item.quantity, 0);
+      },
+
+      getIVA: () => {
+        const subtotal = get().getSubtotal();
+        return subtotal * IVA_RATE;
+      },
+
+      getShipping: () => {
+        const subtotal = get().getSubtotal();
+        const { cart_items } = get();
+
+        // No shipping if cart is empty
+        if (cart_items.length === 0) return 0;
+
+        // Free shipping over threshold
+        if (subtotal >= FREE_SHIPPING_THRESHOLD) return 0;
+
+        return SHIPPING_COST;
+      },
+
+      getTotal: () => {
+        const subtotal = get().getSubtotal();
+        const iva = get().getIVA();
+        const shipping = get().getShipping();
+
+        return subtotal + iva + shipping;
+      },
+
+      getTotalItems: () => {
+        const { cart_items } = get();
+        return cart_items.reduce((total, item) => total + item.quantity, 0);
+      },
+
+      // ========================================
+      // CART UTILITIES (from cartStore)
+      // ========================================
+
+      getCartItem: (product_id: string) => {
+        const { cart_items } = get();
+        return cart_items.find((item) => item.product_id === product_id);
+      },
+
+      hasItem: (product_id: string) => {
+        const { cart_items } = get();
+        return cart_items.some((item) => item.product_id === product_id);
+      },
+
+      // ========================================
+      // DRAWER UI ACTIONS (from cartStore)
+      // ========================================
+
+      openDrawer: () => set({ isDrawerOpen: true }),
+      closeDrawer: () => set({ isDrawerOpen: false }),
+      toggleDrawer: () => set((state) => ({ isDrawerOpen: !state.isDrawerOpen })),
+
       // Reset checkout
       resetCheckout: () => {
         set({
@@ -393,6 +499,37 @@ export const useCheckoutStore = create<CheckoutState>()(
     }
   )
 );
+
+// ========================================
+// UTILITY FUNCTIONS (from cartStore)
+// ========================================
+
+/**
+ * Format amount to Colombian Pesos
+ */
+export const formatCOP = (amount: number): string => {
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+};
+
+/**
+ * Check if free shipping applies
+ */
+export const hasFreeShipping = (subtotal: number): boolean => {
+  return subtotal >= FREE_SHIPPING_THRESHOLD;
+};
+
+/**
+ * Calculate amount needed for free shipping
+ */
+export const amountNeededForFreeShipping = (subtotal: number): number => {
+  if (hasFreeShipping(subtotal)) return 0;
+  return FREE_SHIPPING_THRESHOLD - subtotal;
+};
 
 // Export types for use in components
 export type { CartItem, ShippingAddress, PaymentInfo };

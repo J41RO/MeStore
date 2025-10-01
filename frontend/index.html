@@ -30,6 +30,9 @@
     <link rel="preconnect" href="https://api.mestocker.com" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Preconnect to Wompi payment gateway -->
+    <link rel="preconnect" href="https://checkout.wompi.co" />
+    <link rel="preconnect" href="https://sandbox.wompi.co" />
     <title>MeStocker - Tu Almacén Virtual en Bucaramanga | Fulfillment Inteligente</title>
     
     <!-- SEO Meta Tags -->
@@ -73,10 +76,15 @@
         cookie_flags: 'SameSite=None;Secure'
       });
     </script>
+
+    <!-- Wompi Checkout Widget SDK -->
+    <!-- Load Wompi's payment widget for secure payment processing -->
+    <!-- Docs: https://docs.wompi.co/widget -->
+    <script src="https://checkout.wompi.co/widget.js"></script>
   </head>
   <body>
     <div id="root"></div>
-    <script src="/mock-data-override.js"></script>
+    <!-- <script src="/mock-data-override.js"></script> DESACTIVADO: Intercepta llamadas reales a la API -->
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
