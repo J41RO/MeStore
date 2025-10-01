@@ -1,3 +1,33 @@
+/**
+ * MarketplaceSearch - Main Search Implementation for MeStore Marketplace
+ *
+ * This is the OFFICIAL search page implementation for the marketplace.
+ *
+ * Route: /marketplace/search
+ * API: /api/v1/products
+ *
+ * Features:
+ * - Text search with URL params (?q=)
+ * - Category, price range, and sorting filters
+ * - Pagination with "Load More" functionality
+ * - Deep linking support (shareable URLs)
+ * - Approved products only filter
+ *
+ * Decision History (2025-10-01):
+ * - Consolidated from 2 implementations (MarketplaceSearch + SearchPage)
+ * - Chose this implementation as it's in production, functional, and integrated
+ * - SearchPage.tsx removed (was not connected to routes/navigation)
+ * - Future enhancements can be added incrementally to this component
+ *
+ * Connected Components:
+ * - MarketplaceNavbar (search submission)
+ * - Mobile components (MobileHeader, BottomNavigation, MobileSidebar)
+ *
+ * @author React Specialist AI
+ * @version 2.0.0
+ * @date 2025-10-01
+ */
+
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import MarketplaceLayout from '../components/marketplace/MarketplaceLayout';
@@ -67,7 +97,7 @@ const MarketplaceSearch: React.FC = () => {
       params.append('limit', productsPerPage.toString());
       params.append('estado', 'aprobado');
 
-      const response = await fetch(`/api/v1/productos?${params.toString()}`);
+      const response = await fetch(`/api/v1/products?${params.toString()}`);
       
       if (!response.ok) {
         throw new Error('Error al buscar productos');
