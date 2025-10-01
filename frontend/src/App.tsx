@@ -137,6 +137,16 @@ function App() {
             <ProductDetail />
           </Suspense>
         } />
+        <Route path="/productos/:id" element={
+          <Suspense fallback={<PageLoader />}>
+            <ProductDetail />
+          </Suspense>
+        } />
+        <Route path="/catalog/:id" element={
+          <Suspense fallback={<PageLoader />}>
+            <ProductDetail />
+          </Suspense>
+        } />
         <Route path="/marketplace/cart" element={
           <Suspense fallback={<PageLoader />}>
             <ShoppingCart />
