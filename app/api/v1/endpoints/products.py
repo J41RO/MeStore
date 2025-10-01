@@ -98,10 +98,15 @@ from app.utils.file_validator import (
 # Configure logging
 logger = logging.getLogger(__name__)
 
-# Helper function to handle tags deserialization
+# Helper function to handle tags and dimensiones deserialization
 def _prepare_product_dict_for_response(db_product: Product) -> Dict[str, Any]:
     """
-    Convert database product object to dictionary with proper tags deserialization.
+    Convert database product object to dictionary with proper JSON deserialization.
+
+    Handles:
+    - tags: JSON string -> Python list
+    - dimensiones: JSON string -> Python dict
+    - images: SQLAlchemy relationship -> list of dicts
 
     Args:
         db_product: SQLAlchemy Product object from database
@@ -109,6 +114,8 @@ def _prepare_product_dict_for_response(db_product: Product) -> Dict[str, Any]:
     Returns:
         Dictionary suitable for ProductResponse validation
     """
+    import json
+
     product_dict = {
         column.name: getattr(db_product, column.name)
         for column in db_product.__table__.columns
@@ -116,13 +123,24 @@ def _prepare_product_dict_for_response(db_product: Product) -> Dict[str, Any]:
 
     # Handle tags deserialization: convert JSON string back to Python list
     if product_dict.get("tags"):
-        import json
         try:
             product_dict["tags"] = json.loads(product_dict["tags"])
         except (json.JSONDecodeError, TypeError):
             product_dict["tags"] = []
     else:
         product_dict["tags"] = []
+
+    # Handle dimensiones deserialization: convert JSON string back to Python dict
+    if product_dict.get("dimensiones"):
+        try:
+            if isinstance(product_dict["dimensiones"], str):
+                product_dict["dimensiones"] = json.loads(product_dict["dimensiones"])
+        except (json.JSONDecodeError, TypeError):
+            product_dict["dimensiones"] = None
+
+    # Note: Images should be added separately where this function is called
+    # to avoid async issues with SQLAlchemy relationships
+    product_dict["images"] = []
 
     return product_dict
 
@@ -220,8 +238,7 @@ async def list_products(
     # Search and filtering
     search: Optional[str] = Query(
         None,
-        description="Search in name, description, SKU, and tags",
-        min_length=2,
+        description="Search in name, description, SKU, and tags (min 2 chars, empty string ignored)",
         max_length=100
     ),
     category: Optional[str] = Query(None, description="Filter by category"),
@@ -311,8 +328,25 @@ async def list_products(
         # Apply filters
         where_conditions = [Product.deleted_at.is_(None)]  # Exclude soft-deleted
 
-        # Search filter - multi-field search
-        if search:
+        # SECURITY: Filter products by status based on user authentication
+        # Public users: only APPROVED products
+        # Vendors: APPROVED products + their own products (any status)
+        # Admins/Superadmins: all products
+        if not current_user:
+            # Public access: only APPROVED products
+            where_conditions.append(Product.status == ProductStatus.APPROVED)
+        elif current_user.role not in ["admin", "superadmin"]:
+            # Vendor access: APPROVED products OR own products (any status)
+            where_conditions.append(
+                or_(
+                    Product.status == ProductStatus.APPROVED,
+                    Product.vendedor_id == current_user.id
+                )
+            )
+        # Admin/Superadmin: no additional filter (see all products)
+
+        # Search filter - multi-field search (only if search has 2+ chars)
+        if search and len(search.strip()) >= 2:
             search_filter = or_(
                 Product.name.ilike(f"%{search}%"),
                 Product.description.ilike(f"%{search}%"),
@@ -387,9 +421,8 @@ async def list_products(
         offset = (page - 1) * per_page
         stmt = stmt.offset(offset).limit(per_page)
 
-        # Include related data if requested
-        if include_images:
-            stmt = stmt.options(selectinload(Product.images))
+        # ALWAYS eager load images (required by ProductResponse)
+        stmt = stmt.options(selectinload(Product.images))
 
         # Execute query
         result = await db.execute(stmt)
@@ -398,7 +431,31 @@ async def list_products(
         # Convert to response format
         product_data = []
         for product in products:
-            product_dict = ProductResponse.model_validate(_prepare_product_dict_for_response(product)).model_dump()
+            # Prepare dict with images already loaded
+            product_dict_data = _prepare_product_dict_for_response(product)
+
+            # Add images from loaded relationship
+            from app.utils.url_helper import build_public_url
+            product_dict_data["images"] = [
+                {
+                    "id": str(img.id),
+                    "product_id": str(img.product_id),
+                    "filename": img.filename,
+                    "original_filename": img.original_filename,
+                    "file_path": img.file_path,
+                    "file_size": img.file_size,
+                    "mime_type": img.mime_type,
+                    "width": img.width,
+                    "height": img.height,
+                    "order_index": img.order_index,
+                    "created_at": img.created_at,
+                    "updated_at": img.updated_at,
+                    "public_url": build_public_url(img.file_path)
+                }
+                for img in product.images
+            ]
+
+            product_dict = ProductResponse.model_validate(product_dict_data).model_dump()
 
             # Add analytics if requested
             if include_analytics:
@@ -540,7 +597,7 @@ async def create_product(
     response_model=APIResponse[ProductResponse],
     status_code=status.HTTP_200_OK,
     summary="Get product by ID",
-    description="Get detailed product information with optional related data",
+    description="Get detailed product information with optional related data. Public access for APPROVED products only.",
     tags=["products"]
 )
 async def get_product(
@@ -548,19 +605,26 @@ async def get_product(
     include_images: bool = Query(False, description="Include product images"),
     include_analytics: bool = Query(False, description="Include detailed analytics"),
     db: AsyncSession = Depends(get_db),
-    current_user: UserRead = Depends(get_current_active_user)
+    current_user: Optional[UserRead] = Depends(get_current_user_optional)
 ) -> APIResponse[ProductResponse]:
     """
     Get detailed product information.
 
     Features:
+    - Public access for APPROVED products (no authentication required)
     - Product details with validation
     - Optional image inclusion
-    - Optional analytics data
+    - Optional analytics data (only for authenticated product owner or admin)
     - Access control for vendor-specific data
+
+    Access Levels:
+    - Public (no auth): APPROVED products only, basic info
+    - Vendor (authenticated): Own products (any status) + APPROVED products from others
+    - Admin (authenticated): All products with full details
     """
     try:
-        logger.info(f"Getting product {product_id} for user {current_user.id}")
+        user_info = current_user.id if current_user else "public"
+        logger.info(f"Getting product {product_id} for user {user_info}")
 
         # Build query with optional includes
         stmt = select(Product).where(Product.id == product_id)
@@ -576,6 +640,24 @@ async def get_product(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Product with ID {product_id} not found"
             )
+
+        # SECURITY: Public users can only see APPROVED products
+        # Vendors can see their own products (any status) or APPROVED products
+        # Admins can see all products
+        if not current_user:
+            # Public access: only APPROVED products
+            if product.status != ProductStatus.APPROVED:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Product not found"
+                )
+        elif current_user.role not in ["admin", "superadmin"]:
+            # Vendor access: own products (any status) or APPROVED products
+            if product.vendedor_id != current_user.id and product.status != ProductStatus.APPROVED:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Product not found"
+                )
 
         # Convert to response
         product_data = ProductResponse.model_validate(_prepare_product_dict_for_response(product))
@@ -1159,7 +1241,7 @@ async def get_product_analytics(
         products = result.scalars().all()
 
         total_products = len(products)
-        active_products = len([p for p in products if p.status == ProductStatus.DISPONIBLE])
+        active_products = len([p for p in products if p.status == ProductStatus.APPROVED])
 
         # Calculate financial metrics
         total_revenue = Decimal(0)
@@ -1282,7 +1364,7 @@ async def search_products(
                     stmt = select(Product).where(
                         Product.id.in_(product_ids),
                         Product.deleted_at.is_(None),
-                        Product.status == ProductStatus.DISPONIBLE
+                        Product.status == ProductStatus.APPROVED
                     )
 
                     # Apply price filters
@@ -1317,7 +1399,7 @@ async def search_products(
         if not semantic or not search_results:
             stmt = select(Product).where(
                 Product.deleted_at.is_(None),
-                Product.status == ProductStatus.DISPONIBLE,
+                Product.status == ProductStatus.APPROVED,
                 or_(
                     Product.name.ilike(f"%{query}%"),
                     Product.description.ilike(f"%{query}%"),
