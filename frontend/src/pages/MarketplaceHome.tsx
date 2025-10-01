@@ -6,27 +6,48 @@ import FeaturedProducts from '../components/marketplace/FeaturedProducts';
 import PopularCategories from '../components/marketplace/PopularCategories';
 import TrendingProducts from '../components/marketplace/TrendingProducts';
 import NewsletterSignup from '../components/marketplace/NewsletterSignup';
+import api from '../services/api';
+import { Product } from '../types';
 
 interface MarketplaceHomeProps {}
 
 const MarketplaceHome: React.FC<MarketplaceHomeProps> = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Cargar productos destacados al montar
+    // Load featured products on mount
     loadFeaturedProducts();
   }, []);
 
   const loadFeaturedProducts = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/v1/marketplace/featured-products');
-      const data = await response.json();
-      setFeaturedProducts(data.products || []);
+
+      // Try to fetch from dedicated featured endpoint
+      try {
+        const response = await api.marketplace.getFeatured();
+        setFeaturedProducts(response.data || []);
+      } catch (featuredError) {
+        console.log('Featured endpoint not available, using fallback');
+
+        // Fallback: Get regular products with high rating/sales
+        // Fetch approved products sorted by sales or rating
+        const fallbackResponse = await api.products.getAll({
+          limit: 6,
+          sort_by: 'salesCount',
+          sort_order: 'desc',
+          in_stock: true
+        });
+
+        // Handle paginated response
+        const products = fallbackResponse.data?.data || fallbackResponse.data || [];
+        setFeaturedProducts(products.slice(0, 6));
+      }
     } catch (error) {
       console.error('Error loading featured products:', error);
+      setFeaturedProducts([]);
     } finally {
       setIsLoading(false);
     }

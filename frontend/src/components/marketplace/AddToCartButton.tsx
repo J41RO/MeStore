@@ -25,25 +25,26 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
   const currentInCart = cartItem?.quantity || 0;
 
   const handleQuantityChange = (change: number) => {
-    // TEMPORAL: Sin límite de stock para pruebas
-    const newQuantity = Math.max(1, Math.min(10, quantity + change));
+    const availableStock = product.stock - currentInCart;
+    const maxQuantity = Math.min(availableStock, 10);
+    const newQuantity = Math.max(1, Math.min(maxQuantity, quantity + change));
     setQuantity(newQuantity);
     setError(null);
   };
 
   const handleAddToCart = async () => {
-    // TEMPORAL: Comentado validación de stock
-    // if (disabled || product.stock <= 0) {
-    //   setError('Producto no disponible');
-    //   return;
-    // }
+    // Validate stock availability
+    if (disabled || product.stock <= 0) {
+      setError('Producto no disponible');
+      return;
+    }
 
-    // const totalQuantity = currentInCart + quantity;
+    const totalQuantity = currentInCart + quantity;
 
-    // if (totalQuantity > product.stock) {
-    //   setError(`Solo hay ${product.stock} unidades disponibles (${currentInCart} ya en carrito)`);
-    //   return;
-    // }
+    if (totalQuantity > product.stock) {
+      setError(`Solo hay ${product.stock} unidades disponibles (${currentInCart} ya en carrito)`);
+      return;
+    }
 
     setIsAdding(true);
     setError(null);
@@ -86,39 +87,36 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
     }
   };
 
-  // TEMPORAL: Simulamos stock ilimitado para pruebas
-  const availableStock = 999; // product.stock - currentInCart;
+  const availableStock = product.stock - currentInCart;
   const totalPrice = product.price * quantity;
 
-  // TEMPORAL: Comentado para permitir pruebas sin sistema de inventario
   // If no stock available
-  // if (product.stock <= 0 || disabled) {
-  //   return (
-  //     <div className="space-y-3">
-  //       <div className="text-center py-4 px-6 bg-gray-100 rounded-lg">
-  //         <AlertCircle className="h-6 w-6 text-gray-500 mx-auto mb-2" />
-  //         <p className="text-gray-600 font-medium">Producto agotado</p>
-  //         <p className="text-sm text-gray-500">No hay stock disponible</p>
-  //       </div>
-  //     </div>
-  //   );
-  // }
+  if (product.stock <= 0 || disabled) {
+    return (
+      <div className="space-y-3">
+        <div className="text-center py-4 px-6 bg-gray-100 rounded-lg">
+          <AlertCircle className="h-6 w-6 text-gray-500 mx-auto mb-2" />
+          <p className="text-gray-600 font-medium">Producto agotado</p>
+          <p className="text-sm text-gray-500">No hay stock disponible</p>
+        </div>
+      </div>
+    );
+  }
 
-  // TEMPORAL: Comentado para permitir agregar sin límite de stock
   // If all available stock is already in cart
-  // if (availableStock <= 0) {
-  //   return (
-  //     <div className="space-y-3">
-  //       <div className="text-center py-4 px-6 bg-blue-50 rounded-lg border border-blue-200">
-  //         <Check className="h-6 w-6 text-blue-600 mx-auto mb-2" />
-  //         <p className="text-blue-800 font-medium">Ya en tu carrito</p>
-  //         <p className="text-sm text-blue-600">
-  //           {currentInCart} unidad{currentInCart !== 1 ? 'es' : ''} agregada{currentInCart !== 1 ? 's' : ''}
-  //         </p>
-  //       </div>
-  //     </div>
-  //   );
-  // }
+  if (availableStock <= 0) {
+    return (
+      <div className="space-y-3">
+        <div className="text-center py-4 px-6 bg-blue-50 rounded-lg border border-blue-200">
+          <Check className="h-6 w-6 text-blue-600 mx-auto mb-2" />
+          <p className="text-blue-800 font-medium">Ya en tu carrito</p>
+          <p className="text-sm text-blue-600">
+            {currentInCart} unidad{currentInCart !== 1 ? 'es' : ''} agregada{currentInCart !== 1 ? 's' : ''}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

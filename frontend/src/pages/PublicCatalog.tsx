@@ -36,7 +36,7 @@ import ProductCard from '../components/products/ProductCard';
 import ProductFilters from '../components/products/ProductFilters';
 import { productApiService } from '../services/productApiService';
 import type { Product, ProductSearchRequest, ProductListResponse } from '../types';
-import { Loader2, Package, AlertCircle } from 'lucide-react';
+import { Loader2, Package, AlertCircle, Grid3x3, List } from 'lucide-react';
 
 // Default filters
 const DEFAULT_FILTERS = {
@@ -59,6 +59,7 @@ const PublicCatalog: React.FC = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(12);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Filters state
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
@@ -84,7 +85,7 @@ const PublicCatalog: React.FC = () => {
         sort_order: filters.sortOrder,
         page: currentPage,
         limit: pageSize,
-        in_stock: true, // Only show products with stock
+        // in_stock: true, // Removed - show all APPROVED products regardless of stock
       };
 
       // Fetch products from API
@@ -92,7 +93,7 @@ const PublicCatalog: React.FC = () => {
 
       // Update state with response data
       setProducts(response.data || []);
-      setTotalCount(response.total || 0);
+      setTotalCount(response.pagination?.total || 0);
     } catch (err) {
       console.error('Error fetching products:', err);
       setError('Error al cargar los productos. Por favor, intente nuevamente.');
@@ -247,7 +248,7 @@ const PublicCatalog: React.FC = () => {
           loading={loading}
         />
 
-        {/* Results header */}
+        {/* Results header with view toggle */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
           <div className="flex items-center gap-2">
             <p className="text-gray-700">
@@ -265,34 +266,71 @@ const PublicCatalog: React.FC = () => {
             </p>
           </div>
 
-          {/* Page size selector */}
-          <div className="flex items-center gap-2">
-            <label htmlFor="pageSize" className="text-sm text-gray-700">
-              Productos por página:
-            </label>
-            <select
-              id="pageSize"
-              value={pageSize}
-              onChange={(e) => handlePageSizeChange(parseInt(e.target.value))}
-              className="px-3 py-1 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              disabled={loading}
-            >
-              <option value="12">12</option>
-              <option value="24">24</option>
-              <option value="48">48</option>
-            </select>
+          <div className="flex items-center gap-4">
+            {/* View mode toggle */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-700 mr-1">Vista:</span>
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-2 rounded-md transition-colors ${
+                  viewMode === 'grid'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+                title="Vista de cuadrícula"
+                disabled={loading}
+              >
+                <Grid3x3 className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-2 rounded-md transition-colors ${
+                  viewMode === 'list'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+                title="Vista de lista"
+                disabled={loading}
+              >
+                <List className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Page size selector */}
+            <div className="flex items-center gap-2">
+              <label htmlFor="pageSize" className="text-sm text-gray-700">
+                Productos por página:
+              </label>
+              <select
+                id="pageSize"
+                value={pageSize}
+                onChange={(e) => handlePageSizeChange(parseInt(e.target.value))}
+                className="px-3 py-1 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                disabled={loading}
+              >
+                <option value="12">12</option>
+                <option value="24">24</option>
+                <option value="48">48</option>
+              </select>
+            </div>
           </div>
         </div>
 
-        {/* Products grid */}
+        {/* Products grid or list */}
         {products.length > 0 ? (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+            <div
+              className={
+                viewMode === 'grid'
+                  ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8'
+                  : 'flex flex-col gap-4 mb-8'
+              }
+            >
               {products.map((product) => (
                 <ProductCard
                   key={product.id}
                   product={product}
-                  viewMode="grid"
+                  viewMode={viewMode}
                   onProductClick={handleProductClick}
                   onViewDetails={handleProductClick}
                   showSKU={false}

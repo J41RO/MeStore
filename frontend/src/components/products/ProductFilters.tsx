@@ -31,6 +31,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { ProductFilters as IProductFilters } from '../../types/api.types';
+import { Category } from '../../types/category.types';
+import api from '../../services/api';
 
 interface ProductFiltersProps {
   filters: IProductFilters;
@@ -38,17 +40,6 @@ interface ProductFiltersProps {
   onReset: () => void;
   loading?: boolean;
 }
-
-const CATEGORIES = [
-  'Electrónicos',
-  'Ropa',
-  'Hogar',
-  'Deportes',
-  'Libros',
-  'Juguetes',
-  'Música',
-  'Oficina',
-];
 
 const SORT_OPTIONS = [
   { value: 'name', label: 'Nombre' },
@@ -64,6 +55,36 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
   loading = false,
 }) => {
   const [localFilters, setLocalFilters] = useState<IProductFilters>(filters);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [categoriesError, setCategoriesError] = useState<string | null>(null);
+
+  // Fetch categories from backend
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setCategoriesLoading(true);
+        setCategoriesError(null);
+        const response = await api.products.getCategories();
+
+        // Filter only active categories and sort by name
+        const activeCategories = response.data
+          .filter((cat: Category) => cat.is_active)
+          .sort((a: Category, b: Category) => a.name.localeCompare(b.name));
+
+        setCategories(activeCategories);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        setCategoriesError('Error al cargar categorías');
+        // Set empty array as fallback
+        setCategories([]);
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   useEffect(() => {
     setLocalFilters(filters);
@@ -138,13 +159,21 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
             id='category'
             value={localFilters.category || ''}
             onChange={e => handleFilterChange('category', e.target.value)}
-            disabled={loading}
+            disabled={loading || categoriesLoading}
             className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed'
           >
-            <option value=''>Todas las categorías</option>
-            {CATEGORIES.map(category => (
-              <option key={category} value={category}>
-                {category}
+            <option value=''>
+              {categoriesLoading ? 'Cargando categorías...' : 'Todas las categorías'}
+            </option>
+            {categoriesError && (
+              <option value='' disabled>
+                Error al cargar categorías
+              </option>
+            )}
+            {categories.map(category => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+                {category.product_count ? ` (${category.product_count})` : ''}
               </option>
             ))}
           </select>
