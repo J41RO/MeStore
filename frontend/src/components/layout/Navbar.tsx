@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { ShoppingCart } from 'lucide-react';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { UserType } from '../../types';
+import { useCartStore } from '../../store/cartStore';
 
 interface NavbarProps {
   className?: string;
@@ -12,6 +14,10 @@ const Navbar: React.FC<NavbarProps> = ({ className = '' }) => {
   const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+
+  // Cart store
+  const { getTotalItems, openDrawer } = useCartStore();
+  const cartItemCount = getTotalItems();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -58,6 +64,20 @@ const Navbar: React.FC<NavbarProps> = ({ className = '' }) => {
 
           {/* Auth Section */}
           <div className="flex items-center space-x-4">
+            {/* Shopping Cart Icon */}
+            <button
+              onClick={openDrawer}
+              className="relative p-2 hover:bg-white/50 rounded-full transition-all duration-200 transform hover:scale-110"
+              aria-label="Abrir carrito de compras"
+            >
+              <ShoppingCart className="w-6 h-6 text-gray-700" />
+              {cartItemCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-bold rounded-full flex items-center justify-center animate-bounce">
+                  {cartItemCount > 9 ? '9+' : cartItemCount}
+                </span>
+              )}
+            </button>
+
             {!isAuthenticated ? (
               <>
                 <Link

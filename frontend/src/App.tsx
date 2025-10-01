@@ -11,6 +11,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import PageLoader from './components/ui/Loading/PageLoader';
 import LandingPage from './pages/LandingPage';
 import MarketplaceHome from './pages/MarketplaceHome';
+import MiniCart from './components/cart/MiniCart';
 import './App.css';
 
 // Lazy loading de páginas principales
@@ -81,6 +82,7 @@ const MarketplaceSearch = lazy(() => import('./pages/MarketplaceSearch'));
 const CategoryPage = lazy(() => import('./pages/CategoryPage'));
 const ProductDetail = lazy(() => import('./pages/ProductDetail'));
 const ShoppingCart = lazy(() => import('./pages/ShoppingCart'));
+const Cart = lazy(() => import('./pages/Cart'));
 const BuyerDashboard = lazy(() => import('./pages/BuyerDashboard'));
 const BuyerProfile = lazy(() => import('./pages/BuyerProfile'));
 // const BuyerOrders = lazy(() => import('./pages/BuyerOrders')); // Replaced by BuyerOrdersNew
@@ -104,6 +106,9 @@ const ConfirmationPage = lazy(() => import('./pages/checkout/ConfirmationPage'))
 function App() {
   return (
     <ErrorBoundary>
+      {/* Global MiniCart Drawer */}
+      <MiniCart />
+
       <Routes>
         {/* Ruta principal pública - Nueva Landing Page */}
         <Route path='/' element={<LandingPage />} />
@@ -152,6 +157,11 @@ function App() {
         <Route path="/marketplace/cart" element={
           <Suspense fallback={<PageLoader />}>
             <ShoppingCart />
+          </Suspense>
+        } />
+        <Route path="/cart" element={
+          <Suspense fallback={<PageLoader />}>
+            <Cart />
           </Suspense>
         } />
         <Route path="/checkout" element={
