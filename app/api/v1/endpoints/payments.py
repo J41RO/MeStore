@@ -436,34 +436,85 @@ async def get_payment_status(
         )
 
 
-@router.get("/methods", response_model=List[PaymentMethodResponse])
-async def get_payment_methods(
-    current_user: UserRead = Depends(get_current_user)
-):
+@router.get("/methods")
+async def get_payment_methods():
     """
-    Get available payment methods from the payment gateway.
+    Get available payment methods and configuration for frontend initialization.
 
-    Returns list of supported payment methods with their configurations.
+    This endpoint provides complete payment configuration including:
+    - Available payment methods (card, PSE, Nequi, cash)
+    - Wompi public key for widget initialization
+    - PSE banks list for bank selector
+    - Payment limits and configuration
+
+    No authentication required as this is public configuration data.
+
+    Returns:
+        PaymentMethodsResponse: Complete payment configuration
+
+    Raises:
+        HTTPException: If unable to fetch payment configuration
     """
     try:
-        methods = await integrated_payment_service.get_payment_methods()
+        from app.core.config import settings
+        from app.schemas.payment import PaymentMethodsResponse, PSEBank
 
-        return [
-            PaymentMethodResponse(
-                id=method.get("id"),
-                name=method.get("name"),
-                type=method.get("type"),
-                enabled=method.get("enabled", True),
-                description=method.get("description")
-            )
-            for method in methods
-        ]
+        logger.info("Fetching payment methods configuration")
+
+        # Get PSE banks from Wompi service
+        pse_banks = []
+        try:
+            wompi_service = integrated_payment_service.wompi_service
+            pse_banks_data = await wompi_service.get_pse_banks()
+
+            # Transform to schema format
+            pse_banks = [
+                PSEBank(
+                    financial_institution_code=bank.get("financial_institution_code", ""),
+                    financial_institution_name=bank.get("financial_institution_name", "")
+                )
+                for bank in pse_banks_data
+                if bank.get("financial_institution_code") and bank.get("financial_institution_name")
+            ]
+
+            logger.info(f"Retrieved {len(pse_banks)} PSE banks from Wompi")
+        except Exception as e:
+            logger.warning(f"Failed to get PSE banks from Wompi: {e}. Using fallback list.")
+            # Fallback to most common Colombian banks
+            pse_banks = [
+                PSEBank(financial_institution_code="1007", financial_institution_name="BANCOLOMBIA"),
+                PSEBank(financial_institution_code="1001", financial_institution_name="BANCO DE BOGOTA"),
+                PSEBank(financial_institution_code="1019", financial_institution_name="SCOTIABANK COLPATRIA"),
+                PSEBank(financial_institution_code="1040", financial_institution_name="BANCO AGRARIO"),
+                PSEBank(financial_institution_code="1051", financial_institution_name="DAVIVIENDA"),
+                PSEBank(financial_institution_code="1023", financial_institution_name="BANCO DE OCCIDENTE"),
+                PSEBank(financial_institution_code="1062", financial_institution_name="BANCO FALABELLA"),
+                PSEBank(financial_institution_code="1009", financial_institution_name="CITIBANK"),
+                PSEBank(financial_institution_code="1012", financial_institution_name="BANCO GNB SUDAMERIS"),
+                PSEBank(financial_institution_code="1013", financial_institution_name="BBVA COLOMBIA"),
+            ]
+
+        # Build comprehensive payment methods response
+        return PaymentMethodsResponse(
+            card_enabled=True,
+            pse_enabled=True,
+            nequi_enabled=False,  # Future feature
+            cash_enabled=True,    # Via Efecty - future feature
+            wompi_public_key=settings.WOMPI_PUBLIC_KEY,
+            environment=settings.WOMPI_ENVIRONMENT,
+            pse_banks=pse_banks,
+            currency="COP",
+            min_amount=1000,      # 10.00 COP minimum
+            max_amount=5000000000,  # 50,000,000.00 COP maximum
+            card_installments_enabled=True,
+            max_installments=36   # Standard for Colombia
+        )
 
     except Exception as e:
-        logger.error(f"Error getting payment methods: {str(e)}")
+        logger.error(f"Error getting payment methods configuration: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error retrieving payment methods"
+            detail="Error retrieving payment methods configuration"
         )
 
 
