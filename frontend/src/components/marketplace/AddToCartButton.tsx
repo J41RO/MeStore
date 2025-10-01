@@ -7,12 +7,14 @@ interface AddToCartButtonProps {
   product: Product;
   onAddToCart?: (quantity: number) => void;
   disabled?: boolean;
+  compact?: boolean; // Compact mode for product cards in marketplace
 }
 
 const AddToCartButton: React.FC<AddToCartButtonProps> = ({
   product,
   onAddToCart,
-  disabled = false
+  disabled = false,
+  compact = false
 }) => {
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
@@ -90,6 +92,67 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
   const availableStock = product.stock - currentInCart;
   const totalPrice = product.price * quantity;
 
+  // COMPACT MODE - Single button for marketplace cards
+  if (compact) {
+    // If no stock available
+    if (product.stock <= 0 || disabled) {
+      return (
+        <button
+          disabled
+          className="w-full py-2 px-4 rounded-lg font-medium text-sm bg-gray-300 text-gray-500 cursor-not-allowed"
+        >
+          Producto agotado
+        </button>
+      );
+    }
+
+    // If all available stock is already in cart
+    if (availableStock <= 0) {
+      return (
+        <button
+          disabled
+          className="w-full py-2 px-4 rounded-lg font-medium text-sm bg-blue-100 text-blue-600 cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          <Check className="w-4 h-4" />
+          En tu carrito
+        </button>
+      );
+    }
+
+    // Compact add to cart button
+    return (
+      <button
+        onClick={handleAddToCart}
+        disabled={isAdding || disabled}
+        className={`w-full py-2 px-4 rounded-lg font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2 ${
+          justAdded
+            ? 'bg-green-600 text-white'
+            : isAdding
+            ? 'bg-blue-400 text-white cursor-not-allowed'
+            : 'bg-blue-600 text-white hover:bg-blue-700'
+        }`}
+      >
+        {isAdding ? (
+          <>
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            Agregando...
+          </>
+        ) : justAdded ? (
+          <>
+            <Check className="w-4 h-4" />
+            ¡Agregado!
+          </>
+        ) : (
+          <>
+            <ShoppingCart className="w-4 h-4" />
+            Agregar al carrito
+          </>
+        )}
+      </button>
+    );
+  }
+
+  // FULL MODE - Complete version for product detail pages
   // If no stock available
   if (product.stock <= 0 || disabled) {
     return (
