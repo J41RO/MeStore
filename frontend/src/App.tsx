@@ -25,6 +25,7 @@ const MovementTrackerPage = lazy(() => import('./pages/admin/MovementTracker'));
 const ReportesDiscrepanciasPage = lazy(() => import('./pages/admin/ReportesDiscrepancias'));
 const IncomingProductsQueuePage = lazy(() => import('./pages/admin/IncomingProductsQueuePage'));
 const SystemConfig = lazy(() => import('./pages/admin/SystemConfig'));
+const PublicCatalog = lazy(() => import('./pages/PublicCatalog'));
 
 // Enterprise Navigation Pages - Users Category
 const UsersPage = lazy(() => import('./pages/admin/users/UsersPage'));
@@ -64,6 +65,7 @@ const AdminLogin = lazy(() => import('./pages/AdminLogin'));
 const AdminPortal = lazy(() => import('./pages/AdminPortal'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const RegisterVendor = lazy(() => import('./pages/RegisterVendor'));
+const VendorRegistration = lazy(() => import('./pages/VendorRegistration'));
 const OTPVerification = lazy(() => import('./components/OTPVerification'));
 
 // Componentes de auth con lazy loading
@@ -112,6 +114,19 @@ function App() {
             <MarketplaceSearch />
           </Suspense>
         } />
+
+        {/* Public catalog route */}
+        <Route path="/catalog" element={
+          <Suspense fallback={<PageLoader />}>
+            <PublicCatalog />
+          </Suspense>
+        } />
+        <Route path="/productos" element={
+          <Suspense fallback={<PageLoader />}>
+            <PublicCatalog />
+          </Suspense>
+        } />
+
         <Route path="/marketplace/category/:slug" element={
           <Suspense fallback={<PageLoader />}>
             <CategoryPage />
@@ -365,6 +380,14 @@ function App() {
           element={
             <Suspense fallback={<PageLoader />}>
               <RegisterVendor />
+            </Suspense>
+          }
+        />
+        <Route
+          path='/vendor/register'
+          element={
+            <Suspense fallback={<PageLoader />}>
+              <VendorRegistration />
             </Suspense>
           }
         />
