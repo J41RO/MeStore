@@ -13,9 +13,29 @@ Date: 2025-10-01
 Purpose: Complete payment API schemas for Wompi integration
 """
 
-from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field
+from typing import List, Optional, Dict, Any, Literal
+from pydantic import BaseModel, Field, EmailStr
 from datetime import datetime
+from enum import Enum
+
+
+# ===== PAYMENT METHOD ENUMS =====
+
+class PaymentMethod(str, Enum):
+    """Available payment methods in MeStore"""
+    WOMPI = "wompi"
+    PAYU = "payu"
+    EFECTY = "efecty"
+    PSE = "pse"
+    CREDIT_CARD = "credit_card"
+    NEQUI = "nequi"
+
+
+class PaymentGateway(str, Enum):
+    """Payment gateway providers"""
+    WOMPI = "wompi"
+    PAYU = "payu"
+    EFECTY = "efecty"
 
 
 # PSE Bank Information
@@ -350,5 +370,235 @@ class WebhookResponse(BaseModel):
         json_schema_extra = {
             "example": {
                 "status": "ok"
+            }
+        }
+
+
+# ===== PAYU PAYMENT SCHEMAS =====
+
+class PayUPaymentRequest(BaseModel):
+    """
+    PayU payment request schema for Colombian payments.
+
+    Supports:
+    - Credit/Debit cards (VISA, Mastercard, Amex, Diners)
+    - PSE bank transfers
+    - Cash methods (Baloto, Efecty via PayU, Su Red)
+    - Installments (1-36 months for cards)
+    """
+    order_id: str = Field(..., description="Order ID to process payment for")
+    amount: int = Field(..., gt=0, description="Amount in COP cents (e.g., 50000 = 500.00 COP)")
+    currency: str = Field(default="COP", description="Currency code")
+    payment_method: Literal["CREDIT_CARD", "PSE", "BALOTO", "EFECTY"] = Field(
+        ..., description="PayU payment method"
+    )
+    payer_email: EmailStr = Field(..., description="Payer email address")
+    payer_full_name: str = Field(..., min_length=3, max_length=100, description="Payer full name")
+    payer_phone: str = Field(..., description="Payer phone number with country code")
+
+    # Credit card specific (optional)
+    card_number: Optional[str] = Field(None, description="Card number (16-19 digits)")
+    card_expiration_date: Optional[str] = Field(None, description="Card expiration date (YYYY/MM)")
+    card_security_code: Optional[str] = Field(None, description="Card CVV/CVC (3-4 digits)")
+    card_holder_name: Optional[str] = Field(None, description="Name on card")
+    installments: Optional[int] = Field(default=1, ge=1, le=36, description="Number of installments")
+
+    # PSE specific (optional)
+    pse_bank_code: Optional[str] = Field(None, description="Bank code for PSE (e.g., '1007' for Bancolombia)")
+    pse_user_type: Optional[Literal["N", "J"]] = Field(None, description="Natural person (N) or Company (J)")
+    pse_identification_type: Optional[str] = Field(None, description="ID type (CC, NIT, CE, etc.)")
+    pse_identification_number: Optional[str] = Field(None, description="ID number")
+
+    # Redirect URLs
+    response_url: Optional[str] = Field(
+        default="http://localhost:5173/payment-result",
+        description="URL to redirect after payment completion"
+    )
+    confirmation_url: Optional[str] = Field(
+        default=None,
+        description="URL for PayU to send payment confirmation (webhook)"
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "order_id": "ORDER-2025-001",
+                "amount": 5000000,
+                "currency": "COP",
+                "payment_method": "CREDIT_CARD",
+                "payer_email": "customer@example.com",
+                "payer_full_name": "Juan Perez",
+                "payer_phone": "+573001234567",
+                "card_number": "4111111111111111",
+                "card_expiration_date": "2025/12",
+                "card_security_code": "123",
+                "card_holder_name": "JUAN PEREZ",
+                "installments": 12,
+                "response_url": "http://localhost:5173/payment-result"
+            }
+        }
+
+
+class PayUPaymentResponse(BaseModel):
+    """Response from PayU payment processing"""
+    success: bool = Field(..., description="Whether payment initiation was successful")
+    transaction_id: Optional[str] = Field(None, description="PayU transaction ID")
+    state: Optional[str] = Field(None, description="Transaction state (APPROVED, DECLINED, PENDING, ERROR)")
+    response_code: Optional[str] = Field(None, description="PayU response code")
+    payment_url: Optional[str] = Field(None, description="Redirect URL for PSE/cash methods")
+    message: Optional[str] = Field(None, description="Human-readable message")
+    gateway: str = Field(default="payu", description="Payment gateway used")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "success": True,
+                "transaction_id": "PAYU-123456789",
+                "state": "APPROVED",
+                "response_code": "APPROVED",
+                "message": "Transaction approved successfully",
+                "gateway": "payu"
+            }
+        }
+
+
+# ===== EFECTY PAYMENT SCHEMAS =====
+
+class EfectyPaymentRequest(BaseModel):
+    """
+    Efecty cash payment request schema.
+
+    Generates a payment code that customers can pay at any of 20,000+ Efecty
+    locations across Colombia. Ideal for customers without bank accounts.
+    """
+    order_id: str = Field(..., description="Order ID to generate payment code for")
+    amount: int = Field(..., gt=0, description="Amount in COP cents")
+    customer_email: EmailStr = Field(..., description="Customer email for payment instructions")
+    customer_phone: Optional[str] = Field(None, description="Customer phone for SMS notifications")
+    expiration_hours: int = Field(
+        default=72,
+        ge=24,
+        le=168,
+        description="Payment code expiration time in hours (24-168 hours = 1-7 days)"
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "order_id": "ORDER-2025-001",
+                "amount": 5000000,
+                "customer_email": "customer@example.com",
+                "customer_phone": "+573001234567",
+                "expiration_hours": 72
+            }
+        }
+
+
+class EfectyPaymentResponse(BaseModel):
+    """
+    Efecty payment response with payment instructions.
+
+    Contains the payment code and all information customer needs to complete
+    payment at any Efecty location.
+    """
+    success: bool = Field(..., description="Whether code generation was successful")
+    payment_code: str = Field(..., description="Unique Efecty payment code (format: MST-XXXXX-XXXX)")
+    barcode_data: str = Field(..., description="Barcode data for scanning at Efecty point")
+    amount: int = Field(..., description="Payment amount in COP cents")
+    expires_at: str = Field(..., description="Expiration timestamp (ISO 8601 format)")
+    instructions: str = Field(..., description="Payment instructions in Spanish")
+    points_count: int = Field(default=20000, description="Number of Efecty points available nationwide")
+    gateway: str = Field(default="efecty", description="Payment gateway used")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "success": True,
+                "payment_code": "MST-12345-6789",
+                "barcode_data": "MST123456789",
+                "amount": 5000000,
+                "expires_at": "2025-10-04T23:59:59Z",
+                "instructions": "Lleva este código a cualquier punto Efecty...",
+                "points_count": 20000,
+                "gateway": "efecty"
+            }
+        }
+
+
+class EfectyConfirmationRequest(BaseModel):
+    """Request to confirm Efecty payment (admin only)"""
+    payment_code: str = Field(..., description="Efecty payment code to confirm")
+    paid_amount: Optional[int] = Field(None, description="Actual amount paid (if different from expected)")
+    receipt_number: Optional[str] = Field(None, description="Efecty receipt number")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "payment_code": "MST-12345-6789",
+                "paid_amount": 5000000,
+                "receipt_number": "EFEC-987654321"
+            }
+        }
+
+
+class EfectyConfirmationResponse(BaseModel):
+    """Response after confirming Efecty payment"""
+    success: bool = Field(..., description="Whether confirmation was successful")
+    order_id: str = Field(..., description="Order ID that was paid")
+    payment_code: str = Field(..., description="Efecty payment code")
+    message: str = Field(..., description="Confirmation message")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "success": True,
+                "order_id": "ORDER-2025-001",
+                "payment_code": "MST-12345-6789",
+                "message": "Payment confirmed successfully"
+            }
+        }
+
+
+# ===== MULTI-GATEWAY PAYMENT REQUEST =====
+
+class MultiGatewayPaymentRequest(BaseModel):
+    """
+    Universal payment request that routes to appropriate gateway.
+
+    The backend will automatically select the best gateway based on:
+    - Payment method type
+    - Gateway availability
+    - Failover configuration
+    """
+    order_id: str = Field(..., description="Order ID to process payment for")
+    amount: int = Field(..., gt=0, description="Amount in COP cents")
+    payment_method: PaymentMethod = Field(..., description="Preferred payment method")
+    gateway_preference: Optional[PaymentGateway] = Field(None, description="Preferred gateway (auto-selected if not specified)")
+    customer_email: EmailStr = Field(..., description="Customer email")
+    customer_name: str = Field(..., description="Customer full name")
+    customer_phone: Optional[str] = Field(None, description="Customer phone")
+
+    # Method-specific data (optional, depends on payment_method)
+    payment_data: Optional[Dict[str, Any]] = Field(
+        default_factory=dict,
+        description="Payment method specific data (card info, PSE bank, etc.)"
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "order_id": "ORDER-2025-001",
+                "amount": 5000000,
+                "payment_method": "credit_card",
+                "gateway_preference": "payu",
+                "customer_email": "customer@example.com",
+                "customer_name": "Juan Perez",
+                "customer_phone": "+573001234567",
+                "payment_data": {
+                    "card_number": "4111111111111111",
+                    "card_expiration_date": "2025/12",
+                    "card_security_code": "123",
+                    "installments": 12
+                }
             }
         }

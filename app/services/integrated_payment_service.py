@@ -31,6 +31,7 @@ from fastapi import HTTPException, status
 
 # Import payment services
 from app.services.payments.wompi_service import WompiService, WompiError
+from app.services.payments.payu_service import get_payu_service
 from app.services.payments.fraud_detection_service import FraudDetectionService
 from app.services.payments.payment_commission_service import PaymentCommissionService
 from app.services.payments.webhook_handler import WompiWebhookHandler
@@ -578,6 +579,244 @@ class IntegratedPaymentService:
         except Exception as e:
             logger.error(f"Failed to get payment methods: {str(e)}")
             return []
+
+    async def process_payment_with_fallback(
+        self,
+        order_id: str,
+        amount: int,
+        payment_method: str,
+        payment_data: Dict[str, Any],
+        db: AsyncSession,
+        gateway_preference: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Process payment with automatic fallback to secondary gateway.
+
+        This method implements intelligent gateway routing with automatic failover:
+        1. Try primary/preferred gateway first
+        2. If it fails, automatically fall back to secondary gateway
+        3. Return error only if all gateways fail
+
+        Args:
+            order_id: Order ID to process payment for
+            amount: Payment amount in cents
+            payment_method: Payment method (credit_card, pse, etc.)
+            payment_data: Payment method specific data
+            db: Database session
+            gateway_preference: Preferred gateway (wompi, payu) or None for auto-selection
+
+        Returns:
+            Dict with payment result including gateway used
+
+        Raises:
+            PaymentProcessingError: If all gateways fail
+        """
+        try:
+            logger.info(
+                f"Processing payment with fallback for order {order_id}, "
+                f"method: {payment_method}, preference: {gateway_preference}"
+            )
+
+            # Determine gateway priority based on preference and configuration
+            primary_gateway = gateway_preference or settings.PAYMENT_PRIMARY_GATEWAY
+            gateways = self._get_gateway_priority(primary_gateway, payment_method)
+
+            last_error = None
+
+            # Try each gateway in priority order
+            for gateway_name in gateways:
+                try:
+                    logger.info(f"Attempting payment via {gateway_name} gateway")
+
+                    if gateway_name == "wompi":
+                        result = await self._process_via_wompi(
+                            order_id, amount, payment_method, payment_data, db
+                        )
+                    elif gateway_name == "payu":
+                        result = await self._process_via_payu(
+                            order_id, amount, payment_method, payment_data, db
+                        )
+                    else:
+                        logger.warning(f"Unknown gateway: {gateway_name}, skipping")
+                        continue
+
+                    # If successful, return result
+                    if result.get("success") or result.get("state") in ["APPROVED", "PENDING"]:
+                        logger.info(f"Payment successful via {gateway_name}")
+                        result["gateway_used"] = gateway_name
+                        return result
+
+                except WompiError as e:
+                    last_error = e
+                    logger.warning(
+                        f"Gateway {gateway_name} failed: {e.message}. "
+                        f"Attempting next gateway if available."
+                    )
+                    continue
+                except Exception as e:
+                    last_error = e
+                    logger.warning(
+                        f"Gateway {gateway_name} error: {str(e)}. "
+                        f"Attempting next gateway if available."
+                    )
+                    continue
+
+            # All gateways failed
+            error_message = f"All payment gateways failed. Last error: {str(last_error)}"
+            logger.error(error_message)
+            raise PaymentProcessingError(
+                message="Payment processing failed across all gateways",
+                error_code="ALL_GATEWAYS_FAILED",
+                details={"last_error": str(last_error), "gateways_tried": gateways}
+            )
+
+        except PaymentProcessingError:
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error in payment fallback: {str(e)}", exc_info=True)
+            raise PaymentProcessingError(
+                message="Unexpected payment processing error",
+                error_code="PAYMENT_FALLBACK_ERROR",
+                details={"error": str(e)}
+            )
+
+    def _get_gateway_priority(
+        self,
+        preferred_gateway: str,
+        payment_method: str
+    ) -> List[str]:
+        """
+        Determine gateway priority based on preference and payment method.
+
+        Args:
+            preferred_gateway: Preferred gateway (wompi, payu)
+            payment_method: Payment method being used
+
+        Returns:
+            List of gateways in priority order
+        """
+        # Base priority
+        if preferred_gateway == "wompi":
+            gateways = ["wompi", "payu"]
+        elif preferred_gateway == "payu":
+            gateways = ["payu", "wompi"]
+        else:
+            # Default priority if not specified
+            gateways = ["wompi", "payu"]
+
+        # Method-specific adjustments
+        # Some methods might work better with specific gateways
+        if payment_method in ["nequi", "bancolombia_transfer"]:
+            # These methods are Wompi-specific, only use Wompi
+            gateways = ["wompi"]
+        elif payment_method in ["baloto", "su_red"]:
+            # These methods work better with PayU in Colombia
+            if "payu" in gateways:
+                gateways.remove("payu")
+                gateways.insert(0, "payu")
+
+        logger.debug(f"Gateway priority for {payment_method}: {gateways}")
+        return gateways
+
+    async def _process_via_wompi(
+        self,
+        order_id: str,
+        amount: int,
+        payment_method: str,
+        payment_data: Dict[str, Any],
+        db: AsyncSession
+    ) -> Dict[str, Any]:
+        """Process payment via Wompi gateway"""
+        try:
+            # Use existing Wompi processing logic
+            # This should use the wompi_service methods
+            wompi_result = await self.wompi_service.create_transaction({
+                "amount_in_cents": amount,
+                "currency": "COP",
+                "customer_email": payment_data.get("customer_email"),
+                "payment_method": payment_method,
+                "reference": f"ORDER-{order_id}",
+                **payment_data
+            })
+
+            return {
+                "success": wompi_result.get("status") == "APPROVED",
+                "transaction_id": wompi_result.get("id"),
+                "status": wompi_result.get("status"),
+                "message": wompi_result.get("status_message"),
+                "gateway": "wompi"
+            }
+
+        except Exception as e:
+            logger.error(f"Wompi processing error: {str(e)}")
+            raise
+
+    async def _process_via_payu(
+        self,
+        order_id: str,
+        amount: int,
+        payment_method: str,
+        payment_data: Dict[str, Any],
+        db: AsyncSession
+    ) -> Dict[str, Any]:
+        """Process payment via PayU gateway"""
+        try:
+            # Get order for reference
+            from sqlalchemy import select
+            stmt = select(Order).where(Order.id == order_id)
+            result = await db.execute(stmt)
+            order = result.scalar_one_or_none()
+
+            if not order:
+                raise PaymentProcessingError(
+                    message="Order not found",
+                    error_code="ORDER_NOT_FOUND"
+                )
+
+            # Build PayU transaction
+            payu_transaction = {
+                "merchant_id": settings.PAYU_MERCHANT_ID,
+                "account_id": settings.PAYU_ACCOUNT_ID,
+                "reference_code": f"ORDER-{order.order_number}",
+                "description": f"MeStore Order {order.order_number}",
+                "amount": amount,
+                "currency": "COP",
+                "payer": {
+                    "email": payment_data.get("customer_email", payment_data.get("payer_email")),
+                    "full_name": payment_data.get("customer_name", payment_data.get("payer_full_name")),
+                    "phone": payment_data.get("customer_phone", payment_data.get("payer_phone"))
+                },
+                "payment_method": self._map_payment_method_to_payu(payment_method),
+                **payment_data
+            }
+
+            payu_service = get_payu_service()
+            payu_result = await payu_service.create_transaction(payu_transaction)
+
+            return {
+                "success": payu_result.get("state") in ["APPROVED", "PENDING"],
+                "transaction_id": payu_result.get("transaction_id"),
+                "state": payu_result.get("state"),
+                "status": payu_result.get("state"),
+                "message": payu_result.get("message"),
+                "payment_url": payu_result.get("redirect_url"),
+                "gateway": "payu"
+            }
+
+        except Exception as e:
+            logger.error(f"PayU processing error: {str(e)}")
+            raise
+
+    def _map_payment_method_to_payu(self, method: str) -> str:
+        """Map generic payment method to PayU-specific method"""
+        method_map = {
+            "credit_card": "CREDIT_CARD",
+            "debit_card": "CREDIT_CARD",
+            "pse": "PSE",
+            "efecty": "EFECTY",
+            "baloto": "BALOTO"
+        }
+        return method_map.get(method.lower(), "CREDIT_CARD")
 
     async def health_check(self) -> Dict[str, Any]:
         """Health check for integrated payment service"""
