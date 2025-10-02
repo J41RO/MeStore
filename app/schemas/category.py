@@ -148,12 +148,11 @@ class CategoryInDB(CategoryBase):
     level: int = Field(..., ge=0, le=10, description="Nivel en la jerarquía (0-10)")
     path: str = Field(..., description="Ruta jerárquica materializada")
     children_count: int = Field(0, ge=0, description="Número de subcategorías directas")
-    products_count: int = Field(0, ge=0, description="Número de productos en esta categoría")
+    products_count: int = Field(0, ge=0, description="Número de productos en esta categoría", validation_alias="product_count", serialization_alias="products_count")
     created_at: datetime = Field(..., description="Fecha de creación")
     updated_at: datetime = Field(..., description="Fecha de última actualización")
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 class CategoryRead(CategoryInDB):

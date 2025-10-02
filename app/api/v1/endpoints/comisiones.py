@@ -1,4 +1,14 @@
 # ~/app/api/v1/endpoints/comisiones.py
+
+# ⚠️⚠️⚠️ DEPRECATED ENDPOINTS - WILL BE REMOVED IN v2.0.0 ⚠️⚠️⚠️
+#
+# These Spanish endpoints are DEPRECATED and will be removed in v2.0.0
+# Please migrate to /api/v1/commissions/ instead
+#
+# Migration guide: See SAFE_API_MIGRATION_STRATEGY.md
+# Timeline: These endpoints will be removed after 3 weeks (2025-10-22)
+#
+
 from datetime import date
 from typing import Optional
 from uuid import UUID

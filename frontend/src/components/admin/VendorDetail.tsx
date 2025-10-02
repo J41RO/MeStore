@@ -86,7 +86,7 @@ const fetchMetrics = async () => {
   
   try {
     const token = localStorage.getItem('token') || localStorage.getItem('access_token');
-    const response = await fetch(`http://192.168.1.137:8000/api/v1/vendedores/${vendor.id}/dashboard/resumen`, {
+    const response = await fetch(`http://192.168.1.137:8000/api/v1/vendors/${vendor.id}/dashboard/resumen`, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -131,7 +131,7 @@ const handleApprovalSubmit = async () => {
   setIsProcessing(true);
   try {
     const token = localStorage.getItem('token') || localStorage.getItem('access_token');
-    const response = await fetch(`/api/v1/vendedores/${vendor.id}/approve`, {
+    const response = await fetch(`/api/v1/vendors/${vendor.id}/approve`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -163,7 +163,7 @@ const handleApprovalSubmit = async () => {
     
     setIsProcessing(true);
     try {
-      const response = await fetch(`/api/v1/vendedores/${vendor.id}/reject`, {
+      const response = await fetch(`/api/v1/vendors/${vendor.id}/reject`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -21,7 +21,11 @@ const ConfirmationStep: React.FC = () => {
     setProcessing,
     is_processing,
     resetCheckout,
-    clearCart
+    clearCart,
+    getSubtotal,
+    getIVA,
+    getShipping,
+    getTotal
   } = useCheckoutStore();
 
   const { user } = useAuthStore();
@@ -45,11 +49,13 @@ const ConfirmationStep: React.FC = () => {
   };
 
   const calculateTotals = () => {
-    const subtotal = cart_items.reduce((total, item) => total + (item.price * item.quantity), 0);
-    const tax = subtotal * 0.19; // 19% IVA
-    const total = subtotal + tax + shipping_cost;
+    // Use store methods for consistent calculations (same as Cart and CheckoutSummary)
+    const subtotal = getSubtotal();
+    const tax = getIVA();
+    const shipping = getShipping(); // Always calculate based on subtotal, not shipping_cost state
+    const total = getTotal(); // subtotal + IVA + shipping
 
-    return { subtotal, tax, total };
+    return { subtotal, tax, shipping, total };
   };
 
   const handlePlaceOrder = async () => {
@@ -173,7 +179,7 @@ const ConfirmationStep: React.FC = () => {
     }
   };
 
-  const { subtotal, tax, total } = calculateTotals();
+  const { subtotal, tax, shipping, total } = calculateTotals();
 
   // Order confirmed view
   if (orderConfirmed) {
@@ -363,12 +369,12 @@ const ConfirmationStep: React.FC = () => {
             <span>{formatCurrency(tax)}</span>
           </div>
 
-          {shipping_cost > 0 && (
-            <div className="flex justify-between">
-              <span className="text-gray-600">Envío</span>
-              <span>{formatCurrency(shipping_cost)}</span>
-            </div>
-          )}
+          <div className="flex justify-between">
+            <span className="text-gray-600">Envío</span>
+            <span className={shipping === 0 ? 'text-green-600 font-semibold' : ''}>
+              {shipping === 0 ? 'GRATIS' : formatCurrency(shipping)}
+            </span>
+          </div>
 
           <div className="flex justify-between text-lg font-semibold border-t pt-2">
             <span>Total</span>

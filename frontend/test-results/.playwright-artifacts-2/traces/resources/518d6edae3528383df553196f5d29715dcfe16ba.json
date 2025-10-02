@@ -1,0 +1,1 @@
+{"status":"error","timestamp":"2025-10-01T21:26:36.230161Z","message":"HTTP error 404 at /api/v1/marketplace/featured","version":"1.0.0","error_code":"NOT_FOUND","error_message":"Not Found","details":[],"request_id":"req_6154708f"}

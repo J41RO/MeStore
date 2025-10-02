@@ -48,7 +48,7 @@ const ProductApprovalPage: React.FC = () => {
 
     try {
       const token = localStorage.getItem('access_token');
-      const response = await axios.get(`${API_BASE}/api/v1/productos`, {
+      const response = await axios.get(`${API_BASE}/api/v1/products`, {
         headers: { Authorization: `Bearer ${token}` },
         params: { status: filterStatus, limit: 100 }
       });
@@ -70,15 +70,15 @@ const ProductApprovalPage: React.FC = () => {
       const token = localStorage.getItem('access_token');
 
       const [pending, approved, rejected] = await Promise.all([
-        axios.get(`${API_BASE}/api/v1/productos`, {
+        axios.get(`${API_BASE}/api/v1/products`, {
           headers: { Authorization: `Bearer ${token}` },
           params: { status: 'PENDING', limit: 1000 }
         }),
-        axios.get(`${API_BASE}/api/v1/productos`, {
+        axios.get(`${API_BASE}/api/v1/products`, {
           headers: { Authorization: `Bearer ${token}` },
           params: { status: 'APPROVED', limit: 1000 }
         }),
-        axios.get(`${API_BASE}/api/v1/productos`, {
+        axios.get(`${API_BASE}/api/v1/products`, {
           headers: { Authorization: `Bearer ${token}` },
           params: { status: 'REJECTED', limit: 1000 }
         })
@@ -105,7 +105,7 @@ const ProductApprovalPage: React.FC = () => {
     try {
       const token = localStorage.getItem('access_token');
       await axios.post(
-        `${API_BASE}/api/v1/productos/${productId}/approve`,
+        `${API_BASE}/api/v1/products/${productId}/approve`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -137,7 +137,7 @@ const ProductApprovalPage: React.FC = () => {
     try {
       const token = localStorage.getItem('access_token');
       await axios.post(
-        `${API_BASE}/api/v1/productos/${productId}/reject`,
+        `${API_BASE}/api/v1/products/${productId}/reject`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );

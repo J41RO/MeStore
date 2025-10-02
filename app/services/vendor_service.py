@@ -25,12 +25,15 @@ This module provides service methods for vendor management:
 - Get vendor by user ID
 - Vendor profile operations
 - Vendor analytics
+- Create new vendor (registration)
 """
 
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.models.user import User, UserType
+from app.models.user import User, UserType, VendorStatus
+from app.schemas.vendor import VendorCreate
+from app.utils.password import hash_password
 
 
 class VendorService:
@@ -91,3 +94,61 @@ class VendorService:
             "total_orders": 0,
             "revenue": 0.0
         }
+
+    async def create_vendor(self, vendor_data: VendorCreate) -> User:
+        """
+        Crear nuevo vendor con auto-aprobación (MVP).
+
+        Reglas de Negocio:
+        - Email debe ser único
+        - Password hasheado con bcrypt
+        - user_type = UserType.VENDOR
+        - vendor_status = VendorStatus.APPROVED (auto-aprobado para MVP)
+        - commission_rate no se maneja en modelo User (será agregado en futuro)
+        - is_active = True
+        - Separar full_name en nombre y apellido
+
+        Args:
+            vendor_data: VendorCreate schema con datos de registro
+
+        Returns:
+            User: Vendor creado
+
+        Raises:
+            ValueError: Si email ya existe
+        """
+        # Verificar que el email no exista
+        existing_user = await self.db.execute(
+            select(User).where(User.email == vendor_data.email)
+        )
+        if existing_user.scalar_one_or_none():
+            raise ValueError("El email ya está registrado")
+
+        # Hashear password
+        password_hash = await hash_password(vendor_data.password)
+
+        # Separar full_name en nombre y apellido
+        name_parts = vendor_data.full_name.strip().split(maxsplit=1)
+        nombre = name_parts[0] if len(name_parts) > 0 else ""
+        apellido = name_parts[1] if len(name_parts) > 1 else ""
+
+        # Crear nuevo vendor
+        new_vendor = User(
+            email=vendor_data.email,
+            password_hash=password_hash,
+            nombre=nombre,
+            apellido=apellido,
+            user_type=UserType.VENDOR,
+            vendor_status=VendorStatus.APPROVED,  # Auto-aprobado para MVP
+            is_active=True,
+            telefono=vendor_data.phone,
+            ciudad=vendor_data.city,
+            empresa=vendor_data.business_name,
+            business_name=vendor_data.business_name  # Campo específico de vendor
+        )
+
+        self.db.add(new_vendor)
+        await self.db.commit()
+        await self.db.refresh(new_vendor)
+
+        return new_vendor

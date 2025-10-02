@@ -89,8 +89,13 @@ export const useProductList = (): UseProductListReturn => {
         console.log('📤 Llamando a api.products.getWithFilters...');
         console.log('📦 Params:', { ...filters, page, limit: currentLimit });
 
+        // Filtrar parámetros vacíos para evitar enviar search="" al backend
+        const cleanedFilters = Object.fromEntries(
+          Object.entries(filters).filter(([_, v]) => v !== '' && v !== null && v !== undefined)
+        );
+
         const response = await api.products.getWithFilters({
-          ...filters,
+          ...cleanedFilters,
           page: page,
           limit: currentLimit
         });

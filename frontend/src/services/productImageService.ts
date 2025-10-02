@@ -42,7 +42,7 @@ interface ProductImageDeleteResponse {
 }
 
 class ProductImageService {
-  private baseURL = '/api/v1/productos';
+  private baseURL = 'http://192.168.1.137:8000/api/v1/products';
 
   /**
    * Obtener token de autenticación del localStorage
@@ -88,8 +88,20 @@ class ProductImageService {
    * Obtener todas las imágenes de un producto
    */
   async getProductImages(productId: string): Promise<ProductImage[]> {
-    const response = await fetch(`${this.baseURL}/${productId}/imagenes`);
-    
+    const token = this.getAuthToken();
+    const headers: Record<string, string> = {
+      'Accept': 'application/json',
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${this.baseURL}/${productId}/imagenes`, {
+      method: 'GET',
+      headers
+    });
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.detail || `Error fetching images: ${response.statusText}`);

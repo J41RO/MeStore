@@ -54,8 +54,10 @@ const ProductDetail: React.FC = () => {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(`/api/v1/productos/${id}`);
-        
+        // Use full backend URL for API calls
+        const backendUrl = import.meta.env.VITE_API_BASE_URL || 'http://192.168.1.137:8000';
+        const response = await fetch(`${backendUrl}/api/v1/products/${id}`);
+
         if (response.status === 404) {
           setError('Producto no encontrado');
           setLoading(false);
@@ -66,10 +68,11 @@ const ProductDetail: React.FC = () => {
           throw new Error('Error al cargar el producto');
         }
 
-        const data = await response.json();
-        
+        const responseData = await response.json();
+        const data = responseData.data || responseData; // Handle both StandardResponse and direct data
+
         // Solo mostrar productos aprobados en el marketplace público
-        if (data.estado !== 'aprobado') {
+        if (data.status !== 'APPROVED' && data.estado !== 'aprobado') {
           setError('Este producto no está disponible');
           setLoading(false);
           return;
@@ -248,33 +251,53 @@ const ProductDetail: React.FC = () => {
               </div>
             )}
 
-            {/* Stock Info */}
-            {product.stock_quantity !== undefined && (
-              <div className="flex items-center space-x-2">
-                <span className="text-sm font-medium text-gray-700">Stock disponible:</span>
-                <span className={`text-sm font-semibold ${
-                  product.stock_quantity > 10 
-                    ? 'text-green-600' 
-                    : product.stock_quantity > 0 
-                      ? 'text-yellow-600' 
-                      : 'text-red-600'
-                }`}>
-                  {product.stock_quantity > 0 
-                    ? `${product.stock_quantity} unidades`
-                    : 'Agotado'
-                  }
-                </span>
-              </div>
-            )}
+            {/* Stock Info - TEMPORAL: Mostrar disponible siempre */}
+            <div className="flex items-center space-x-2">
+              <span className="text-sm font-medium text-gray-700">Stock disponible:</span>
+              <span className="text-sm font-semibold text-green-600">
+                Disponible
+              </span>
+            </div>
 
             {/* Add to Cart */}
             <div className="pt-4 border-t border-gray-200">
               <AddToCartButton
-                productId={product.id}
-                price={product.precio_venta}
-                stock={product.stock_quantity || 0}
+                product={{
+                  id: String(product.id),
+                  name: product.name,
+                  price: product.precio_venta,
+                  stock: product.stock_quantity || 0,
+                  sku: product.sku,
+                  vendor_id: String(product.vendor?.id || 0),
+                  main_image_url: product.images?.find(img => img.is_primary)?.image_url,
+                  images: product.images?.map(img => ({
+                    id: String(img.id),
+                    product_id: String(product.id),
+                    public_url: img.image_url,
+                    is_primary: img.is_primary,
+                    order_index: 0,
+                    filename: '',
+                    original_filename: '',
+                    file_path: '',
+                    file_size: 0,
+                    mime_type: '',
+                    created_at: '',
+                    updated_at: ''
+                  })) || [],
+                  description: product.description,
+                  precio_venta: product.precio_venta,
+                  is_active: true,
+                  is_featured: false,
+                  is_digital: false,
+                  sales_count: 0,
+                  view_count: 0,
+                  rating: 0,
+                  review_count: 0,
+                  created_at: product.created_at,
+                  updated_at: product.updated_at
+                }}
                 onAddToCart={handleAddToCart}
-                disabled={product.stock_quantity === 0}
+                disabled={false} // TEMPORAL: Habilitar carrito para pruebas (sin sistema de inventario)
               />
             </div>
 

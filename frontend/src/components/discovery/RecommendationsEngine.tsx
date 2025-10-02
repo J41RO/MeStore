@@ -51,7 +51,7 @@ import { useIntersectionObserver } from '../../hooks/useIntersectionObserver';
 import { useSwipeGestures } from '../../hooks/useSwipeGestures';
 
 // Components
-import ProductCard from './ProductCard';
+import ProductCard from '../products/ProductCard';
 
 // Types
 interface RecommendationsEngineProps {

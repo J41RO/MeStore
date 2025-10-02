@@ -10,6 +10,16 @@ interface FeaturedProductsProps {
 }
 
 const FeaturedProducts: React.FC<FeaturedProductsProps> = ({ products, isLoading }) => {
+  // Helper function to safely get rating value
+  const getRating = (product: Product): number => {
+    return product.rating ?? 0;
+  };
+
+  // Helper function to safely get review count
+  const getReviewCount = (product: Product): number => {
+    return product.review_count ?? 0;
+  };
+
   // No products to display
   if (!isLoading && products.length === 0) {
     return (
@@ -74,7 +84,7 @@ const FeaturedProducts: React.FC<FeaturedProductsProps> = ({ products, isLoading
                     Destacado
                   </span>
                 )}
-                {product.stock <= 5 && product.stock > 0 && (
+                {(product.stock ?? 0) <= 5 && (product.stock ?? 0) > 0 && (
                   <span className="bg-orange-500 text-white text-xs px-2 py-1 rounded-full font-medium">
                     Pocas unidades
                   </span>
@@ -101,8 +111,26 @@ const FeaturedProducts: React.FC<FeaturedProductsProps> = ({ products, isLoading
 
             {/* Product Info */}
             <div className="p-4">
-              <Link to={`/marketplace/product/${product.id}`}>
-                <h3 className="font-medium text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
+              <Link
+                to={`/marketplace/product/${product.id}`}
+                className="block"
+                style={{ contain: 'layout' }}
+              >
+                <h3
+                  className="font-medium text-gray-900 mb-2 overflow-hidden"
+                  style={{
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    height: '3rem',
+                    lineHeight: '1.5rem',
+                    wordBreak: 'break-word',
+                    willChange: 'auto',
+                    transform: 'translateZ(0)',
+                    backfaceVisibility: 'hidden',
+                    contain: 'layout style paint'
+                  }}
+                >
                   {product.name}
                 </h3>
               </Link>
@@ -116,7 +144,7 @@ const FeaturedProducts: React.FC<FeaturedProductsProps> = ({ products, isLoading
                     <Star
                       key={i}
                       className={`w-4 h-4 ${
-                        i < Math.floor(product.rating)
+                        i < Math.floor(getRating(product))
                           ? 'text-yellow-400 fill-current'
                           : 'text-gray-300'
                       }`}
@@ -124,7 +152,7 @@ const FeaturedProducts: React.FC<FeaturedProductsProps> = ({ products, isLoading
                   ))}
                 </div>
                 <span className="text-sm text-gray-500 ml-2">
-                  {product.rating.toFixed(1)} ({product.review_count})
+                  {getRating(product).toFixed(1)} ({getReviewCount(product)})
                 </span>
               </div>
 
@@ -139,7 +167,7 @@ const FeaturedProducts: React.FC<FeaturedProductsProps> = ({ products, isLoading
 
               {/* Stock Info */}
               <div className="text-sm text-gray-600 mb-3">
-                {product.stock > 0 ? (
+                {(product.stock ?? 0) > 0 ? (
                   <span className="text-green-600">
                     {product.stock} disponible{product.stock !== 1 ? 's' : ''}
                   </span>

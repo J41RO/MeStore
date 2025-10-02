@@ -1,0 +1,16 @@
+# Playwright artifacts
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Trace files
+*.zip
+
+# Videos
+*.webm
+
+# Screenshots
+screenshots/*.png
+
+# Logs
+*.log

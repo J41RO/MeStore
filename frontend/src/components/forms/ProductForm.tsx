@@ -41,7 +41,7 @@ interface ValidationState {
   marginHealthy: boolean | null;
 }
 
-// TEST: Force HMR update - timestamp: 2025-09-29 20:23
+// TEST: Force HMR update - timestamp: 2025-09-30 SQUAD FIX
 const ProductForm: React.FC<ProductFormProps> = ({
   mode,
   initialData,
@@ -49,6 +49,12 @@ const ProductForm: React.FC<ProductFormProps> = ({
   onCancel,
   onSuccess,
 }) => {
+  // 🚨 LOG CRÍTICO - ESTE DEBE APARECER EN CONSOLA
+  console.log('🚨🚨🚨 [SQUAD] ProductForm /components/forms/ProductForm.tsx MONTADO');
+  console.log('🚨 [SQUAD] Mode:', mode);
+  console.log('🚨 [SQUAD] initialData:', initialData);
+  console.log('🚨 [SQUAD] initialData?.id:', initialData?.id);
+
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<MessageState | null>(null);
   const [selectedImages, setSelectedImages] = useState<ImageFile[]>([]);
@@ -77,10 +83,23 @@ const ProductForm: React.FC<ProductFormProps> = ({
   } = useForm<ProductFormData>({
     resolver: yupResolver(schema) as any,
     mode: 'onChange', // Validación en tiempo real
-    defaultValues: {
+    defaultValues: mode === 'edit' && initialData ? {
+      // En modo EDIT: mapear campos del backend a nombres del formulario
+      id: initialData.id,
+      name: initialData.name || '',
+      description: initialData.description || '',
+      precio_venta: initialData.price || initialData.precio_venta || 100,
+      precio_costo: initialData.cost || initialData.precio_costo || 100,
+      category: initialData.category || initialData.categoria || '',
+      stock: initialData.stock || initialData.stock_quantity || 0,
+      sku: initialData.sku || '',
+      largo: initialData.dimensions?.length || initialData.largo || 0.1,
+      ancho: initialData.dimensions?.width || initialData.ancho || 0.1,
+      alto: initialData.dimensions?.height || initialData.alto || 0.1,
+      peso: initialData.weight?.value || initialData.peso || 0.01,
+    } as ProductFormData : {
+      // En modo CREATE: usar valores por defecto
       ...defaultProductValues,
-      ...initialData,
-      id: initialData?.id || undefined,
     } as ProductFormData,
   });
 
@@ -194,30 +213,18 @@ const ProductForm: React.FC<ProductFormProps> = ({
     return isHealthy;
   }, [setValidationState]);
 
-  useEffect(() => {
-    if (mode === 'edit' && initialData) {
-      console.log('📦 Cargando producto para editar:', initialData);
+  // Campo mapping ya se maneja en defaultValues del useForm
+  // No necesitamos useEffect con setValue() porque defaultValues carga los datos al inicializar
 
-      // Mapear campos del backend a campos del formulario
-      const mappedData: any = {
-        ...initialData,
-        // Mapear price/precio_venta
-        precio_venta: initialData.price || initialData.precio_venta || 0,
-        // Mapear cost/precio_costo
-        precio_costo: initialData.cost || initialData.precio_costo || 0,
-        // Mapear category/categoria
-        category: initialData.category || initialData.categoria || '',
-      };
+  // Message handlers - Defined before useEffect to avoid reference issues
+  const clearMessage = useCallback(() => {
+    setMessage(null);
+  }, []);
 
-      console.log('🔄 Datos mapeados para formulario:', mappedData);
-
-      Object.entries(mappedData).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          setValue(key as keyof ProductFormData, value);
-        }
-      });
-    }
-  }, [mode, initialData, setValue]);
+  const showMessage = useCallback((text: string, type: MessageState['type']) => {
+    setMessage({ text, type });
+    setTimeout(() => setMessage(null), 5000);
+  }, []);
 
   // DESHABILITADO TEMPORALMENTE: Watchers para validaciones en tiempo real
   // CAUSA INFINITE LOOP - Necesita refactorización completa
@@ -248,51 +255,67 @@ const ProductForm: React.FC<ProductFormProps> = ({
   }, [precioVenta, precioCosto, validateMargin]);
   */
 
+  // FIX: Extraer productId como valor primitivo para evitar infinite re-renders
+  // El problema era que initialData es un objeto que cambia de referencia en cada render del padre
+  const productId = initialData?.id;
+
   // Load existing images when in edit mode
   useEffect(() => {
+    console.log('🔄 [ProductForm] useEffect de imágenes ejecutado');
+    console.log('📦 [ProductForm] mode:', mode);
+    console.log('🆔 [ProductForm] productId:', productId);
+
     const loadExistingImages = async () => {
-      if (mode === 'edit' && initialData?.id) {
+      if (mode === 'edit' && productId) {
+        console.log('✅ [ProductForm] MODO EDICIÓN DETECTADO - Cargando imágenes para ID:', productId);
         setLoadingExistingImages(true);
         try {
-          const images = await getProductImages(initialData.id as string);
+          console.log('📡 [ProductForm] Llamando a getProductImages...');
+          const images = await getProductImages(productId as string);
+          console.log('✅ [ProductForm] Imágenes recibidas:', images);
+          console.log('📸 [ProductForm] Total imágenes:', images.length);
           setExistingImages(images);
+          console.log('✅ [ProductForm] State actualizado con', images.length, 'imágenes');
         } catch (error) {
-          console.error('Error loading existing images:', error);
+          console.error('❌ [ProductForm] Error loading existing images:', error);
           showMessage('Error cargando imágenes existentes', 'error');
         } finally {
           setLoadingExistingImages(false);
         }
+      } else {
+        console.log('⚠️ [ProductForm] NO se cargaron imágenes:');
+        console.log('   - mode === "edit"?', mode === 'edit');
+        console.log('   - productId?', !!productId);
       }
     };
 
     loadExistingImages();
-  }, [mode, initialData?.id]);
-
-  const clearMessage = () => {
-    setMessage(null);
-  };
-
-  const showMessage = (text: string, type: MessageState['type']) => {
-    setMessage({ text, type });
-    setTimeout(clearMessage, 5000);
-  };
+  }, [mode, productId]); // showMessage es estable (useCallback), no necesita estar en deps
 
   const onFormSubmit = async (data: ProductFormData) => {
-    console.log('🔵🔵🔵 onFormSubmit EJECUTADO - INICIO');
-    console.log('📦 Data recibida:', data);
-    console.log('🎯 Mode:', mode);
+    console.log('🚨🚨🚨🚨🚨 [SQUAD] onFormSubmit EJECUTADO');
+    console.log('🚨 [SQUAD] Data recibida:', data);
+    console.log('🚨 [SQUAD] Mode:', mode);
+    console.log('🚨 [SQUAD] initialData?.id:', initialData?.id);
 
     setLoading(true);
     clearMessage();
 
     try {
-      console.log('✅ Validando formulario...');
-      // Validación final antes de envío
-      const isFormValid = await trigger();
-      console.log('🔍 isFormValid:', isFormValid);
-      if (!isFormValid) {
-        console.log('❌ Validación FALLIDA - Abortando');
-        return;
+      // SOLO validar en modo CREATE - En modo EDIT permitir guardar cambios sin validación completa
+      if (mode === 'create') {
+        console.log('🆕 [SQUAD] MODO CREAR - Aplicando validación completa');
+        const isFormValid = await trigger();
+        console.log('🔍 [SQUAD] isFormValid:', isFormValid);
+        if (!isFormValid) {
+          console.log('❌ [SQUAD] Validación FALLIDA - Abortando creación');
+          showMessage('Por favor completa todos los campos obligatorios', 'error');
+          setLoading(false);
+          return;
+        }
+      } else {
+        console.log('✅✅✅ [SQUAD] MODO EDICIÓN CONFIRMADO - BYPASS DE VALIDACIÓN ACTIVADO ✅✅✅');
+        console.log('✅ [SQUAD] Producto ID para actualizar:', initialData?.id);
       }
 
       console.log('🔄 Transformando datos para API...');
@@ -342,27 +365,40 @@ const ProductForm: React.FC<ProductFormProps> = ({
       }
 
       // Handle image operations
+      console.log('🖼️ [ProductForm] Verificando operaciones de imágenes...');
+      console.log('   - Nuevas imágenes:', selectedImages.length);
+      console.log('   - Imágenes a eliminar:', deletedImageIds.length);
+
       if (selectedImages.length > 0 || deletedImageIds.length > 0) {
         setUploadingImages(true);
         try {
           // Delete images that were marked for deletion
-          for (const imageId of deletedImageIds) {
-            await deleteProductImage(imageId);
+          if (deletedImageIds.length > 0) {
+            console.log('🗑️ [ProductForm] Eliminando', deletedImageIds.length, 'imágenes...');
+            for (const imageId of deletedImageIds) {
+              console.log('🗑️ [ProductForm] DELETE imagen:', imageId);
+              await deleteProductImage(imageId);
+              console.log('✅ [ProductForm] Imagen eliminada:', imageId);
+            }
           }
 
           // Upload new images if any
           if (selectedImages.length > 0) {
+            console.log('📤 [ProductForm] Subiendo', selectedImages.length, 'imágenes nuevas...');
             const imageFiles = selectedImages.map(img => img.file);
             await uploadProductImages(productId, imageFiles);
+            console.log('✅ [ProductForm] Imágenes subidas exitosamente');
           }
 
           showMessage('Producto e imágenes guardados exitosamente', 'success');
         } catch (imageError) {
-          console.error('Error uploading images:', imageError);
+          console.error('❌ [ProductForm] Error en gestión de imágenes:', imageError);
           showMessage('Producto guardado pero falló la gestión de imágenes', 'error');
         } finally {
           setUploadingImages(false);
         }
+      } else {
+        console.log('ℹ️ [ProductForm] No hay cambios en imágenes');
       }
 
       if (onSubmit) {
@@ -448,10 +484,19 @@ const ProductForm: React.FC<ProductFormProps> = ({
   };
 
   const handleDeleteExistingImage = (imageId: string) => {
+    console.log('🗑️ [ProductForm] Eliminando imagen existente:', imageId);
     // Mark for deletion
-    setDeletedImageIds(prev => [...prev, imageId]);
+    setDeletedImageIds(prev => {
+      const updated = [...prev, imageId];
+      console.log('📝 [ProductForm] Imágenes marcadas para eliminar:', updated);
+      return updated;
+    });
     // Remove from UI
-    setExistingImages(prev => prev.filter(img => img.id !== imageId));
+    setExistingImages(prev => {
+      const updated = prev.filter(img => img.id !== imageId);
+      console.log('✅ [ProductForm] Imágenes restantes en UI:', updated.length);
+      return updated;
+    });
   };
 
   const categoryOptions = getCategoryOptions();
@@ -875,27 +920,68 @@ const ProductForm: React.FC<ProductFormProps> = ({
                 const formValues = watch();
                 console.log('📦 Form values:', formValues);
 
-                // Preparar datos para API
-                const productData = {
-                  name: formValues.name,
-                  description: formValues.description,
-                  price: parseFloat(formValues.precio_venta as any),
-                  stock: parseInt(formValues.stock as any),
-                  category: formValues.category,
-                  sku: formValues.sku || `PROD-${Date.now()}`,
-                  dimensions: {
-                    length: parseFloat(formValues.largo as any) || 0,
-                    width: parseFloat(formValues.ancho as any) || 0,
-                    height: parseFloat(formValues.alto as any) || 0,
-                    unit: 'cm'
-                  },
-                  weight: {
-                    value: parseFloat(formValues.peso as any) || 0,
-                    unit: 'kg'
-                  }
-                };
+                // Preparar datos para API según el modo
+                let productData: any;
 
-                console.log('📤 Datos preparados:', productData);
+                if (mode === 'edit') {
+                  // Para UPDATE: usar nombres de campos del backend - solo enviar valores que existan
+                  productData = {};
+
+                  // Agregar solo campos que tengan valor para evitar validaciones innecesarias
+                  if (formValues.name) productData.name = formValues.name;
+                  if (formValues.description) productData.description = formValues.description;
+                  if (formValues.sku) productData.sku = formValues.sku;
+
+                  // Campos numéricos - permitir 0 como valor válido
+                  const precioVenta = parseFloat(formValues.precio_venta as any);
+                  if (!isNaN(precioVenta)) productData.precio_venta = precioVenta;
+
+                  const precioCosto = parseFloat(formValues.precio_costo as any);
+                  if (!isNaN(precioCosto)) productData.precio_costo = precioCosto;
+
+                  const peso = parseFloat(formValues.peso as any);
+                  // Backend requiere peso >= 0.001, usar 0.01 como mínimo seguro
+                  if (!isNaN(peso) && peso >= 0.01) productData.peso = peso;
+
+                  // Category viene del formulario como 'category' pero backend espera 'categoria'
+                  if (formValues.category) productData.categoria = formValues.category;
+
+                  // Dimensiones - solo si existen valores válidos (> 0)
+                  const largo = parseFloat(formValues.largo as any);
+                  const ancho = parseFloat(formValues.ancho as any);
+                  const alto = parseFloat(formValues.alto as any);
+                  if (!isNaN(largo) && largo > 0 && !isNaN(ancho) && ancho > 0 && !isNaN(alto) && alto > 0) {
+                    productData.dimensiones = {
+                      largo: largo,
+                      ancho: ancho,
+                      alto: alto,
+                    };
+                  }
+
+                  console.log('✏️ Datos para UPDATE (nombres backend):', productData);
+                  console.log('📊 Campos enviados:', Object.keys(productData));
+                } else {
+                  // Para CREATE: usar nombres esperados por el endpoint POST
+                  productData = {
+                    name: formValues.name,
+                    description: formValues.description,
+                    price: parseFloat(formValues.precio_venta as any) || 0,
+                    stock: parseInt(formValues.stock as any) || 0,
+                    category: formValues.category,
+                    sku: formValues.sku || `PROD-${Date.now()}`,
+                    dimensions: {
+                      length: parseFloat(formValues.largo as any) || 0,
+                      width: parseFloat(formValues.ancho as any) || 0,
+                      height: parseFloat(formValues.alto as any) || 0,
+                      unit: 'cm'
+                    },
+                    weight: {
+                      value: parseFloat(formValues.peso as any) || 0,
+                      unit: 'kg'
+                    }
+                  };
+                  console.log('➕ Datos para CREATE:', productData);
+                }
 
                 // Buscar token en múltiples ubicaciones
                 console.log('🔍 Buscando token en localStorage...');
@@ -926,9 +1012,19 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
                 console.log('🔑 Token encontrado:', token.substring(0, 20) + '...');
                 console.log('📡 Enviando a backend...');
+                console.log('🔧 Modo:', mode);
+                console.log('📦 Datos a enviar:', productData);
 
-                const response = await fetch('http://192.168.1.137:8000/api/v1/productos', {
-                  method: 'POST',
+                // Determinar URL y método según el modo
+                const url = mode === 'edit' && initialData?.id
+                  ? `http://192.168.1.137:8000/api/v1/products/${initialData.id}`
+                  : 'http://192.168.1.137:8000/api/v1/products';
+                const method = mode === 'edit' ? 'PUT' : 'POST';
+
+                console.log(`🌐 ${method} ${url}`);
+
+                const response = await fetch(url, {
+                  method,
                   headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
@@ -945,7 +1041,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
                 }
 
                 const result = await response.json();
-                console.log('✅✅✅ PRODUCTO CREADO:', result);
+                console.log(`✅✅✅ PRODUCTO ${mode === 'edit' ? 'ACTUALIZADO' : 'CREADO'}:`, result);
 
                 // Ejecutar onSuccess ANTES del alert para no bloquear
                 console.log('🔔 Llamando a onSuccess callback...');
@@ -962,10 +1058,10 @@ const ProductForm: React.FC<ProductFormProps> = ({
                 setLoading(false);
 
                 // Alert al final para no bloquear el refresh
-                alert('¡Producto creado exitosamente!');
+                alert(`¡Producto ${mode === 'edit' ? 'actualizado' : 'creado'} exitosamente!`);
               } catch (error) {
                 console.error('❌❌❌ ERROR:', error);
-                alert('Error al crear producto: ' + (error instanceof Error ? error.message : 'Unknown error'));
+                alert(`Error al ${mode === 'edit' ? 'actualizar' : 'crear'} producto: ` + (error instanceof Error ? error.message : 'Unknown error'));
                 setLoading(false);
               }
             }}

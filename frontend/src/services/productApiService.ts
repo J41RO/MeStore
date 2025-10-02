@@ -21,14 +21,14 @@ import type {
 // ========================================
 
 const PRODUCT_ENDPOINTS = {
-  BASE: '/products',
-  SEARCH: '/products/search',
-  VENDOR_PRODUCTS: '/products/vendor',
-  FEATURED: '/products/featured',
-  CATEGORIES: '/products/categories',
-  BULK_UPDATE: '/products/bulk-update',
-  BULK_DELETE: '/products/bulk-delete',
-  UPLOAD_IMAGES: '/products/upload-images',
+  BASE: '/api/v1/products',
+  SEARCH: '/api/v1/products/search',
+  VENDOR_PRODUCTS: '/api/v1/products/vendor',
+  FEATURED: '/api/v1/products/featured',
+  CATEGORIES: '/api/v1/products/categories',
+  BULK_UPDATE: '/api/v1/products/bulk-update',
+  BULK_DELETE: '/api/v1/products/bulk-delete',
+  UPLOAD_IMAGES: '/api/v1/products/upload-images',
 } as const;
 
 // ========================================

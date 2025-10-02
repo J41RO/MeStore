@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, lazy, Suspense } from 'react';
 import { useCheckoutStore } from '../../stores/checkoutStore';
 import { useAuthStore } from '../../stores/authStore';
+import { DevOnly } from '../DevOnly';
 
 // Lazy load step components for better performance
 const CartStep = lazy(() => import('./steps/CartStep'));
@@ -191,7 +192,7 @@ const CheckoutFlow = React.memo(() => {
       </div>
 
       {/* Development tools - Only show in development */}
-      {import.meta.env.DEV && (
+      <DevOnly>
         <div className="fixed bottom-4 right-4 z-50">
           <div className="bg-gray-900 text-white p-3 rounded-lg text-xs">
             <p>Step: {current_step}</p>
@@ -204,7 +205,7 @@ const CheckoutFlow = React.memo(() => {
             </button>
           </div>
         </div>
-      )}
+      </DevOnly>
     </div>
   );
 });

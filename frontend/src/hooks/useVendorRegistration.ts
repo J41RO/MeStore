@@ -154,7 +154,7 @@ async function createUserAccount(data: VendorRegistrationData) {
 
 async function setupVendorProfile(data: VendorRegistrationData, userId: string) {
   try {
-    const response = await fetch('/api/v1/vendedores', {
+    const response = await fetch('/api/v1/vendors', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -198,7 +198,7 @@ async function uploadDocuments(documents: File[], userId: string) {
     });
     formData.append('user_id', userId);
 
-    const response = await fetch('/api/v1/vendedores/documentos', {
+    const response = await fetch('/api/v1/vendors/documentos', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('access_token')}`

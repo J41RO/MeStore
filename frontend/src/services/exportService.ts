@@ -23,7 +23,7 @@ export interface ExportResponse {
 }
 
 class ExportService {
-  private baseURL = '/api/v1/vendedores';
+  private baseURL = '/api/v1/vendors';
 
   /**
    * Exportar reporte llamando al endpoint del backend

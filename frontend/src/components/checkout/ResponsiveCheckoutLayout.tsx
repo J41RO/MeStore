@@ -4,6 +4,7 @@ import { useAuthStore } from '../../stores/authStore';
 import CheckoutFlow from './CheckoutFlow';
 import CheckoutProgress from './CheckoutProgress';
 import CheckoutSummary from './CheckoutSummary';
+import { DevOnly } from '../DevOnly';
 
 interface ResponsiveCheckoutLayoutProps {
   children?: React.ReactNode;
@@ -246,7 +247,7 @@ const ResponsiveCheckoutLayout: React.FC<ResponsiveCheckoutLayoutProps> = ({ chi
       )}
 
       {/* Development tools - Only show in development */}
-      {import.meta.env.DEV && (
+      <DevOnly>
         <div className="fixed bottom-4 left-4 z-50 bg-gray-900 text-white p-3 rounded-lg text-xs max-w-48">
           <div className="space-y-1">
             <p><strong>Step:</strong> {current_step}</p>
@@ -260,7 +261,7 @@ const ResponsiveCheckoutLayout: React.FC<ResponsiveCheckoutLayoutProps> = ({ chi
             </button>
           </div>
         </div>
-      )}
+      </DevOnly>
     </div>
   );
 };

@@ -206,16 +206,149 @@ class PaymentMethodDetail(BaseModel):
         }
 
 
-# Webhook Models
-class WebhookRequest(BaseModel):
-    """Webhook notification from Wompi"""
-    data: Dict[str, Any] = Field(..., description="Webhook payload data")
-    timestamp: str = Field(..., description="Webhook timestamp")
-    signature: Optional[str] = Field(None, description="Webhook signature for verification")
+# Webhook Models for Wompi Integration
+class WompiWebhookEvent(BaseModel):
+    """
+    Complete Wompi webhook event payload structure.
+
+    Wompi sends this structure when transaction status changes.
+    Documentation: https://docs.wompi.co/docs/en/eventos
+    """
+    event: str = Field(
+        ...,
+        description="Event type (e.g., 'transaction.updated')"
+    )
+    data: Dict[str, Any] = Field(
+        ...,
+        description="Transaction data object containing status, amount, reference, etc."
+    )
+    sent_at: datetime = Field(
+        ...,
+        description="ISO timestamp when Wompi sent the event"
+    )
+    timestamp: int = Field(
+        ...,
+        description="Unix timestamp of the event"
+    )
+    signature: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Signature information for verification"
+    )
+    environment: str = Field(
+        ...,
+        description="Wompi environment: 'test' or 'production'"
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "event": "transaction.updated",
+                "data": {
+                    "id": "12345-1668624561-38705",
+                    "amount_in_cents": 5000000,
+                    "reference": "ORDER-2025-001",
+                    "customer_email": "customer@example.com",
+                    "currency": "COP",
+                    "payment_method_type": "CARD",
+                    "payment_method": {
+                        "type": "CARD",
+                        "extra": {
+                            "name": "VISA-1234",
+                            "brand": "VISA",
+                            "last_four": "1234"
+                        }
+                    },
+                    "status": "APPROVED",
+                    "status_message": "Aprobada",
+                    "shipping_address": None,
+                    "redirect_url": "https://mestore.com/payment/success",
+                    "payment_source_id": None,
+                    "payment_link_id": None,
+                    "created_at": "2025-10-01T10:30:00.000Z",
+                    "finalized_at": "2025-10-01T10:30:45.000Z",
+                    "taxes": []
+                },
+                "sent_at": "2025-10-01T10:30:50.000Z",
+                "timestamp": 1696156250,
+                "signature": {
+                    "checksum": "abc123def456...",
+                    "properties": ["id", "status", "amount_in_cents"]
+                },
+                "environment": "test"
+            }
+        }
+
+
+class WompiTransaction(BaseModel):
+    """
+    Wompi transaction data from webhook.
+
+    This is the structure inside the 'data' field of WompiWebhookEvent.
+    """
+    id: str = Field(..., description="Wompi transaction ID")
+    amount_in_cents: int = Field(..., description="Transaction amount in cents")
+    reference: str = Field(..., description="Merchant reference (order_number)")
+    customer_email: str = Field(..., description="Customer email address")
+    currency: str = Field(default="COP", description="Transaction currency")
+    payment_method_type: str = Field(..., description="Payment method type (CARD, PSE, NEQUI)")
+    payment_method: Optional[Dict[str, Any]] = Field(None, description="Payment method details")
+    status: str = Field(..., description="Transaction status: APPROVED, DECLINED, PENDING, ERROR")
+    status_message: Optional[str] = Field(None, description="Human-readable status message")
+    created_at: str = Field(..., description="Transaction creation timestamp (ISO 8601)")
+    finalized_at: Optional[str] = Field(None, description="Transaction finalization timestamp")
+    redirect_url: Optional[str] = Field(None, description="Redirect URL after payment")
+    payment_source_id: Optional[str] = Field(None, description="Payment source identifier")
+    payment_link_id: Optional[str] = Field(None, description="Payment link identifier if applicable")
+    shipping_address: Optional[Dict[str, Any]] = Field(None, description="Shipping address data")
+    taxes: Optional[List[Dict[str, Any]]] = Field(default_factory=list, description="Tax information")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "id": "12345-1668624561-38705",
+                "amount_in_cents": 5000000,
+                "reference": "ORDER-2025-001",
+                "customer_email": "customer@example.com",
+                "currency": "COP",
+                "payment_method_type": "CARD",
+                "status": "APPROVED",
+                "status_message": "Aprobada",
+                "created_at": "2025-10-01T10:30:00.000Z",
+                "finalized_at": "2025-10-01T10:30:45.000Z"
+            }
+        }
+
+
+class WebhookProcessingResult(BaseModel):
+    """Internal result of webhook processing"""
+    success: bool = Field(..., description="Whether processing succeeded")
+    event_id: str = Field(..., description="Webhook event ID")
+    order_id: Optional[int] = Field(None, description="Associated order ID")
+    transaction_id: Optional[str] = Field(None, description="Wompi transaction ID")
+    status: str = Field(..., description="Processing status")
+    message: Optional[str] = Field(None, description="Processing message or error")
+    updated_order_status: Optional[str] = Field(None, description="New order status if updated")
 
 
 class WebhookResponse(BaseModel):
-    """Response after processing webhook"""
-    success: bool = Field(..., description="Whether webhook was processed successfully")
-    message: Optional[str] = Field(None, description="Processing message")
-    transaction_id: Optional[str] = Field(None, description="Associated transaction ID")
+    """
+    Response to Wompi webhook request.
+
+    CRITICAL: Always return 200 OK with this structure to prevent retry storms.
+    Wompi retries failed webhooks exponentially, so we must acknowledge receipt.
+    """
+    status: str = Field(
+        default="ok",
+        description="Always 'ok' to acknowledge receipt"
+    )
+    message: Optional[str] = Field(
+        default=None,
+        description="Optional message (not read by Wompi)"
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "status": "ok"
+            }
+        }

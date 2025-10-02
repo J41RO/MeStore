@@ -10,7 +10,7 @@ export interface DashboardMetrics {
   totalRevenue: number;
   monthlyRevenue: number;
   
-  // Datos de /api/v1/vendedores/dashboard/ventas
+  // Datos de /api/v1/vendors/dashboard/ventas
   ordersToday: number;
   ordersThisWeek: number;
   ordersThisMonth: number;
@@ -18,7 +18,7 @@ export interface DashboardMetrics {
   averageTicket: number;
   monthlySales: number;
   
-  // Datos de /api/v1/vendedores/dashboard/inventario
+  // Datos de /api/v1/vendors/dashboard/inventario
   totalStock: number;
   lowStockItems: number;
   outOfStockItems: number;

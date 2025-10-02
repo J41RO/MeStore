@@ -40,6 +40,17 @@
 ⚠️ app/models/payment.py
 ```
 
+#### 🚨 NUEVOS ARCHIVOS EN DEPRECACIÓN (DIRECTIVA CEO 2025-10-01)
+```
+⚠️ app/api/v1/endpoints/productos.py      # DEPRECATED → Migrar a products.py
+⚠️ app/api/v1/endpoints/vendedores.py     # DEPRECATED → Migrar a vendors.py
+⚠️ app/api/v1/endpoints/comisiones.py     # DEPRECATED → Migrar a commissions.py
+⚠️ app/api/v1/endpoints/pagos.py          # DEPRECATED → Migrar a payments.py
+```
+**Responsables**: backend-framework-ai + api-architect-ai
+**Timeline**: Deprecación 2 semanas, Eliminación 6-7 semanas
+**Referencia**: `.workspace/URGENT_BROADCAST_CEO_CODE_STANDARDIZATION.md`
+
 #### Testing y Fixtures
 ```
 ⚠️ tests/conftest.py              # Fixtures - NO CREAR USUARIOS DUPLICADOS
@@ -67,6 +78,25 @@
 - Usar SOLO fixtures existentes de `conftest.py`
 - NO crear usuarios en tests individuales
 - Verificar email/documento únicos
+
+#### 🔥 APIs DUPLICADAS EN ESPAÑOL/INGLÉS (NUEVO - 2025-10-01)
+**Archivos afectados:**
+- `app/api/v1/endpoints/productos.py` vs `products.py` (8 vs 9 endpoints)
+- `app/api/v1/endpoints/vendedores.py` vs `vendors.py` (26 vs 6 endpoints)
+- `app/api/v1/endpoints/comisiones.py` vs `commissions.py` (6 vs 9 endpoints)
+- `app/api/v1/endpoints/pagos.py` vs `payments.py` (1 vs 9 endpoints)
+
+**Consecuencia:**
+- Confusión para desarrolladores
+- Mantenimiento duplicado (2x trabajo)
+- Testing duplicado
+- Documentación confusa
+- 43+ endpoints redundantes
+
+**Solución obligatoria (Directiva CEO):**
+- ✅ Mantener SOLO versiones en INGLÉS (/products/, /vendors/, /commissions/, /payments/)
+- ❌ Deprecar versiones en español
+- 📋 Timeline: Deprecación 2 semanas, Migración 4 semanas, Eliminación 6-7 semanas
 
 #### 🔥 PUERTOS DE SERVIDOR CAMBIADOS
 **Archivos afectados:**

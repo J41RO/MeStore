@@ -1,5 +1,34 @@
 # 🚀 GUÍA RÁPIDA PARA AGENTES - WORKSPACE PROTOCOL
 
+## 🚨 NUEVO: DIRECTIVA CEO - ESTANDARIZACIÓN DE CÓDIGO (2025-10-01)
+
+**⚠️ CAMBIO CRÍTICO - LEER INMEDIATAMENTE:**
+
+### ✅ TODO CÓDIGO TÉCNICO EN INGLÉS
+```python
+# ✅ CORRECTO
+@router.get("/api/v1/products/")
+def create_product(product_data: ProductCreate):
+    pass
+
+# ❌ PROHIBIDO (desde hoy)
+@router.get("/api/v1/productos/")
+def crear_producto(datos_producto: ProductoCrear):
+    pass
+```
+
+### ✅ TODO CONTENIDO DE USUARIO EN ESPAÑOL
+```typescript
+// ✅ CORRECTO
+<Button>Agregar al Carrito</Button>
+<Alert>Producto agregado exitosamente</Alert>
+```
+
+**Leer completo**: `.workspace/URGENT_BROADCAST_CEO_CODE_STANDARDIZATION.md`
+**Resumen ejecutivo**: `.workspace/EXECUTIVE_SUMMARY_CODE_STANDARDIZATION.md`
+
+---
+
 ## ⚡ ANTES DE TOCAR CUALQUIER ARCHIVO - EJECUTA ESTO
 
 ### 1️⃣ VERIFICAR ARCHIVO (OBLIGATORIO)

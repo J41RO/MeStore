@@ -35,7 +35,7 @@ interface NameCheckResponse {
 }
 
 class ProductValidationService {
-  private baseURL = '/api/v1/productos';
+  private baseURL = '/api/v1/products';
 
   /**
    * Obtener token de autenticación del localStorage

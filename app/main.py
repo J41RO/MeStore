@@ -114,6 +114,7 @@ BASE_DIR = Path(__file__).parent.parent  # MeStore root directory
 UPLOADS_DIR = BASE_DIR / "uploads"
 UPLOADS_DIR.mkdir(exist_ok=True)
 app.mount("/media", StaticFiles(directory=str(UPLOADS_DIR)), name="media")
+app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 
 # Registrar exception handlers
 register_exception_handlers(app)

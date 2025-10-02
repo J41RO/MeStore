@@ -10,26 +10,26 @@ export const vendorApi = {
     login: (
       credentials: LoginCredentials
     ): Promise<AxiosResponse<AuthResponse>> =>
-      apiClient.post('/api/v1/vendedores/login', credentials),
+      apiClient.post('/api/v1/vendors/login', credentials),
     
     register: (userData: any): Promise<AxiosResponse<AuthResponse>> =>
-      apiClient.post('/api/v1/vendedores/register', userData),
+      apiClient.post('/api/v1/vendors/register', userData),
     
     dashboard: {
       resumen: (): Promise<AxiosResponse<any>> =>
         apiClient.get('/api/v1/vendedores/dashboard/resumen'),
       
       ordenes: (): Promise<AxiosResponse<any>> =>
-        apiClient.get('/api/v1/vendedores/dashboard/ordenes'),
+        apiClient.get('/api/v1/vendors/dashboard/ordenes'),
     },
   },
   
   // Productos del vendedor
   products: {
     list: (): Promise<AxiosResponse<any>> =>
-      apiClient.get('/api/v1/vendedores/productos'),
+      apiClient.get('/api/v1/vendors/productos'),
     
     create: (productData: any): Promise<AxiosResponse<any>> =>
-      apiClient.post('/api/v1/vendedores/productos', productData),
+      apiClient.post('/api/v1/vendors/productos', productData),
   },
 };

@@ -71,13 +71,13 @@ const PopularCategories: React.FC = () => {
         // Extract categories from paginated response
         const activeCategories = (response.data.categories || [])
           .filter((cat: CategoryType) => cat.is_active)
-          .sort((a: CategoryType, b: CategoryType) => (b.product_count || 0) - (a.product_count || 0))
+          .sort((a: CategoryType, b: CategoryType) => (b.products_count || 0) - (a.products_count || 0))
           .slice(0, 8)
           .map((cat: CategoryType, index: number): CategoryDisplay => ({
             id: cat.id,
             name: cat.name,
             icon: getCategoryIcon(cat.name),
-            productCount: cat.product_count || 0,
+            productCount: cat.products_count || 0,
             color: getCategoryColor(index)
           }));
 

@@ -45,6 +45,7 @@ from uuid import UUID
 from pydantic import UUID4, BaseModel, Field, field_validator, model_validator, model_serializer
 
 from app.models.product import ProductStatus
+from app.schemas.product_image import ProductImageResponse
 
 
 # Configuración base para todos los schemas Product
@@ -590,12 +591,21 @@ class ProductResponse(ProductRead):
         default=0,
         description="Cantidad en stock (viene de inventario)"
     )
+    images: List[ProductImageResponse] = Field(
+        default_factory=list,
+        description="Lista de imágenes del producto"
+    )
+    main_image_url: Optional[str] = Field(
+        None,
+        description="URL de la imagen principal (primera imagen)"
+    )
 
     @model_serializer(mode='wrap')
     def serialize_model(self, serializer: Any) -> Dict[str, Any]:
         """
         Custom serializer para agregar alias de compatibilidad con frontend.
         Agrega campos: price, category, stock como alias de los campos backend.
+        Incluye main_image_url de la primera imagen disponible.
         """
         data = serializer(self)
 
@@ -603,6 +613,13 @@ class ProductResponse(ProductRead):
         data['price'] = float(data.get('precio_venta', 0)) if data.get('precio_venta') else None
         data['category'] = data.get('categoria')
         data['stock'] = data.get('stock_quantity', 0)
+
+        # Agregar main_image_url de la primera imagen
+        images = data.get('images', [])
+        if images and len(images) > 0:
+            data['main_image_url'] = images[0].get('public_url')
+        else:
+            data['main_image_url'] = None
 
         return data
 

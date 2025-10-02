@@ -282,6 +282,7 @@ const Productos: React.FC = () => {
       {/* Modal de editar producto */}
       {showEditModal && selectedProduct && (
         <EditProductModal
+          key={selectedProduct.id}
           isOpen={showEditModal}
           onClose={handleCloseEditModal}
           product={selectedProduct}

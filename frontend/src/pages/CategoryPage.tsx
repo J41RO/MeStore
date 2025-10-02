@@ -100,7 +100,7 @@ const CategoryPage: React.FC = () => {
       if (filters.condition) params.set('condition', filters.condition);
       if (filters.availability) params.set('availability', filters.availability);
 
-      const response = await fetch(`/api/v1/productos?${params.toString()}`, {
+      const response = await fetch(`/api/v1/products?${params.toString()}`, {
         headers: {
           'Accept': 'application/json',
         }

@@ -380,5 +380,4 @@ export const orderApiService = new OrderApiService();
 // EXPORTS
 // ========================================
 
-export { OrderApiService };
 export default orderApiService;

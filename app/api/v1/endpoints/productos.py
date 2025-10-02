@@ -5,13 +5,23 @@
 # Licensed under the proprietary license detailed in a LICENSE file in the root of this project.
 # ---------------------------------------------------------------------------------------------
 #
+# ⚠️⚠️⚠️ DEPRECATED ENDPOINTS - WILL BE REMOVED IN v2.0.0 ⚠️⚠️⚠️
+#
+# These Spanish endpoints are DEPRECATED and will be removed in v2.0.0
+# Please migrate to /api/v1/products/ instead
+#
+# Migration guide: See SAFE_API_MIGRATION_STRATEGY.md
+# Timeline: These endpoints will be removed after 3 weeks (2025-10-22)
+#
+# ---------------------------------------------------------------------------------------------
+#
 # Nombre del Archivo: productos.py
 # Ruta: ~/app/api/v1/endpoints/productos.py
 # Autor: Jairo
 # Fecha de Creación: 2025-01-14
-# Última Actualización: 2025-08-05
-# Versión: 1.2.0
-# Propósito: Endpoints de gestión de productos para la API v1
+# Última Actualización: 2025-10-01
+# Versión: 1.3.0-deprecated
+# Propósito: Endpoints de gestión de productos para la API v1 (DEPRECATED)
 #            Implementa CRUD operations con validaciones empresariales
 #            Incluye endpoint para upload múltiple de imágenes
 #
@@ -19,11 +29,15 @@
 # 2025-01-14 - Implementación inicial del endpoint POST /productos
 # 2025-08-05 - Agregado endpoint PATCH /productos/{id} para actualización parcial
 # 2025-08-05 - Agregado endpoint POST /productos/{id}/imagenes para upload de imágenes
+# 2025-10-01 - DEPRECATED: Marked for removal, migrate to /products/
 #
 # ---------------------------------------------------------------------------------------------
 
 """
 Endpoints de gestión de productos para la API v1.
+
+⚠️ DEPRECATED: This module is deprecated and will be removed in v2.0.0
+Please migrate to /api/v1/products/ instead
 
 Este módulo contiene:
 - POST /productos: Crear nuevos productos con validaciones
@@ -36,6 +50,10 @@ Este módulo contiene:
 - Validaciones empresariales (SKU único, datos requeridos)
 - Manejo de errores específicos del dominio
 - Logging estructurado para auditoría
+
+Migration: All endpoints are kept functional for backwards compatibility
+           but will log deprecation warnings. Please update your client code
+           to use /api/v1/products/ endpoints instead.
 """
 
 import logging
@@ -200,9 +218,9 @@ async def get_productos(
     precio_min: Optional[float] = Query(None, ge=0, description="Precio mínimo"),
     precio_max: Optional[float] = Query(None, ge=0, description="Precio máximo"),
     # Ordenamiento
-    sort_by: Optional[str] = Query("created_at", description="Campo para ordenar"),
+    sort_by: Optional[str] = Query("created_at", alias="sortBy", description="Campo para ordenar"),
     sort_order: Optional[str] = Query(
-        "desc", pattern="^(asc|desc)$", description="Orden de clasificación"
+        "desc", alias="sortOrder", pattern="^(asc|desc)$", description="Orden de clasificación"
     ),
     # Paginación
     page: int = Query(1, ge=1, description="Página actual (1-indexed)"),
@@ -250,8 +268,12 @@ async def get_productos(
         count_result = await db.execute(count_stmt)
         total = count_result.scalar() or 0
 
-        # Construir query para datos
-        stmt = select(Product)
+        # Construir query para datos con eager loading de imágenes e inventario
+        from sqlalchemy.orm import selectinload
+        stmt = select(Product).options(
+            selectinload(Product.images),
+            selectinload(Product.ubicaciones_inventario)
+        )
         if where_clause is not None:
             stmt = stmt.where(where_clause)
 
@@ -280,12 +302,39 @@ async def get_productos(
 
         logger.info(f"Obtenidos {len(productos)} productos de {total} totales (página {page})")
 
-        # Crear respuesta paginada - agregar stock_quantity como 0 por defecto
-        # El stock real se manejará en una fase posterior con eager loading
+        # Crear respuesta paginada con stock real desde inventario
+        import json
         productos_response = []
         for producto in productos:
-            # Crear dict del producto sin intentar acceder a relaciones
-            producto_data = ProductResponse.model_validate(producto)
+            # Convertir a dict incluyendo columnas y relaciones
+            producto_dict = {
+                **{c.name: getattr(producto, c.name) for c in producto.__table__.columns}
+            }
+
+            # Agregar relación de imágenes
+            producto_dict['images'] = producto.images
+
+            # Calcular stock real desde ubicaciones_inventario
+            stock_total = 0
+            if producto.ubicaciones_inventario:
+                stock_total = sum(inv.cantidad for inv in producto.ubicaciones_inventario)
+            producto_dict['stock_quantity'] = stock_total
+
+            # Parsear dimensiones si es string JSON
+            if producto_dict.get("dimensiones") and isinstance(producto_dict["dimensiones"], str):
+                try:
+                    producto_dict["dimensiones"] = json.loads(producto_dict["dimensiones"])
+                except:
+                    pass
+
+            # Parsear tags si es string JSON
+            if producto_dict.get("tags") and isinstance(producto_dict["tags"], str):
+                try:
+                    producto_dict["tags"] = json.loads(producto_dict["tags"])
+                except:
+                    pass
+
+            producto_data = ProductResponse.model_validate(producto_dict)
             productos_response.append(producto_data)
 
         return PaginatedResponse(
@@ -331,13 +380,57 @@ async def get_producto_by_id(
     try:
         logger.info(f"Buscando producto con ID: {producto_id}")
 
-        # Get product using validation helper
-        producto = await get_product_or_404(producto_id, db)
+        # Get product with inventory eager loading
+        from sqlalchemy.orm import selectinload
+        stmt = select(Product).options(
+            selectinload(Product.images),
+            selectinload(Product.ubicaciones_inventario)
+        ).where(
+            Product.id == producto_id,
+            Product.deleted_at.is_(None)
+        )
+        result = await db.execute(stmt)
+        producto = result.scalar_one_or_none()
+
+        if not producto:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Product with ID {producto_id} not found"
+            )
 
         logger.info(f"Producto encontrado: SKU={producto.sku}, ID={producto.id}")
 
+        # Convertir a dict y parsear JSON strings
+        import json
+        producto_dict = {
+            **{c.name: getattr(producto, c.name) for c in producto.__table__.columns}
+        }
+
+        # Agregar imágenes
+        producto_dict['images'] = producto.images
+
+        # Calcular stock real desde ubicaciones_inventario
+        stock_total = 0
+        if producto.ubicaciones_inventario:
+            stock_total = sum(inv.cantidad for inv in producto.ubicaciones_inventario)
+        producto_dict['stock_quantity'] = stock_total
+
+        # Parsear dimensiones si es string JSON
+        if producto_dict.get("dimensiones") and isinstance(producto_dict["dimensiones"], str):
+            try:
+                producto_dict["dimensiones"] = json.loads(producto_dict["dimensiones"])
+            except:
+                pass
+
+        # Parsear tags si es string JSON
+        if producto_dict.get("tags") and isinstance(producto_dict["tags"], str):
+            try:
+                producto_dict["tags"] = json.loads(producto_dict["tags"])
+            except:
+                pass
+
         # Convertir a ProductResponse
-        return ProductResponse.model_validate(producto)
+        return ProductResponse.model_validate(producto_dict)
     except HTTPException:
         raise
     except Exception as e:
@@ -418,6 +511,14 @@ async def update_producto(
 
         # Aplicar actualizaciones
         for field, value in update_data.items():
+            # Convertir dimensiones a JSON string si es un dict
+            if field == "dimensiones" and isinstance(value, dict):
+                import json
+                value = json.dumps(value)
+            # Convertir tags a JSON string si es una lista
+            elif field == "tags" and isinstance(value, list):
+                import json
+                value = json.dumps(value)
             setattr(producto, field, value)
 
         # Actualizar metadatos de tracking si el método existe
@@ -428,8 +529,28 @@ async def update_producto(
         await db.commit()
         await db.refresh(producto)
 
+        # Convertir JSON strings de vuelta a dict/list para la respuesta
+        import json
+        producto_dict = {
+            **{c.name: getattr(producto, c.name) for c in producto.__table__.columns}
+        }
+
+        # Parsear dimensiones si es string JSON
+        if producto_dict.get("dimensiones") and isinstance(producto_dict["dimensiones"], str):
+            try:
+                producto_dict["dimensiones"] = json.loads(producto_dict["dimensiones"])
+            except:
+                pass
+
+        # Parsear tags si es string JSON
+        if producto_dict.get("tags") and isinstance(producto_dict["tags"], str):
+            try:
+                producto_dict["tags"] = json.loads(producto_dict["tags"])
+            except:
+                pass
+
         logger.info(f"Producto actualizado exitosamente: {producto_id}")
-        return ProductResponse.model_validate(producto)
+        return ProductResponse.model_validate(producto_dict)
 
     except HTTPException:
         raise

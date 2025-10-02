@@ -9,7 +9,11 @@ const CheckoutSummary: React.FC = () => {
     shipping_address,
     payment_info,
     order_notes,
-    getTotalWithShipping
+    getTotalWithShipping,
+    getSubtotal,
+    getIVA,
+    getShipping,
+    getTotal
   } = useCheckoutStore();
 
   const formatCurrency = (amount: number) => {
@@ -20,9 +24,11 @@ const CheckoutSummary: React.FC = () => {
     }).format(amount);
   };
 
-  const tax_amount = cart_total * 0.19; // 19% IVA
-  const total_with_tax = cart_total + tax_amount;
-  const final_total = total_with_tax + shipping_cost;
+  // Use store methods for consistent calculations (same as Cart page)
+  const subtotal = getSubtotal();
+  const tax_amount = getIVA();
+  const shipping = getShipping(); // Always calculate shipping based on subtotal
+  const final_total = getTotal(); // subtotal + IVA + shipping
 
   return (
     <div className="space-y-6">
@@ -85,7 +91,7 @@ const CheckoutSummary: React.FC = () => {
         <div className="mt-6 pt-4 border-t border-gray-200 space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-gray-600">Subtotal</span>
-            <span className="text-gray-900">{formatCurrency(cart_total)}</span>
+            <span className="text-gray-900">{formatCurrency(subtotal)}</span>
           </div>
 
           <div className="flex justify-between text-sm">
@@ -93,12 +99,12 @@ const CheckoutSummary: React.FC = () => {
             <span className="text-gray-900">{formatCurrency(tax_amount)}</span>
           </div>
 
-          {shipping_cost > 0 && (
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Envío</span>
-              <span className="text-gray-900">{formatCurrency(shipping_cost)}</span>
-            </div>
-          )}
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-600">Envío</span>
+            <span className={`font-semibold ${shipping === 0 ? 'text-green-600' : 'text-gray-900'}`}>
+              {shipping === 0 ? 'GRATIS' : formatCurrency(shipping)}
+            </span>
+          </div>
 
           <div className="flex justify-between text-base font-medium pt-2 border-t border-gray-200">
             <span className="text-gray-900">Total</span>

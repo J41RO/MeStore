@@ -73,15 +73,19 @@ const MarketplaceFooter: React.FC = () => {
             <div className="space-y-3">
               <div className="flex items-center space-x-3">
                 <Mail className="w-5 h-5 text-blue-400" />
-                <span className="text-gray-300">soporte@mestore.com</span>
+                <a href="mailto:contacto@mestore.com.co" className="text-gray-300 hover:text-white transition-colors">
+                  contacto@mestore.com.co
+                </a>
               </div>
               <div className="flex items-center space-x-3">
                 <Phone className="w-5 h-5 text-blue-400" />
-                <span className="text-gray-300">+57 300 123 4567</span>
+                <a href="tel:+576076430000" className="text-gray-300 hover:text-white transition-colors">
+                  +57 607 643 0000
+                </a>
               </div>
               <div className="flex items-center space-x-3">
                 <MapPin className="w-5 h-5 text-blue-400" />
-                <span className="text-gray-300">Bucaramanga, Santander</span>
+                <span className="text-gray-300">Bucaramanga, Santander, Colombia</span>
               </div>
             </div>
           </div>
@@ -90,7 +94,7 @@ const MarketplaceFooter: React.FC = () => {
         {/* Bottom Bar */}
         <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
           <div className="text-gray-400 text-sm">
-            © 2024 MeStore Marketplace. Todos los derechos reservados.
+            © 2025 MeStore Marketplace. Todos los derechos reservados.
           </div>
           <div className="flex space-x-6 mt-4 md:mt-0">
             <Link to="/marketplace/privacy" className="text-gray-400 hover:text-white text-sm transition-colors">

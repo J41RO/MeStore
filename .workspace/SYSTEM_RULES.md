@@ -63,6 +63,9 @@
 - Modificar configuración Docker
 - Alterar dependencias de autenticación
 - Crear usuarios duplicados en testing
+- **🚨 NUEVO: Crear endpoints en español** (Directiva CEO 2025-10-01)
+- **🚨 NUEVO: Usar nombres de variables/funciones en español en código** (Directiva CEO 2025-10-01)
+- **🚨 NUEVO: Crear archivos con nombres en español** (Directiva CEO 2025-10-01)
 
 ### 🏢 JURISDICCIÓN POR DEPARTAMENTOS
 
@@ -100,6 +103,14 @@
 **SOLUCIÓN**: Consultar con `security-backend-ai` SIEMPRE
 **RESPONSABLE**: Solo `security-backend-ai` modifica auth
 
+#### 🚨 NUEVO PROHIBIDO: "Código en español" (DIRECTIVA CEO 2025-10-01)
+**PROBLEMA**: APIs duplicadas en español/inglés, código inconsistente
+**SOLUCIÓN OBLIGATORIA**:
+  - ✅ **TODO código técnico EN INGLÉS**: APIs, variables, funciones, archivos, comentarios
+  - ✅ **TODO contenido de usuario EN ESPAÑOL**: UI, mensajes, errores, notificaciones
+**RESPONSABLES**: backend-framework-ai + api-architect-ai
+**REFERENCIA**: `.workspace/URGENT_BROADCAST_CEO_CODE_STANDARDIZATION.md`
+
 ### 🔧 HERRAMIENTAS DE VALIDACIÓN
 
 #### Antes de Commit (Obligatorio)
@@ -126,15 +137,22 @@ cat .workspace/project/[archivo].md
 
 #### Template Obligatorio para Commits
 ```
-tipo(área): descripción breve
+tipo(área): descripción en inglés
 
-- Archivo: ruta/archivo.py
-- Agente: nombre-agente
-- Motivo: explicación detallada
-- Impacto: qué sistemas afecta
-- Tests: executed/passed
-- Aprobación: agente-responsable (si aplica)
+Workspace-Check: ✅ Consultado
+File: ruta/del/archivo
+Agent: nombre-del-agente
+Protocol: [FOLLOWED/PRIOR_CONSULTATION/APPROVAL_OBTAINED]
+Tests: [PASSED/FAILED]
+Code-Standard: ✅ ENGLISH_CODE / ✅ SPANISH_UI
+API-Duplication: [NONE/CONSOLIDATED/DEPRECATED]
+Responsible: agente-que-aprobó (si aplica)
+
+Description:
+[Descripción detallada del cambio]
 ```
+
+**🚨 NUEVO (2025-10-01)**: Campo `Code-Standard` es OBLIGATORIO para validar directiva CEO
 
 ### 🚨 ESCALACIÓN DE PROBLEMAS
 

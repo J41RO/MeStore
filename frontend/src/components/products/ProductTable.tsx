@@ -164,7 +164,28 @@ const ProductTable: React.FC<ProductTableProps> = ({
   selectedProducts = [],
   onSelectionChange,
 }) => {
-  // Estado y lógica para manejo de selección múltiple  
+  // 🖼️ DIAGNÓSTICO DE IMÁGENES
+  React.useEffect(() => {
+    if (products && products.length > 0) {
+      console.log('🖼️ [ProductTable] DIAGNÓSTICO DE IMÁGENES:');
+      console.log('📊 Total productos:', products.length);
+      const firstProduct = products[0];
+      console.log('🔍 Primer producto completo:', firstProduct);
+      console.log('🖼️ firstProduct.images:', firstProduct.images);
+      console.log('🖼️ firstProduct.main_image_url:', firstProduct.main_image_url);
+      console.log('🖼️ firstProduct.imageUrl:', firstProduct.imageUrl);
+      console.log('🖼️ firstProduct.imagen:', (firstProduct as any).imagen);
+      console.log('🖼️ firstProduct.imagenes:', (firstProduct as any).imagenes);
+
+      // Contar cuántos productos tienen imágenes
+      const withImages = products.filter(p =>
+        p.images?.length > 0 || p.main_image_url || p.imageUrl
+      ).length;
+      console.log(`✅ Productos con imágenes: ${withImages}/${products.length}`);
+    }
+  }, [products]);
+
+  // Estado y lógica para manejo de selección múltiple
   const productsList = products || [];
   
   const handleSelectAll = () => {

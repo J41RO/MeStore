@@ -37,7 +37,7 @@ const PayoutHistoryTable: React.FC<PayoutHistoryTableProps> = ({
         setLoading(true);
         const token = localStorage.getItem('access_token');
         const response = await fetch(
-          `/api/v1/comisiones/payout-history/${payoutId}`,
+          `/api/v1/commissions/payout-history/${payoutId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

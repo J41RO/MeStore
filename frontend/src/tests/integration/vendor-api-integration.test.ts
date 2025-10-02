@@ -111,7 +111,7 @@ describe('Vendor API Integration Tests', () => {
   describe('1. Vendor Registration API', () => {
     it('should successfully register a new vendor', async () => {
       // Mock successful registration response
-      mockAxios.onPost('/api/v1/vendedores/register').reply(201, {
+      mockAxios.onPost('/api/v1/vendors/register').reply(201, {
         success: true,
         data: {
           id: 'vendor-123',
@@ -130,7 +130,7 @@ describe('Vendor API Integration Tests', () => {
 
       // Verify request was made with correct data
       const request = mockAxios.history.post[0];
-      expect(request.url).toBe('/api/v1/vendedores/register');
+      expect(request.url).toBe('/api/v1/vendors/register');
       expect(JSON.parse(request.data)).toMatchObject({
         business_name: MOCK_VENDOR_DATA.businessName,
         email: MOCK_VENDOR_DATA.email,
@@ -140,7 +140,7 @@ describe('Vendor API Integration Tests', () => {
 
     it('should handle registration validation errors', async () => {
       // Mock validation error response
-      mockAxios.onPost('/api/v1/vendedores/register').reply(400, {
+      mockAxios.onPost('/api/v1/vendors/register').reply(400, {
         success: false,
         errors: {
           email: ['Email already exists'],
@@ -160,7 +160,7 @@ describe('Vendor API Integration Tests', () => {
 
     it('should handle network errors gracefully', async () => {
       // Mock network error
-      mockAxios.onPost('/api/v1/vendedores/register').networkError();
+      mockAxios.onPost('/api/v1/vendors/register').networkError();
 
       try {
         await VendorService.register(MOCK_VENDOR_DATA);
@@ -170,7 +170,7 @@ describe('Vendor API Integration Tests', () => {
     });
 
     it('should include proper authentication headers', async () => {
-      mockAxios.onPost('/api/v1/vendedores/register').reply(201, { success: true });
+      mockAxios.onPost('/api/v1/vendors/register').reply(201, { success: true });
 
       await VendorService.register(MOCK_VENDOR_DATA);
 
@@ -184,7 +184,7 @@ describe('Vendor API Integration Tests', () => {
     const vendorId = 'vendor-123';
 
     it('should fetch vendor profile successfully', async () => {
-      mockAxios.onGet(`/api/v1/vendedores/${vendorId}`).reply(200, {
+      mockAxios.onGet(`/api/v1/vendors/${vendorId}`).reply(200, {
         success: true,
         data: {
           id: vendorId,
@@ -209,7 +209,7 @@ describe('Vendor API Integration Tests', () => {
         phone: '3009876543'
       };
 
-      mockAxios.onPut(`/api/v1/vendedores/${vendorId}`).reply(200, {
+      mockAxios.onPut(`/api/v1/vendors/${vendorId}`).reply(200, {
         success: true,
         data: { ...MOCK_VENDOR_DATA, ...updateData }
       });
@@ -224,7 +224,7 @@ describe('Vendor API Integration Tests', () => {
     });
 
     it('should handle unauthorized access', async () => {
-      mockAxios.onGet(`/api/v1/vendedores/${vendorId}`).reply(401, {
+      mockAxios.onGet(`/api/v1/vendors/${vendorId}`).reply(401, {
         success: false,
         message: 'Unauthorized access'
       });
@@ -248,7 +248,7 @@ describe('Vendor API Integration Tests', () => {
         name: `Product ${i + 1}`
       }));
 
-      mockAxios.onGet(`/api/v1/vendedores/${vendorId}/products`).reply(200, {
+      mockAxios.onGet(`/api/v1/vendors/${vendorId}/products`).reply(200, {
         success: true,
         data: {
           products: mockProducts,
@@ -276,7 +276,7 @@ describe('Vendor API Integration Tests', () => {
         category_id: 'electronics'
       };
 
-      mockAxios.onPost(`/api/v1/vendedores/${vendorId}/products`).reply(201, {
+      mockAxios.onPost(`/api/v1/vendors/${vendorId}/products`).reply(201, {
         success: true,
         data: { ...MOCK_PRODUCT, ...newProductData, id: 'new-product-123' }
       });
@@ -295,7 +295,7 @@ describe('Vendor API Integration Tests', () => {
       const productId = 'product-123';
       const updateData = { price: 999000, stock: 15 };
 
-      mockAxios.onPut(`/api/v1/vendedores/${vendorId}/products/${productId}`).reply(200, {
+      mockAxios.onPut(`/api/v1/vendors/${vendorId}/products/${productId}`).reply(200, {
         success: true,
         data: { ...MOCK_PRODUCT, ...updateData }
       });
@@ -310,7 +310,7 @@ describe('Vendor API Integration Tests', () => {
     it('should delete product', async () => {
       const productId = 'product-123';
 
-      mockAxios.onDelete(`/api/v1/vendedores/${vendorId}/products/${productId}`).reply(200, {
+      mockAxios.onDelete(`/api/v1/vendors/${vendorId}/products/${productId}`).reply(200, {
         success: true,
         message: 'Product deleted successfully'
       });
@@ -325,7 +325,7 @@ describe('Vendor API Integration Tests', () => {
       const productIds = ['product-1', 'product-2', 'product-3'];
       const bulkAction = 'activate';
 
-      mockAxios.onPost(`/api/v1/vendedores/${vendorId}/products/bulk`).reply(200, {
+      mockAxios.onPost(`/api/v1/vendors/${vendorId}/products/bulk`).reply(200, {
         success: true,
         data: {
           updated: productIds.length,
@@ -349,7 +349,7 @@ describe('Vendor API Integration Tests', () => {
     const vendorId = 'vendor-123';
 
     it('should fetch vendor analytics metrics', async () => {
-      mockAxios.onGet(`/api/v1/vendedores/${vendorId}/analytics`).reply(200, {
+      mockAxios.onGet(`/api/v1/vendors/${vendorId}/analytics`).reply(200, {
         success: true,
         data: MOCK_ANALYTICS
       });
@@ -369,7 +369,7 @@ describe('Vendor API Integration Tests', () => {
       const startDate = '2024-01-01';
       const endDate = '2024-01-31';
 
-      mockAxios.onGet(`/api/v1/vendedores/${vendorId}/analytics`).reply(200, {
+      mockAxios.onGet(`/api/v1/vendors/${vendorId}/analytics`).reply(200, {
         success: true,
         data: MOCK_ANALYTICS
       });
@@ -391,7 +391,7 @@ describe('Vendor API Integration Tests', () => {
         home: 300000
       };
 
-      mockAxios.onGet(`/api/v1/vendedores/${vendorId}/analytics/revenue-by-category`).reply(200, {
+      mockAxios.onGet(`/api/v1/vendors/${vendorId}/analytics/revenue-by-category`).reply(200, {
         success: true,
         data: categoryBreakdown
       });
@@ -406,7 +406,7 @@ describe('Vendor API Integration Tests', () => {
     it('should export analytics data', async () => {
       const csvData = 'Date,Revenue,Orders\n2024-01-01,50000,5\n2024-01-02,75000,8';
 
-      mockAxios.onGet(`/api/v1/vendedores/${vendorId}/analytics/export`).reply(200, csvData, {
+      mockAxios.onGet(`/api/v1/vendors/${vendorId}/analytics/export`).reply(200, csvData, {
         'content-type': 'text/csv',
         'content-disposition': 'attachment; filename=analytics.csv'
       });
@@ -442,7 +442,7 @@ describe('Vendor API Integration Tests', () => {
         }
       ];
 
-      mockAxios.onGet(`/api/v1/vendedores/${vendorId}/orders`).reply(200, {
+      mockAxios.onGet(`/api/v1/vendors/${vendorId}/orders`).reply(200, {
         success: true,
         data: {
           orders: mockOrders,
@@ -463,7 +463,7 @@ describe('Vendor API Integration Tests', () => {
       const orderId = 'order-123';
       const newStatus = 'shipped';
 
-      mockAxios.onPut(`/api/v1/vendedores/${vendorId}/orders/${orderId}/status`).reply(200, {
+      mockAxios.onPut(`/api/v1/vendors/${vendorId}/orders/${orderId}/status`).reply(200, {
         success: true,
         data: {
           id: orderId,
@@ -560,7 +560,7 @@ describe('Vendor API Integration Tests', () => {
       const formData = new FormData();
       formData.append('image', mockFile);
 
-      mockAxios.onPost(`/api/v1/vendedores/${vendorId}/products/images`).reply(200, {
+      mockAxios.onPost(`/api/v1/vendors/${vendorId}/products/images`).reply(200, {
         success: true,
         data: {
           url: 'https://cdn.mestocker.com/images/product-123.jpg',
@@ -583,7 +583,7 @@ describe('Vendor API Integration Tests', () => {
       const formData = new FormData();
       formData.append('image', mockFile);
 
-      mockAxios.onPost(`/api/v1/vendedores/${vendorId}/products/images`).reply(413, {
+      mockAxios.onPost(`/api/v1/vendors/${vendorId}/products/images`).reply(413, {
         success: false,
         message: 'File too large',
         max_size: '5MB'
@@ -600,7 +600,7 @@ describe('Vendor API Integration Tests', () => {
 
   describe('8. Rate Limiting and Error Handling', () => {
     it('should handle rate limiting responses', async () => {
-      mockAxios.onGet('/api/v1/vendedores/vendor-123').reply(429, {
+      mockAxios.onGet('/api/v1/vendors/vendor-123').reply(429, {
         success: false,
         message: 'Rate limit exceeded',
         retry_after: 60
@@ -616,7 +616,7 @@ describe('Vendor API Integration Tests', () => {
     });
 
     it('should handle server errors gracefully', async () => {
-      mockAxios.onGet('/api/v1/vendedores/vendor-123').reply(500, {
+      mockAxios.onGet('/api/v1/vendors/vendor-123').reply(500, {
         success: false,
         message: 'Internal server error'
       });
@@ -632,9 +632,9 @@ describe('Vendor API Integration Tests', () => {
     it('should retry failed requests automatically', async () => {
       // First call fails, second succeeds
       mockAxios
-        .onGet('/api/v1/vendedores/vendor-123')
+        .onGet('/api/v1/vendors/vendor-123')
         .replyOnce(500)
-        .onGet('/api/v1/vendedores/vendor-123')
+        .onGet('/api/v1/vendors/vendor-123')
         .reply(200, { success: true, data: MOCK_VENDOR_DATA });
 
       // Configure retry logic (this would be in the actual service)
@@ -648,7 +648,7 @@ describe('Vendor API Integration Tests', () => {
   describe('9. Authentication Integration', () => {
     it('should refresh token when expired', async () => {
       // Mock expired token response
-      mockAxios.onGet('/api/v1/vendedores/vendor-123').reply(401, {
+      mockAxios.onGet('/api/v1/vendors/vendor-123').reply(401, {
         success: false,
         message: 'Token expired'
       });
@@ -663,7 +663,7 @@ describe('Vendor API Integration Tests', () => {
       });
 
       // Mock retry with new token
-      mockAxios.onGet('/api/v1/vendedores/vendor-123').reply(200, {
+      mockAxios.onGet('/api/v1/vendors/vendor-123').reply(200, {
         success: true,
         data: MOCK_VENDOR_DATA
       });
@@ -675,7 +675,7 @@ describe('Vendor API Integration Tests', () => {
     });
 
     it('should redirect to login when refresh fails', async () => {
-      mockAxios.onGet('/api/v1/vendedores/vendor-123').reply(401);
+      mockAxios.onGet('/api/v1/vendors/vendor-123').reply(401);
       mockAxios.onPost('/api/v1/auth/refresh').reply(401);
 
       try {

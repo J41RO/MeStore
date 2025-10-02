@@ -367,7 +367,7 @@ const SortableProductCard: React.FC<{ product: Product; isSelected: boolean; onS
               </span>
               <span className="flex items-center gap-1">
                 <Star className="w-3 h-3" fill="currentColor" />
-                {product.rating.toFixed(1)}
+                {(product.rating ?? 0).toFixed(1)}
               </span>
             </div>
           </div>

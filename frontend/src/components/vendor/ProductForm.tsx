@@ -299,6 +299,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
   // Local state
   const [images, setImages] = useState<ImageUpload[]>([]);
+  const [initialImages, setInitialImages] = useState<ImageUpload[]>([]); // Track original images
   const [activeTab, setActiveTab] = useState<'basic' | 'inventory' | 'seo'>('basic');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -308,21 +309,70 @@ const ProductForm: React.FC<ProductFormProps> = ({
   const watchLowStockThreshold = watch('low_stock_threshold');
 
   /**
-   * Initialize form
+   * Initialize form and load product images in edit mode
    */
   useEffect(() => {
+    console.log('🔄 ProductForm useEffect ejecutado');
+    console.log('📦 product:', product);
+    console.log('🆔 product?.id:', product?.id);
+    console.log('🖼️ product?.images:', product?.images);
+
     fetchCategories();
 
-    // Initialize images from product
-    if (product?.images) {
-      const productImages: ImageUpload[] = product.images.map((img, index) => ({
-        id: `existing-${img.id || index}`,
-        url: img.url,
-        isUploading: false,
-        uploadProgress: 100,
-      }));
-      setImages(productImages);
-    }
+    // Load existing images when editing a product
+    const loadProductImages = async () => {
+      if (product?.id) {
+        console.log('✅ MODO EDICIÓN DETECTADO - ID:', product.id);
+
+        try {
+          const token = localStorage.getItem('authToken') || localStorage.getItem('token') || '';
+          console.log('🔑 Token encontrado:', token ? 'Sí (' + token.substring(0, 20) + '...)' : 'No');
+
+          const url = `http://192.168.1.137:8000/api/v1/products/${product.id}/imagenes`;
+          console.log('📡 Haciendo GET a:', url);
+
+          // Fetch images from backend
+          const response = await fetch(url, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+
+          console.log('📥 Response status:', response.status);
+
+          if (response.ok) {
+            const imagesData = await response.json();
+            console.log('✅ Imágenes cargadas para producto:', product.id);
+            console.log('📸 Total imágenes:', imagesData.length);
+            console.log('🖼️ Datos de imágenes:', imagesData);
+
+            // Map backend images to ImageUpload format
+            const productImages: ImageUpload[] = imagesData.map((img: any, index: number) => ({
+              id: img.id, // Use the actual backend image ID
+              url: img.public_url || img.url,
+              isUploading: false,
+              uploadProgress: 100,
+            }));
+
+            console.log('🎨 Imágenes mapeadas:', productImages);
+            setImages(productImages);
+            setInitialImages(productImages); // Store initial state to detect deletions
+            console.log('✅ State de imágenes actualizado');
+          } else {
+            const errorText = await response.text();
+            console.warn('⚠️ No se pudieron cargar las imágenes del producto');
+            console.warn('⚠️ Response status:', response.status);
+            console.warn('⚠️ Response body:', errorText);
+          }
+        } catch (error) {
+          console.error('❌ Error cargando imágenes del producto:', error);
+        }
+      } else {
+        console.log('➕ MODO CREAR - No hay product.id');
+      }
+    };
+
+    loadProductImages();
   }, [fetchCategories, product]);
 
   /**
@@ -347,14 +397,14 @@ const ProductForm: React.FC<ProductFormProps> = ({
     setIsSaving(true);
 
     try {
-      // Prepare product data
+      // Prepare product data (without images - those are handled separately)
       const productData = {
         ...data,
         tags: data.tags ? data.tags.split(',').map(tag => tag.trim()).filter(Boolean) : [],
-        images: images.map(img => ({ url: img.url })), // Simplified for demo
       };
 
       let success = false;
+      let productId: string;
 
       if (product) {
         // Update existing product
@@ -364,18 +414,119 @@ const ProductForm: React.FC<ProductFormProps> = ({
         };
         const result = await updateProduct(product.id, updateData);
         success = !!result;
+        productId = product.id;
+        console.log('✅ Producto actualizado:', productId);
       } else {
         // Create new product
         const createData: CreateProductRequest = productData as CreateProductRequest;
         const result = await createProduct(createData);
         success = !!result;
+        productId = result?.id || '';
+        console.log('✅ Producto creado:', productId);
+      }
+
+      // Handle image operations (delete removed images, upload new ones)
+      if (success && productId && product) { // Only for edit mode
+        const token = localStorage.getItem('authToken') || localStorage.getItem('token') || '';
+
+        // 1. Delete removed images
+        const currentImageIds = images.map(img => img.id);
+        const deletedImages = initialImages.filter(img => !currentImageIds.includes(img.id));
+
+        for (const deletedImage of deletedImages) {
+          try {
+            console.log('🗑️ Eliminando imagen:', deletedImage.id);
+            const deleteResponse = await fetch(
+              `http://192.168.1.137:8000/api/v1/products/imagenes/${deletedImage.id}`,
+              {
+                method: 'DELETE',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                },
+              }
+            );
+
+            if (deleteResponse.ok) {
+              console.log('✅ Imagen eliminada:', deletedImage.id);
+            } else {
+              console.error('❌ Error eliminando imagen:', await deleteResponse.text());
+            }
+          } catch (error) {
+            console.error('❌ Error en DELETE imagen:', error);
+          }
+        }
+
+        // 2. Upload new images
+        const newImages = images.filter(img => img.file); // Images with file property are new
+
+        if (newImages.length > 0) {
+          console.log('📤 Subiendo', newImages.length, 'imágenes nuevas...');
+
+          const formData = new FormData();
+          newImages.forEach(img => {
+            if (img.file) {
+              formData.append('files', img.file);
+            }
+          });
+
+          const uploadResponse = await fetch(
+            `http://192.168.1.137:8000/api/v1/products/${productId}/imagenes`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+              },
+              body: formData,
+            }
+          );
+
+          if (uploadResponse.ok) {
+            const uploadResult = await uploadResponse.json();
+            console.log('✅ Imágenes subidas exitosamente:', uploadResult);
+          } else {
+            console.error('❌ Error subiendo imágenes:', await uploadResponse.text());
+          }
+        }
+      } else if (success && productId && !product) {
+        // Create mode - just upload images
+        const newImages = images.filter(img => img.file);
+
+        if (newImages.length > 0) {
+          console.log('📤 Subiendo', newImages.length, 'imágenes para producto nuevo...');
+
+          const formData = new FormData();
+          newImages.forEach(img => {
+            if (img.file) {
+              formData.append('files', img.file);
+            }
+          });
+
+          const token = localStorage.getItem('authToken') || localStorage.getItem('token') || '';
+          const uploadResponse = await fetch(
+            `http://192.168.1.137:8000/api/v1/products/${productId}/imagenes`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+              },
+              body: formData,
+            }
+          );
+
+          if (uploadResponse.ok) {
+            const uploadResult = await uploadResponse.json();
+            console.log('✅ Imágenes subidas exitosamente:', uploadResult);
+          } else {
+            console.error('❌ Error subiendo imágenes:', await uploadResponse.text());
+          }
+        }
       }
 
       if (success) {
         onSubmit();
       }
     } catch (error) {
-      console.error('Form submission error:', error);
+      console.error('❌ Error en form submission:', error);
     } finally {
       setIsSaving(false);
     }

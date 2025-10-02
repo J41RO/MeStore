@@ -1,7 +1,7 @@
 // ~/frontend/src/components/EditProductModal.tsx
 // Copyright (c) 2025 Jairo. Todos los derechos reservados.
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { X, Edit } from 'lucide-react';
 import ProductForm from './forms/ProductForm';
 import { Product, UpdateProductData } from '../types/api.types';
@@ -19,6 +19,8 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
   product,
   onProductUpdated,
 }) => {
+  console.log('🔄 [EditProductModal] Component renderizado');
+
   const handleProductSubmit = (data: UpdateProductData) => {
     console.log('Producto actualizado:', data);
     // El ProductForm ya maneja la actualización vía API
@@ -34,8 +36,9 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Preparar datos iniciales del producto para el formulario
-  const initialData = {
+  // FIX: Memoizar initialData para evitar crear nuevo objeto en cada render
+  // Esto previene infinite re-renders en ProductForm useEffect
+  const initialData = useMemo(() => ({
     id: product.id,
     name: product.name,
     description: product.description,
@@ -43,7 +46,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
     stock: product.stock,
     category: product.category as any,
     imageUrl: product.imageUrl || '',
-  };
+  }), [product.id, product.name, product.description, product.price, product.stock, product.category, product.imageUrl]);
 
   return (
     <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>

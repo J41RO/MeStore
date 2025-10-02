@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, User, ShoppingCart, Menu, X, Heart } from 'lucide-react';
+import { Search, User, Menu, X, Heart } from 'lucide-react';
+import CartButton from './CartButton';
+import CartDrawer from './CartDrawer';
 
 const MarketplaceNavbar: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -85,19 +87,13 @@ const MarketplaceNavbar: React.FC = () => {
               <Link
                 to="/marketplace/wishlist"
                 className="p-2 text-gray-600 hover:text-blue-600 transition-colors"
+                aria-label="Lista de deseos"
               >
                 <Heart className="w-6 h-6" />
               </Link>
-              
-              <Link
-                to="/marketplace/cart"
-                className="relative p-2 text-gray-600 hover:text-blue-600 transition-colors"
-              >
-                <ShoppingCart className="w-6 h-6" />
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  0
-                </span>
-              </Link>
+
+              {/* Cart Button with Badge */}
+              <CartButton />
 
               <Link
                 to="/auth/login"
@@ -194,6 +190,9 @@ const MarketplaceNavbar: React.FC = () => {
           </div>
         )}
       </nav>
+
+      {/* Cart Drawer - Sliding Panel */}
+      <CartDrawer />
     </>
   );
 };

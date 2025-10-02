@@ -31,7 +31,7 @@ const ComparativeDashboard: React.FC = () => {
   const fetchComparativeData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/v1/vendedores/dashboard/comparativa', {
+      const response = await fetch('/api/v1/vendors/dashboard/comparativa', {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -90,7 +90,7 @@ const ComparativeDashboard: React.FC = () => {
             Funcionalidad comparativa implementada
           </div>
           <div className='text-xs text-gray-500'>
-            Endpoint: /api/v1/vendedores/dashboard/comparativa
+            Endpoint: /api/v1/vendors/dashboard/comparativa
           </div>
           <div className='flex justify-center space-x-4 text-xs'>
             <span className='flex items-center space-x-1'>

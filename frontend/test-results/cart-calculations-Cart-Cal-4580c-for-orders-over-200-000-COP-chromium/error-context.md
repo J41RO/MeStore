@@ -1,0 +1,402 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - generic [ref=e6]:
+    - generic [ref=e7]:
+      - generic [ref=e8]: 📦 Envío gratis en compras mayores a $100,000
+      - generic [ref=e9]: ⚡ Entrega en 24h en Bucaramanga
+    - generic [ref=e10]:
+      - link "Ayuda" [ref=e11] [cursor=pointer]:
+        - /url: /marketplace/help
+      - link "Rastrear Pedido" [ref=e12] [cursor=pointer]:
+        - /url: /marketplace/track
+  - navigation [ref=e13]:
+    - generic [ref=e15]:
+      - link "MeStore Marketplace" [ref=e16] [cursor=pointer]:
+        - /url: /marketplace
+        - generic [ref=e17] [cursor=pointer]: MeStore
+        - generic [ref=e18] [cursor=pointer]: Marketplace
+      - generic [ref=e21]:
+        - textbox "Buscar productos..." [ref=e22]
+        - button [ref=e23] [cursor=pointer]:
+          - img [ref=e24] [cursor=pointer]
+      - generic [ref=e27]:
+        - link "Lista de deseos" [ref=e28] [cursor=pointer]:
+          - /url: /marketplace/wishlist
+          - img [ref=e29] [cursor=pointer]
+        - button "Carrito de compras, 0 artículos" [ref=e31] [cursor=pointer]:
+          - img [ref=e32] [cursor=pointer]
+        - link "Ingresar" [ref=e36] [cursor=pointer]:
+          - /url: /auth/login
+          - img [ref=e37] [cursor=pointer]
+          - generic [ref=e40] [cursor=pointer]: Ingresar
+    - generic [ref=e43]:
+      - link "Electrónicos" [ref=e44] [cursor=pointer]:
+        - /url: /marketplace/category/electrónicos
+      - link "Ropa y Moda" [ref=e45] [cursor=pointer]:
+        - /url: /marketplace/category/ropa-y-moda
+      - link "Hogar y Jardín" [ref=e46] [cursor=pointer]:
+        - /url: /marketplace/category/hogar-y-jardín
+      - link "Deportes" [ref=e47] [cursor=pointer]:
+        - /url: /marketplace/category/deportes
+      - link "Libros" [ref=e48] [cursor=pointer]:
+        - /url: /marketplace/category/libros
+      - link "Belleza" [ref=e49] [cursor=pointer]:
+        - /url: /marketplace/category/belleza
+      - link "Juguetes" [ref=e50] [cursor=pointer]:
+        - /url: /marketplace/category/juguetes
+      - link "Automotriz" [ref=e51] [cursor=pointer]:
+        - /url: /marketplace/category/automotriz
+  - main [ref=e52]:
+    - generic [ref=e56]:
+      - heading "Descubre el Mejor Marketplace Local" [level=1] [ref=e57]:
+        - text: Descubre el Mejor
+        - generic [ref=e58]: Marketplace Local
+      - paragraph [ref=e59]: Productos únicos de vendedores locales en Bucaramanga. Calidad garantizada, entrega rápida.
+      - generic [ref=e61]:
+        - textbox "¿Qué estás buscando hoy?" [ref=e62]
+        - button [ref=e63] [cursor=pointer]:
+          - img [ref=e64] [cursor=pointer]
+      - generic [ref=e67]:
+        - generic [ref=e68]:
+          - generic [ref=e69]: 500+
+          - generic [ref=e70]: Productos Únicos
+        - generic [ref=e71]:
+          - generic [ref=e72]: 50+
+          - generic [ref=e73]: Vendedores Locales
+        - generic [ref=e74]:
+          - generic [ref=e75]: 24h
+          - generic [ref=e76]: Entrega Express
+    - generic [ref=e78]:
+      - generic [ref=e79]:
+        - heading "Explora por Categorías" [level=2] [ref=e80]
+        - paragraph [ref=e81]: Encuentra exactamente lo que necesitas
+      - generic [ref=e82]:
+        - link "Electronics 0 productos" [ref=e83] [cursor=pointer]:
+          - /url: /catalog?category=ac99de2c-f2a9-4c47-adba-dcfb73d34b98
+          - img [ref=e85] [cursor=pointer]
+          - heading "Electronics" [level=3] [ref=e87] [cursor=pointer]
+          - paragraph [ref=e88] [cursor=pointer]: 0 productos
+        - link "Phones 0 productos" [ref=e89] [cursor=pointer]:
+          - /url: /catalog?category=cdb7bb57-a246-4110-a727-b7c590a5e4c1
+          - img [ref=e91] [cursor=pointer]
+          - heading "Phones" [level=3] [ref=e93] [cursor=pointer]
+          - paragraph [ref=e94] [cursor=pointer]: 0 productos
+        - link "Computers 0 productos" [ref=e95] [cursor=pointer]:
+          - /url: /catalog?category=49729850-b225-4ff1-9366-a75ef6d26956
+          - img [ref=e97] [cursor=pointer]
+          - heading "Computers" [level=3] [ref=e99] [cursor=pointer]
+          - paragraph [ref=e100] [cursor=pointer]: 0 productos
+        - link "Clothing 0 productos" [ref=e101] [cursor=pointer]:
+          - /url: /catalog?category=53fff93e-8a15-4263-bad1-c3d5381be595
+          - img [ref=e103] [cursor=pointer]
+          - heading "Clothing" [level=3] [ref=e105] [cursor=pointer]
+          - paragraph [ref=e106] [cursor=pointer]: 0 productos
+        - link "Home 0 productos" [ref=e107] [cursor=pointer]:
+          - /url: /catalog?category=d515af81-0f80-4713-a8bf-affcba368f95
+          - img [ref=e109] [cursor=pointer]
+          - heading "Home" [level=3] [ref=e111] [cursor=pointer]
+          - paragraph [ref=e112] [cursor=pointer]: 0 productos
+    - generic [ref=e114]:
+      - generic [ref=e115]:
+        - generic [ref=e116]:
+          - heading "Productos Destacados" [level=2] [ref=e117]
+          - paragraph [ref=e118]: Los favoritos de nuestros compradores
+        - link "Ver todos" [ref=e119] [cursor=pointer]:
+          - /url: /marketplace/featured
+          - text: Ver todos
+          - img [ref=e120] [cursor=pointer]
+      - generic [ref=e122]:
+        - generic [ref=e123]:
+          - generic [ref=e124]:
+            - img "iPhone 14 Pro Max" [ref=e125]
+            - generic [ref=e127]: "-10%"
+            - generic [ref=e128]:
+              - button [ref=e129] [cursor=pointer]:
+                - img [ref=e130] [cursor=pointer]
+              - link [ref=e132] [cursor=pointer]:
+                - /url: /marketplace/product/1
+                - img [ref=e133] [cursor=pointer]
+          - generic [ref=e136]:
+            - link "iPhone 14 Pro Max" [ref=e137] [cursor=pointer]:
+              - /url: /marketplace/product/1
+              - heading "iPhone 14 Pro Max" [level=3] [ref=e138] [cursor=pointer]
+            - paragraph [ref=e139]: TechStore BGA
+            - generic [ref=e140]:
+              - generic [ref=e141]:
+                - img [ref=e142]
+                - img [ref=e144]
+                - img [ref=e146]
+                - img [ref=e148]
+                - img [ref=e150]
+              - generic [ref=e152]: 4.8 (124)
+            - generic [ref=e154]:
+              - generic [ref=e155]: $4,500,000
+              - generic [ref=e156]: $5,000,000
+            - button "Agregar al Carrito" [ref=e157] [cursor=pointer]:
+              - img [ref=e158] [cursor=pointer]
+              - generic [ref=e162] [cursor=pointer]: Agregar al Carrito
+        - generic [ref=e163]:
+          - generic [ref=e164]:
+            - img "Laptop Gaming ASUS ROG" [ref=e165]
+            - generic [ref=e167]: Nuevo
+            - generic [ref=e168]:
+              - button [ref=e169] [cursor=pointer]:
+                - img [ref=e170] [cursor=pointer]
+              - link [ref=e172] [cursor=pointer]:
+                - /url: /marketplace/product/2
+                - img [ref=e173] [cursor=pointer]
+          - generic [ref=e176]:
+            - link "Laptop Gaming ASUS ROG" [ref=e177] [cursor=pointer]:
+              - /url: /marketplace/product/2
+              - heading "Laptop Gaming ASUS ROG" [level=3] [ref=e178] [cursor=pointer]
+            - paragraph [ref=e179]: Gaming Zone
+            - generic [ref=e180]:
+              - generic [ref=e181]:
+                - img [ref=e182]
+                - img [ref=e184]
+                - img [ref=e186]
+                - img [ref=e188]
+                - img [ref=e190]
+              - generic [ref=e192]: 4.6 (89)
+            - generic [ref=e195]: $3,200,000
+            - button "Agregar al Carrito" [ref=e196] [cursor=pointer]:
+              - img [ref=e197] [cursor=pointer]
+              - generic [ref=e201] [cursor=pointer]: Agregar al Carrito
+        - generic [ref=e202]:
+          - generic [ref=e203]:
+            - img "Auriculares Sony WH-1000XM4" [ref=e204]
+            - generic [ref=e206]: "-25%"
+            - generic [ref=e207]:
+              - button [ref=e208] [cursor=pointer]:
+                - img [ref=e209] [cursor=pointer]
+              - link [ref=e211] [cursor=pointer]:
+                - /url: /marketplace/product/3
+                - img [ref=e212] [cursor=pointer]
+          - generic [ref=e215]:
+            - link "Auriculares Sony WH-1000XM4" [ref=e216] [cursor=pointer]:
+              - /url: /marketplace/product/3
+              - heading "Auriculares Sony WH-1000XM4" [level=3] [ref=e217] [cursor=pointer]
+            - paragraph [ref=e218]: Audio Pro
+            - generic [ref=e219]:
+              - generic [ref=e220]:
+                - img [ref=e221]
+                - img [ref=e223]
+                - img [ref=e225]
+                - img [ref=e227]
+                - img [ref=e229]
+              - generic [ref=e231]: 4.9 (203)
+            - generic [ref=e233]:
+              - generic [ref=e234]: $890,000
+              - generic [ref=e235]: $1,200,000
+            - button "Agregar al Carrito" [ref=e236] [cursor=pointer]:
+              - img [ref=e237] [cursor=pointer]
+              - generic [ref=e241] [cursor=pointer]: Agregar al Carrito
+        - generic [ref=e242]:
+          - generic [ref=e243]:
+            - img "Smartwatch Apple Watch Series 8" [ref=e244]
+            - generic [ref=e246]: Nuevo
+            - generic [ref=e247]:
+              - button [ref=e248] [cursor=pointer]:
+                - img [ref=e249] [cursor=pointer]
+              - link [ref=e251] [cursor=pointer]:
+                - /url: /marketplace/product/4
+                - img [ref=e252] [cursor=pointer]
+          - generic [ref=e255]:
+            - link "Smartwatch Apple Watch Series 8" [ref=e256] [cursor=pointer]:
+              - /url: /marketplace/product/4
+              - heading "Smartwatch Apple Watch Series 8" [level=3] [ref=e257] [cursor=pointer]
+            - paragraph [ref=e258]: Apple Store BGA
+            - generic [ref=e259]:
+              - generic [ref=e260]:
+                - img [ref=e261]
+                - img [ref=e263]
+                - img [ref=e265]
+                - img [ref=e267]
+                - img [ref=e269]
+              - generic [ref=e271]: 4.7 (156)
+            - generic [ref=e274]: $1,800,000
+            - button "Agregar al Carrito" [ref=e275] [cursor=pointer]:
+              - img [ref=e276] [cursor=pointer]
+              - generic [ref=e280] [cursor=pointer]: Agregar al Carrito
+    - generic [ref=e282]:
+      - generic [ref=e283]:
+        - heading "Tendencias del Momento" [level=2] [ref=e284]:
+          - img [ref=e285]
+          - text: Tendencias del Momento
+        - paragraph [ref=e288]: Lo más popular esta semana
+      - generic [ref=e289]:
+        - generic [ref=e290]:
+          - generic [ref=e292]:
+            - img [ref=e293]
+            - text: "#1"
+          - img "Café Orgánico Santander" [ref=e297]
+          - generic [ref=e298]:
+            - link "Café Orgánico Santander" [ref=e299] [cursor=pointer]:
+              - /url: /marketplace/product/1
+              - heading "Café Orgánico Santander" [level=3] [ref=e300] [cursor=pointer]
+            - generic [ref=e301]:
+              - generic [ref=e302]:
+                - generic [ref=e303]:
+                  - img [ref=e304]
+                  - img [ref=e306]
+                  - img [ref=e308]
+                  - img [ref=e310]
+                  - img [ref=e312]
+                - generic [ref=e314]: "4.9"
+              - generic [ref=e315]: +230%
+            - generic [ref=e316]:
+              - generic [ref=e317]: $35,000
+              - generic [ref=e318]: "Trending: 95%"
+            - button "Comprar Ahora" [ref=e319] [cursor=pointer]:
+              - img [ref=e320] [cursor=pointer]
+              - generic [ref=e324] [cursor=pointer]: Comprar Ahora
+        - generic [ref=e325]:
+          - generic [ref=e327]:
+            - img [ref=e328]
+            - text: "#2"
+          - img "Bolso Artesanal Guane" [ref=e332]
+          - generic [ref=e333]:
+            - link "Bolso Artesanal Guane" [ref=e334] [cursor=pointer]:
+              - /url: /marketplace/product/2
+              - heading "Bolso Artesanal Guane" [level=3] [ref=e335] [cursor=pointer]
+            - generic [ref=e336]:
+              - generic [ref=e337]:
+                - generic [ref=e338]:
+                  - img [ref=e339]
+                  - img [ref=e341]
+                  - img [ref=e343]
+                  - img [ref=e345]
+                  - img [ref=e347]
+                - generic [ref=e349]: "4.7"
+              - generic [ref=e350]: +180%
+            - generic [ref=e351]:
+              - generic [ref=e352]: $120,000
+              - generic [ref=e353]: "Trending: 88%"
+            - button "Comprar Ahora" [ref=e354] [cursor=pointer]:
+              - img [ref=e355] [cursor=pointer]
+              - generic [ref=e359] [cursor=pointer]: Comprar Ahora
+        - generic [ref=e360]:
+          - generic [ref=e362]:
+            - img [ref=e363]
+            - text: "#3"
+          - img "Miel de Abejas Chicamocha" [ref=e367]
+          - generic [ref=e368]:
+            - link "Miel de Abejas Chicamocha" [ref=e369] [cursor=pointer]:
+              - /url: /marketplace/product/3
+              - heading "Miel de Abejas Chicamocha" [level=3] [ref=e370] [cursor=pointer]
+            - generic [ref=e371]:
+              - generic [ref=e372]:
+                - generic [ref=e373]:
+                  - img [ref=e374]
+                  - img [ref=e376]
+                  - img [ref=e378]
+                  - img [ref=e380]
+                  - img [ref=e382]
+                - generic [ref=e384]: "4.8"
+              - generic [ref=e385]: +150%
+            - generic [ref=e386]:
+              - generic [ref=e387]: $25,000
+              - generic [ref=e388]: "Trending: 82%"
+            - button "Comprar Ahora" [ref=e389] [cursor=pointer]:
+              - img [ref=e390] [cursor=pointer]
+              - generic [ref=e394] [cursor=pointer]: Comprar Ahora
+        - generic [ref=e395]:
+          - generic [ref=e397]:
+            - img [ref=e398]
+            - text: "#4"
+          - img "Artesanía Cerámica Local" [ref=e402]
+          - generic [ref=e403]:
+            - link "Artesanía Cerámica Local" [ref=e404] [cursor=pointer]:
+              - /url: /marketplace/product/4
+              - heading "Artesanía Cerámica Local" [level=3] [ref=e405] [cursor=pointer]
+            - generic [ref=e406]:
+              - generic [ref=e407]:
+                - generic [ref=e408]:
+                  - img [ref=e409]
+                  - img [ref=e411]
+                  - img [ref=e413]
+                  - img [ref=e415]
+                  - img [ref=e417]
+                - generic [ref=e419]: "4.6"
+              - generic [ref=e420]: +120%
+            - generic [ref=e421]:
+              - generic [ref=e422]: $80,000
+              - generic [ref=e423]: "Trending: 76%"
+            - button "Comprar Ahora" [ref=e424] [cursor=pointer]:
+              - img [ref=e425] [cursor=pointer]
+              - generic [ref=e429] [cursor=pointer]: Comprar Ahora
+    - generic [ref=e432]:
+      - heading "Nunca te pierdas las mejores ofertas" [level=2] [ref=e433]
+      - paragraph [ref=e434]: Suscríbete a nuestro newsletter y recibe ofertas exclusivas, nuevos productos y tendencias del marketplace local.
+      - generic [ref=e436]:
+        - generic [ref=e437]:
+          - img [ref=e438]
+          - textbox "tu@email.com" [ref=e441]
+        - button "Suscribirse" [ref=e442] [cursor=pointer]
+      - paragraph [ref=e443]: No spam. Solo las mejores ofertas. Puedes cancelar en cualquier momento.
+  - link "0" [ref=e445] [cursor=pointer]:
+    - /url: /marketplace/cart
+    - img [ref=e446] [cursor=pointer]
+    - generic [ref=e450] [cursor=pointer]: "0"
+  - contentinfo [ref=e451]:
+    - generic [ref=e452]:
+      - generic [ref=e453]:
+        - generic [ref=e454]:
+          - generic [ref=e455]: MeStore Marketplace
+          - paragraph [ref=e456]: El mejor marketplace local de Bucaramanga. Conectando compradores con los mejores vendedores locales.
+          - generic [ref=e457]:
+            - link [ref=e458] [cursor=pointer]:
+              - /url: "#"
+              - img [ref=e459] [cursor=pointer]
+            - link [ref=e461] [cursor=pointer]:
+              - /url: "#"
+              - img [ref=e462] [cursor=pointer]
+            - link [ref=e465] [cursor=pointer]:
+              - /url: "#"
+              - img [ref=e466] [cursor=pointer]
+        - generic [ref=e468]:
+          - heading "Enlaces Rápidos" [level=3] [ref=e469]
+          - generic [ref=e470]:
+            - link "Acerca de Nosotros" [ref=e471] [cursor=pointer]:
+              - /url: /marketplace/about
+            - link "Cómo Funciona" [ref=e472] [cursor=pointer]:
+              - /url: /marketplace/how-it-works
+            - link "Vendedores" [ref=e473] [cursor=pointer]:
+              - /url: /marketplace/sellers
+            - link "Carreras" [ref=e474] [cursor=pointer]:
+              - /url: /marketplace/careers
+        - generic [ref=e475]:
+          - heading "Soporte" [level=3] [ref=e476]
+          - generic [ref=e477]:
+            - link "Centro de Ayuda" [ref=e478] [cursor=pointer]:
+              - /url: /marketplace/help
+            - link "Contáctanos" [ref=e479] [cursor=pointer]:
+              - /url: /marketplace/contact
+            - link "Devoluciones" [ref=e480] [cursor=pointer]:
+              - /url: /marketplace/returns
+            - link "Envíos" [ref=e481] [cursor=pointer]:
+              - /url: /marketplace/shipping
+        - generic [ref=e482]:
+          - heading "Contacto" [level=3] [ref=e483]
+          - generic [ref=e484]:
+            - generic [ref=e485]:
+              - img [ref=e486]
+              - generic [ref=e489]: soporte@mestore.com
+            - generic [ref=e490]:
+              - img [ref=e491]
+              - generic [ref=e493]: +57 300 123 4567
+            - generic [ref=e494]:
+              - img [ref=e495]
+              - generic [ref=e498]: Bucaramanga, Santander
+      - generic [ref=e499]:
+        - generic [ref=e500]: © 2024 MeStore Marketplace. Todos los derechos reservados.
+        - generic [ref=e501]:
+          - link "Privacidad" [ref=e502] [cursor=pointer]:
+            - /url: /marketplace/privacy
+          - link "Términos" [ref=e503] [cursor=pointer]:
+            - /url: /marketplace/terms
+          - link "Cookies" [ref=e504] [cursor=pointer]:
+            - /url: /marketplace/cookies
+```

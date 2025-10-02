@@ -15,11 +15,43 @@ const MarketplaceHome: React.FC<MarketplaceHomeProps> = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalProducts: 0,
+    totalVendors: 0,
+    deliveryTime: '24h'
+  });
 
   useEffect(() => {
-    // Load featured products on mount
+    // Load featured products and stats on mount
     loadFeaturedProducts();
+    loadMarketplaceStats();
   }, []);
+
+  const loadMarketplaceStats = async () => {
+    try {
+      // Fetch total products count from pagination metadata
+      const productsResponse = await api.products.getAll({ limit: 1 });
+      const totalProducts = productsResponse.data?.pagination?.total || 0;
+
+      // Fetch total vendors (if endpoint exists)
+      let totalVendors = 0;
+      try {
+        const vendorsResponse = await api.vendors.getAll({ limit: 1 });
+        totalVendors = vendorsResponse.data?.pagination?.total || 0;
+      } catch (error) {
+        console.log('Vendors endpoint not available');
+        totalVendors = 5; // Fallback value
+      }
+
+      setStats({
+        totalProducts,
+        totalVendors,
+        deliveryTime: '24h'
+      });
+    } catch (error) {
+      console.error('Error loading marketplace stats:', error);
+    }
+  };
 
   const loadFeaturedProducts = async () => {
     try {
@@ -99,15 +131,19 @@ const MarketplaceHome: React.FC<MarketplaceHomeProps> = () => {
             {/* Estadísticas Llamativas */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
               <div className="text-center">
-                <div className="text-3xl font-bold text-yellow-400">500+</div>
+                <div className="text-3xl font-bold text-yellow-400">
+                  {stats.totalProducts > 0 ? `${stats.totalProducts}+` : '...'}
+                </div>
                 <div className="text-lg">Productos Únicos</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-yellow-400">50+</div>
+                <div className="text-3xl font-bold text-yellow-400">
+                  {stats.totalVendors > 0 ? `${stats.totalVendors}+` : '...'}
+                </div>
                 <div className="text-lg">Vendedores Locales</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-yellow-400">24h</div>
+                <div className="text-3xl font-bold text-yellow-400">{stats.deliveryTime}</div>
                 <div className="text-lg">Entrega Express</div>
               </div>
             </div>

@@ -34,7 +34,9 @@ from app.api.v1.endpoints.admin_users import router as admin_users_router
 from app.api.v1.endpoints.leads import router as leads_router
 from app.api.v1.endpoints.system_config import router as system_config_router
 from app.api.v1.endpoints.vendor_profile import router as vendor_profile_router
+from app.api.v1.endpoints.vendors import router as vendors_registration_router
 from app.api.v1.endpoints.payments import router as payments_router
+from app.api.v1.endpoints.webhooks import router as webhooks_router
 from app.api.v1.endpoints.orders import router as orders_router
 from app.api.v1.endpoints.database_reset import router as database_reset_router
 from app.api.v1.endpoints.user_management_enterprise import router as user_management_router
@@ -75,9 +77,15 @@ api_router.include_router(commissions_router, prefix="/commissions", tags=["comm
 # Payments (English - integrated payment processing)
 api_router.include_router(payments_router, prefix="/payments", tags=["payments"])
 
+# Webhooks (Wompi payment notifications)
+api_router.include_router(webhooks_router, prefix="/webhooks", tags=["webhooks"])
+
 # ===== VENDOR & CUSTOMER MANAGEMENT =====
 # Vendor management (consolidated)
 api_router.include_router(vendor_profile_router, prefix="/vendors", tags=["vendors"])
+
+# Vendor registration (MVP - auto-approval)
+api_router.include_router(vendors_registration_router, prefix="/vendors", tags=["vendor-registration"])
 
 # Categories (hierarchical system)
 api_router.include_router(categories_router, prefix="/categories", tags=["categories"])

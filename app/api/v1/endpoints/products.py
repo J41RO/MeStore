@@ -285,18 +285,20 @@ async def list_products(
     # Sorting
     sort_by: str = Query(
         "created_at",
+        alias="sortBy",
         description="Sort field",
         regex="^(created_at|updated_at|name|precio_venta|stock_total)$"
     ),
     sort_order: str = Query(
         "desc",
+        alias="sortOrder",
         description="Sort order",
         regex="^(asc|desc)$"
     ),
 
     # Pagination
     page: int = Query(1, ge=1, description="Page number"),
-    per_page: int = Query(20, ge=1, le=100, description="Items per page"),
+    per_page: int = Query(20, alias="limit", ge=1, le=100, description="Items per page"),
 
     # Include related data
     include_images: bool = Query(False, description="Include product images"),
@@ -335,7 +337,7 @@ async def list_products(
         if not current_user:
             # Public access: only APPROVED products
             where_conditions.append(Product.status == ProductStatus.APPROVED)
-        elif current_user.role not in ["admin", "superadmin"]:
+        elif current_user.user_type not in ["ADMIN", "SUPERUSER"]:
             # Vendor access: APPROVED products OR own products (any status)
             where_conditions.append(
                 or_(
@@ -421,8 +423,11 @@ async def list_products(
         offset = (page - 1) * per_page
         stmt = stmt.offset(offset).limit(per_page)
 
-        # ALWAYS eager load images (required by ProductResponse)
-        stmt = stmt.options(selectinload(Product.images))
+        # ALWAYS eager load images AND inventory (required by ProductResponse for stock calculation)
+        stmt = stmt.options(
+            selectinload(Product.images),
+            selectinload(Product.ubicaciones_inventario)
+        )
 
         # Execute query
         result = await db.execute(stmt)
@@ -454,6 +459,12 @@ async def list_products(
                 }
                 for img in product.images
             ]
+
+            # Calculate stock from inventory relationship
+            stock_total = 0
+            if product.ubicaciones_inventario:
+                stock_total = sum(inv.cantidad for inv in product.ubicaciones_inventario)
+            product_dict_data['stock_quantity'] = stock_total
 
             product_dict = ProductResponse.model_validate(product_dict_data).model_dump()
 

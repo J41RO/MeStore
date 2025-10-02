@@ -9,8 +9,6 @@ import type {
   StandardResponse,
   PaginatedResponse,
   ApiError,
-  isStandardResponse,
-  isApiError,
 } from '../types';
 
 // ========================================
@@ -227,7 +225,8 @@ export class BaseApiService {
   protected extractPaginatedData<T>(response: AxiosResponse<PaginatedResponse<T>>): PaginatedResponse<T> {
     const data = response.data;
 
-    if (!isStandardResponse(data)) {
+    // Simple validation - check if response has data property
+    if (!data || typeof data !== 'object') {
       throw new StandardApiError(
         'Invalid response format',
         response.status,
@@ -235,9 +234,10 @@ export class BaseApiService {
       );
     }
 
-    if (data.status === 'error') {
+    // Check for error status if present
+    if ('status' in data && data.status === 'error') {
       throw new StandardApiError(
-        data.message || 'API request failed',
+        (data as any).message || 'API request failed',
         response.status,
         'API_ERROR',
         undefined,
