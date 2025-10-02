@@ -41,7 +41,7 @@ class ProductValidationService {
    * Obtener token de autenticación del localStorage
    */
   private getAuthToken(): string | null {
-    return localStorage.getItem('authToken') || localStorage.getItem('token');
+    return localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
   }
 
   /**

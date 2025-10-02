@@ -27,7 +27,7 @@ class OrderService {
     // Request interceptor for authentication
     this.api.interceptors.request.use(
       (config) => {
-        const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+        const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -44,8 +44,10 @@ class OrderService {
       async (error) => {
         if (error.response?.status === 401) {
           // Token expired, redirect to login
-          localStorage.removeItem('authToken');
-          sessionStorage.removeItem('authToken');
+          localStorage.removeItem('access_token');
+          sessionStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+          sessionStorage.removeItem('refresh_token');
           window.location.href = '/login';
         }
         return Promise.reject(error);
