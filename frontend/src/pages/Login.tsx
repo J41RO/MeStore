@@ -1,12 +1,18 @@
 import React, { useState } from 'react';
 import { UserType } from '../stores/authStore';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
+import { ShoppingCart } from 'lucide-react';
 import GoogleSignInButton from '../components/auth/GoogleSignInButton';
 import axios from 'axios';
 
 // Función de redirección inteligente basada en UserType y portal_type
-const getRedirectPath = (userType: UserType, portalType?: string): string => {
+const getRedirectPath = (userType: UserType, portalType?: string, returnTo?: string): string => {
+  // If there's a returnTo URL, use it (for checkout flow)
+  if (returnTo) {
+    return returnTo;
+  }
+
   switch (userType) {
     case UserType.VENDOR:
       return '/app/vendor-dashboard'; // FIXED: Vendors go to vendor dashboard
@@ -32,8 +38,11 @@ const Login: React.FC = () => {
   const { login, isAuthenticated, error, setError } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
 
-  const from = (location.state as any)?.from || '/dashboard';
+  // Get returnTo from query params (for checkout flow)
+  const returnTo = searchParams.get('returnTo');
+  const from = (location.state as any)?.from || returnTo || '/dashboard';
 
   if (isAuthenticated) {
     return <Navigate to={from} replace />;
@@ -53,12 +62,16 @@ const Login: React.FC = () => {
         const { user } = useAuthStore.getState();
 
         if (user) {
-          // REDIRECCIÓN INTELIGENTE usando getRedirectPath
-          const redirectPath = getRedirectPath(user.user_type);
+          // REDIRECCIÓN INTELIGENTE usando getRedirectPath with returnTo support
+          const redirectPath = getRedirectPath(user.user_type, undefined, returnTo || undefined);
           navigate(redirectPath);
+
+          // Clear checkout intent after successful login
+          localStorage.removeItem('pendingCheckout');
+          localStorage.removeItem('checkoutReturnUrl');
         } else {
-          // Fallback redirect to role-based redirect
-          navigate('/dashboard');
+          // Fallback redirect to role-based redirect or returnTo
+          navigate(returnTo || '/dashboard');
         }
       } else {
         // Handle login error - the error will be shown by the auth store error state
@@ -91,9 +104,13 @@ const Login: React.FC = () => {
         setToken(response.data.access_token);
         setUser(response.data.user);
 
-        // Redireccionar según el tipo de usuario
-        const redirectPath = getRedirectPath(response.data.user.user_type);
+        // Redireccionar según el tipo de usuario con returnTo support
+        const redirectPath = getRedirectPath(response.data.user.user_type, undefined, returnTo || undefined);
         navigate(redirectPath);
+
+        // Clear checkout intent after successful login
+        localStorage.removeItem('pendingCheckout');
+        localStorage.removeItem('checkoutReturnUrl');
       } else {
         setError(response.data.message || 'Error en login con Google');
       }
@@ -126,16 +143,33 @@ const Login: React.FC = () => {
               <p className="text-gray-600">
                 Accede a tu cuenta MeStocker
               </p>
-              
-              {/* Credenciales de prueba visible */}
-              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-xs text-blue-700 font-medium mb-1">Credenciales de Prueba (API Real):</p>
-                <div className="text-xs text-blue-600 space-y-1">
-                  <div>🔑 admin@test.com / admin123 (Admin)</div>
-                  <div>🔑 vendor@test.com / vendor123 (Vendedor)</div>
-                  <div>🔑 buyer@test.com / buyer123 (Comprador)</div>
+
+              {/* Contextual message for checkout flow */}
+              {returnTo === '/checkout' && (
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <ShoppingCart className="w-5 h-5 text-blue-600" />
+                    <p className="text-sm font-semibold text-blue-900">
+                      Inicia sesión para completar tu compra
+                    </p>
+                  </div>
+                  <p className="text-xs text-blue-700">
+                    Tu carrito está guardado. Después de iniciar sesión, podrás continuar con el checkout.
+                  </p>
                 </div>
-              </div>
+              )}
+
+              {/* Credenciales de prueba visible */}
+              {!returnTo && (
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-xs text-blue-700 font-medium mb-1">Credenciales de Prueba (API Real):</p>
+                  <div className="text-xs text-blue-600 space-y-1">
+                    <div>🔑 admin@test.com / admin123 (Admin)</div>
+                    <div>🔑 vendor@test.com / vendor123 (Vendedor)</div>
+                    <div>🔑 buyer@test.com / buyer123 (Comprador)</div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Formulario de login */}
@@ -260,10 +294,18 @@ const Login: React.FC = () => {
               <div className="text-center">
                 <p className="text-sm text-gray-600">
                   ¿No tienes cuenta?{' '}
-                  <a href="/register" className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
+                  <a
+                    href={returnTo ? `/register?returnTo=${encodeURIComponent(returnTo)}` : '/register'}
+                    className="font-medium text-blue-600 hover:text-blue-500 transition-colors"
+                  >
                     Regístrate aquí
                   </a>
                 </p>
+                {returnTo === '/checkout' && (
+                  <p className="text-xs text-gray-500 mt-2">
+                    Crear una cuenta es rápido y te permitirá hacer seguimiento a tus pedidos
+                  </p>
+                )}
               </div>
 
             </form>

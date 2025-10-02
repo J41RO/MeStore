@@ -1,35 +1,28 @@
 import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { useCheckoutStore } from '../stores/checkoutStore';
 import CheckoutFlow from '../components/checkout/CheckoutFlow';
 
 const CheckoutPage: React.FC = () => {
-  const { isAuthenticated, user, checkAuth } = useAuthStore();
+  const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuthStore();
   const { cart_items } = useCheckoutStore();
 
   useEffect(() => {
-    // Verify authentication status on page load
-    if (!isAuthenticated) {
-      checkAuth();
-    }
-  }, [isAuthenticated, checkAuth]);
+    // Immediate redirect if not authenticated - NO loading spinner
+    if (!isAuthenticated && !user) {
+      // Save cart intent for after login
+      localStorage.setItem('pendingCheckout', 'true');
+      localStorage.setItem('checkoutReturnUrl', '/checkout');
 
-  // If not authenticated, redirect to login
+      // Redirect to login with return URL
+      navigate('/login?returnTo=/checkout', { replace: true });
+    }
+  }, [isAuthenticated, user, navigate]);
+
+  // If not authenticated, return null (redirect is handled in useEffect)
   if (!isAuthenticated) {
-    // Show loading while checking auth
-    if (!user) {
-      return (
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Verificando autenticación...</p>
-          </div>
-        </div>
-      );
-    }
-
-    // Redirect to login with return URL
-    window.location.href = `/login?redirect=${encodeURIComponent('/checkout')}`;
     return null;
   }
 
