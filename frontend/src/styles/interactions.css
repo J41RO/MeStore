@@ -1,0 +1,382 @@
+/**
+ * Interactive States & Feedback Styles
+ *
+ * Professional hover, focus, and active states for improved UX
+ * Follows WCAG 2.1 guidelines for accessibility
+ */
+
+/* ========================================
+   FOCUS STATES
+   ======================================== */
+
+/**
+ * Enhanced Focus Ring
+ * Visible, high-contrast focus indicators for keyboard navigation
+ */
+.focus-ring {
+  @apply transition-all duration-200 ease-out;
+}
+
+.focus-ring:focus {
+  @apply outline-none ring-4 ring-blue-500 ring-opacity-50;
+}
+
+.focus-ring-danger:focus {
+  @apply outline-none ring-4 ring-red-500 ring-opacity-50;
+}
+
+.focus-ring-success:focus {
+  @apply outline-none ring-4 ring-green-500 ring-opacity-50;
+}
+
+/**
+ * Focus Visible (only for keyboard, not mouse clicks)
+ */
+.focus-visible-ring:focus-visible {
+  @apply outline-none ring-4 ring-blue-500 ring-opacity-50;
+}
+
+/* Input Focus States */
+input:focus,
+textarea:focus,
+select:focus {
+  @apply outline-none ring-2 ring-blue-500 border-blue-500;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  @apply outline-none ring-2 ring-blue-500 border-blue-500;
+}
+
+/* ========================================
+   HOVER STATES
+   ======================================== */
+
+/**
+ * Card Hover Effect
+ * Subtle lift and shadow enhancement
+ */
+.hover-card {
+  @apply transition-all duration-300 ease-out;
+}
+
+.hover-card:hover {
+  @apply -translate-y-1 shadow-lg;
+}
+
+/**
+ * Button Hover Effects
+ */
+.hover-button-primary {
+  @apply transition-all duration-200 ease-out transform;
+}
+
+.hover-button-primary:hover {
+  @apply scale-105 shadow-md;
+}
+
+.hover-button-primary:active {
+  @apply scale-95;
+}
+
+/**
+ * Link Hover Effect
+ */
+.hover-link {
+  @apply transition-colors duration-150 ease-out;
+}
+
+.hover-link:hover {
+  @apply text-blue-700 underline;
+}
+
+/**
+ * Icon Hover Effects
+ */
+.hover-icon {
+  @apply transition-transform duration-200 ease-out;
+}
+
+.hover-icon:hover {
+  @apply scale-110;
+}
+
+/**
+ * Image Hover Zoom
+ */
+.hover-zoom {
+  @apply transition-transform duration-700 ease-out;
+}
+
+.hover-zoom:hover {
+  @apply scale-110;
+}
+
+/* ========================================
+   ACTIVE/PRESSED STATES
+   ======================================== */
+
+/**
+ * Button Press Effect
+ */
+.active-press {
+  @apply transition-transform duration-100 ease-out;
+}
+
+.active-press:active {
+  @apply scale-95;
+}
+
+/**
+ * Ripple Effect Container
+ */
+.ripple-container {
+  @apply relative overflow-hidden;
+}
+
+.ripple-effect {
+  @apply absolute bg-white bg-opacity-30 rounded-full pointer-events-none;
+  animation: ripple 0.6s ease-out;
+}
+
+@keyframes ripple {
+  from {
+    width: 0;
+    height: 0;
+    opacity: 1;
+  }
+  to {
+    width: 200px;
+    height: 200px;
+    opacity: 0;
+  }
+}
+
+/* ========================================
+   DISABLED STATES
+   ======================================== */
+
+/**
+ * Disabled Elements
+ * Clear visual feedback for non-interactive elements
+ */
+.disabled-state {
+  @apply opacity-50 cursor-not-allowed pointer-events-none;
+}
+
+input:disabled,
+textarea:disabled,
+select:disabled,
+button:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+/* ========================================
+   INTERACTIVE FEEDBACK
+   ======================================== */
+
+/**
+ * Selection State
+ */
+.selectable {
+  @apply transition-all duration-150 ease-out cursor-pointer;
+}
+
+.selectable:hover {
+  @apply bg-gray-50;
+}
+
+.selectable.selected {
+  @apply bg-blue-50 border-blue-500;
+}
+
+/**
+ * Draggable Elements
+ */
+.draggable {
+  @apply cursor-move transition-all duration-150 ease-out;
+}
+
+.draggable:hover {
+  @apply shadow-lg;
+}
+
+.dragging {
+  @apply opacity-50 scale-95;
+}
+
+/**
+ * Clickable Areas
+ * Enhanced touch targets for mobile
+ */
+.clickable {
+  @apply cursor-pointer select-none;
+  /* Minimum touch target: 44x44px (WCAG) */
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* ========================================
+   TOOLTIPS & POPOVERS
+   ======================================== */
+
+/**
+ * Tooltip Trigger
+ */
+.tooltip-trigger:hover + .tooltip {
+  @apply opacity-100 visible;
+}
+
+.tooltip {
+  @apply opacity-0 invisible transition-all duration-200 ease-out;
+}
+
+/* ========================================
+   LOADING STATES
+   ======================================== */
+
+/**
+ * Skeleton Loading State
+ */
+.skeleton {
+  @apply bg-gray-200 rounded animate-pulse;
+}
+
+.skeleton-text {
+  @apply h-4 bg-gray-200 rounded animate-pulse;
+}
+
+/**
+ * Loading Overlay
+ */
+.loading-overlay {
+  @apply absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center;
+  z-index: 50;
+}
+
+/* ========================================
+   ACCESSIBILITY ENHANCEMENTS
+   ======================================== */
+
+/**
+ * High Contrast Mode Support
+ */
+@media (prefers-contrast: high) {
+  .focus-ring:focus {
+    @apply ring-4 ring-black;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    @apply border-black ring-black;
+  }
+}
+
+/**
+ * Reduced Motion Support
+ * Respect user's motion preferences
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/**
+ * Dark Mode Support
+ */
+@media (prefers-color-scheme: dark) {
+  .hover-card:hover {
+    @apply shadow-2xl;
+  }
+
+  .focus-ring:focus {
+    @apply ring-blue-400;
+  }
+}
+
+/* ========================================
+   UTILITY CLASSES
+   ======================================== */
+
+/**
+ * Smooth Transitions
+ */
+.transition-base {
+  @apply transition-all duration-200 ease-out;
+}
+
+.transition-fast {
+  @apply transition-all duration-150 ease-out;
+}
+
+.transition-slow {
+  @apply transition-all duration-300 ease-out;
+}
+
+/**
+ * Transform Origins
+ */
+.transform-center {
+  transform-origin: center;
+}
+
+.transform-top-left {
+  transform-origin: top left;
+}
+
+/**
+ * Interactive Scale
+ */
+.scale-hover:hover {
+  @apply scale-105;
+}
+
+.scale-active:active {
+  @apply scale-95;
+}
+
+/* ========================================
+   CUSTOM CURSOR STATES
+   ======================================== */
+
+.cursor-grab {
+  cursor: grab;
+}
+
+.cursor-grabbing {
+  cursor: grabbing;
+}
+
+.cursor-zoom-in {
+  cursor: zoom-in;
+}
+
+.cursor-zoom-out {
+  cursor: zoom-out;
+}
+
+/* ========================================
+   MOTION DESIGN TOKENS
+   ======================================== */
+
+:root {
+  /* Durations */
+  --duration-instant: 50ms;
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-moderate: 350ms;
+  --duration-slow: 450ms;
+
+  /* Easing functions */
+  --ease-standard: cubic-bezier(0.4, 0.0, 0.2, 1);
+  --ease-emphasized: cubic-bezier(0.0, 0.0, 0.2, 1);
+  --ease-decelerate: cubic-bezier(0.0, 0.0, 0.2, 1);
+  --ease-accelerate: cubic-bezier(0.4, 0.0, 1, 1);
+}

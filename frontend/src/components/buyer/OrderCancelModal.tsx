@@ -26,9 +26,19 @@ export const OrderCancelModal: React.FC<OrderCancelModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  // Character count for validation
+  const minReasonLength = 10;
+  const reasonLength = reason.trim().length;
+  const isReasonValid = reasonLength >= minReasonLength;
+
   const handleCancel = async () => {
     if (!reason.trim()) {
       setError('Por favor proporciona un motivo para la cancelación');
+      return;
+    }
+
+    if (reason.trim().length < minReasonLength) {
+      setError(`El motivo debe tener al menos ${minReasonLength} caracteres (actual: ${reason.trim().length})`);
       return;
     }
 
@@ -132,15 +142,44 @@ export const OrderCancelModal: React.FC<OrderCancelModalProps> = ({
                     id="cancellation-reason"
                     rows={4}
                     value={reason}
-                    onChange={(e) => setReason(e.target.value)}
+                    onChange={(e) => {
+                      setReason(e.target.value);
+                      if (error) setError(null);
+                    }}
                     placeholder="Por favor explica el motivo de la cancelación..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:outline-none ${
+                      reason && isReasonValid
+                        ? 'border-green-500 focus:ring-green-500/20'
+                        : reason && !isReasonValid
+                        ? 'border-red-500 focus:ring-red-500/20'
+                        : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                    }`}
                     disabled={loading}
                     required
                   />
-                  <p className="mt-1 text-xs text-gray-500">
-                    Mínimo 10 caracteres
-                  </p>
+                  <div className="mt-1 flex justify-between items-center">
+                    <p className={`text-xs ${
+                      isReasonValid
+                        ? 'text-green-600'
+                        : reasonLength > 0
+                        ? 'text-red-600'
+                        : 'text-gray-500'
+                    }`}>
+                      {reasonLength > 0 ? (
+                        <span>
+                          {reasonLength}/{minReasonLength} caracteres
+                          {isReasonValid && ' ✓'}
+                        </span>
+                      ) : (
+                        `Mínimo ${minReasonLength} caracteres`
+                      )}
+                    </p>
+                    {isReasonValid && (
+                      <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
                 </div>
 
                 <div className="mb-4">
@@ -190,8 +229,12 @@ export const OrderCancelModal: React.FC<OrderCancelModalProps> = ({
               </button>
               <button
                 onClick={handleCancel}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 flex items-center"
-                disabled={loading || reason.trim().length < 10}
+                className={`px-4 py-2 rounded-md flex items-center transition-colors ${
+                  loading || !isReasonValid
+                    ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                    : 'bg-red-600 text-white hover:bg-red-700'
+                }`}
+                disabled={loading || !isReasonValid}
               >
                 {loading ? (
                   <>

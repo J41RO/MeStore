@@ -5,6 +5,7 @@ import { useAuthStore } from '../stores/authStore';
 import { ShoppingCart } from 'lucide-react';
 import GoogleSignInButton from '../components/auth/GoogleSignInButton';
 import axios from 'axios';
+import { validateEmail, validatePassword } from '../utils/formValidation';
 
 // Función de redirección inteligente basada en UserType y portal_type
 const getRedirectPath = (userType: UserType, portalType?: string, returnTo?: string): string => {
@@ -40,6 +41,11 @@ const Login: React.FC = () => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
 
+  // Form validation errors
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [touched, setTouched] = useState({ email: false, password: false });
+
   // Get returnTo from query params (for checkout flow)
   const returnTo = searchParams.get('returnTo');
   const from = (location.state as any)?.from || returnTo || '/dashboard';
@@ -48,8 +54,63 @@ const Login: React.FC = () => {
     return <Navigate to={from} replace />;
   }
 
+  // Real-time email validation
+  const handleEmailChange = (value: string) => {
+    setEmail(value);
+    if (touched.email) {
+      const validation = validateEmail(value);
+      setEmailError(validation.isValid ? null : validation.error || null);
+    }
+  };
+
+  // Real-time password validation
+  const handlePasswordChange = (value: string) => {
+    setPassword(value);
+    if (touched.password) {
+      const validation = validatePassword(value);
+      setPasswordError(validation.isValid ? null : validation.error || null);
+    }
+  };
+
+  // Mark field as touched on blur
+  const handleBlur = (field: 'email' | 'password') => {
+    setTouched({ ...touched, [field]: true });
+
+    // Trigger validation
+    if (field === 'email') {
+      const validation = validateEmail(email);
+      setEmailError(validation.isValid ? null : validation.error || null);
+    } else if (field === 'password') {
+      const validation = validatePassword(password);
+      setPasswordError(validation.isValid ? null : validation.error || null);
+    }
+  };
+
+  // Check if form is valid
+  const isFormValid = () => {
+    const emailValidation = validateEmail(email);
+    const passwordValidation = validatePassword(password);
+    return emailValidation.isValid && passwordValidation.isValid;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Mark all fields as touched
+    setTouched({ email: true, password: true });
+
+    // Validate all fields
+    const emailValidation = validateEmail(email);
+    const passwordValidation = validatePassword(password);
+
+    setEmailError(emailValidation.isValid ? null : emailValidation.error || null);
+    setPasswordError(passwordValidation.isValid ? null : passwordValidation.error || null);
+
+    // Don't submit if validation fails
+    if (!emailValidation.isValid || !passwordValidation.isValid) {
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -192,16 +253,36 @@ const Login: React.FC = () => {
                     type="email"
                     required
                     value={email}
-                    onChange={e => setEmail(e.target.value)}
+                    onChange={e => handleEmailChange(e.target.value)}
+                    onBlur={() => handleBlur('email')}
                     placeholder="tu@email.com"
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium"
+                    className={`w-full px-4 py-3 rounded-lg border ${
+                      emailError
+                        ? 'border-red-500 focus:ring-red-500/20'
+                        : touched.email && email
+                        ? 'border-green-500 focus:ring-green-500/20'
+                        : 'border-gray-300 focus:ring-blue-500/20'
+                    } focus:outline-none focus:ring-2 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-                    </svg>
+                    {emailError ? (
+                      <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    ) : touched.email && email ? (
+                      <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                      </svg>
+                    )}
                   </div>
                 </div>
+                {emailError && (
+                  <p className="mt-1 text-sm text-red-600">{emailError}</p>
+                )}
               </div>
 
               {/* Campo Contraseña */}
@@ -214,16 +295,36 @@ const Login: React.FC = () => {
                     type="password"
                     required
                     value={password}
-                    onChange={e => setPassword(e.target.value)}
+                    onChange={e => handlePasswordChange(e.target.value)}
+                    onBlur={() => handleBlur('password')}
                     placeholder="Tu contraseña"
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium"
+                    className={`w-full px-4 py-3 rounded-lg border ${
+                      passwordError
+                        ? 'border-red-500 focus:ring-red-500/20'
+                        : touched.password && password
+                        ? 'border-green-500 focus:ring-green-500/20'
+                        : 'border-gray-300 focus:ring-blue-500/20'
+                    } focus:outline-none focus:ring-2 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
+                    {passwordError ? (
+                      <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    ) : touched.password && password ? (
+                      <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                    )}
                   </div>
                 </div>
+                {passwordError && (
+                  <p className="mt-1 text-sm text-red-600">{passwordError}</p>
+                )}
               </div>
 
               {/* Recordar sesión y Olvidé contraseña */}
@@ -252,8 +353,12 @@ const Login: React.FC = () => {
               {/* Botón de Login */}
               <button
                 type="submit"
-                disabled={isLoading}
-                className="w-full bg-gradient-to-r from-blue-700 to-indigo-700 text-white py-4 px-6 rounded-lg hover:from-blue-800 hover:to-indigo-800 font-bold text-lg transition-all transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500/30 shadow-xl border border-blue-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                disabled={isLoading || !isFormValid()}
+                className={`w-full py-4 px-6 rounded-lg font-bold text-lg transition-all focus:outline-none focus:ring-4 shadow-xl border ${
+                  isLoading || !isFormValid()
+                    ? 'bg-gray-400 text-gray-200 cursor-not-allowed border-gray-500'
+                    : 'bg-gradient-to-r from-blue-700 to-indigo-700 text-white hover:from-blue-800 hover:to-indigo-800 transform hover:scale-105 focus:ring-blue-500/30 border-blue-600'
+                }`}
               >
                 {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
               </button>

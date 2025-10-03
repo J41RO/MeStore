@@ -1,0 +1,35 @@
+{
+  "timestamp": "2025-10-01T23:39:29.845997",
+  "summary": {
+    "total": 1,
+    "passed": 0,
+    "failed": 1,
+    "skipped": 0
+  },
+  "tests": [
+    {
+      "test_name": "User Registration",
+      "status": "FAIL",
+      "details": "Status: 422",
+      "response_data": {
+        "status": "error",
+        "timestamp": "2025-10-02T04:39:29.844552Z",
+        "message": "Request validation failed",
+        "version": "1.0.0",
+        "error_code": "VALIDATION_ERROR",
+        "error_message": "Request validation failed at /api/v1/auth/register",
+        "details": [
+          {
+            "field": "body -> user_type",
+            "message": "Input should be 'BUYER', 'VENDOR', 'ADMIN', 'SUPERUSER' or 'SYSTEM'",
+            "error_type": "enum"
+          }
+        ],
+        "request_id": "req_8e096b6d"
+      },
+      "timestamp": "2025-10-01T23:39:29.845834"
+    }
+  ],
+  "errors": [],
+  "ux_issues": []
+}

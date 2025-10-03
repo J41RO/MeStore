@@ -39,6 +39,39 @@ const ShippingLocationUpdateModal: React.FC<ShippingLocationUpdateModalProps> = 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  // Validation errors
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [statusError, setStatusError] = useState<string | null>(null);
+  const [touched, setTouched] = useState({ location: false, status: false });
+
+  // Validation functions
+  const validateLocation = (value: string): boolean => {
+    if (!value || value.trim().length === 0) {
+      setLocationError('Ubicación es requerida');
+      return false;
+    }
+    if (value.trim().length < 3) {
+      setLocationError('Ubicación debe tener al menos 3 caracteres');
+      return false;
+    }
+    setLocationError(null);
+    return true;
+  };
+
+  const validateStatus = (value: ShippingStatus): boolean => {
+    if (!value) {
+      setStatusError('Debe seleccionar un estado');
+      return false;
+    }
+    setStatusError(null);
+    return true;
+  };
+
+  // Check if form is valid
+  const isFormValid = (): boolean => {
+    return currentLocation.trim().length >= 3 && !!status;
+  };
+
   const statusOptions = [
     { value: ShippingStatus.IN_TRANSIT, label: 'En tránsito' },
     { value: ShippingStatus.AT_WAREHOUSE, label: 'En bodega' },
@@ -50,6 +83,19 @@ const ShippingLocationUpdateModal: React.FC<ShippingLocationUpdateModalProps> = 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Mark all fields as touched
+    setTouched({ location: true, status: true });
+
+    // Validate all fields
+    const isLocationValid = validateLocation(currentLocation);
+    const isStatusValid = validateStatus(status);
+
+    // Don't submit if validation fails
+    if (!isLocationValid || !isStatusValid) {
+      return;
+    }
+
     setError(null);
     setLoading(true);
 
@@ -81,6 +127,9 @@ const ShippingLocationUpdateModal: React.FC<ShippingLocationUpdateModalProps> = 
       setDescription('');
       setError(null);
       setSuccess(false);
+      setLocationError(null);
+      setStatusError(null);
+      setTouched({ location: false, status: false });
       onClose();
     }
   };
@@ -113,25 +162,50 @@ const ShippingLocationUpdateModal: React.FC<ShippingLocationUpdateModalProps> = 
 
           <TextField
             fullWidth
-            label="Ubicación actual"
+            label="Ubicación actual *"
             value={currentLocation}
-            onChange={(e) => setCurrentLocation(e.target.value)}
+            onChange={(e) => {
+              setCurrentLocation(e.target.value);
+              if (touched.location) validateLocation(e.target.value);
+            }}
+            onBlur={() => {
+              setTouched({ ...touched, location: true });
+              validateLocation(currentLocation);
+            }}
             required
             disabled={loading || success}
+            error={touched.location && !!locationError}
             sx={{ mb: 2 }}
-            helperText="Ejemplo: Bogotá - Centro de distribución"
+            helperText={
+              touched.location && locationError
+                ? locationError
+                : 'Ejemplo: Bogotá - Centro de distribución'
+            }
             placeholder="Ciudad - Punto de referencia"
           />
 
           <TextField
             select
             fullWidth
-            label="Estado del envío"
+            label="Estado del envío *"
             value={status}
-            onChange={(e) => setStatus(e.target.value as ShippingStatus)}
+            onChange={(e) => {
+              setStatus(e.target.value as ShippingStatus);
+              if (touched.status) validateStatus(e.target.value as ShippingStatus);
+            }}
+            onBlur={() => {
+              setTouched({ ...touched, status: true });
+              validateStatus(status);
+            }}
             required
             disabled={loading || success}
+            error={touched.status && !!statusError}
             sx={{ mb: 2 }}
+            helperText={
+              touched.status && statusError
+                ? statusError
+                : 'Seleccione el estado actual del envío'
+            }
           >
             {statusOptions.map((option) => (
               <MenuItem key={option.value} value={option.value}>
@@ -168,7 +242,7 @@ const ShippingLocationUpdateModal: React.FC<ShippingLocationUpdateModalProps> = 
           <Button
             type="submit"
             variant="contained"
-            disabled={loading || success || !currentLocation}
+            disabled={loading || success || !isFormValid()}
             startIcon={loading ? <CircularProgress size={20} /> : <LocationOnIcon />}
           >
             {loading ? 'Actualizando...' : 'Actualizar Ubicación'}

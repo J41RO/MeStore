@@ -6,6 +6,8 @@ import { X } from 'lucide-react';
 import { orderService } from '../../services/orderService';
 import { TrackingInfo } from '../../types/orders';
 import { OrderTimeline } from './OrderTimeline';
+import ShippingTrackingTimeline from '../shipping/ShippingTrackingTimeline';
+import shippingService, { ShippingTracking } from '../../services/shippingService';
 
 interface OrderTrackingModalProps {
   orderId: string;
@@ -19,6 +21,7 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
   onClose
 }) => {
   const [tracking, setTracking] = useState<TrackingInfo | null>(null);
+  const [shippingTracking, setShippingTracking] = useState<ShippingTracking | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,11 +35,23 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
     try {
       setLoading(true);
       setError(null);
+
+      // Load order tracking info
       const response = await orderService.getBuyerOrderTracking(orderId);
       if (response.success && response.data) {
         setTracking(response.data);
       } else {
         setError('No se pudo cargar la información de seguimiento');
+      }
+
+      // Load shipping tracking info if available
+      try {
+        const shippingResponse = await shippingService.getTracking(parseInt(orderId));
+        setShippingTracking(shippingResponse);
+      } catch (shippingErr) {
+        // Shipping tracking is optional, don't show error if not available
+        console.log('No shipping tracking available:', shippingErr);
+        setShippingTracking(null);
       }
     } catch (err: any) {
       console.error('Error loading tracking:', err);
@@ -92,7 +107,26 @@ export const OrderTrackingModal: React.FC<OrderTrackingModalProps> = ({
                 </button>
               </div>
             ) : tracking ? (
-              <OrderTimeline trackingInfo={tracking} />
+              <div className="space-y-6">
+                <OrderTimeline trackingInfo={tracking} />
+
+                {/* Shipping Tracking Section */}
+                {shippingTracking && shippingTracking.events && shippingTracking.events.length > 0 && (
+                  <div className="border-t pt-6">
+                    <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                      Información de Envío
+                    </h4>
+                    <div className="bg-white">
+                      <ShippingTrackingTimeline
+                        events={shippingTracking.events}
+                        trackingNumber={shippingTracking.tracking_number}
+                        courier={shippingTracking.courier}
+                        estimatedDelivery={shippingTracking.estimated_delivery}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="text-center py-12">
                 <p className="text-gray-500">No hay información de seguimiento disponible</p>

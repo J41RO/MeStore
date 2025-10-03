@@ -2,16 +2,18 @@ import React from 'react';
 import {
   Box,
   Typography,
+  Paper,
+  Chip
+} from '@mui/material';
+import {
   Timeline,
   TimelineItem,
   TimelineSeparator,
   TimelineConnector,
   TimelineContent,
   TimelineDot,
-  TimelineOppositeContent,
-  Paper,
-  Chip
-} from '@mui/material';
+  TimelineOppositeContent
+} from '@mui/lab';
 import {
   LocalShipping,
   Warehouse,

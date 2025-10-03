@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import interaction styles for enhanced UX */
+@import './styles/interactions.css';
+
 /* Variables CSS MeStocker - Light Mode (Default) */
 :root {
   /* Colores primarios */

@@ -326,15 +326,23 @@ const PublicCatalog: React.FC = () => {
                   : 'flex flex-col gap-4 mb-8'
               }
             >
-              {products.map((product) => (
-                <ProductCard
+              {products.map((product, index) => (
+                <div
                   key={product.id}
-                  product={product}
-                  viewMode={viewMode}
-                  onProductClick={handleProductClick}
-                  onViewDetails={handleProductClick}
-                  showSKU={false}
-                />
+                  className="animate-fade-in-up"
+                  style={{
+                    animationDelay: `${Math.min(index * 50, 500)}ms`,
+                    animationFillMode: 'backwards'
+                  }}
+                >
+                  <ProductCard
+                    product={product}
+                    viewMode={viewMode}
+                    onProductClick={handleProductClick}
+                    onViewDetails={handleProductClick}
+                    showSKU={false}
+                  />
+                </div>
               ))}
             </div>
 

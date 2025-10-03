@@ -4,6 +4,8 @@ import vendorOrderService, {
   VendorOrderItem,
   VendorOrderStats
 } from '../../services/vendorOrderService';
+import { SkeletonStatsCards, SkeletonOrderCard } from '../../components/common/SkeletonLoader';
+import { ButtonSpinner } from '../../components/common/LoadingSpinner';
 
 /**
  * VendorOrders - Main page for vendor order management
@@ -20,9 +22,13 @@ const VendorOrders: React.FC = () => {
   const [orders, setOrders] = useState<VendorOrder[]>([]);
   const [stats, setStats] = useState<VendorOrderStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [statsLoading, setStatsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [updatingItem, setUpdatingItem] = useState<string | null>(null);
+
+  // Initial loading state
+  const isInitialLoading = loading && orders.length === 0;
 
   // Fetch orders and stats
   useEffect(() => {
@@ -54,10 +60,13 @@ const VendorOrders: React.FC = () => {
 
   const loadStats = async () => {
     try {
+      setStatsLoading(true);
       const statsData = await vendorOrderService.getStats();
       setStats(statsData);
     } catch (err) {
       console.error('Error loading stats:', err);
+    } finally {
+      setStatsLoading(false);
     }
   };
 
@@ -118,16 +127,7 @@ const VendorOrders: React.FC = () => {
     });
   };
 
-  if (loading && orders.length === 0) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Cargando órdenes...</p>
-        </div>
-      </div>
-    );
-  }
+  // Remove old loading screen - we'll use skeletons instead
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
@@ -141,7 +141,9 @@ const VendorOrders: React.FC = () => {
         </div>
 
         {/* Stats Cards */}
-        {stats && (
+        {statsLoading ? (
+          <SkeletonStatsCards count={4} />
+        ) : stats ? (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
             <div className="bg-white rounded-lg shadow p-6">
               <div className="text-sm text-gray-600">Total Órdenes</div>
@@ -162,7 +164,7 @@ const VendorOrders: React.FC = () => {
               <div className="text-2xl font-bold mt-1">{stats.ready_to_ship_items}</div>
             </div>
           </div>
-        )}
+        ) : null}
 
         {/* Filters */}
         <div className="bg-white rounded-lg shadow p-4 mb-6">
@@ -202,7 +204,14 @@ const VendorOrders: React.FC = () => {
         )}
 
         {/* Orders Grid */}
-        {orders.length === 0 ? (
+        {isInitialLoading ? (
+          // Show skeleton loaders on initial load
+          <div className="space-y-6">
+            {[1, 2, 3].map((i) => (
+              <SkeletonOrderCard key={i} />
+            ))}
+          </div>
+        ) : orders.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-12 text-center">
             <svg
               className="mx-auto h-12 w-12 text-gray-400"
@@ -331,11 +340,9 @@ const VendorOrders: React.FC = () => {
                           }`}
                         >
                           {updatingItem === item.id ? (
-                            <span className="flex items-center justify-center">
-                              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                              </svg>
+                            <span className="flex items-center justify-center gap-2">
+                              <ButtonSpinner />
+                              Actualizando...
                             </span>
                           ) : (
                             'Preparando'
@@ -360,11 +367,9 @@ const VendorOrders: React.FC = () => {
                           }`}
                         >
                           {updatingItem === item.id ? (
-                            <span className="flex items-center justify-center">
-                              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                              </svg>
+                            <span className="flex items-center justify-center gap-2">
+                              <ButtonSpinner />
+                              Actualizando...
                             </span>
                           ) : (
                             'Listo'

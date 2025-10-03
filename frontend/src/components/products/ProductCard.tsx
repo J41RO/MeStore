@@ -97,21 +97,24 @@ const ProductCard: React.FC<ProductCardProps> = ({
   if (viewMode === 'grid') {
     return (
       <div
-        className={`bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 cursor-pointer overflow-hidden ${className}`}
+        className={`bg-white rounded-lg shadow-md overflow-hidden cursor-pointer
+          transition-all duration-300 ease-out
+          hover:shadow-xl hover:-translate-y-1
+          ${className}`}
         onClick={handleClick}
       >
         {/* Imagen */}
-        <div className='relative aspect-square bg-gray-100 flex items-center justify-center group'>
+        <div className='relative aspect-square bg-gray-100 flex items-center justify-center group overflow-hidden'>
           {!imageError && product.imageUrl ? (
             <img
               src={product.imageUrl}
               alt={product.name}
-              className='w-full h-full object-cover transition-transform duration-500 group-hover:scale-110'
+              className='w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110'
               onError={() => setImageError(true)}
               loading='lazy'
             />
           ) : (
-            <div className='text-gray-400 text-4xl'>📦</div>
+            <div className='text-gray-400 text-4xl transition-transform duration-300 group-hover:scale-110'>📦</div>
           )}
 
           {/* Discount Badge */}
@@ -228,9 +231,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
                   e.stopPropagation();
                   onViewDetails(product);
                 }}
-                className='mt-2 w-full bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded text-sm flex items-center justify-center space-x-1 transition-colors'
+                className='mt-2 w-full bg-gray-100 hover:bg-blue-600 text-gray-700 hover:text-white px-3 py-1 rounded text-sm
+                  flex items-center justify-center space-x-1
+                  transition-all duration-200 ease-out
+                  transform hover:scale-105 active:scale-95'
               >
-                <Eye className='w-4 h-4' />
+                <Eye className='w-4 h-4 transition-transform duration-200 group-hover:scale-110' />
                 <span>Ver detalles</span>
               </button>
             )}
@@ -243,22 +249,25 @@ const ProductCard: React.FC<ProductCardProps> = ({
   // Vista Lista - Layout horizontal
   return (
     <div
-      className={`bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 cursor-pointer overflow-hidden ${className}`}
+      className={`bg-white rounded-lg shadow-sm cursor-pointer overflow-hidden
+        transition-all duration-200 ease-out
+        hover:shadow-md hover:border-blue-200 border border-transparent
+        ${className}`}
       onClick={handleClick}
     >
       <div className='flex'>
         {/* Imagen */}
-        <div className='relative w-24 h-24 sm:w-32 sm:h-32 bg-gray-100 flex items-center justify-center flex-shrink-0 group'>
+        <div className='relative w-24 h-24 sm:w-32 sm:h-32 bg-gray-100 flex items-center justify-center flex-shrink-0 group overflow-hidden'>
           {!imageError && product.imageUrl ? (
             <img
               src={product.imageUrl}
               alt={product.name}
-              className='w-full h-full object-cover transition-transform duration-500 group-hover:scale-110'
+              className='w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110'
               onError={() => setImageError(true)}
               loading='lazy'
             />
           ) : (
-            <div className='text-gray-400 text-2xl'>📦</div>
+            <div className='text-gray-400 text-2xl transition-transform duration-300 group-hover:scale-110'>📦</div>
           )}
 
           {/* Discount Badge */}

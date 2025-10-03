@@ -53,6 +53,13 @@ export interface ShippingLocationUpdate {
   description?: string;
 }
 
+export interface ShippingTracking {
+  tracking_number: string;
+  courier: string | null;
+  estimated_delivery: string | null;
+  events: ShippingEvent[];
+}
+
 // API Service
 class ShippingService {
   /**
@@ -105,6 +112,29 @@ class ShippingService {
       }
     );
     return response.data;
+  }
+
+  /**
+   * Get shipping tracking for modal integration (alias method)
+   */
+  async getTracking(orderId: number): Promise<ShippingTracking> {
+    const token = localStorage.getItem('access_token');
+    const response = await axios.get(
+      `${API_BASE_URL}/api/v1/shipping/orders/${orderId}/shipping/tracking`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+    // Transform response to match ShippingTracking interface
+    const data = response.data;
+    return {
+      tracking_number: data.shipping_info?.tracking_number || '',
+      courier: data.shipping_info?.courier || null,
+      estimated_delivery: data.shipping_info?.estimated_delivery || null,
+      events: data.shipping_info?.shipping_events || []
+    };
   }
 
   /**

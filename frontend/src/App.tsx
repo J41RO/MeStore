@@ -94,6 +94,7 @@ const CheckoutDemo = lazy(() => import('./pages/CheckoutDemo'));
 
 // Order management pages - MICRO-FASE 4.3
 const OrdersManagement = lazy(() => import('./pages/admin/OrdersManagement'));
+const AdminOrders = lazy(() => import('./pages/admin/AdminOrders'));
 const VendorOrders = lazy(() => import('./pages/VendorOrders'));
 const BuyerOrdersNew = lazy(() => import('./pages/BuyerOrdersNew'));
 const OrderTracking = lazy(() => import('./pages/OrderTracking'));
@@ -542,6 +543,13 @@ function App() {
                       </RoleGuard>
                     } />
 
+                    {/* ORDERS Category Routes */}
+                    <Route path='orders' element={
+                      <RoleGuard roles={[UserType.SUPERUSER]} strategy="exact">
+                        <AdminOrders />
+                      </RoleGuard>
+                    } />
+
                     {/* ANALYTICS Category Routes */}
                     <Route path='analytics' element={
                       <RoleGuard roles={[UserType.ADMIN, UserType.SUPERUSER]} strategy="any">
@@ -597,7 +605,7 @@ function App() {
                     } />
 
                     {/* Legacy Routes - Keep for backward compatibility */}
-                    <Route path='orders' element={<OrdersManagement />} />
+                    {/* REMOVED: Duplicate 'orders' route - already defined in ORDERS Category Routes (line 547-551) */}
                     <Route path='alertas-incidentes' element={<AlertasIncidentes />} />
                     <Route path='movement-tracker' element={<MovementTrackerPage />} />
                     <Route path='reportes-discrepancias' element={<ReportesDiscrepanciasPage />} />

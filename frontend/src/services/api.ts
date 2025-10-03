@@ -13,25 +13,145 @@ const baseApi = axios.create({
   }
 });
 
-baseApi.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-// Error response interceptor
-baseApi.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Clear auth tokens on 401
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      // Redirect to login or trigger auth state update
-      window.location.href = '/login';
+// Request interceptor - Add auth token
+baseApi.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
+    return config;
+  },
+  (error) => {
+    // Handle request errors
+    console.error('Request error:', error);
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor - Enhanced error handling
+baseApi.interceptors.response.use(
+  (response) => {
+    // Success response - just return it
+    return response;
+  },
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Handle network errors
+    if (!error.response) {
+      console.error('Network error - no response from server');
+
+      // Show user-friendly toast if available
+      if (window.showToast) {
+        window.showToast('Error de conexión. Por favor verifica tu conexión a internet.', 'error');
+      }
+
+      return Promise.reject(error);
+    }
+
+    const { status } = error.response;
+
+    // Handle specific status codes
+    switch (status) {
+      case 401:
+        // Unauthorized - clear auth and redirect to login
+        if (!originalRequest._retry) {
+          originalRequest._retry = true;
+
+          // Try to refresh token if available
+          const refreshToken = localStorage.getItem('refresh_token');
+          if (refreshToken && !originalRequest.url?.includes('/auth/refresh-token')) {
+            try {
+              const response = await baseApi.post('/api/v1/auth/refresh-token', {
+                refresh_token: refreshToken
+              });
+
+              const { access_token } = response.data;
+              localStorage.setItem('access_token', access_token);
+
+              // Retry original request with new token
+              originalRequest.headers.Authorization = `Bearer ${access_token}`;
+              return baseApi(originalRequest);
+            } catch (refreshError) {
+              // Refresh failed - logout user
+              console.error('Token refresh failed:', refreshError);
+            }
+          }
+
+          // Clear tokens and redirect to login
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+
+          if (window.showToast) {
+            window.showToast('Sesión expirada. Por favor inicia sesión nuevamente.', 'warning');
+          }
+
+          // Delay redirect to allow toast to show
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 1500);
+        }
+        break;
+
+      case 403:
+        // Forbidden
+        if (window.showToast) {
+          window.showToast('No tienes permisos para realizar esta acción.', 'error');
+        }
+        break;
+
+      case 404:
+        // Not found
+        if (window.showToast) {
+          window.showToast('Recurso no encontrado.', 'error');
+        }
+        break;
+
+      case 422:
+        // Validation error
+        const validationMessage = error.response.data?.detail || 'Error de validación en los datos proporcionados.';
+        if (window.showToast) {
+          window.showToast(validationMessage, 'error');
+        }
+        break;
+
+      case 429:
+        // Too many requests
+        if (window.showToast) {
+          window.showToast('Demasiadas solicitudes. Por favor intenta más tarde.', 'warning');
+        }
+        break;
+
+      case 500:
+      case 502:
+      case 503:
+      case 504:
+        // Server errors
+        const serverMessage = error.response.data?.detail || 'Error del servidor. Por favor intenta más tarde.';
+        if (window.showToast) {
+          window.showToast(serverMessage, 'error');
+        }
+        break;
+
+      default:
+        // Generic error
+        const genericMessage = error.response.data?.detail || error.response.data?.message || 'Ocurrió un error inesperado.';
+        if (window.showToast) {
+          window.showToast(genericMessage, 'error');
+        }
+    }
+
+    // Log error in development
+    if (import.meta.env.MODE === 'development') {
+      console.error('API Error:', {
+        status,
+        url: error.config?.url,
+        method: error.config?.method,
+        data: error.response?.data
+      });
+    }
+
     return Promise.reject(error);
   }
 );

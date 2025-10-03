@@ -1,0 +1,299 @@
+{
+  "float_to_decimal_migration": {
+    "version": "1.0",
+    "date": "2025-10-02",
+    "analyst": "database-performance-ai",
+    "total_fields": 13,
+    "total_tables": 6,
+    "severity": "CRITICAL",
+    "tables": [
+      {
+        "table_name": "orders",
+        "file": "app/models/order.py",
+        "priority": "CRITICAL",
+        "fields": [
+          {
+            "field_name": "subtotal",
+            "line": 35,
+            "current_type": "Float",
+            "target_type": "DECIMAL(12, 2)",
+            "nullable": false,
+            "default": "0.0",
+            "description": "Subtotal antes de impuestos",
+            "risk": "HIGH - Afecta cálculo de total de orden"
+          },
+          {
+            "field_name": "tax_amount",
+            "line": 36,
+            "current_type": "Float",
+            "target_type": "DECIMAL(12, 2)",
+            "nullable": false,
+            "default": "0.0",
+            "description": "Monto de impuestos",
+            "risk": "HIGH - Errores en cálculo de impuestos"
+          },
+          {
+            "field_name": "shipping_cost",
+            "line": 37,
+            "current_type": "Float",
+            "target_type": "DECIMAL(12, 2)",
+            "nullable": false,
+            "default": "0.0",
+            "description": "Costo de envío",
+            "risk": "MEDIUM - Afecta total final"
+          },
+          {
+            "field_name": "discount_amount",
+            "line": 38,
+            "current_type": "Float",
+            "target_type": "DECIMAL(12, 2)",
+            "nullable": false,
+            "default": "0.0",
+            "description": "Monto de descuento",
+            "risk": "MEDIUM - Afecta total final"
+          },
+          {
+            "field_name": "total_amount",
+            "line": 39,
+            "current_type": "Float",
+            "target_type": "DECIMAL(12, 2)",
+            "nullable": false,
+            "default": null,
+            "description": "Total final de la orden",
+            "risk": "CRITICAL - Cobro incorrecto a clientes"
+          }
+        ]
+      },
+      {
+        "table_name": "order_items",
+        "file": "app/models/order.py",
+        "priority": "CRITICAL",
+        "fields": [
+          {
+            "field_name": "unit_price",
+            "line": 98,
+            "current_type": "Float",
+            "target_type": "DECIMAL(10, 2)",
+            "nullable": false,
+            "default": null,
+            "description": "Precio unitario del producto",
+            "risk": "HIGH - Afecta cálculo de línea de pedido"
+          },
+          {
+            "field_name": "total_price",
+            "line": 100,
+            "current_type": "Float",
+            "target_type": "DECIMAL(10, 2)",
+            "nullable": false,
+            "default": null,
+            "description": "Total de la línea (qty × price)",
+            "risk": "HIGH - Suma incorrecta en orden"
+          }
+        ]
+      },
+      {
+        "table_name": "order_transactions",
+        "file": "app/models/order.py",
+        "priority": "CRITICAL",
+        "fields": [
+          {
+            "field_name": "amount",
+            "line": 122,
+            "current_type": "Float",
+            "target_type": "DECIMAL(12, 2)",
+            "nullable": false,
+            "default": null,
+            "description": "Monto de transacción de pago",
+            "risk": "CRITICAL - Discrepancias con gateway de pago"
+          }
+        ]
+      },
+      {
+        "table_name": "admin_activity_log",
+        "file": "app/models/admin_activity_log.py",
+        "priority": "HIGH",
+        "fields": [
+          {
+            "field_name": "old_price",
+            "line": 302,
+            "current_type": "Float",
+            "target_type": "DECIMAL(12, 2)",
+            "nullable": true,
+            "default": null,
+            "description": "Precio anterior (auditoría)",
+            "risk": "MEDIUM - Auditorías incorrectas"
+          },
+          {
+            "field_name": "new_price",
+            "line": 308,
+            "current_type": "Float",
+            "target_type": "DECIMAL(12, 2)",
+            "nullable": true,
+            "default": null,
+            "description": "Precio nuevo (auditoría)",
+            "risk": "MEDIUM - Auditorías incorrectas"
+          },
+          {
+            "field_name": "price_difference",
+            "line": 314,
+            "current_type": "Float",
+            "target_type": "DECIMAL(12, 2)",
+            "nullable": true,
+            "default": null,
+            "description": "Diferencia de precio",
+            "risk": "MEDIUM - Cálculo de diferencias incorrecto"
+          }
+        ]
+      },
+      {
+        "table_name": "inventory_audit",
+        "file": "app/models/inventory_audit.py",
+        "priority": "MEDIUM",
+        "fields": [
+          {
+            "field_name": "valor_discrepancias",
+            "line": 43,
+            "current_type": "Float",
+            "target_type": "DECIMAL(12, 2)",
+            "nullable": true,
+            "default": "0.0",
+            "description": "Valor total de discrepancias",
+            "risk": "LOW - Reportes de auditoría"
+          },
+          {
+            "field_name": "valor_discrepancia",
+            "line": 93,
+            "current_type": "Float",
+            "target_type": "DECIMAL(12, 2)",
+            "nullable": true,
+            "default": null,
+            "description": "Valor individual de discrepancia",
+            "risk": "LOW - Reportes de auditoría"
+          }
+        ]
+      },
+      {
+        "table_name": "discrepancy_report",
+        "file": "app/models/discrepancy_report.py",
+        "priority": "MEDIUM",
+        "fields": [
+          {
+            "field_name": "valor_unitario_registrado",
+            "line": 190,
+            "current_type": "Float",
+            "target_type": "DECIMAL(12, 2)",
+            "nullable": true,
+            "default": null,
+            "description": "Valor unitario registrado en sistema",
+            "risk": "LOW - Reportes de discrepancias"
+          },
+          {
+            "field_name": "valor_unitario_fisico",
+            "line": 196,
+            "current_type": "Float",
+            "target_type": "DECIMAL(12, 2)",
+            "nullable": true,
+            "default": null,
+            "description": "Valor unitario físico contado",
+            "risk": "LOW - Reportes de discrepancias"
+          },
+          {
+            "field_name": "valor_total_discrepancia",
+            "line": 251,
+            "current_type": "Float",
+            "target_type": "DECIMAL(12, 2)",
+            "nullable": true,
+            "default": null,
+            "description": "Valor total de la discrepancia",
+            "risk": "LOW - Reportes de discrepancias"
+          }
+        ]
+      }
+    ],
+    "fields_already_correct": {
+      "tables_using_decimal": [
+        {
+          "table": "products",
+          "file": "app/models/product.py",
+          "fields": ["precio_venta", "precio_costo", "comision_mestocker", "peso"],
+          "type": "DECIMAL(10, 2) or DECIMAL(8, 3)"
+        },
+        {
+          "table": "transactions",
+          "file": "app/models/transaction.py",
+          "fields": ["monto", "porcentaje_mestocker", "monto_vendedor"],
+          "type": "DECIMAL(12, 2)"
+        },
+        {
+          "table": "commissions",
+          "file": "app/models/commission.py",
+          "fields": [
+            "order_amount",
+            "commission_rate",
+            "commission_amount",
+            "vendor_amount",
+            "platform_amount"
+          ],
+          "type": "DECIMAL(10, 2) or DECIMAL(5, 4)"
+        },
+        {
+          "table": "payout_requests",
+          "file": "app/models/payout_request.py",
+          "fields": ["monto_solicitado"],
+          "type": "DECIMAL(12, 2)"
+        }
+      ]
+    },
+    "migration_summary": {
+      "total_alter_column_statements": 13,
+      "postgresql_using_cast": "CAST(column AS NUMERIC(precision, scale))",
+      "rollback_available": true,
+      "data_loss_risk": "MINIMAL - Rounding to 2 decimals only",
+      "estimated_downtime": "1-2 hours",
+      "backup_required": true
+    },
+    "testing_requirements": {
+      "unit_tests": {
+        "precision_tests": 10,
+        "calculation_tests": 8,
+        "serialization_tests": 5
+      },
+      "integration_tests": {
+        "api_tests": 5,
+        "database_tests": 3,
+        "service_tests": 4
+      },
+      "performance_tests": {
+        "query_benchmarks": 5,
+        "index_optimization": 3
+      }
+    },
+    "deployment_checklist": [
+      "Backup completo de base de datos producción",
+      "Backup completo de base de datos staging",
+      "Validación de datos con precisión > 2 decimales",
+      "Crear migration script Alembic",
+      "Actualizar modelos SQLAlchemy (6 archivos)",
+      "Ejecutar migration en staging",
+      "Verificar tipos de datos post-migration",
+      "Run full test suite (>25 tests)",
+      "Aplicar migration en producción",
+      "Smoke tests críticos post-deployment",
+      "Monitoreo de logs por 48 horas",
+      "Validación de reportes financieros"
+    ],
+    "responsible_agents": {
+      "approval_required": [
+        "database-architect-ai",
+        "system-architect-ai",
+        "security-backend-ai",
+        "master-orchestrator"
+      ],
+      "consultation_optional": [
+        "tdd-specialist",
+        "backend-framework-ai",
+        "api-architect-ai"
+      ]
+    }
+  }
+}

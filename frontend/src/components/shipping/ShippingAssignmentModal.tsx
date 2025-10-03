@@ -36,10 +36,52 @@ const ShippingAssignmentModal: React.FC<ShippingAssignmentModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  // Validation errors
+  const [courierError, setCourierError] = useState<string | null>(null);
+  const [daysError, setDaysError] = useState<string | null>(null);
+  const [touched, setTouched] = useState({ courier: false, days: false });
+
   const couriers = shippingService.getAvailableCouriers();
+
+  // Validation functions
+  const validateCourier = (value: string): boolean => {
+    if (!value) {
+      setCourierError('Debe seleccionar un courier');
+      return false;
+    }
+    setCourierError(null);
+    return true;
+  };
+
+  const validateDays = (value: number): boolean => {
+    if (!value || value < 1 || value > 30) {
+      setDaysError('Días debe estar entre 1 y 30');
+      return false;
+    }
+    setDaysError(null);
+    return true;
+  };
+
+  // Check if form is valid
+  const isFormValid = (): boolean => {
+    return !!courier && estimatedDays >= 1 && estimatedDays <= 30;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Mark all fields as touched
+    setTouched({ courier: true, days: true });
+
+    // Validate all fields
+    const isCourierValid = validateCourier(courier);
+    const areDaysValid = validateDays(estimatedDays);
+
+    // Don't submit if validation fails
+    if (!isCourierValid || !areDaysValid) {
+      return;
+    }
+
     setError(null);
     setLoading(true);
 
@@ -69,6 +111,9 @@ const ShippingAssignmentModal: React.FC<ShippingAssignmentModalProps> = ({
       setEstimatedDays(3);
       setError(null);
       setSuccess(false);
+      setCourierError(null);
+      setDaysError(null);
+      setTouched({ courier: false, days: false });
       onClose();
     }
   };
@@ -102,13 +147,25 @@ const ShippingAssignmentModal: React.FC<ShippingAssignmentModalProps> = ({
           <TextField
             select
             fullWidth
-            label="Courier"
+            label="Courier *"
             value={courier}
-            onChange={(e) => setCourier(e.target.value)}
+            onChange={(e) => {
+              setCourier(e.target.value);
+              if (touched.courier) validateCourier(e.target.value);
+            }}
+            onBlur={() => {
+              setTouched({ ...touched, courier: true });
+              validateCourier(courier);
+            }}
             required
             disabled={loading || success}
+            error={touched.courier && !!courierError}
             sx={{ mb: 2 }}
-            helperText="Seleccione la empresa de envío"
+            helperText={
+              touched.courier && courierError
+                ? courierError
+                : 'Seleccione la empresa de envío'
+            }
           >
             {couriers.map((courierOption) => (
               <MenuItem key={courierOption} value={courierOption}>
@@ -120,13 +177,26 @@ const ShippingAssignmentModal: React.FC<ShippingAssignmentModalProps> = ({
           <TextField
             fullWidth
             type="number"
-            label="Días estimados de entrega"
+            label="Días estimados de entrega *"
             value={estimatedDays}
-            onChange={(e) => setEstimatedDays(parseInt(e.target.value))}
+            onChange={(e) => {
+              const value = parseInt(e.target.value);
+              setEstimatedDays(value);
+              if (touched.days) validateDays(value);
+            }}
+            onBlur={() => {
+              setTouched({ ...touched, days: true });
+              validateDays(estimatedDays);
+            }}
             required
             disabled={loading || success}
+            error={touched.days && !!daysError}
             inputProps={{ min: 1, max: 30 }}
-            helperText="Número de días hábiles estimados para la entrega"
+            helperText={
+              touched.days && daysError
+                ? daysError
+                : 'Número de días hábiles estimados (1-30)'
+            }
           />
 
           <Box mt={2} p={2} bgcolor="info.main" borderRadius={1}>
@@ -143,7 +213,7 @@ const ShippingAssignmentModal: React.FC<ShippingAssignmentModalProps> = ({
           <Button
             type="submit"
             variant="contained"
-            disabled={loading || success || !courier}
+            disabled={loading || success || !isFormValid()}
             startIcon={loading ? <CircularProgress size={20} /> : <LocalShippingIcon />}
           >
             {loading ? 'Asignando...' : 'Asignar Envío'}

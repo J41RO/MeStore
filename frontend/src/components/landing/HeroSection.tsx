@@ -78,15 +78,15 @@ const HeroSection: React.FC<HeroSectionProps> = ({ className = '' }) => {
   }, [charIndex, textIndex]);
 
   const handlePrimaryCTA = () => {
-    const destination = isAuthenticated 
-      ? (user?.user_type === 'ADMIN' ? '/admin' : 
+    const destination = isAuthenticated
+      ? (user?.user_type === 'ADMIN' ? '/admin' :
          user?.user_type === 'VENDEDOR' ? '/dashboard/vendedor' : '/dashboard')
       : '/register';
-    
+
     // Track CTA button click
     trackButtonClick(
-      isAuthenticated ? 'ir_dashboard' : 'empezar_5_min', 
-      'hero_section', 
+      isAuthenticated ? 'ir_dashboard' : 'empezar_5_min',
+      'hero_section',
       {
         user_authenticated: isAuthenticated,
         user_type: user?.user_type || 'anonymous',
@@ -105,6 +105,21 @@ const HeroSection: React.FC<HeroSectionProps> = ({ className = '' }) => {
     } else {
       navigate('/register');
     }
+  };
+
+  const handleCatalogCTA = () => {
+    // Track catalog button click
+    trackButtonClick(
+      'ver_catalogo',
+      'hero_section',
+      {
+        user_authenticated: isAuthenticated,
+        user_type: user?.user_type || 'anonymous',
+        destination: '/catalog'
+      }
+    );
+
+    navigate('/catalog');
   };
 
   return (
@@ -158,13 +173,19 @@ const HeroSection: React.FC<HeroSectionProps> = ({ className = '' }) => {
           </div>
         </div>
 
-        {/* BOTÓN CTA CENTRADO PERFECTO */}
-        <div className="flex justify-center items-center mb-8">
+        {/* BOTONES CTA CENTRADOS PERFECTAMENTE */}
+        <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-8">
           <button
             onClick={handlePrimaryCTA}
-            className="mx-auto block text-center px-8 py-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold text-lg rounded-xl hover:from-yellow-300 hover:to-orange-400 transform hover:scale-105 transition-all duration-300 shadow-2xl"
+            className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold text-lg rounded-xl hover:from-yellow-300 hover:to-orange-400 transform hover:scale-105 transition-all duration-300 shadow-2xl"
           >
             {isAuthenticated ? 'Ir a Dashboard' : 'Empezar en 5 Min'}
+          </button>
+          <button
+            onClick={handleCatalogCTA}
+            className="w-full sm:w-auto px-8 py-4 bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white font-bold text-lg rounded-xl hover:bg-white/20 hover:border-white/50 transform hover:scale-105 transition-all duration-300 shadow-xl"
+          >
+            Ver Catálogo de Productos
           </button>
         </div>
 
