@@ -38,6 +38,7 @@ from app.api.v1.endpoints.vendors import router as vendors_registration_router
 from app.api.v1.endpoints.payments import router as payments_router
 from app.api.v1.endpoints.webhooks import router as webhooks_router
 from app.api.v1.endpoints.orders import router as orders_router
+from app.api.v1.endpoints.vendor_orders import router as vendor_orders_router
 from app.api.v1.endpoints.database_reset import router as database_reset_router
 from app.api.v1.endpoints.user_management_enterprise import router as user_management_router
 from app.api.v1.endpoints.communication_config import router as communication_config_router
@@ -86,6 +87,9 @@ api_router.include_router(vendor_profile_router, prefix="/vendors", tags=["vendo
 
 # Vendor registration (MVP - auto-approval)
 api_router.include_router(vendors_registration_router, prefix="/vendors", tags=["vendor-registration"])
+
+# Vendor orders management (NEW)
+api_router.include_router(vendor_orders_router, prefix="/vendor", tags=["vendor-orders"])
 
 # Categories (hierarchical system)
 api_router.include_router(categories_router, prefix="/categories", tags=["categories"])
