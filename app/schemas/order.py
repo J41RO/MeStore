@@ -235,6 +235,50 @@ class OrderMetrics(BaseSchema):
     daily_orders: List[Dict[str, Any]] = Field(..., description="Daily order statistics")
 
 
+# ============================================================================
+# BUYER DASHBOARD SCHEMAS
+# ============================================================================
+
+class TrackingEvent(BaseSchema):
+    """Schema for tracking event timeline."""
+
+    timestamp: datetime = Field(..., description="Event timestamp")
+    status: str = Field(..., description="Status at this point")
+    location: Optional[str] = Field(None, description="Location of package")
+    description: str = Field(..., description="Event description")
+
+
+class OrderTrackingResponse(BaseSchema):
+    """Schema for order tracking information response."""
+
+    order_id: int = Field(..., description="Order ID")
+    order_number: str = Field(..., description="Human-readable order number")
+    status: OrderStatus = Field(..., description="Current order status")
+    courier: Optional[str] = Field(None, description="Courier service name (Rappi, Uber, etc.)")
+    tracking_number: Optional[str] = Field(None, description="Tracking number")
+    estimated_delivery: Optional[datetime] = Field(None, description="Estimated delivery date")
+    current_location: Optional[str] = Field(None, description="Current package location")
+    tracking_url: Optional[str] = Field(None, description="URL to track package")
+    history: List[TrackingEvent] = Field(default_factory=list, description="Timeline of tracking events")
+
+
+class OrderCancelRequest(BaseSchema):
+    """Schema for order cancellation request."""
+
+    reason: str = Field(..., min_length=1, max_length=500, description="Reason for cancellation")
+    refund_requested: bool = Field(True, description="Whether refund is requested")
+
+
+class OrderCancelResponse(BaseSchema):
+    """Schema for order cancellation response."""
+
+    order_id: int = Field(..., description="Order ID")
+    status: OrderStatus = Field(..., description="New order status (should be cancelled)")
+    cancelled_at: datetime = Field(..., description="Timestamp of cancellation")
+    cancellation_reason: str = Field(..., description="Reason provided for cancellation")
+    refund_status: str = Field(..., description="Refund status (pending, processing, completed)")
+
+
 # Export all order schemas
 __all__ = [
     "OrderStatus",
@@ -249,5 +293,9 @@ __all__ = [
     "OrderStatusUpdate",
     "OrderSearchFilter",
     "OrderSummary",
-    "OrderMetrics"
+    "OrderMetrics",
+    "TrackingEvent",
+    "OrderTrackingResponse",
+    "OrderCancelRequest",
+    "OrderCancelResponse"
 ]

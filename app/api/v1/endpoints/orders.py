@@ -21,7 +21,13 @@ from app.database import get_db
 from app.models.user import User
 from app.models.order import Order, OrderItem, OrderStatus
 from app.models.product import Product
-from app.schemas.order import OrderSummary
+from app.schemas.order import (
+    OrderSummary,
+    OrderTrackingResponse,
+    OrderCancelRequest,
+    OrderCancelResponse,
+    TrackingEvent
+)
 from app.core.logger import get_logger
 
 logger = get_logger(__name__)
@@ -574,4 +580,266 @@ async def create_order(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error creating order: {str(e)}"
+        )
+
+
+# ============================================================================
+# BUYER DASHBOARD ENDPOINTS
+# ============================================================================
+
+@router.get("/{order_id}/tracking", response_model=OrderTrackingResponse)
+async def get_order_tracking(
+    order_id: int,
+    current_user = Depends(get_current_user_for_orders),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get tracking information for a specific order.
+
+    Features:
+    - Returns tracking details including courier, tracking number, status
+    - Provides timeline of tracking events
+    - Includes estimated delivery date
+    - Security: Only the buyer who owns the order can view tracking
+
+    Args:
+        order_id: The ID of the order to track
+
+    Returns:
+        OrderTrackingResponse with complete tracking information
+
+    Raises:
+        401: If user is not authenticated
+        403: If user is not the owner of the order
+        404: If order is not found
+    """
+    try:
+        # Query order
+        query = select(Order).where(Order.id == order_id)
+        result = await db.execute(query)
+        order = result.scalar_one_or_none()
+
+        # Validate order exists
+        if not order:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Order {order_id} not found"
+            )
+
+        # Security: Validate ownership
+        if order.buyer_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You are not authorized to view this order's tracking information"
+            )
+
+        # Build tracking timeline based on order status and timestamps
+        tracking_history = []
+
+        # Event: Order created
+        tracking_history.append(TrackingEvent(
+            timestamp=order.created_at,
+            status=OrderStatus.PENDING.value,
+            location="Bogotá, Colombia",
+            description="Order received and awaiting confirmation"
+        ))
+
+        # Event: Order confirmed
+        if order.confirmed_at:
+            tracking_history.append(TrackingEvent(
+                timestamp=order.confirmed_at,
+                status=OrderStatus.CONFIRMED.value,
+                location="Bogotá, Colombia",
+                description="Order confirmed and being prepared for shipment"
+            ))
+
+        # Event: Order shipped
+        if order.shipped_at:
+            tracking_history.append(TrackingEvent(
+                timestamp=order.shipped_at,
+                status=OrderStatus.SHIPPED.value,
+                location="In transit",
+                description=f"Package shipped via courier and in transit to {order.shipping_city}"
+            ))
+
+        # Event: Order delivered
+        if order.delivered_at:
+            tracking_history.append(TrackingEvent(
+                timestamp=order.delivered_at,
+                status=OrderStatus.DELIVERED.value,
+                location=f"{order.shipping_city}, {order.shipping_state}",
+                description="Package delivered successfully"
+            ))
+
+        # Event: Order cancelled
+        if order.cancelled_at:
+            tracking_history.append(TrackingEvent(
+                timestamp=order.cancelled_at,
+                status=OrderStatus.CANCELLED.value,
+                location="N/A",
+                description=f"Order cancelled. Reason: {order.cancellation_reason or 'Not specified'}"
+            ))
+
+        # Determine courier and tracking URL
+        # Note: In production, this would come from integration with courier APIs
+        courier = None
+        tracking_url = None
+
+        if order.status in [OrderStatus.SHIPPED, OrderStatus.DELIVERED]:
+            # Example: Assign courier based on shipping city (this would be dynamic in production)
+            if order.shipping_city.lower() in ["bogotá", "medellín", "cali", "barranquilla"]:
+                courier = "Rappi"
+                tracking_url = "https://rappi.com.co/tracking"
+            else:
+                courier = "Coordinadora"
+                tracking_url = "https://coordinadora.com/tracking"
+
+        # Calculate estimated delivery (if not yet delivered)
+        estimated_delivery = None
+        if order.status == OrderStatus.SHIPPED and not order.delivered_at:
+            # Example: 3 days from ship date
+            from datetime import timedelta
+            estimated_delivery = order.shipped_at + timedelta(days=3)
+
+        # Build and return response
+        return OrderTrackingResponse(
+            order_id=order.id,
+            order_number=order.order_number,
+            status=order.status,
+            courier=courier,
+            tracking_number=None,  # Would come from courier integration
+            estimated_delivery=estimated_delivery,
+            current_location="In transit" if order.status == OrderStatus.SHIPPED else None,
+            tracking_url=tracking_url,
+            history=tracking_history
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting order tracking: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error getting order tracking: {str(e)}"
+        )
+
+
+@router.patch("/{order_id}/cancel", response_model=OrderCancelResponse)
+async def cancel_order(
+    order_id: int,
+    cancel_request: OrderCancelRequest,
+    current_user = Depends(get_current_user_for_orders),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Cancel an order with optional refund request.
+
+    Features:
+    - Allows cancellation of orders in PENDING or PROCESSING status
+    - Records cancellation reason and timestamp
+    - Initiates refund process if requested
+    - Security: Only the buyer who owns the order can cancel it
+
+    Business Rules:
+    - Can only cancel orders with status PENDING or PROCESSING
+    - Orders that are SHIPPED, DELIVERED, or already CANCELLED cannot be cancelled
+    - Refund is automatically initiated if order was paid
+
+    Args:
+        order_id: The ID of the order to cancel
+        cancel_request: Cancellation details (reason, refund_requested)
+
+    Returns:
+        OrderCancelResponse with cancellation confirmation
+
+    Raises:
+        400: If order status doesn't allow cancellation
+        401: If user is not authenticated
+        403: If user is not the owner of the order
+        404: If order is not found
+    """
+    try:
+        # Query order
+        query = select(Order).where(Order.id == order_id)
+        result = await db.execute(query)
+        order = result.scalar_one_or_none()
+
+        # Validate order exists
+        if not order:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Order {order_id} not found"
+            )
+
+        # Security: Validate ownership
+        if order.buyer_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You are not authorized to cancel this order"
+            )
+
+        # Business Rule: Check if order can be cancelled
+        if order.status == OrderStatus.CANCELLED:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Order is already cancelled"
+            )
+
+        if order.status in [OrderStatus.SHIPPED, OrderStatus.DELIVERED]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Order cannot be cancelled - order has already been {order.status.value}"
+            )
+
+        if order.status not in [OrderStatus.PENDING, OrderStatus.PROCESSING]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Order with status '{order.status.value}' cannot be cancelled"
+            )
+
+        # Update order status
+        order.status = OrderStatus.CANCELLED
+        order.cancelled_at = datetime.now()
+        order.cancellation_reason = cancel_request.reason
+
+        # Determine refund status
+        # In production, this would trigger actual refund workflow
+        refund_status = "pending"
+        if cancel_request.refund_requested:
+            # Check if order was paid
+            if order.is_paid:
+                refund_status = "processing"
+                logger.info(f"Refund initiated for order {order.order_number}, amount: {order.total_amount}")
+                # TODO: Integrate with payment gateway refund API
+            else:
+                refund_status = "not_required"
+        else:
+            refund_status = "not_requested"
+
+        # Commit changes
+        await db.commit()
+        await db.refresh(order)
+
+        logger.info(
+            f"Order {order.order_number} cancelled by user {current_user.id}. "
+            f"Reason: {cancel_request.reason}"
+        )
+
+        # Return response
+        return OrderCancelResponse(
+            order_id=order.id,
+            status=order.status,
+            cancelled_at=order.cancelled_at,
+            cancellation_reason=order.cancellation_reason,
+            refund_status=refund_status
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error cancelling order: {e}", exc_info=True)
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error cancelling order: {str(e)}"
         )

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, Boolean, Enum
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, Boolean, Enum, DECIMAL, Numeric
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
@@ -31,12 +31,12 @@ class Order(Base):
     order_number = Column(String(50), unique=True, nullable=False, index=True)
     buyer_id = Column(String(36), ForeignKey("users.id"), nullable=False)
     
-    # Order totals
-    subtotal = Column(Float, nullable=False, default=0.0)
-    tax_amount = Column(Float, nullable=False, default=0.0)
-    shipping_cost = Column(Float, nullable=False, default=0.0)
-    discount_amount = Column(Float, nullable=False, default=0.0)
-    total_amount = Column(Float, nullable=False)
+    # Order totals - Using DECIMAL for precise financial calculations
+    subtotal = Column(Numeric(10, 2), nullable=False, default=0.0)
+    tax_amount = Column(Numeric(10, 2), nullable=False, default=0.0)
+    shipping_cost = Column(Numeric(10, 2), nullable=False, default=0.0)
+    discount_amount = Column(Numeric(10, 2), nullable=False, default=0.0)
+    total_amount = Column(Numeric(10, 2), nullable=False)
     
     # Order status and dates
     status = Column(Enum(OrderStatus), nullable=False, default=OrderStatus.PENDING)
@@ -45,6 +45,10 @@ class Order(Base):
     confirmed_at = Column(DateTime(timezone=True), nullable=True)
     shipped_at = Column(DateTime(timezone=True), nullable=True)
     delivered_at = Column(DateTime(timezone=True), nullable=True)
+    cancelled_at = Column(DateTime(timezone=True), nullable=True)
+
+    # Cancellation information
+    cancellation_reason = Column(Text, nullable=True)
     
     # Shipping information
     shipping_name = Column(String(200), nullable=False)
@@ -94,10 +98,10 @@ class OrderItem(Base):
     product_sku = Column(String(100), nullable=False)
     product_image_url = Column(String(1000), nullable=True)
     
-    # Pricing and quantity
-    unit_price = Column(Float, nullable=False)
+    # Pricing and quantity - Using DECIMAL for precise price calculations
+    unit_price = Column(Numeric(10, 2), nullable=False)
     quantity = Column(Integer, nullable=False)
-    total_price = Column(Float, nullable=False)
+    total_price = Column(Numeric(10, 2), nullable=False)
     
     # Product variations (size, color, etc.)
     variant_attributes = Column(Text, nullable=True)  # JSON string
@@ -118,8 +122,8 @@ class OrderTransaction(Base):
     transaction_reference = Column(String(100), unique=True, nullable=False, index=True)
     order_id = Column(Integer, ForeignKey("orders.id"), nullable=False)
     
-    # Payment details
-    amount = Column(Float, nullable=False)
+    # Payment details - Using DECIMAL for precise amount tracking
+    amount = Column(Numeric(10, 2), nullable=False)
     currency = Column(String(3), nullable=False, default="COP")
     status = Column(Enum(PaymentStatus), nullable=False, default=PaymentStatus.PENDING)
     
