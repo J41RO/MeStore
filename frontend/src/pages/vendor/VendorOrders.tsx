@@ -28,6 +28,7 @@ const VendorOrders: React.FC = () => {
   useEffect(() => {
     loadOrders();
     loadStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter]);
 
   const loadOrders = async () => {
@@ -40,8 +41,11 @@ const VendorOrders: React.FC = () => {
         statusFilter === 'all' ? null : statusFilter
       );
       setOrders(response.orders);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Error al cargar órdenes');
+    } catch (err) {
+      const errorMessage = err instanceof Error && 'response' in err
+        ? (err as { response?: { data?: { detail?: string } } }).response?.data?.detail
+        : 'Error al cargar órdenes';
+      setError(errorMessage || 'Error al cargar órdenes');
       console.error('Error loading orders:', err);
     } finally {
       setLoading(false);
@@ -85,8 +89,11 @@ const VendorOrders: React.FC = () => {
 
       // Reload stats
       await loadStats();
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Error al actualizar estado');
+    } catch (err) {
+      const errorMessage = err instanceof Error && 'response' in err
+        ? (err as { response?: { data?: { detail?: string } } }).response?.data?.detail
+        : 'Error al actualizar estado';
+      setError(errorMessage || 'Error al actualizar estado');
       console.error('Error updating item status:', err);
     } finally {
       setUpdatingItem(null);

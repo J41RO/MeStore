@@ -67,7 +67,7 @@ export const vendorOrderService = {
     limit: number = 20,
     status: string | null = null
   ): Promise<{ orders: VendorOrder[]; total: number }> {
-    const params: Record<string, any> = { skip, limit };
+    const params: Record<string, string | number> = { skip, limit };
     if (status) {
       params.status = status;
     }
