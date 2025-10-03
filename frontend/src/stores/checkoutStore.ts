@@ -39,7 +39,7 @@ export interface ShippingAddress {
 
 // Types for payment information
 export interface PaymentInfo {
-  method: 'pse' | 'credit_card' | 'bank_transfer' | 'cash_on_delivery';
+  method: 'pse' | 'credit_card' | 'bank_transfer' | 'cash_on_delivery' | 'payu' | 'efecty';
 
   // PSE specific
   bank_code?: string;
@@ -54,6 +54,12 @@ export interface PaymentInfo {
   expiry_month?: string;
   expiry_year?: string;
   cvv?: string;
+
+  // PayU specific
+  transaction_id?: string;
+
+  // Efecty specific
+  payment_code?: string;
 
   // Common
   email?: string;

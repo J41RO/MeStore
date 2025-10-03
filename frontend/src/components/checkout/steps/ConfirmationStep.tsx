@@ -78,6 +78,7 @@ const ConfirmationStep: React.FC = () => {
         shipping_name: shipping_address.name,
         shipping_address: shipping_address.address,
         shipping_city: shipping_address.city,
+        shipping_state: shipping_address.department,  // ✅ FIX: Campo requerido por backend
         shipping_phone: shipping_address.phone,
         notes: order_notes
       };
@@ -170,7 +171,7 @@ const ConfirmationStep: React.FC = () => {
 
   const handleStartNewOrder = () => {
     resetCheckout();
-    window.location.href = '/products';
+    window.location.href = '/marketplace';
   };
 
   const handleViewOrder = () => {

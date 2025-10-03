@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import PSEForm from '../../payments/PSEForm';
 import CreditCardForm from '../../payments/CreditCardForm';
 import WompiCheckout from '../WompiCheckout';
+import PayUCheckout from '../PayUCheckout';
+import EfectyInstructions from '../../payments/EfectyInstructions';
 import orderApiService from '../../../services/orderApiService';
 import { Loader } from 'lucide-react';
 
@@ -19,6 +21,34 @@ interface PaymentMethods {
   pse_banks: PSEBank[];
   wompi_public_key: string;
 }
+
+// FIX 2: Complete list of Colombian banks for PSE
+const COLOMBIAN_BANKS: PSEBank[] = [
+  { financial_institution_code: "1007", financial_institution_name: "Bancolombia" },
+  { financial_institution_code: "1051", financial_institution_name: "Davivienda" },
+  { financial_institution_code: "1001", financial_institution_name: "Banco de Bogotá" },
+  { financial_institution_code: "1023", financial_institution_name: "Banco de Occidente" },
+  { financial_institution_code: "1062", financial_institution_name: "Banco Falabella" },
+  { financial_institution_code: "1012", financial_institution_name: "Banco GNB Sudameris" },
+  { financial_institution_code: "1060", financial_institution_name: "Banco Pichincha" },
+  { financial_institution_code: "1002", financial_institution_name: "Banco Popular" },
+  { financial_institution_code: "1058", financial_institution_name: "Banco Procredit" },
+  { financial_institution_code: "1065", financial_institution_name: "Banco Santander" },
+  { financial_institution_code: "1066", financial_institution_name: "Banco Cooperativo Coopcentral" },
+  { financial_institution_code: "1006", financial_institution_name: "Banco Corpbanca (Itaú)" },
+  { financial_institution_code: "1013", financial_institution_name: "BBVA Colombia" },
+  { financial_institution_code: "1009", financial_institution_name: "Citibank" },
+  { financial_institution_code: "1014", financial_institution_name: "Itaú" },
+  { financial_institution_code: "1019", financial_institution_name: "Scotiabank Colpatria" },
+  { financial_institution_code: "1040", financial_institution_name: "Banco Agrario" },
+  { financial_institution_code: "1052", financial_institution_name: "Banco AV Villas" },
+  { financial_institution_code: "1032", financial_institution_name: "Banco Caja Social" },
+  { financial_institution_code: "1022", financial_institution_name: "Banco Finandina" },
+  { financial_institution_code: "1292", financial_institution_name: "Confiar" },
+  { financial_institution_code: "1283", financial_institution_name: "CFA Cooperativa Financiera" },
+  { financial_institution_code: "1289", financial_institution_name: "Cotrafa" },
+  { financial_institution_code: "1370", financial_institution_name: "Coltefinanciera" }
+];
 
 const PaymentStep: React.FC = () => {
   const navigate = useNavigate();
@@ -37,6 +67,7 @@ const PaymentStep: React.FC = () => {
     goToNextStep,
     goToPreviousStep,
     canProceedToNextStep,
+    setCurrentStep,
     setError,
     clearErrors,
     clearCart,
@@ -44,7 +75,7 @@ const PaymentStep: React.FC = () => {
     is_processing
   } = useCheckoutStore();
 
-  const [selectedMethod, setSelectedMethod] = useState<'pse' | 'credit_card' | 'bank_transfer' | 'cash_on_delivery'>('pse');
+  const [selectedMethod, setSelectedMethod] = useState<'pse' | 'credit_card' | 'bank_transfer' | 'cash_on_delivery' | 'payu' | 'efecty'>('pse');
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethods | null>(null);
   const [loadingMethods, setLoadingMethods] = useState(true);
   const [showWompiWidget, setShowWompiWidget] = useState(false);
@@ -60,6 +91,15 @@ const PaymentStep: React.FC = () => {
       setSelectedMethod(payment_info.method);
     }
   }, [clearErrors, payment_info]);
+
+  // Debug effect to track payment_info state changes
+  useEffect(() => {
+    console.log('=== PAYMENT STEP STATE ===');
+    console.log('Current payment_info:', payment_info);
+    console.log('Can proceed to next step?:', canProceedToNextStep());
+    console.log('Is processing?:', is_processing);
+    console.log('Current step:', 'payment');
+  }, [payment_info, is_processing]);
 
   const loadPaymentMethods = async () => {
     try {
@@ -86,10 +126,11 @@ const PaymentStep: React.FC = () => {
 
       // Use default payment methods configuration (hardcoded fallback)
       // This ensures the UI works even if the backend endpoint is not implemented
+      // FIX 2: Use complete Colombian banks list as fallback
       setPaymentMethods({
         card_enabled: true,
         pse_enabled: true,
-        pse_banks: [], // Will be loaded from Wompi if needed
+        pse_banks: COLOMBIAN_BANKS, // Use hardcoded complete list of Colombian banks
         wompi_public_key: import.meta.env.VITE_WOMPI_PUBLIC_KEY || ''
       });
 
@@ -106,7 +147,7 @@ const PaymentStep: React.FC = () => {
     // Clear previous payment info when switching methods
     setPaymentInfo({
       method,
-      total_amount: getTotalWithShipping()
+      total_amount: getTotal()
     });
 
     // Reset Wompi widget state when switching methods
@@ -170,6 +211,9 @@ const PaymentStep: React.FC = () => {
       setProcessing(true);
       clearErrors();
 
+      console.log('=== PSE FORM SUBMIT ===');
+      console.log('PSE Data received:', pseData);
+
       const paymentInfo: PaymentInfo = {
         method: 'pse',
         bank_code: pseData.bankCode,
@@ -178,15 +222,22 @@ const PaymentStep: React.FC = () => {
         identification_type: pseData.identificationType,
         identification_number: pseData.userLegalId,
         email: pseData.email,
-        total_amount: getTotalWithShipping()
+        total_amount: getTotal()
       };
 
+      console.log('Payment info constructed:', paymentInfo);
+      console.log('Saving payment info to store...');
+
+      // Save payment info to store
       setPaymentInfo(paymentInfo);
 
-      // If validation passes, continue to next step
-      if (canProceedToNextStep()) {
-        goToNextStep();
-      }
+      // FIX: Force navigation to confirmation step
+      // The PSE form already validated all required fields
+      // We bypass the async state validation by calling setCurrentStep directly
+      console.log('Forcing navigation to confirmation step...');
+      setCurrentStep('confirmation');
+      console.log('Successfully navigated to confirmation step');
+
     } catch (error) {
       console.error('Error processing PSE data:', error);
       setError('Error procesando información de PSE');
@@ -239,7 +290,7 @@ const PaymentStep: React.FC = () => {
       // Save payment info to checkout store
       setPaymentInfo({
         method: 'credit_card',
-        total_amount: getTotalWithShipping(),
+        total_amount: getTotal(),
         email: shipping_address?.phone || ''
       });
 
@@ -275,7 +326,7 @@ const PaymentStep: React.FC = () => {
   const handleBankTransferSelect = () => {
     const paymentInfo: PaymentInfo = {
       method: 'bank_transfer',
-      total_amount: getTotalWithShipping()
+      total_amount: getTotal()
     };
 
     setPaymentInfo(paymentInfo);
@@ -284,7 +335,7 @@ const PaymentStep: React.FC = () => {
   const handleCashOnDeliverySelect = () => {
     const paymentInfo: PaymentInfo = {
       method: 'cash_on_delivery',
-      total_amount: getTotalWithShipping()
+      total_amount: getTotal()
     };
 
     setPaymentInfo(paymentInfo);
@@ -375,7 +426,7 @@ const PaymentStep: React.FC = () => {
           Método de Pago
         </h2>
         <p className="text-gray-600">
-          Selecciona cómo quieres pagar tu pedido de {formatCurrency(getTotalWithShipping())}
+          Selecciona cómo quieres pagar tu pedido de {formatCurrency(getTotal())}
         </p>
       </div>
 
@@ -425,8 +476,40 @@ const PaymentStep: React.FC = () => {
             </svg>,
             shipping_address?.city?.toLowerCase().includes('bogotá') // Only available in Bogotá
           )}
+
+          {/* PayU - Credit Card and PSE */}
+          {renderPaymentMethodOption(
+            'payu',
+            'PayU - Tarjeta o PSE',
+            'Paga con tarjeta de crédito/débito o PSE',
+            <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+            </svg>,
+            true
+          )}
+
+          {/* Efecty - Cash Payment */}
+          {renderPaymentMethodOption(
+            'efecty',
+            'Efecty - Pago en Efectivo',
+            'Paga en efectivo en más de 20,000 puntos',
+            <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>,
+            true
+          )}
         </div>
       </div>
+
+      {/* Processing Feedback */}
+      {is_processing && (
+        <div className="mb-6 bg-blue-50 rounded-lg p-6 border-2 border-blue-200">
+          <div className="flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mr-3"></div>
+            <p className="text-blue-800 font-medium">Procesando información de pago...</p>
+          </div>
+        </div>
+      )}
 
       {/* Payment Forms */}
       <div className="mb-8">
@@ -436,7 +519,7 @@ const PaymentStep: React.FC = () => {
               banks={paymentMethods.pse_banks}
               onSubmit={handlePSESubmit}
               loading={is_processing}
-              total={getTotalWithShipping()}
+              total={getTotal()}
             />
           </div>
         )}
@@ -471,7 +554,7 @@ const PaymentStep: React.FC = () => {
                   <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <p>Monto total a pagar: {formatCurrency(getTotalWithShipping())}</p>
+                  <p>Monto total a pagar: {formatCurrency(getTotal())}</p>
                 </div>
               </div>
 
@@ -503,7 +586,7 @@ const PaymentStep: React.FC = () => {
           <div className="border-t pt-6">
             <WompiCheckout
               orderId={order_id}
-              amount={getTotalWithShipping()}
+              amount={getTotal()}
               customerEmail={user?.email || ''}
               reference={orderReference}
               publicKey={paymentMethods?.wompi_public_key || ''}
@@ -541,7 +624,7 @@ const PaymentStep: React.FC = () => {
                   <span className="font-medium">NIT:</span> 900.123.456-7
                 </div>
                 <div>
-                  <span className="font-medium">Monto a transferir:</span> {formatCurrency(getTotalWithShipping())}
+                  <span className="font-medium">Monto a transferir:</span> {formatCurrency(getTotal())}
                 </div>
               </div>
 
@@ -570,7 +653,7 @@ const PaymentStep: React.FC = () => {
               </h3>
 
               <div className="space-y-3 text-sm text-gray-700">
-                <p>• Pagarás {formatCurrency(getTotalWithShipping())} en efectivo al recibir tu pedido</p>
+                <p>• Pagarás {formatCurrency(getTotal())} en efectivo al recibir tu pedido</p>
                 <p>• Nuestro repartidor tendrá cambio disponible</p>
                 <p>• Verifica tu pedido antes de realizar el pago</p>
                 <p>• Disponible solo en Bogotá y alrededores</p>
@@ -583,6 +666,44 @@ const PaymentStep: React.FC = () => {
                 Confirmar Pago Contraentrega
               </button>
             </div>
+          </div>
+        )}
+
+        {/* PayU Payment */}
+        {selectedMethod === 'payu' && (
+          <div className="border-t pt-6">
+            <PayUCheckout
+              orderId={order_id || orderId}
+              amount={getTotal()}
+              customerEmail={user?.email || shipping_address?.phone || ''}
+              customerName={shipping_address?.name || user?.nombre || ''}
+              customerPhone={shipping_address?.phone || ''}
+              onSuccess={(transactionId) => {
+                console.log('PayU payment successful:', transactionId);
+                setPaymentInfo({
+                  method: 'payu',
+                  total_amount: getTotal(),
+                  email: user?.email || ''
+                });
+                goToNextStep();
+              }}
+              onError={(error) => {
+                console.error('PayU payment failed:', error);
+                setError(error);
+              }}
+            />
+          </div>
+        )}
+
+        {/* Efecty Payment */}
+        {selectedMethod === 'efecty' && (
+          <div className="border-t pt-6">
+            <EfectyInstructions
+              orderId={order_id || orderId}
+              amount={getTotal()}
+              customerEmail={user?.email || shipping_address?.phone || ''}
+              customerPhone={shipping_address?.phone}
+            />
           </div>
         )}
       </div>

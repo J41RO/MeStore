@@ -43,7 +43,7 @@ const CartStep: React.FC = () => {
         <h3 className="text-lg font-medium text-gray-900 mb-2">Tu carrito está vacío</h3>
         <p className="text-gray-600 mb-6">Agrega productos para continuar con tu compra</p>
         <button
-          onClick={() => window.location.href = '/products'}
+          onClick={() => window.location.href = '/marketplace'}
           className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md transition-colors"
         >
           Explorar Productos
@@ -205,7 +205,7 @@ const CartStep: React.FC = () => {
       {/* Continue Button */}
       <div className="flex justify-between items-center pt-6 border-t border-gray-200">
         <button
-          onClick={() => window.location.href = '/products'}
+          onClick={() => window.location.href = '/marketplace'}
           className="text-blue-600 hover:text-blue-800 font-medium"
         >
           ← Continuar Comprando

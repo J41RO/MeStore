@@ -107,8 +107,11 @@ export interface CreateOrderRequest {
   }[];
   shipping_name: string;
   shipping_address: string;
-  shipping_city?: string;
-  shipping_phone?: string;
+  shipping_city: string;
+  shipping_state: string;  // ✅ FIX: Campo requerido por backend (departamento)
+  shipping_phone: string;
+  shipping_postal_code?: string;
+  shipping_email?: string;
   notes?: string;
 }
 

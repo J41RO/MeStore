@@ -512,6 +512,279 @@ async def wompi_webhook(
     return WebhookResponse(status="ok")
 
 
+# ===== PAYU WEBHOOK =====
+
+def verify_payu_signature(
+    payload_dict: Dict[str, Any],
+    signature: str,
+    api_key: str
+) -> bool:
+    """
+    Verify PayU MD5 signature for webhook authenticity.
+
+    PayU Signature Format:
+        MD5(ApiKey~merchantId~referenceCode~value~currency~state_pol)
+
+    Args:
+        payload_dict: Parsed webhook payload
+        signature: MD5 signature from payload
+        api_key: PayU API key from settings
+
+    Returns:
+        bool: True if signature is valid, False otherwise
+    """
+    if not api_key:
+        logger.error("PAYU_API_KEY not configured - cannot verify signatures")
+        return False
+
+    if not signature:
+        logger.warning("No signature provided in PayU webhook")
+        return False
+
+    try:
+        # Extract values from payload
+        merchant_id = payload_dict.get("merchant_id", "")
+        reference_code = payload_dict.get("reference_sale", "")
+        value = payload_dict.get("value", "")
+        currency = payload_dict.get("currency", "")
+        state_pol = payload_dict.get("state_pol", "")
+
+        # Build signature string
+        signature_string = f"{api_key}~{merchant_id}~{reference_code}~{value}~{currency}~{state_pol}"
+
+        # Calculate MD5
+        expected_signature = hashlib.md5(signature_string.encode('utf-8')).hexdigest()
+
+        # Compare
+        is_valid = expected_signature.lower() == signature.lower()
+
+        if not is_valid:
+            logger.warning(f"PayU signature verification failed")
+
+        return is_valid
+
+    except Exception as e:
+        logger.error(f"Error verifying PayU signature: {str(e)}")
+        return False
+
+
+def map_payu_status_to_order_status(state_pol: str) -> tuple[OrderStatus, PaymentStatus]:
+    """
+    Map PayU state_pol to internal order and payment statuses.
+
+    PayU States:
+        4 = APPROVED
+        5 = EXPIRED
+        6 = DECLINED
+        7 = PENDING
+        104 = ERROR
+
+    Returns:
+        tuple: (OrderStatus, PaymentStatus)
+    """
+    status_map = {
+        "4": (OrderStatus.CONFIRMED, PaymentStatus.APPROVED),
+        "5": (OrderStatus.CANCELLED, PaymentStatus.EXPIRED),
+        "6": (OrderStatus.PENDING, PaymentStatus.DECLINED),
+        "7": (OrderStatus.PENDING, PaymentStatus.PENDING),
+        "104": (OrderStatus.PENDING, PaymentStatus.ERROR),
+    }
+
+    return status_map.get(
+        str(state_pol),
+        (OrderStatus.PENDING, PaymentStatus.ERROR)
+    )
+
+
+async def update_order_from_payu_webhook(
+    db: AsyncSession,
+    payload_dict: Dict[str, Any]
+) -> WebhookProcessingResult:
+    """
+    Update order status based on PayU webhook data.
+
+    Args:
+        db: Database session
+        payload_dict: Parsed PayU webhook payload
+
+    Returns:
+        WebhookProcessingResult: Processing result
+    """
+    try:
+        # Extract PayU data
+        reference_sale = payload_dict.get("reference_sale")
+        state_pol = payload_dict.get("state_pol")
+        transaction_id = payload_dict.get("transaction_id")
+        value = payload_dict.get("value")
+        payment_method_name = payload_dict.get("payment_method_name")
+        response_message = payload_dict.get("response_message_pol")
+
+        if not reference_sale:
+            return WebhookProcessingResult(
+                success=False,
+                event_id=transaction_id or "unknown",
+                status="error",
+                message="No reference_sale found in PayU webhook"
+            )
+
+        # Find order by order_number or reference
+        result = await db.execute(
+            select(Order)
+            .where(Order.order_number == reference_sale)
+            .options(selectinload(Order.transactions))
+        )
+        order = result.scalar_one_or_none()
+
+        if not order:
+            logger.warning(f"Order not found for PayU reference: {reference_sale}")
+            return WebhookProcessingResult(
+                success=False,
+                event_id=transaction_id or "unknown",
+                status="order_not_found",
+                message=f"Order {reference_sale} not found"
+            )
+
+        # Map PayU status
+        order_status, payment_status = map_payu_status_to_order_status(state_pol)
+
+        # Find or create transaction
+        transaction = None
+        for txn in order.transactions:
+            if txn.gateway_transaction_id == str(transaction_id):
+                transaction = txn
+                break
+
+        if not transaction:
+            transaction = OrderTransaction(
+                transaction_reference=f"TXN-{order.order_number}-{transaction_id}",
+                order_id=order.id,
+                amount=float(value) if value else order.total_amount,
+                currency="COP",
+                status=payment_status,
+                payment_method_type=payment_method_name or "unknown",
+                gateway="payu",
+                gateway_transaction_id=str(transaction_id),
+                gateway_response=json.dumps(payload_dict),
+                processed_at=datetime.utcnow()
+            )
+            db.add(transaction)
+        else:
+            transaction.status = payment_status
+            transaction.gateway_response = json.dumps(payload_dict)
+            transaction.processed_at = datetime.utcnow()
+            if response_message:
+                transaction.failure_reason = response_message if payment_status != PaymentStatus.APPROVED else None
+
+        # Update order
+        old_status = order.status
+        order.status = order_status
+        order.updated_at = datetime.utcnow()
+
+        if payment_status == PaymentStatus.APPROVED and not order.confirmed_at:
+            order.confirmed_at = datetime.utcnow()
+
+        await db.commit()
+        await db.refresh(order)
+
+        logger.info(
+            f"Order {order.id} updated from PayU webhook: "
+            f"{old_status} → {order_status}, Payment: {payment_status}"
+        )
+
+        return WebhookProcessingResult(
+            success=True,
+            event_id=str(transaction_id),
+            order_id=order.id,
+            transaction_id=str(transaction_id),
+            status="processed",
+            message="Order updated successfully from PayU",
+            updated_order_status=order_status.value
+        )
+
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error updating order from PayU webhook: {str(e)}", exc_info=True)
+        return WebhookProcessingResult(
+            success=False,
+            event_id=payload_dict.get("transaction_id", "unknown"),
+            status="error",
+            message=f"Database error: {str(e)}"
+        )
+
+
+@router.post("/payu", status_code=status.HTTP_200_OK)
+async def payu_webhook(
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Handle PayU payment webhook notifications (confirmation page).
+
+    PayU sends confirmation page data via POST with form-encoded data.
+
+    Process:
+        1. Parse form-encoded payload
+        2. Verify MD5 signature
+        3. Update order and transaction status
+        4. Store event for audit trail
+        5. Return 200 OK
+
+    Returns:
+        Always 200 OK to prevent PayU retries
+    """
+    # Get form data
+    form_data = await request.form()
+    payload_dict = dict(form_data)
+
+    logger.info(f"Received PayU webhook with state_pol: {payload_dict.get('state_pol')}")
+
+    # Get signature
+    signature = payload_dict.get("sign") or payload_dict.get("signature")
+
+    # Verify signature
+    signature_valid = False
+    if settings.PAYU_API_KEY:
+        signature_valid = verify_payu_signature(payload_dict, signature, settings.PAYU_API_KEY)
+
+        if not signature_valid:
+            logger.warning("PayU webhook signature verification failed")
+            return {"status": "ok"}  # Return 200 anyway
+    else:
+        logger.warning("PAYU_API_KEY not configured - skipping signature verification")
+        signature_valid = True  # Allow if not configured
+
+    # Process webhook
+    transaction_id = payload_dict.get("transaction_id", "unknown")
+
+    # Check idempotency
+    already_processed = await check_event_already_processed(db, str(transaction_id))
+    if already_processed:
+        logger.info(f"PayU webhook event {transaction_id} already processed (idempotent)")
+        return {"status": "ok"}
+
+    # Update order
+    processing_result = await update_order_from_payu_webhook(db, payload_dict)
+
+    # Store event
+    await store_webhook_event(
+        db=db,
+        event_id=str(transaction_id),
+        event_type="payu.transaction.updated",
+        raw_payload=payload_dict,
+        signature=signature,
+        signature_valid=signature_valid,
+        processing_result=processing_result
+    )
+
+    # Log result
+    if processing_result.success:
+        logger.info(f"PayU webhook processed: Order {processing_result.order_id}")
+    else:
+        logger.error(f"PayU webhook failed: {processing_result.message}")
+
+    return {"status": "ok"}
+
+
 # ===== HEALTH CHECK =====
 
 @router.get("/health")
@@ -523,12 +796,19 @@ async def webhooks_health():
         dict: Service health status and configuration
     """
     return {
-        "service": "Wompi Webhooks",
+        "service": "Payment Webhooks",
         "status": "operational",
-        "signature_verification_enabled": bool(settings.WOMPI_WEBHOOK_SECRET),
-        "environment": settings.WOMPI_ENVIRONMENT,
+        "wompi": {
+            "signature_verification_enabled": bool(settings.WOMPI_WEBHOOK_SECRET),
+            "environment": settings.WOMPI_ENVIRONMENT
+        },
+        "payu": {
+            "signature_verification_enabled": bool(settings.PAYU_API_KEY),
+            "configured": bool(settings.PAYU_MERCHANT_ID)
+        },
         "endpoints": {
             "wompi_webhook": "POST /webhooks/wompi",
+            "payu_webhook": "POST /webhooks/payu",
             "health": "GET /webhooks/health"
         }
     }

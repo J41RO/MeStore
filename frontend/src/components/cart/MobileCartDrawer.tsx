@@ -46,7 +46,7 @@ const MobileCartDrawer: React.FC<MobileCartDrawerProps> = ({ isOpen, onClose }) 
   }, [isAuthenticated, onClose]);
 
   const handleContinueShopping = useCallback(() => {
-    window.location.href = '/products';
+    window.location.href = '/marketplace';
     onClose();
   }, [onClose]);
 

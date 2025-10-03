@@ -556,12 +556,157 @@ class Settings(BaseSettings):
     # Formato de salida estandarizado
     OUTPUT_FORMAT: str = "JPEG"
     
-    # Wompi Payment Gateway Configuration
-    WOMPI_PUBLIC_KEY: str = Field(default="", description="Wompi public key")
-    WOMPI_PRIVATE_KEY: str = Field(default="", description="Wompi private key")
-    WOMPI_ENVIRONMENT: str = Field(default="test", description="Wompi environment")
-    WOMPI_WEBHOOK_SECRET: str = Field(default="", description="Wompi webhook secret")
-    WOMPI_BASE_URL: str = Field(default="https://sandbox.wompi.co/v1", description="Wompi base URL")
+    # ===== PAYMENT GATEWAY CONFIGURATION - PAYMENT SYSTEMS AI =====
+
+    # Wompi Payment Gateway Configuration (Primary Gateway for Colombia)
+    WOMPI_PUBLIC_KEY: str = Field(default="", description="Wompi sandbox public key")
+    WOMPI_PRIVATE_KEY: str = Field(default="", description="Wompi sandbox private key")
+    WOMPI_PUBLIC_KEY_PROD: str = Field(default="", description="Wompi production public key")
+    WOMPI_PRIVATE_KEY_PROD: str = Field(default="", description="Wompi production private key")
+    WOMPI_ENVIRONMENT: str = Field(default="test", description="Wompi environment: test or production")
+    WOMPI_WEBHOOK_SECRET: str = Field(default="", description="Wompi webhook signature secret")
+    WOMPI_BASE_URL: str = Field(default="https://sandbox.wompi.co/v1", description="Wompi API base URL")
+    WOMPI_TIMEOUT: float = Field(default=30.0, description="Wompi API request timeout in seconds")
+
+    # PayU Payment Gateway Configuration (Alternative Gateway for Colombia)
+    PAYU_MERCHANT_ID: str = Field(default="", description="PayU merchant ID")
+    PAYU_API_KEY: str = Field(default="", description="PayU API key")
+    PAYU_API_LOGIN: str = Field(default="", description="PayU API login username")
+    PAYU_ACCOUNT_ID: str = Field(default="", description="PayU account ID for Colombia")
+    PAYU_MERCHANT_ID_PROD: str = Field(default="", description="PayU production merchant ID")
+    PAYU_API_KEY_PROD: str = Field(default="", description="PayU production API key")
+    PAYU_API_LOGIN_PROD: str = Field(default="", description="PayU production API login")
+    PAYU_ACCOUNT_ID_PROD: str = Field(default="", description="PayU production account ID")
+    PAYU_ENVIRONMENT: str = Field(default="test", description="PayU environment: test or production")
+    PAYU_BASE_URL: str = Field(default="https://sandbox.api.payulatam.com/payments-api/4.0/service.cgi", description="PayU API base URL")
+    PAYU_TIMEOUT: float = Field(default=30.0, description="PayU API request timeout in seconds")
+
+    # Efecty Cash Payment Configuration (Cash Payment Network in Colombia)
+    EFECTY_ENABLED: bool = Field(default=True, description="Enable Efecty cash payments")
+    EFECTY_PAYMENT_TIMEOUT_HOURS: int = Field(default=72, description="Efecty payment timeout in hours (default 72h)")
+    EFECTY_CODE_PREFIX: str = Field(default="MST", description="Prefix for Efecty payment codes")
+    EFECTY_MIN_AMOUNT: int = Field(default=5000, description="Minimum Efecty payment amount in COP")
+    EFECTY_MAX_AMOUNT: int = Field(default=5000000, description="Maximum Efecty payment amount in COP")
+
+    # Payment Gateway Selection Configuration
+    PAYMENT_PRIMARY_GATEWAY: str = Field(default="wompi", description="Primary payment gateway: wompi or payu")
+    PAYMENT_FALLBACK_ENABLED: bool = Field(default=True, description="Enable automatic fallback to secondary gateway")
+    PAYMENT_RETRY_ATTEMPTS: int = Field(default=3, description="Maximum payment retry attempts")
+    PAYMENT_RETRY_DELAY_SECONDS: int = Field(default=2, description="Delay between payment retries in seconds")
+
+    def get_wompi_keys(self) -> dict:
+        """
+        Get Wompi API keys based on environment.
+
+        Returns production keys if ENVIRONMENT==production and WOMPI_ENVIRONMENT==production,
+        otherwise returns sandbox/test keys.
+
+        Returns:
+            dict: Dictionary with public_key and private_key
+        """
+        if self.ENVIRONMENT == "production" and self.WOMPI_ENVIRONMENT == "production":
+            if not self.WOMPI_PUBLIC_KEY_PROD or not self.WOMPI_PRIVATE_KEY_PROD:
+                raise ValueError(
+                    "WOMPI_PUBLIC_KEY_PROD and WOMPI_PRIVATE_KEY_PROD must be set for production environment"
+                )
+            return {
+                "public_key": self.WOMPI_PUBLIC_KEY_PROD,
+                "private_key": self.WOMPI_PRIVATE_KEY_PROD,
+                "base_url": "https://production.wompi.co/v1"
+            }
+        else:
+            return {
+                "public_key": self.WOMPI_PUBLIC_KEY,
+                "private_key": self.WOMPI_PRIVATE_KEY,
+                "base_url": self.WOMPI_BASE_URL
+            }
+
+    def get_payu_credentials(self) -> dict:
+        """
+        Get PayU credentials based on environment.
+
+        Returns production credentials if ENVIRONMENT==production and PAYU_ENVIRONMENT==production,
+        otherwise returns sandbox/test credentials.
+
+        Returns:
+            dict: Dictionary with merchant_id, api_key, api_login, account_id
+        """
+        if self.ENVIRONMENT == "production" and self.PAYU_ENVIRONMENT == "production":
+            if not all([self.PAYU_MERCHANT_ID_PROD, self.PAYU_API_KEY_PROD,
+                       self.PAYU_API_LOGIN_PROD, self.PAYU_ACCOUNT_ID_PROD]):
+                raise ValueError(
+                    "All PayU production credentials must be set: PAYU_MERCHANT_ID_PROD, "
+                    "PAYU_API_KEY_PROD, PAYU_API_LOGIN_PROD, PAYU_ACCOUNT_ID_PROD"
+                )
+            return {
+                "merchant_id": self.PAYU_MERCHANT_ID_PROD,
+                "api_key": self.PAYU_API_KEY_PROD,
+                "api_login": self.PAYU_API_LOGIN_PROD,
+                "account_id": self.PAYU_ACCOUNT_ID_PROD,
+                "base_url": "https://api.payulatam.com/payments-api/4.0/service.cgi"
+            }
+        else:
+            return {
+                "merchant_id": self.PAYU_MERCHANT_ID,
+                "api_key": self.PAYU_API_KEY,
+                "api_login": self.PAYU_API_LOGIN,
+                "account_id": self.PAYU_ACCOUNT_ID,
+                "base_url": self.PAYU_BASE_URL
+            }
+
+    def validate_payment_configuration(self) -> dict:
+        """
+        Validate payment gateway configuration for current environment.
+
+        Returns:
+            dict: Validation results with status and warnings
+        """
+        results = {
+            "wompi_configured": False,
+            "payu_configured": False,
+            "efecty_configured": False,
+            "environment": self.ENVIRONMENT,
+            "warnings": [],
+            "errors": []
+        }
+
+        # Validate Wompi configuration
+        try:
+            wompi_keys = self.get_wompi_keys()
+            if wompi_keys["public_key"] and wompi_keys["private_key"]:
+                results["wompi_configured"] = True
+            else:
+                results["warnings"].append("Wompi keys not configured for current environment")
+        except ValueError as e:
+            results["errors"].append(f"Wompi configuration error: {str(e)}")
+
+        # Validate PayU configuration
+        try:
+            payu_creds = self.get_payu_credentials()
+            if all([payu_creds["merchant_id"], payu_creds["api_key"],
+                   payu_creds["api_login"], payu_creds["account_id"]]):
+                results["payu_configured"] = True
+            else:
+                results["warnings"].append("PayU credentials not fully configured")
+        except ValueError as e:
+            results["errors"].append(f"PayU configuration error: {str(e)}")
+
+        # Validate Efecty configuration
+        if self.EFECTY_ENABLED:
+            if self.EFECTY_MIN_AMOUNT >= self.EFECTY_MAX_AMOUNT:
+                results["errors"].append("Efecty min amount must be less than max amount")
+            else:
+                results["efecty_configured"] = True
+
+        # Validate primary gateway selection
+        if self.PAYMENT_PRIMARY_GATEWAY not in ["wompi", "payu"]:
+            results["errors"].append(f"Invalid PAYMENT_PRIMARY_GATEWAY: {self.PAYMENT_PRIMARY_GATEWAY}")
+
+        # Check if at least one gateway is configured
+        if not results["wompi_configured"] and not results["payu_configured"]:
+            results["errors"].append("No payment gateway is properly configured")
+
+        return results
 
     # ===== REDIS SECURITY METHODS - SECURITY BACKEND AI =====
 

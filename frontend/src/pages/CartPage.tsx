@@ -34,7 +34,7 @@ const CartPage: React.FC = () => {
   }, [setCurrentStep]);
 
   const handleContinueShopping = () => {
-    navigate('/products');
+    navigate('/marketplace');
   };
 
   const handleCheckout = () => {

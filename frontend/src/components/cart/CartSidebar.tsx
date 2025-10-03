@@ -38,7 +38,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
   }, [isAuthenticated, onClose]);
 
   const handleContinueShopping = useCallback(() => {
-    window.location.href = '/products';
+    window.location.href = '/marketplace';
     onClose();
   }, [onClose]);
 

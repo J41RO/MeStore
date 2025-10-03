@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Building2, User, AlertCircle, Lock } from 'lucide-react';
+import { useAuthStore } from '../../stores/authStore';
 
 interface PSEFormProps {
   banks: Array<{
@@ -26,21 +27,40 @@ const PSEForm: React.FC<PSEFormProps> = ({
   loading,
   total
 }) => {
+  const { user } = useAuthStore();
+
   const [formData, setFormData] = useState<PSEData>({
     bankCode: '',
     bankName: '',
     userType: '0', // 0 = natural person, 1 = juridical person
     identificationType: 'CC',
     userLegalId: '',
-    email: ''
+    email: user?.email || ''
   });
 
   const [errors, setErrors] = useState<Partial<PSEData>>({});
+  const [touched, setTouched] = useState<Partial<Record<keyof PSEData, boolean>>>({});
+
+  // FIX 1: Autofill email when user is authenticated
+  useEffect(() => {
+    if (user?.email && !formData.email) {
+      setFormData(prev => ({
+        ...prev,
+        email: user.email
+      }));
+    }
+  }, [user?.email]);
 
   const handleInputChange = (field: keyof PSEData, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
+    }));
+
+    // Mark field as touched
+    setTouched(prev => ({
+      ...prev,
+      [field]: true
     }));
 
     // Clear error when user starts typing
@@ -50,6 +70,62 @@ const PSEForm: React.FC<PSEFormProps> = ({
         [field]: undefined
       }));
     }
+  };
+
+  const handleBlur = (field: keyof PSEData) => {
+    // FIX 3: Only validate on blur (when user leaves the field)
+    setTouched(prev => ({
+      ...prev,
+      [field]: true
+    }));
+
+    // Validate single field
+    validateField(field);
+  };
+
+  const validateField = (field: keyof PSEData): boolean => {
+    const newErrors: Partial<PSEData> = { ...errors };
+
+    switch (field) {
+      case 'bankCode':
+        if (!formData.bankCode) {
+          newErrors.bankCode = 'Selecciona tu banco';
+        } else {
+          delete newErrors.bankCode;
+        }
+        break;
+
+      case 'userLegalId':
+        if (!formData.userLegalId.trim()) {
+          newErrors.userLegalId = 'Número de documento es requerido';
+        } else {
+          const cleanedId = formData.userLegalId.replace(/\D/g, '');
+          if (formData.userType === '0' && (cleanedId.length < 6 || cleanedId.length > 12)) {
+            newErrors.userLegalId = 'Número de cédula debe tener entre 6 y 12 dígitos';
+          } else if (formData.userType === '1' && (cleanedId.length < 9 || cleanedId.length > 12)) {
+            newErrors.userLegalId = 'NIT debe tener entre 9 y 12 dígitos';
+          } else {
+            delete newErrors.userLegalId;
+          }
+        }
+        break;
+
+      case 'email':
+        if (!formData.email.trim()) {
+          newErrors.email = 'Correo electrónico es requerido';
+        } else {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(formData.email)) {
+            newErrors.email = 'Correo electrónico inválido';
+          } else {
+            delete newErrors.email;
+          }
+        }
+        break;
+    }
+
+    setErrors(newErrors);
+    return !newErrors[field];
   };
 
   const validateForm = (): boolean => {
@@ -207,12 +283,13 @@ const PSEForm: React.FC<PSEFormProps> = ({
             const formatted = formatLegalId(e.target.value, formData.userType);
             handleInputChange('userLegalId', formatted);
           }}
+          onBlur={() => handleBlur('userLegalId')}
           placeholder={formData.userType === '0' ? '12.345.678' : '900.123.456-1'}
           className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-            errors.userLegalId ? 'border-red-500' : 'border-gray-300'
+            touched.userLegalId && errors.userLegalId ? 'border-red-500' : 'border-gray-300'
           }`}
         />
-        {errors.userLegalId && (
+        {touched.userLegalId && errors.userLegalId && (
           <p className="mt-1 text-sm text-red-600 flex items-center">
             <AlertCircle className="w-4 h-4 mr-1" />
             {errors.userLegalId}
@@ -230,12 +307,13 @@ const PSEForm: React.FC<PSEFormProps> = ({
           type="email"
           value={formData.email}
           onChange={(e) => handleInputChange('email', e.target.value)}
+          onBlur={() => handleBlur('email')}
           placeholder="tu@email.com"
           className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-            errors.email ? 'border-red-500' : 'border-gray-300'
+            touched.email && errors.email ? 'border-red-500' : 'border-gray-300'
           }`}
         />
-        {errors.email && (
+        {touched.email && errors.email && (
           <p className="mt-1 text-sm text-red-600 flex items-center">
             <AlertCircle className="w-4 h-4 mr-1" />
             {errors.email}
@@ -258,6 +336,11 @@ const PSEForm: React.FC<PSEFormProps> = ({
               bankCode: e.target.value,
               bankName: selectedBank?.financial_institution_name || ''
             }));
+            // Mark as touched
+            setTouched(prev => ({
+              ...prev,
+              bankCode: true
+            }));
             // Clear error when user starts typing
             if (errors.bankCode) {
               setErrors(prev => ({
@@ -266,8 +349,9 @@ const PSEForm: React.FC<PSEFormProps> = ({
               }));
             }
           }}
+          onBlur={() => handleBlur('bankCode')}
           className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-            errors.bankCode ? 'border-red-500' : 'border-gray-300'
+            touched.bankCode && errors.bankCode ? 'border-red-500' : 'border-gray-300'
           }`}
         >
           <option value="">Selecciona tu banco</option>
@@ -277,7 +361,7 @@ const PSEForm: React.FC<PSEFormProps> = ({
             </option>
           ))}
         </select>
-        {errors.bankCode && (
+        {touched.bankCode && errors.bankCode && (
           <p className="mt-1 text-sm text-red-600 flex items-center">
             <AlertCircle className="w-4 h-4 mr-1" />
             {errors.bankCode}

@@ -49,7 +49,7 @@ const CheckoutPage: React.FC = () => {
 
           <div className="space-y-3">
             <button
-              onClick={() => window.location.href = '/products'}
+              onClick={() => window.location.href = '/marketplace'}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md font-medium transition-colors"
             >
               Explorar Productos
