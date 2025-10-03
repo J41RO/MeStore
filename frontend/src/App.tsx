@@ -100,6 +100,7 @@ const OrderTracking = lazy(() => import('./pages/OrderTracking'));
 
 // Vendor management pages
 const ProductsManagementPage = lazy(() => import('./pages/vendor/ProductsManagementPage'));
+const VendorOrdersManagement = lazy(() => import('./pages/vendor/VendorOrders'));
 
 // Checkout pages
 const ConfirmationPage = lazy(() => import('./pages/checkout/ConfirmationPage'));
@@ -285,6 +286,16 @@ function App() {
               <RoleGuard roles={[UserType.VENDOR]} strategy="minimum">
                 <Suspense fallback={<PageLoader />}>
                   <ProductsManagementPage />
+                </Suspense>
+              </RoleGuard>
+            }
+          />
+          <Route
+            path='vendor/orders'
+            element={
+              <RoleGuard roles={[UserType.VENDOR]} strategy="minimum">
+                <Suspense fallback={<PageLoader />}>
+                  <VendorOrdersManagement />
                 </Suspense>
               </RoleGuard>
             }
