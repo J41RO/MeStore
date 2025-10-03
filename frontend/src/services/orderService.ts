@@ -225,6 +225,48 @@ class OrderService {
   }
 
   /**
+   * Get buyer order tracking information
+   */
+  async getBuyerOrderTracking(orderId: string): Promise<TrackingResponse> {
+    try {
+      const response = await this.api.get<TrackingResponse>(`/api/v1/orders/${orderId}/tracking`);
+      return response.data;
+    } catch (error: any) {
+      console.error('Error fetching buyer order tracking:', error);
+      throw this.handleApiError(error);
+    }
+  }
+
+  /**
+   * Cancel order with reason and refund request
+   */
+  async cancelBuyerOrder(orderId: string, reason: string, refundRequested: boolean = true): Promise<{
+    success: boolean;
+    data: {
+      order_id: string;
+      status: string;
+      cancelled_at: string;
+      cancellation_reason: string;
+      refund_status: string;
+    };
+    message?: string;
+  }> {
+    try {
+      const response = await this.api.patch(
+        `/api/v1/orders/${orderId}/cancel`,
+        {
+          reason,
+          refund_requested: refundRequested
+        }
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('Error cancelling buyer order:', error);
+      throw this.handleApiError(error);
+    }
+  }
+
+  /**
    * Handle API errors consistently
    */
   private handleApiError(error: any): Error {

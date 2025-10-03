@@ -21,6 +21,8 @@ import { useAuthStore } from '../../stores/authStore';
 import { Order, TrackingInfo } from '../../types/orders';
 import { ORDER_STATUS_LABELS, ORDER_STATUS_COLORS } from '../../types/orders';
 import { OrderTimeline } from './OrderTimeline';
+import { OrderTrackingModal } from './OrderTrackingModal';
+import { OrderCancelModal } from './OrderCancelModal';
 
 interface BuyerOrderDashboardProps {
   className?: string;
@@ -39,6 +41,12 @@ export const BuyerOrderDashboard: React.FC<BuyerOrderDashboardProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
+
+  // Modal states
+  const [trackingModalOpen, setTrackingModalOpen] = useState(false);
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [selectedOrderNumber, setSelectedOrderNumber] = useState<string>('');
 
   // Load buyer orders
   const loadBuyerOrders = useCallback(async () => {
@@ -71,8 +79,13 @@ export const BuyerOrderDashboard: React.FC<BuyerOrderDashboardProps> = ({
   const loadTrackingInfo = async (orderId: string) => {
     try {
       setLoadingTracking(true);
+      // Call the new getBuyerOrderTracking method
       const response = await orderService.getBuyerOrderTracking(orderId);
-      setTrackingInfo(response.data);
+      if (response.success && response.data) {
+        setTrackingInfo(response.data);
+      } else {
+        setTrackingInfo(null);
+      }
     } catch (err: any) {
       console.error('Error loading tracking info:', err);
       setTrackingInfo(null);
@@ -98,6 +111,29 @@ export const BuyerOrderDashboard: React.FC<BuyerOrderDashboardProps> = ({
   // Handle search
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    loadBuyerOrders();
+  };
+
+  // Handle tracking modal
+  const handleOpenTracking = (order: Order) => {
+    if (order.id) {
+      setSelectedOrderId(order.id);
+      setSelectedOrderNumber(order.order_number);
+      setTrackingModalOpen(true);
+    }
+  };
+
+  // Handle cancel modal
+  const handleOpenCancel = (order: Order) => {
+    if (order.id) {
+      setSelectedOrderId(order.id);
+      setSelectedOrderNumber(order.order_number);
+      setCancelModalOpen(true);
+    }
+  };
+
+  // Handle successful cancellation
+  const handleCancelSuccess = () => {
     loadBuyerOrders();
   };
 
@@ -410,6 +446,33 @@ export const BuyerOrderDashboard: React.FC<BuyerOrderDashboardProps> = ({
                         </div>
                       </div>
 
+                      {/* Action Buttons */}
+                      <div className="mt-3 flex items-center justify-end space-x-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenTracking(order);
+                          }}
+                          className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center"
+                        >
+                          <Truck className="h-4 w-4 mr-1" />
+                          Ver Seguimiento
+                        </button>
+
+                        {(order.status === 'pending' || order.status === 'confirmed' || order.status === 'processing') && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenCancel(order);
+                            }}
+                            className="text-sm text-red-600 hover:text-red-800 font-medium flex items-center"
+                          >
+                            <AlertCircle className="h-4 w-4 mr-1" />
+                            Cancelar Orden
+                          </button>
+                        )}
+                      </div>
+
                       {/* Order Items Preview */}
                       <div className="mt-3 border-t pt-3">
                         <div className="flex -space-x-2 overflow-hidden">
@@ -536,6 +599,24 @@ export const BuyerOrderDashboard: React.FC<BuyerOrderDashboardProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Modals */}
+      {selectedOrderId && (
+        <>
+          <OrderTrackingModal
+            orderId={selectedOrderId}
+            isOpen={trackingModalOpen}
+            onClose={() => setTrackingModalOpen(false)}
+          />
+          <OrderCancelModal
+            orderId={selectedOrderId}
+            orderNumber={selectedOrderNumber}
+            isOpen={cancelModalOpen}
+            onClose={() => setCancelModalOpen(false)}
+            onSuccess={handleCancelSuccess}
+          />
+        </>
+      )}
     </div>
   );
 };

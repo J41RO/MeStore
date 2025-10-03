@@ -87,6 +87,7 @@ const BuyerDashboard = lazy(() => import('./pages/BuyerDashboard'));
 const BuyerProfile = lazy(() => import('./pages/BuyerProfile'));
 // const BuyerOrders = lazy(() => import('./pages/BuyerOrders')); // Replaced by BuyerOrdersNew
 const BuyerLayout = lazy(() => import('./components/BuyerLayout'));
+const BuyerOrderDashboard = lazy(() => import('./components/buyer/BuyerOrderDashboard'));
 const RoleBasedRedirect = lazy(() => import('./components/RoleBasedRedirect'));
 const Checkout = lazy(() => import('./pages/Checkout'));
 const CheckoutDemo = lazy(() => import('./pages/CheckoutDemo'));
@@ -355,6 +356,16 @@ function App() {
           />
 
           {/* Rutas específicas para COMPRADORES */}
+          <Route
+            path='buyer/dashboard'
+            element={
+              <RoleGuard roles={[UserType.BUYER]} strategy="exact">
+                <Suspense fallback={<PageLoader />}>
+                  <BuyerOrderDashboard />
+                </Suspense>
+              </RoleGuard>
+            }
+          />
           <Route
             path='mi-perfil'
             element={
