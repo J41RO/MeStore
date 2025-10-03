@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, Boolean, Enum, DECIMAL, Numeric
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, Boolean, Enum, DECIMAL, Numeric, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
@@ -62,7 +62,13 @@ class Order(Base):
     
     # Special instructions
     notes = Column(Text, nullable=True)
-    
+
+    # Shipping tracking information
+    tracking_number = Column(String(100), nullable=True, index=True)
+    courier = Column(String(100), nullable=True)  # "Rappi", "Coordinadora", "Servientrega", etc.
+    estimated_delivery = Column(DateTime(timezone=True), nullable=True)
+    shipping_events = Column(JSON, nullable=True, default=list)  # Timeline of shipping updates
+
     # Relationships
     buyer = relationship("User", back_populates="orders")
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")

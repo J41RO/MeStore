@@ -43,6 +43,8 @@ from app.api.v1.endpoints.database_reset import router as database_reset_router
 from app.api.v1.endpoints.user_management_enterprise import router as user_management_router
 from app.api.v1.endpoints.communication_config import router as communication_config_router
 from app.api.v1.endpoints.google_oauth import router as google_oauth_router
+from app.api.v1.endpoints.admin_orders import router as admin_orders_router
+from app.api.v1.endpoints.shipping import router as shipping_router
 
 # Router principal que unifica todos los endpoints v1
 api_router = APIRouter()
@@ -71,6 +73,9 @@ api_router.include_router(products_bulk_router, prefix="/products", tags=["produ
 
 # Orders (English standard)
 api_router.include_router(orders_router, prefix="/orders", tags=["orders"])
+
+# Shipping tracking and management
+api_router.include_router(shipping_router, prefix="/shipping", tags=["shipping"])
 
 # Commissions (English - production-ready version)
 api_router.include_router(commissions_router, prefix="/commissions", tags=["commissions"])
@@ -111,6 +116,9 @@ api_router.include_router(admin_router, prefix="/admin", tags=["administration"]
 
 # Admin user management
 api_router.include_router(admin_users_router, prefix="/admin", tags=["admin-users"])
+
+# Admin orders management (SUPERUSER only - comprehensive order management)
+api_router.include_router(admin_orders_router, prefix="/admin", tags=["admin-orders"])
 
 # Superuser admin portal - Advanced user management
 from app.api.v1.endpoints.superuser_admin import router as superuser_admin_router
