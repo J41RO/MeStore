@@ -1,0 +1,57 @@
+# Frontend
+frontend/node_modules
+frontend/dist
+frontend/build
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+.venv
+venv
+env
+
+# Databases (local)
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# IDEs
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+.pytest_cache
+.coverage
+htmlcov
+*.cover
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Git
+.git
+.gitignore
+
+# Misc
+.workspace
+node_modules
