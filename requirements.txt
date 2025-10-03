@@ -77,4 +77,4 @@ aiofiles>=23.0.0
 openpyxl==3.1.2
 reportlab==4.2.2
 jsonschema>=4.0.0        # JSON schema validation for API contract testing
-pydantic-settings==2.0.3
+
