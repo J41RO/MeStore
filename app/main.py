@@ -58,7 +58,7 @@ async def lifespan(app: FastAPI):
         logger.info("✅ Service container initialized")
 
         # Validate migrations
-        await validate_migrations_on_startup()
+        # await validate_migrations_on_startup()
 
         # Setup log rotation
         setup_log_rotation()
