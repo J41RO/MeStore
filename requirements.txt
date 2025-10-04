@@ -77,4 +77,5 @@ aiofiles>=23.0.0
 openpyxl==3.1.2
 reportlab==4.2.2
 jsonschema>=4.0.0        # JSON schema validation for API contract testing
+psycopg2-binary==2.9.9
 
