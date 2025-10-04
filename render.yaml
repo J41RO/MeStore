@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: mestocker-backend
+    env: python
+    buildCommand: "pip install --no-cache-dir -r requirements.txt"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: DATABASE_URL
+        fromDatabase:
+          name: mestocker-db
+          property: connectionString
+
+databases:
+  - name: mestocker-db
+    databaseName: mestocker
+    user: mestocker
