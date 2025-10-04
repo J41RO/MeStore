@@ -79,4 +79,5 @@ reportlab==4.2.2
 jsonschema>=4.0.0        # JSON schema validation for API contract testing
 asyncpg==0.29.0
 psycopg2-binary==2.9.9
+email-validator==2.1.0
 
