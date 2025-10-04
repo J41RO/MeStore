@@ -1,24 +1,30 @@
-
-
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 import os
 
-# Database URL from environment - SQLite for development
+# Database URL from environment - SQLite for development, PostgreSQL for production
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./mestore.db")
-# Convert SQLite URL to async format for aiosqlite
-ASYNC_DATABASE_URL = DATABASE_URL.replace("sqlite://", "sqlite+aiosqlite://")
 
-# Create engines
+# Convert database URL to async format based on the database type
+if DATABASE_URL.startswith("sqlite"):
+    ASYNC_DATABASE_URL = DATABASE_URL.replace("sqlite://", "sqlite+aiosqlite://")
+elif DATABASE_URL.startswith("postgresql"):
+    ASYNC_DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
+else:
+    ASYNC_DATABASE_URL = DATABASE_URL
+
+# Create sync engine
 engine = create_engine(DATABASE_URL)
-# Create async engine for SQLite using aiosqlite
+
+# Create async engine
 async_engine = create_async_engine(ASYNC_DATABASE_URL, echo=False)
 
-# Session makers
+# Sync session maker
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-# Async session maker for SQLite
+
+# Async session maker
 AsyncSessionLocal = async_sessionmaker(
     bind=async_engine,
     class_=AsyncSession,
@@ -28,7 +34,7 @@ AsyncSessionLocal = async_sessionmaker(
 # Base for models
 Base = declarative_base()
 
-# Dependency for FastAPI
+# Sync database dependency
 def get_db():
     db = SessionLocal()
     try:
@@ -36,14 +42,15 @@ def get_db():
     finally:
         db.close()
 
+# Async database dependency
 async def get_async_db():
-    # Use proper async session
     async with AsyncSessionLocal() as db:
         try:
             yield db
         finally:
             await db.close()
 
+# Sync database dependency (alias for admin endpoints)
 def get_sync_db():
     """Synchronous database session dependency for admin endpoints."""
     db = SessionLocal()
