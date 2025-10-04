@@ -670,5 +670,7 @@ class ChromaDBService:
             return False
 
 
-# Singleton instance
-chroma_service = ChromaDBService()
+# Singleton instance - DISABLED for lazy initialization to prevent blocking Uvicorn startup
+# Initialize this service only when actually needed, not at import time
+# chroma_service = ChromaDBService()
+chroma_service = None  # Will be initialized on first use

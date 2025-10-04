@@ -125,26 +125,38 @@ class SearchService:
         self.redis_client = None  # Lazy initialization
         self.chroma_client = None
         self.chroma_collection = None
+        self._chroma_initialized = False
 
-        # Initialize ChromaDB if available
-        if CHROMADB_AVAILABLE and settings.CHROMA_PERSIST_DIR:
-            try:
-                self.chroma_client = chromadb.PersistentClient(
-                    path=settings.CHROMA_PERSIST_DIR,
-                    settings=ChromaSettings(
-                        allow_reset=True,
-                        anonymized_telemetry=False
-                    )
+    async def _initialize_chromadb(self):
+        """Lazy initialization of ChromaDB - only when needed."""
+        if self._chroma_initialized:
+            return
+
+        if not CHROMADB_AVAILABLE or not settings.CHROMA_PERSIST_DIR:
+            logger.info("ChromaDB not available - search will use text-only mode")
+            self._chroma_initialized = True
+            return
+
+        try:
+            logger.info("Initializing ChromaDB on first use...")
+            self.chroma_client = chromadb.PersistentClient(
+                path=settings.CHROMA_PERSIST_DIR,
+                settings=ChromaSettings(
+                    allow_reset=True,
+                    anonymized_telemetry=False
                 )
-                # Get or create collection for products
-                self.chroma_collection = self.chroma_client.get_or_create_collection(
-                    name="products",
-                    metadata={"hnsw:space": "cosine"}
-                )
-                logger.info("ChromaDB initialized successfully")
-            except Exception as e:
-                logger.warning(f"ChromaDB initialization failed: {e}")
-                self.chroma_client = None
+            )
+            # Get or create collection for products
+            self.chroma_collection = self.chroma_client.get_or_create_collection(
+                name="products",
+                metadata={"hnsw:space": "cosine"}
+            )
+            logger.info("ChromaDB initialized successfully")
+        except Exception as e:
+            logger.warning(f"ChromaDB initialization failed: {e}")
+            self.chroma_client = None
+        finally:
+            self._chroma_initialized = True
 
     async def _get_redis_client(self):
         """Get Redis client with lazy initialization."""
@@ -349,6 +361,9 @@ class SearchService:
         Returns:
             List[ProductSearchResult]: Productos similares
         """
+        # Lazy initialize ChromaDB on first semantic search
+        await self._initialize_chromadb()
+
         if not self.chroma_collection:
             logger.warning("ChromaDB not available, falling back to text search")
             return await self._fallback_text_search(session, request.query, request.limit)
