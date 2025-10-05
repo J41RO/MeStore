@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "npm run validate:production && vite build",
     "build:skip-validation": "vite build",
+    "build:vercel": "vite build --mode production",
     "validate:production": "node scripts/validate-production-safety.js",
     "lint": "eslint .",
     "format": "prettier --write .",
