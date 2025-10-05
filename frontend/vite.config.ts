@@ -240,6 +240,13 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
+      onwarn(warning, warn) {
+        // Ignore console.debug warnings in production build
+        if (warning.code === 'UNUSED_EXTERNAL_IMPORT') return;
+        // Ignore circular dependency warnings for known safe cases
+        if (warning.code === 'CIRCULAR_DEPENDENCY') return;
+        warn(warning);
+      },
       output: {
         manualChunks: (id) => {
           // Core React libraries

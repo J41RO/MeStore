@@ -19,5 +19,9 @@ export default tseslint.config([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      // Allow console.debug, console.warn, and console.error in production
+      'no-console': ['error', { allow: ['warn', 'error', 'debug'] }],
+    },
   },
 ]);
