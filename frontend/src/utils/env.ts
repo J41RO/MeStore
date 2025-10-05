@@ -45,7 +45,7 @@ export const getEnvVar = (key: string, defaultValue: string = ''): string => {
 
 // Variables de entorno específicas con valores seguros
 export const ENV = {
-  API_BASE_URL: getEnvVar('VITE_API_BASE_URL', 'http://192.168.1.137:8000'),
+  API_BASE_URL: getEnvVar('VITE_API_BASE_URL', 'http://localhost:8000'),
   BUILD_NUMBER: getEnvVar('VITE_BUILD_NUMBER', '1'),
   MODE: getEnvVar('MODE', 'development') as
     | 'development'

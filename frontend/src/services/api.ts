@@ -2,8 +2,8 @@ import axios from 'axios';
 import type { CartItem, ShippingAddress, PaymentInfo } from '../stores/checkoutStore';
 import type { CategoryListResponse } from '../types/category.types';
 
-// Configuración base de axios - SIEMPRE usar backend directo (proxy de Vite no funciona en network IP)
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://192.168.1.137:8000';
+// Configuración base de axios - usa variable de entorno
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 const baseApi = axios.create({
   baseURL: API_BASE_URL,

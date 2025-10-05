@@ -39,7 +39,7 @@ const authClient = axios.create({
   // In development, use proxy. In production, use direct API URL
   baseURL: isDevelopment()
     ? undefined
-    : (getEnvVar('VITE_API_BASE_URL') || 'http://192.168.1.137:8000'),
+    : (getEnvVar('VITE_API_BASE_URL') || 'http://localhost:8000'),
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
