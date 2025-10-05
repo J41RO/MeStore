@@ -13,9 +13,18 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 import redis
 
+import logging as stdlib_logging
+logger_early = stdlib_logging.getLogger(__name__)
+logger_early.info("DEBUG: Starting imports in main.py")
+
 from app.api.v1 import api_router
+logger_early.info("DEBUG: api_router imported successfully")
+
 from app.api.v1.handlers.exceptions import register_exception_handlers
+logger_early.info("DEBUG: exception handlers imported")
+
 from app.core.config import settings
+logger_early.info("DEBUG: settings imported")
 
 # Simplified dependencies and middleware
 from app.core.dependencies_simple import (
@@ -23,7 +32,10 @@ from app.core.dependencies_simple import (
     get_health_check_services,
     service_lifespan
 )
+logger_early.info("DEBUG: dependencies_simple imported")
+
 from app.core.middleware_integration_simple import setup_application_middleware
+logger_early.info("DEBUG: middleware_integration_simple imported")
 
 # Response standardization
 from app.schemas.response_base import HealthResponse
@@ -36,6 +48,7 @@ from app.models.user import User
 from fastapi.staticfiles import StaticFiles
 import os
 from pathlib import Path
+logger_early.info("DEBUG: All imports completed in main.py")
 
 # Metadata para categorización de endpoints
 tags_metadata = [
@@ -60,6 +73,7 @@ async def lifespan(app: FastAPI):
     logger.info("Application shutdown completed")
 
 # Crear aplicación FastAPI
+logger_early.info("DEBUG: Creating FastAPI app instance...")
 app = FastAPI(
     title="MeStore API - Fulfillment & Marketplace Colombia",
     description="""Enterprise-grade API for MeStore marketplace with comprehensive security, performance optimization, and service integration.
@@ -79,22 +93,31 @@ Documentation:
     openapi_url="/openapi.json",
     lifespan=lifespan
 )
+logger_early.info("DEBUG: FastAPI app created successfully")
 
 # Create uploads directory if it doesn't exist and mount StaticFiles
+logger_early.info("DEBUG: Setting up uploads directory...")
 BASE_DIR = Path(__file__).parent.parent
 UPLOADS_DIR = BASE_DIR / "uploads"
 UPLOADS_DIR.mkdir(exist_ok=True)
 app.mount("/media", StaticFiles(directory=str(UPLOADS_DIR)), name="media")
 app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
+logger_early.info("DEBUG: Uploads directory configured")
 
 # Registrar exception handlers
+logger_early.info("DEBUG: Registering exception handlers...")
 register_exception_handlers(app)
+logger_early.info("DEBUG: Exception handlers registered")
 
 # Setup integrated middleware chain with optimal ordering
+logger_early.info("DEBUG: Setting up application middleware...")
 setup_application_middleware(app)
+logger_early.info("DEBUG: Application middleware setup completed")
 
 # Registrar routers
+logger_early.info("DEBUG: Including API router...")
 app.include_router(api_router, prefix="/api/v1")
+logger_early.info("DEBUG: API router included - main.py initialization complete")
 
 
 # Exception handler global para logging de errores
