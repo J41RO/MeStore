@@ -39,8 +39,8 @@ class LogRotationManager:
         self.log_dir = Path(settings.LOG_DIR)
         self.log_file_prefix = settings.LOG_FILE_PREFIX
         
-        # Crear directorio de logs si no existe
-        self.log_dir.mkdir(exist_ok=True)
+        # Crear directorio de logs si no existe (parents=True crea directorios padres)
+        self.log_dir.mkdir(parents=True, exist_ok=True)
         
         # Configuración de niveles por ambiente
         self._level_config = {
