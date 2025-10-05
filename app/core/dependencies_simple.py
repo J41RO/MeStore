@@ -65,14 +65,16 @@ class SimpleServiceContainer:
 _container: Optional[SimpleServiceContainer] = None
 
 async def get_service_container() -> SimpleServiceContainer:
-    """Get or create simple service container"""
-    global _container
+    """Get or create simple service container - DISABLED for fast startup"""
+    # TEMPORARILY DISABLED FOR RENDER PORT DETECTION TEST
+    # global _container
+    # if _container is None:
+    #     _container = SimpleServiceContainer()
+    #     await _container.initialize()
+    # return _container
 
-    if _container is None:
-        _container = SimpleServiceContainer()
-        await _container.initialize()
-
-    return _container
+    # Return minimal container without initialization
+    return SimpleServiceContainer()
 
 async def get_health_check_services() -> Dict[str, Any]:
     """Simple health check that always returns healthy status"""

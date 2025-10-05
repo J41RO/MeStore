@@ -1,0 +1,92 @@
+{
+  "timestamp": "2025-10-03T15:22:22.964917",
+  "summary": {
+    "total_tests": 7,
+    "passed": 4,
+    "failed": 3,
+    "success_rate": 57.14285714285714
+  },
+  "journeys": {
+    "buyer": {
+      "total": 1,
+      "passed": 0
+    },
+    "vendor": {
+      "total": 2,
+      "passed": 2
+    },
+    "admin": {
+      "total": 2,
+      "passed": 0
+    }
+  },
+  "results": [
+    {
+      "test_name": "Login BUYER",
+      "passed": true,
+      "message": "Successfully logged in as BUYER",
+      "endpoint": "/api/v1/auth/login",
+      "status_code": 200,
+      "response_data": {
+        "user_type": null
+      },
+      "error": null
+    },
+    {
+      "test_name": "Get Buyer Orders",
+      "passed": false,
+      "message": "Failed to get orders: 500",
+      "endpoint": "/api/v1/orders/",
+      "status_code": 500,
+      "response_data": null,
+      "error": "{\"status\":\"error\",\"timestamp\":\"2025-10-03T20:22:21.425605Z\",\"message\":\"HTTP error 500 at /api/v1/orders/\",\"version\":\"1.0.0\",\"error_code\":\"INTERNAL_SERVER_ERROR\",\"error_message\":\"Error fetching orders: (sqlite3.OperationalError) no such column: orders.cancelled_at\\n[SQL: SELECT orders.id, orders.order_number, orders.buyer_id, orders.subtotal, orders.tax_amount, orders.shipping_cost, orders.discount_amount, orders.total_amount, orders.status, orders.created_at, orders.updated_at, orders.confirmed_at, orders.shipped_at, orders.delivered_at, orders.cancelled_at, orders.cancellation_reason, orders.shipping_name, orders.shipping_phone, orders.shipping_email, orders.shipping_address, orders.shipping_city, orders.shipping_state, orders.shipping_postal_code, orders.shipping_country, orders.notes, orders.tracking_number, orders.courier, orders.estimated_delivery, orders.shipping_events \\nFROM orders \\nWHERE orders.buyer_id = ? ORDER BY orders.created_at DESC\\n LIMIT ? OFFSET ?]\\n[parameters: ('655c3dee-7879-4380-8fbd-151f7f80187a', 100, 0)]\\n(Background on this error at: https://sqlalche.me/e/20/e3q8)\",\"details\":[],\"request_id\":\"req_354bc149\"}"
+    },
+    {
+      "test_name": "Vendor Endpoint Validation: /api/v1/vendor/orders",
+      "passed": true,
+      "message": "Endpoint exists and requires authentication (correct)",
+      "endpoint": "/api/v1/vendor/orders",
+      "status_code": 401,
+      "response_data": null,
+      "error": null
+    },
+    {
+      "test_name": "Vendor Endpoint Validation: /api/v1/vendor/orders/stats/summary",
+      "passed": true,
+      "message": "Endpoint exists and requires authentication (correct)",
+      "endpoint": "/api/v1/vendor/orders/stats/summary",
+      "status_code": 401,
+      "response_data": null,
+      "error": null
+    },
+    {
+      "test_name": "Login ADMIN",
+      "passed": true,
+      "message": "Successfully logged in as ADMIN",
+      "endpoint": "/api/v1/auth/login",
+      "status_code": 200,
+      "response_data": {
+        "user_type": null
+      },
+      "error": null
+    },
+    {
+      "test_name": "Admin Orders List (Feature 4)",
+      "passed": false,
+      "message": "Failed: 500",
+      "endpoint": "/api/v1/admin/orders",
+      "status_code": 500,
+      "response_data": null,
+      "error": "{\"status\":\"error\",\"timestamp\":\"2025-10-03T20:22:22.907631Z\",\"message\":\"Operation failed\",\"version\":\"1.0.0\",\"error_code\":\"INTERNAL_SERVER_ERROR\",\"error_message\":\"Ha ocurrido un error interno del servidor\",\"details\":[],\"request_id\":null}"
+    },
+    {
+      "test_name": "Admin Dashboard Stats (Feature 4)",
+      "passed": false,
+      "message": "Failed: 500",
+      "endpoint": "/api/v1/admin/orders/stats/dashboard",
+      "status_code": 500,
+      "response_data": null,
+      "error": "{\"status\":\"error\",\"timestamp\":\"2025-10-03T20:22:22.963231Z\",\"message\":\"HTTP error 500 at /api/v1/admin/orders/stats/dashboard\",\"version\":\"1.0.0\",\"error_code\":\"INTERNAL_SERVER_ERROR\",\"error_message\":\"Error fetching order statistics: object ChunkedIteratorResult can't be used in 'await' expression\",\"details\":[],\"request_id\":\"req_ebc82a15\"}"
+    }
+  ]
+}
