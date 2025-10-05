@@ -1,8 +1,7 @@
 import axios from 'axios';
 
-// Configuration
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ||
-  (import.meta.env.DEV ? 'http://192.168.1.137:8000' : 'http://192.168.1.137:8000');
+// Configuration - Use environment variable for API base URL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 const superuserApi = axios.create({
   baseURL: API_BASE_URL,

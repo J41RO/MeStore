@@ -11,7 +11,7 @@ import {
   CategoryError
 } from '../types/category.types';
 
-const API_BASE_URL = 'http://192.168.1.137:8000/api/v1';
+const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/v1`;
 
 // Create axios instance with base configuration
 const categoryApi = axios.create({

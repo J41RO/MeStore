@@ -28,11 +28,20 @@ class WebSocketService {
   private latencyTracker: { sent: number; received: number }[] = [];
 
   private config: WebSocketConfig = {
-    url: 'ws://192.168.1.137:8000/api/v1/analytics/ws/vendor/analytics',
+    url: this.getWebSocketUrl(),
     reconnectInterval: 1000, // Faster reconnection for better UX
     maxReconnectAttempts: 10,
     heartbeatInterval: 15000 // More frequent heartbeat for better latency detection
   };
+
+  // Convert HTTP(S) URL to WebSocket URL
+  private getWebSocketUrl(): string {
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+    const wsUrl = apiBaseUrl
+      .replace('https://', 'wss://')
+      .replace('http://', 'ws://');
+    return `${wsUrl}/api/v1/analytics/ws/vendor/analytics`;
+  }
 
   private listeners: Map<string, Function[]> = new Map();
 

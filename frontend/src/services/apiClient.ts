@@ -1,8 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 
-// Configuración de baseURL: priorizar VITE_API_BASE_URL si está configurado
-const baseURL = import.meta.env.VITE_API_BASE_URL ||
-  (import.meta.env.DEV ? undefined : 'http://192.168.1.137:8000');
+// Configuración de baseURL: usar variable de entorno o fallback a localhost
+const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 // Cliente axios con configuración base optimizada para CORS
 export const apiClient: AxiosInstance = axios.create({

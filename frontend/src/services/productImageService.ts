@@ -42,7 +42,7 @@ interface ProductImageDeleteResponse {
 }
 
 class ProductImageService {
-  private baseURL = 'http://192.168.1.137:8000/api/v1/products';
+  private baseURL = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/v1/products`;
 
   /**
    * Obtener token de autenticación del localStorage
