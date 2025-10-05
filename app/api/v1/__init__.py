@@ -7,28 +7,32 @@ que será incluido en main.py con el prefijo /api/v1
 
 from fastapi import APIRouter
 
-# MINIMAL IMPORTS FOR FAST STARTUP - Only essential endpoints
-# TEMPORARILY DISABLED FOR RENDER PORT DETECTION TEST
+# GRADUAL RESTORATION - Adding endpoints incrementally
+# Core auth and health already enabled, now adding core business endpoints
 
-# ESSENTIAL ENDPOINTS ONLY:
+# ESSENTIAL ENDPOINTS (STEP 1):
 from app.api.v1.endpoints.auth import router as auth_router
 from app.api.v1.endpoints.health import router as health_simple_router
 
-# ALL OTHER ENDPOINTS DISABLED TO REDUCE STARTUP TIME:
+# CORE BUSINESS ENDPOINTS (STEP 2) - Products, Orders, Vendors:
+from app.api.v1.endpoints.productos import router as productos_router
+from app.api.v1.endpoints.orders import router as orders_router
+from app.api.v1.endpoints.vendors import router as vendors_registration_router
+from app.api.v1.endpoints.categories import router as categories_router
+from app.api.v1.endpoints.inventory import router as inventory_router
+
+# STILL DISABLED - Will re-enable in next steps:
 # from app.api.v1.endpoints.agents import router as agents_router
 # from app.api.v1.endpoints.alerts import router as alerts_router
-# from app.api.v1.endpoints.categories import router as categories_router
 # from app.api.v1.endpoints.comisiones import router as comisiones_router
 # from app.api.v1.endpoints.commissions import router as commissions_router
 # from app.api.v1.endpoints.embeddings import router as embeddings_router
 # from app.api.v1.endpoints.fulfillment import router as fulfillment_router
 # from app.api.v1.endpoints.health_complete import router as health_complete_router
-# from app.api.v1.endpoints.inventory import router as inventory_router
 # from app.api.v1.endpoints.logs import router as logs_router
 # from app.api.v1.endpoints.marketplace import router as marketplace_router
 # from app.api.v1.endpoints.pagos import router as pagos_router
 # from app.api.v1.endpoints.perfil import router as perfil_router
-# from app.api.v1.endpoints.productos import router as productos_router
 # from app.api.v1.endpoints.products_bulk import router as products_bulk_router
 # import os
 # if not os.getenv("DISABLE_SEARCH_SERVICE"):
@@ -39,10 +43,8 @@ from app.api.v1.endpoints.health import router as health_simple_router
 # from app.api.v1.endpoints.leads import router as leads_router
 # from app.api.v1.endpoints.system_config import router as system_config_router
 # from app.api.v1.endpoints.vendor_profile import router as vendor_profile_router
-# from app.api.v1.endpoints.vendors import router as vendors_registration_router
 # from app.api.v1.endpoints.payments import router as payments_router
 # from app.api.v1.endpoints.webhooks import router as webhooks_router
-# from app.api.v1.endpoints.orders import router as orders_router
 # from app.api.v1.endpoints.vendor_orders import router as vendor_orders_router
 # from app.api.v1.endpoints.database_reset import router as database_reset_router
 # from app.api.v1.endpoints.user_management_enterprise import router as user_management_router
@@ -54,26 +56,36 @@ from app.api.v1.endpoints.health import router as health_simple_router
 # Router principal que unifica todos los endpoints v1
 api_router = APIRouter()
 
-# MINIMAL ROUTER REGISTRATION FOR FAST STARTUP
-# ONLY ESSENTIAL ENDPOINTS - ALL OTHERS DISABLED
+# GRADUAL ROUTER REGISTRATION - STEP 2
 # ==================================================
 
-# ===== ESSENTIAL ENDPOINTS ONLY =====
+# ===== STEP 1: ESSENTIAL ENDPOINTS =====
 # Authentication (required for basic functionality)
 api_router.include_router(auth_router, prefix="/auth", tags=["authentication"])
 
 # Health checks (required for deployment monitoring)
 api_router.include_router(health_simple_router, prefix="/health", tags=["health"])
 
-# ===== ALL OTHER ROUTERS DISABLED FOR FAST STARTUP =====
-# TEMPORARILY DISABLED FOR RENDER PORT DETECTION TEST
-# Re-enable these incrementally after successful deployment
+# ===== STEP 2: CORE BUSINESS ENDPOINTS =====
+# Products (Spanish - primary implementation)
+api_router.include_router(productos_router, prefix="/productos", tags=["products"])
+
+# Orders (English standard)
+api_router.include_router(orders_router, prefix="/orders", tags=["orders"])
+
+# Vendor registration (MVP - auto-approval)
+api_router.include_router(vendors_registration_router, prefix="/vendors", tags=["vendor-registration"])
+
+# Categories (hierarchical system)
+api_router.include_router(categories_router, prefix="/categories", tags=["categories"])
+
+# Inventory management
+api_router.include_router(inventory_router, prefix="/inventory", tags=["inventory"])
+
+# ===== STILL DISABLED - Will re-enable in next steps =====
 
 # # Google OAuth Authentication
 # api_router.include_router(google_oauth_router, tags=["google-oauth"])
-
-# # Products (Spanish - comprehensive implementation kept as primary)
-# api_router.include_router(productos_router, prefix="/productos", tags=["products"])
 
 # # Products (English - comprehensive implementation with advanced features)
 # from app.api.v1.endpoints.products import router as products_router_en
@@ -81,9 +93,6 @@ api_router.include_router(health_simple_router, prefix="/health", tags=["health"
 
 # # Product bulk operations (English - specialized functionality)
 # api_router.include_router(products_bulk_router, prefix="/products", tags=["products-bulk"])
-
-# # Orders (English standard)
-# api_router.include_router(orders_router, prefix="/orders", tags=["orders"])
 
 # # Shipping tracking and management
 # api_router.include_router(shipping_router, prefix="/shipping", tags=["shipping"])
@@ -101,17 +110,8 @@ api_router.include_router(health_simple_router, prefix="/health", tags=["health"
 # # Vendor management (consolidated)
 # api_router.include_router(vendor_profile_router, prefix="/vendors", tags=["vendors"])
 
-# # Vendor registration (MVP - auto-approval)
-# api_router.include_router(vendors_registration_router, prefix="/vendors", tags=["vendor-registration"])
-
 # # Vendor orders management (NEW)
 # api_router.include_router(vendor_orders_router, prefix="/vendor", tags=["vendor-orders"])
-
-# # Categories (hierarchical system)
-# api_router.include_router(categories_router, prefix="/categories", tags=["categories"])
-
-# # Inventory management
-# api_router.include_router(inventory_router, prefix="/inventory", tags=["inventory"])
 
 # # ===== MARKETPLACE & DISCOVERY =====
 # # Search functionality (conditional)
