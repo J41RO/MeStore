@@ -102,27 +102,24 @@ Documentation:
 )
 logger_early.info("DEBUG: FastAPI app created successfully")
 
-# TEMPORARILY DISABLED FOR RENDER PORT DETECTION TEST
 # Create uploads directory if it doesn't exist and mount StaticFiles
-# logger_early.info("DEBUG: Setting up uploads directory...")
-# BASE_DIR = Path(__file__).parent.parent
-# UPLOADS_DIR = BASE_DIR / "uploads"
-# UPLOADS_DIR.mkdir(exist_ok=True)
-# app.mount("/media", StaticFiles(directory=str(UPLOADS_DIR)), name="media")
-# app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
-# logger_early.info("DEBUG: Uploads directory configured")
+logger_early.info("DEBUG: Setting up uploads directory...")
+BASE_DIR = Path(__file__).parent.parent
+UPLOADS_DIR = BASE_DIR / "uploads"
+UPLOADS_DIR.mkdir(exist_ok=True)
+app.mount("/media", StaticFiles(directory=str(UPLOADS_DIR)), name="media")
+app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
+logger_early.info("DEBUG: Uploads directory configured")
 
 # Registrar exception handlers
 logger_early.info("DEBUG: Registering exception handlers...")
 register_exception_handlers(app)
 logger_early.info("DEBUG: Exception handlers registered")
 
-# TEMPORARILY DISABLED FOR RENDER PORT DETECTION TEST
 # Setup integrated middleware chain with optimal ordering
-# logger_early.info("DEBUG: Setting up application middleware...")
-# setup_application_middleware(app)
-# logger_early.info("DEBUG: Application middleware setup completed")
-logger_early.info("DEBUG: Middleware DISABLED for fast startup test")
+logger_early.info("DEBUG: Setting up application middleware...")
+setup_application_middleware(app)
+logger_early.info("DEBUG: Application middleware setup completed")
 
 # Registrar routers
 logger_early.info("DEBUG: Including API router...")
