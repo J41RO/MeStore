@@ -421,9 +421,9 @@ class TestIntegratedAuthServiceAuthenticationTDD:
             mock_get_secure.return_value = mock_secure_auth
 
             result = await self.service.authenticate_user(
+                self.mock_db,
                 self.test_email,
                 self.test_password,
-                self.mock_db,
                 self.test_ip,
                 self.test_user_agent
             )
@@ -432,9 +432,9 @@ class TestIntegratedAuthServiceAuthenticationTDD:
 
             # Verify secure auth was called with correct parameters
             mock_secure_auth.authenticate_user_secure.assert_called_once_with(
+                db=self.mock_db,
                 email=self.test_email,
                 password=self.test_password,
-                db=self.mock_db,
                 ip_address=self.test_ip
             )
 
