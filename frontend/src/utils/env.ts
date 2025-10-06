@@ -28,15 +28,13 @@ export const getEnvVar = (key: string, defaultValue: string = ''): string => {
     return testValues[key] || defaultValue;
   }
 
-  // In browser environment, try to access Vite environment variables
+  // In browser/Vite environment, use import.meta.env
   try {
-    // Use window object for environment variables in browser
-    if (typeof window !== 'undefined') {
-      const env = (window as any).__VITE_ENV__ || {};
-      return env[key] || defaultValue;
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
+      return import.meta.env[key] || defaultValue;
     }
   } catch (error) {
-    // Fallback if window access fails
+    // Fallback if import.meta is not available
   }
 
   // Fallback a valores por defecto
