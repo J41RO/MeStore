@@ -48,6 +48,12 @@ class TestDatabaseResetService:
         service.session = AsyncMock()
         return service
 
+    @pytest.fixture
+    def mock_redis(self):
+        """Mock redis client for session cleanup tests."""
+        with patch('redis.asyncio.from_url') as mock:
+            yield mock
+
     @pytest_asyncio.fixture
     async def test_user(self):
         """Create a test user object."""
@@ -172,7 +178,6 @@ class TestDatabaseResetService:
         assert "Database connection failed" in result.errors[0]
 
     @pytest.mark.asyncio
-    @patch('app.services.database_reset_service.redis.from_url')
     async def test_cleanup_user_sessions_success(self, mock_redis, reset_service):
         """Test successful cleanup of user sessions."""
         user_ids = ["user1", "user2"]
@@ -181,8 +186,10 @@ class TestDatabaseResetService:
         # Mock Redis operations
         mock_redis_client = AsyncMock()
         mock_redis_client.keys.side_effect = [
-            ["session:user:user1:abc", "session:user:user1:def"],
-            ["otp:user1:xyz"]
+            ["session:user:user1:abc", "session:user:user1:def"],  # user1 session keys
+            ["otp:user1:xyz"],                                      # user1 otp keys
+            ["session:user:user2:abc"],                             # user2 session keys
+            []                                                       # user2 otp keys (empty)
         ]
         mock_redis_client.delete.return_value = None
         mock_redis.return_value = mock_redis_client
@@ -190,11 +197,10 @@ class TestDatabaseResetService:
         await reset_service._cleanup_user_sessions(user_ids, result)
 
         # Verify Redis operations were called
-        assert mock_redis_client.keys.call_count == 2  # session + otp keys for first user
-        assert result.deleted_records.get("redis_sessions") == 3
+        assert mock_redis_client.keys.call_count == 4  # session + otp keys for both users
+        assert result.deleted_records.get("redis_sessions") == 4
 
     @pytest.mark.asyncio
-    @patch('app.services.database_reset_service.redis.from_url')
     async def test_cleanup_user_sessions_redis_error(self, mock_redis, reset_service):
         """Test handling of Redis errors during session cleanup."""
         user_ids = ["user1"]
@@ -317,7 +323,6 @@ class TestDatabaseResetService:
                 assert "No test users found" in result.warnings[0]
 
     @pytest.mark.asyncio
-    @patch('app.services.database_reset_service.redis.from_url')
     async def test_full_database_reset_success(self, mock_redis, reset_service):
         """Test successful full database reset."""
         with patch.object(reset_service, '_validate_environment'):
@@ -400,31 +405,33 @@ class TestDatabaseResetService:
     @pytest.mark.asyncio
     async def test_get_reset_statistics(self, reset_service):
         """Test getting reset statistics."""
-        # Mock user stats query
-        user_stats_result = MagicMock()
-        user_stats_result.fetchall.return_value = [
-            ("BUYER", 10, 8),
-            ("VENDOR", 5, 4)
-        ]
+        # Mock PostgreSQL database
+        with patch.object(settings, 'DATABASE_URL', 'postgresql://localhost/test'):
+            # Mock user stats query
+            user_stats_result = MagicMock()
+            user_stats_result.fetchall.return_value = [
+                ("BUYER", 10, 8),
+                ("VENDOR", 5, 4)
+            ]
 
-        # Mock test user count query
-        test_user_result = MagicMock()
-        test_user_result.scalar.return_value = 3
+            # Mock test user count query
+            test_user_result = MagicMock()
+            test_user_result.scalar.return_value = 3
 
-        # Mock table sizes query
-        table_sizes_result = MagicMock()
-        table_sizes_result.fetchall.return_value = [
-            ("public", "users", 100, 50, 10, 90),
-            ("public", "products", 200, 100, 20, 180)
-        ]
+            # Mock table sizes query
+            table_sizes_result = MagicMock()
+            table_sizes_result.fetchall.return_value = [
+                ("public", "users", 100, 50, 10, 90),
+                ("public", "products", 200, 100, 20, 180)
+            ]
 
-        reset_service.session.execute.side_effect = [
-            user_stats_result,
-            test_user_result,
-            table_sizes_result
-        ]
+            reset_service.session.execute.side_effect = [
+                user_stats_result,
+                test_user_result,
+                table_sizes_result
+            ]
 
-        result = await reset_service.get_reset_statistics()
+            result = await reset_service.get_reset_statistics()
 
         assert "users" in result
         assert result["users"]["BUYER"]["total"] == 10
@@ -435,15 +442,15 @@ class TestDatabaseResetService:
     @pytest.mark.asyncio
     async def test_service_context_manager(self):
         """Test DatabaseResetService as async context manager."""
-        with patch('app.services.database_reset_service.get_async_session') as mock_session:
-            mock_async_gen = AsyncMock()
-            mock_session.return_value.__anext__.return_value = mock_async_gen
+        with patch('app.services.database_reset_service.AsyncSessionLocal') as mock_session:
+            mock_async_session = AsyncMock()
+            mock_session.return_value = mock_async_session
 
             async with DatabaseResetService() as service:
                 assert service.session is not None
 
             # Verify session was closed
-            mock_async_gen.close.assert_called_once()
+            mock_async_session.close.assert_called_once()
 
 
 class TestQuickFunctions:
@@ -459,8 +466,10 @@ class TestQuickFunctions:
         mock_result.success = True
 
         mock_service.__aenter__.return_value = mock_service
-        mock_service.session.execute.return_value.fetchone.return_value = ("user-id",)
-        mock_service.delete_user_safely.return_value = mock_result
+        mock_execute_result = MagicMock()
+        mock_execute_result.fetchone.return_value = ("user-id",)
+        mock_service.session.execute = AsyncMock(return_value=mock_execute_result)
+        mock_service.delete_user_safely = AsyncMock(return_value=mock_result)
 
         mock_service_class.return_value = mock_service
 
@@ -475,7 +484,9 @@ class TestQuickFunctions:
         """Test quick user reset when user not found."""
         mock_service = AsyncMock()
         mock_service.__aenter__.return_value = mock_service
-        mock_service.session.execute.return_value.fetchone.return_value = None
+        mock_execute_result = MagicMock()
+        mock_execute_result.fetchone.return_value = None
+        mock_service.session.execute = AsyncMock(return_value=mock_execute_result)
 
         mock_service_class.return_value = mock_service
 
@@ -507,12 +518,11 @@ class TestResetLevels:
     """Test different reset levels functionality."""
 
     @pytest.mark.asyncio
-    async def test_user_data_level(self, test_user):
+    async def test_user_data_level(self):
         """Test USER_DATA reset level."""
         with patch('app.services.database_reset_service.DatabaseResetService') as mock_service_class:
             mock_service = AsyncMock()
             mock_service.__aenter__.return_value = mock_service
-            mock_service.session.get.return_value = test_user
 
             # Verify level-specific behavior
             result = ResetResult()
@@ -529,12 +539,11 @@ class TestResetLevels:
                 mock_service.delete_user_safely.assert_called_once_with("test-id", ResetLevel.USER_DATA)
 
     @pytest.mark.asyncio
-    async def test_user_cascade_level(self, test_user):
+    async def test_user_cascade_level(self):
         """Test USER_CASCADE reset level."""
         with patch('app.services.database_reset_service.DatabaseResetService') as mock_service_class:
             mock_service = AsyncMock()
             mock_service.__aenter__.return_value = mock_service
-            mock_service.session.get.return_value = test_user
 
             result = ResetResult()
             result.success = True
@@ -555,7 +564,7 @@ class TestErrorHandling:
     @pytest.mark.asyncio
     async def test_database_connection_error(self):
         """Test handling of database connection errors."""
-        with patch('app.services.database_reset_service.get_async_session') as mock_session:
+        with patch('app.services.database_reset_service.AsyncSessionLocal') as mock_session:
             mock_session.side_effect = Exception("Database connection failed")
 
             try:
@@ -573,15 +582,17 @@ class TestErrorHandling:
             await service._identify_test_users()
 
     @pytest.mark.asyncio
-    async def test_session_rollback_on_error(self, reset_service):
+    async def test_session_rollback_on_error(self):
         """Test that session rollback occurs on error."""
-        with patch.object(reset_service, '_validate_environment'):
-            reset_service.session.get.side_effect = Exception("Database error")
+        service = DatabaseResetService()
+        service.session = AsyncMock()
+        service.session.get.side_effect = Exception("Database error")
 
-            result = await reset_service.delete_user_safely("test-id")
+        with patch.object(service, '_validate_environment'):
+            result = await service.delete_user_safely("test-id")
 
             assert result.success is False
-            reset_service.session.rollback.assert_called_once()
+            service.session.rollback.assert_called_once()
 
 
 # Fixtures for integration testing
@@ -594,9 +605,9 @@ def mock_settings_dev():
 
 
 @pytest.fixture
-def mock_redis():
+def mock_redis_global():
     """Mock Redis for testing."""
-    with patch('app.services.database_reset_service.redis.from_url') as mock:
+    with patch('redis.asyncio.from_url') as mock:
         mock_client = AsyncMock()
         mock.return_value = mock_client
         yield mock_client
@@ -607,9 +618,9 @@ class TestDatabaseResetIntegration:
     """Integration tests for database reset functionality."""
 
     @pytest.mark.asyncio
-    async def test_complete_reset_workflow(self, mock_settings_dev, mock_redis):
+    async def test_complete_reset_workflow(self, mock_settings_dev, mock_redis_global):
         """Test complete reset workflow from service creation to cleanup."""
-        with patch('app.services.database_reset_service.get_async_session') as mock_session:
+        with patch('app.services.database_reset_service.AsyncSessionLocal') as mock_session:
             # Mock async session
             mock_async_session = AsyncMock()
             mock_session.return_value.__anext__.return_value = mock_async_session

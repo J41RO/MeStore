@@ -46,7 +46,7 @@ from app.api.v1.endpoints.admin_users import router as admin_users_router
 # from app.api.v1.endpoints.payments import router as payments_router
 # from app.api.v1.endpoints.webhooks import router as webhooks_router
 # from app.api.v1.endpoints.vendor_orders import router as vendor_orders_router
-# from app.api.v1.endpoints.database_reset import router as database_reset_router
+from app.api.v1.endpoints.database_reset import router as database_reset_router
 # from app.api.v1.endpoints.user_management_enterprise import router as user_management_router
 # from app.api.v1.endpoints.communication_config import router as communication_config_router
 # from app.api.v1.endpoints.google_oauth import router as google_oauth_router
@@ -138,8 +138,8 @@ api_router.include_router(admin_users_router, prefix="/admin", tags=["admin-user
 # # User management enterprise - User actions
 # api_router.include_router(user_management_router, prefix="/user-management", tags=["user-management"])
 
-# # Database reset operations (dev/test only)
-# api_router.include_router(database_reset_router, prefix="/admin", tags=["database-reset"])
+# Database reset operations (dev/test only)
+api_router.include_router(database_reset_router, prefix="/admin", tags=["database-reset"])
 
 # # System configuration
 # api_router.include_router(system_config_router, prefix="/system", tags=["system"])

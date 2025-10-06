@@ -144,7 +144,7 @@ class DatabaseResetService:
             safe_hosts = ["localhost", "127.0.0.1", "test", "dev", "192.168."]
             is_safe = any(safe_host in settings.DATABASE_URL for safe_host in safe_hosts)
 
-            if not is_safe and current_env not in self.allowed_environments:
+            if not is_safe:
                 raise RuntimeError(
                     "Database reset blocked: DATABASE_URL appears to be production. "
                     "Reset only allowed on localhost, local network, or test/dev databases."
