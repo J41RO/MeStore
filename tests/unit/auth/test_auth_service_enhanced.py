@@ -296,7 +296,8 @@ class TestAuthServiceOTPFunctionality:
         mock_db = Mock()
         auth_service.otp_service.can_send_otp.return_value = (True, "OK")
         auth_service.otp_service.create_otp_for_user.return_value = ("123456", "2024-01-01")
-        auth_service.sms_service.send_otp_sms.return_value = True
+        # Fix: send_otp_sms returns (bool, str) tuple, not just bool
+        auth_service.sms_service.send_otp_sms.return_value = (True, "SMS enviado a +573001234567")
 
         # ACT
         success, message = await auth_service.send_sms_verification_otp(mock_db, mock_user)

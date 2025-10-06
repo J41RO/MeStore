@@ -24,8 +24,7 @@ import pytest
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch, Mock
 from typing import Dict, Any, Optional
-import jwt as jose_jwt
-from jose import JWTError
+from jose import JWTError, jwt as jose_jwt
 import time
 
 # Import modules under test
@@ -45,46 +44,48 @@ class TestJWTTokenCreation:
         """TDD: create_access_token should return valid JWT string."""
         # RED: Test basic token creation
         data = {"sub": "test@example.com", "user_id": "123"}
-        
+
         token = create_access_token(data)
-        
+
         # GREEN: Verify token properties
         assert isinstance(token, str)
         assert len(token) > 50  # JWT tokens are typically long
         assert token.count('.') == 2  # JWT has 3 parts separated by dots
-        
-        # Verify it's a valid JWT by decoding (should not raise exception)
-        decoded = jose_jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+
+        # Verify it's a valid JWT by decoding using the provided decode function
+        # This ensures we use the same key derivation logic as encoding
+        decoded = decode_access_token(token)
+        assert decoded is not None
         assert decoded["sub"] == "test@example.com"
         assert decoded["user_id"] == "123"
     
     def test_create_access_token_includes_expiration_claim(self):
         """TDD: Access token should include expiration claim."""
         data = {"sub": "test@example.com"}
-        
+
         token = create_access_token(data)
-        decoded = jose_jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        
+        decoded = decode_access_token(token)
+
         # Should have expiration claim
         assert "exp" in decoded
         assert isinstance(decoded["exp"], int)
-        
+
         # Expiration should be in the future
         current_time = datetime.now(timezone.utc).timestamp()
         assert decoded["exp"] > current_time
-    
+
     def test_create_access_token_with_custom_expiration(self):
         """TDD: create_access_token should respect custom expiration delta."""
         data = {"sub": "test@example.com"}
         custom_delta = timedelta(minutes=30)
-        
+
         token = create_access_token(data, expires_delta=custom_delta)
-        decoded = jose_jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        
+        decoded = decode_access_token(token)
+
         # Calculate expected expiration (within 1 minute tolerance)
         expected_exp = datetime.now(timezone.utc) + custom_delta
         actual_exp = datetime.fromtimestamp(decoded["exp"], timezone.utc)
-        
+
         time_diff = abs((expected_exp - actual_exp).total_seconds())
         assert time_diff < 60  # Within 1 minute tolerance
     
@@ -93,7 +94,7 @@ class TestJWTTokenCreation:
         data = {"sub": "test@example.com"}
         
         token = create_access_token(data)
-        decoded = jose_jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        decoded = decode_access_token(token)
         
         # Calculate expected expiration using default setting
         expected_exp = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -113,7 +114,7 @@ class TestJWTTokenCreation:
         }
         
         token = create_access_token(data)
-        decoded = jose_jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        decoded = decode_access_token(token)
         
         # All original data should be preserved
         for key, value in data.items():
@@ -122,13 +123,21 @@ class TestJWTTokenCreation:
     def test_create_access_token_with_empty_data_creates_valid_token(self):
         """TDD: create_access_token should handle empty data gracefully."""
         data = {}
-        
+
         token = create_access_token(data)
-        decoded = jose_jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        
-        # Should still have expiration
-        assert "exp" in decoded
-        assert len(decoded) == 1  # Only exp claim
+        decoded = decode_access_token(token)
+
+        # Should still have standard JWT claims added by create_access_token
+        assert "exp" in decoded  # Expiration
+        assert "iat" in decoded  # Issued at
+        assert "jti" in decoded  # JWT ID
+        assert "typ" in decoded  # Token type
+        assert "iss" in decoded  # Issuer
+        assert "aud" in decoded  # Audience
+        # Empty input data should not add user-specific claims beyond these standard ones
+        assert decoded["typ"] == "access"
+        assert decoded["iss"] == "mestore-api"
+        assert decoded["aud"] == "mestore-client"
 
 
 class TestJWTTokenDecoding:
@@ -220,51 +229,52 @@ class TestRefreshTokenFunctionality:
     def test_create_refresh_token_returns_valid_jwt(self):
         """TDD: create_refresh_token should return valid JWT string."""
         data = {"sub": "test@example.com", "user_id": "123"}
-        
+
         token = create_refresh_token(data)
-        
+
         assert isinstance(token, str)
         assert len(token) > 50
         assert token.count('.') == 2
-        
-        # Verify it's a valid JWT
-        decoded = jose_jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+
+        # Verify it's a valid JWT using decode_refresh_token
+        decoded = decode_refresh_token(token)
+        assert decoded is not None
         assert decoded["sub"] == "test@example.com"
         assert decoded["user_id"] == "123"
-    
+
     def test_create_refresh_token_includes_type_claim(self):
         """TDD: Refresh token should include type claim."""
         data = {"sub": "test@example.com"}
-        
+
         token = create_refresh_token(data)
-        decoded = jose_jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        
-        assert "type" in decoded
-        assert decoded["type"] == "refresh"
+        decoded = decode_refresh_token(token)
+
+        assert "typ" in decoded
+        assert decoded["typ"] == "refresh"
     
     def test_create_refresh_token_has_longer_expiration_than_access_token(self):
         """TDD: Refresh token should have longer expiration than access token."""
         data = {"sub": "test@example.com"}
-        
+
         access_token = create_access_token(data)
         refresh_token = create_refresh_token(data)
-        
-        access_decoded = jose_jwt.decode(access_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        refresh_decoded = jose_jwt.decode(refresh_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        
+
+        access_decoded = decode_access_token(access_token)
+        refresh_decoded = decode_refresh_token(refresh_token)
+
         assert refresh_decoded["exp"] > access_decoded["exp"]
     
     def test_create_refresh_token_uses_configured_expiration_time(self):
         """TDD: Refresh token should use configured expiration time."""
         data = {"sub": "test@example.com"}
-        
+
         token = create_refresh_token(data)
-        decoded = jose_jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        
+        decoded = decode_refresh_token(token)
+
         # Calculate expected expiration
         expected_exp = datetime.now(timezone.utc) + timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES)
         actual_exp = datetime.fromtimestamp(decoded["exp"], timezone.utc)
-        
+
         time_diff = abs((expected_exp - actual_exp).total_seconds())
         assert time_diff < 60  # Within 1 minute tolerance
     
@@ -272,14 +282,14 @@ class TestRefreshTokenFunctionality:
         """TDD: decode_refresh_token should return payload for valid refresh token."""
         data = {"sub": "test@example.com", "user_id": "123"}
         token = create_refresh_token(data)
-        
+
         decoded = decode_refresh_token(token)
-        
+
         assert decoded is not None
         assert isinstance(decoded, dict)
         assert decoded["sub"] == "test@example.com"
         assert decoded["user_id"] == "123"
-        assert decoded["type"] == "refresh"
+        assert decoded["typ"] == "refresh"
     
     def test_decode_refresh_token_access_token_returns_none(self):
         """TDD: decode_refresh_token should return None for access token."""
@@ -499,7 +509,7 @@ class TestJWTConfigurationDependency:
         # Mock different expiration time
         with patch('app.core.security.settings.ACCESS_TOKEN_EXPIRE_MINUTES', 60):
             token = create_access_token(data)
-            decoded = jose_jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+            decoded = decode_access_token(token)
             
             # Should expire in approximately 60 minutes
             expected_exp = datetime.now(timezone.utc) + timedelta(minutes=60)
