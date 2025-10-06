@@ -47,8 +47,8 @@ class IntegratedAuthService:
     def __init__(self):
         self.legacy_auth = AuthService()
         self.secure_auth = None  # Will be initialized when needed
-        # Temporarily disable secure auth to fix login issues
-        self.migration_enabled = False  # getattr(settings, 'SECURE_AUTH_ENABLED', True)
+        # Enable secure auth for PostgreSQL support
+        self.migration_enabled = getattr(settings, 'SECURE_AUTH_ENABLED', True)
         self.audit_logger = SecurityAuditLogger()
         self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
