@@ -157,7 +157,7 @@ async def login(
 
         if not user:
             logger.warning("Login fallido - credenciales inválidas",
-                         login_data.email, ip=ip_address)
+                         email=login_data.email, ip=ip_address)
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Email o contraseña incorrectos",
@@ -292,7 +292,7 @@ async def admin_login(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Error interno en admin login: %s - email: %s", str(e), login_data.email)
+        logger.error("Error interno en admin login", error=str(e), email=login_data.email)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error interno del servidor"
