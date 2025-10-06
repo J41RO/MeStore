@@ -25,7 +25,7 @@ from app.api.v1.endpoints.inventory import router as inventory_router
 # from app.api.v1.endpoints.agents import router as agents_router
 # from app.api.v1.endpoints.alerts import router as alerts_router
 # from app.api.v1.endpoints.comisiones import router as comisiones_router
-# from app.api.v1.endpoints.commissions import router as commissions_router
+from app.api.v1.endpoints.commissions import router as commissions_router
 # from app.api.v1.endpoints.embeddings import router as embeddings_router
 # from app.api.v1.endpoints.fulfillment import router as fulfillment_router
 # from app.api.v1.endpoints.health_complete import router as health_complete_router
@@ -38,8 +38,8 @@ from app.api.v1.endpoints.inventory import router as inventory_router
 # if not os.getenv("DISABLE_SEARCH_SERVICE"):
 #     from app.api.v1.endpoints.search import router as search_router
 # from app.api.v1.endpoints.vendedores import router as vendedores_router
-# from app.api.v1.endpoints.admin import router as admin_router
-# from app.api.v1.endpoints.admin_users import router as admin_users_router
+from app.api.v1.endpoints.admin import router as admin_router
+from app.api.v1.endpoints.admin_users import router as admin_users_router
 # from app.api.v1.endpoints.leads import router as leads_router
 # from app.api.v1.endpoints.system_config import router as system_config_router
 # from app.api.v1.endpoints.vendor_profile import router as vendor_profile_router
@@ -87,9 +87,9 @@ api_router.include_router(inventory_router, prefix="/inventory", tags=["inventor
 # # Google OAuth Authentication
 # api_router.include_router(google_oauth_router, tags=["google-oauth"])
 
-# # Products (English - comprehensive implementation with advanced features)
-# from app.api.v1.endpoints.products import router as products_router_en
-# api_router.include_router(products_router_en, prefix="/products", tags=["products-en"])
+# Products (English - comprehensive implementation with advanced features)
+from app.api.v1.endpoints.products import router as products_router_en
+api_router.include_router(products_router_en, prefix="/products", tags=["products-en"])
 
 # # Product bulk operations (English - specialized functionality)
 # api_router.include_router(products_bulk_router, prefix="/products", tags=["products-bulk"])
@@ -97,8 +97,8 @@ api_router.include_router(inventory_router, prefix="/inventory", tags=["inventor
 # # Shipping tracking and management
 # api_router.include_router(shipping_router, prefix="/shipping", tags=["shipping"])
 
-# # Commissions (English - production-ready version)
-# api_router.include_router(commissions_router, prefix="/commissions", tags=["commissions"])
+# Commissions (English - production-ready version)
+api_router.include_router(commissions_router, prefix="/commissions", tags=["commissions"])
 
 # # Payments (English - integrated payment processing)
 # api_router.include_router(payments_router, prefix="/payments", tags=["payments"])
@@ -121,12 +121,12 @@ api_router.include_router(inventory_router, prefix="/inventory", tags=["inventor
 # # Marketplace operations
 # api_router.include_router(marketplace_router, prefix="/marketplace", tags=["marketplace"])
 
-# # ===== ADMIN & SYSTEM =====
-# # Admin operations
-# api_router.include_router(admin_router, prefix="/admin", tags=["administration"])
+# ===== ADMIN & SYSTEM =====
+# Admin operations
+api_router.include_router(admin_router, prefix="/admin", tags=["administration"])
 
-# # Admin user management
-# api_router.include_router(admin_users_router, prefix="/admin", tags=["admin-users"])
+# Admin user management
+api_router.include_router(admin_users_router, prefix="/admin", tags=["admin-users"])
 
 # # Admin orders management (SUPERUSER only - comprehensive order management)
 # api_router.include_router(admin_orders_router, prefix="/admin", tags=["admin-orders"])
