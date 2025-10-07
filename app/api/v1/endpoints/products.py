@@ -88,7 +88,8 @@ from app.schemas.base import (
     PaginationMetadata,
     APIError,
 )
-from app.services.chroma_service import ChromaDBService
+# DISABLED TEMPORARILY: ChromaDB will be enabled when needed in production
+# from app.services.chroma_service import ChromaDBService
 from app.utils.file_validator import (
     validate_multiple_files,
     compress_image_multiple_resolutions,
@@ -147,8 +148,8 @@ def _prepare_product_dict_for_response(db_product: Product) -> Dict[str, Any]:
 # Create router
 router = APIRouter()
 
-# Initialize ChromaDB service
-chroma_service = ChromaDBService()
+# DISABLED TEMPORARILY: ChromaDB service initialization
+# chroma_service = ChromaDBService()
 
 
 # =======================================================================================
@@ -1360,12 +1361,13 @@ async def search_products(
 
         if semantic:
             try:
-                # Semantic search using ChromaDB
-                similar_products = await chroma_service.search_products(
-                    query=query,
-                    max_results=limit,
-                    category_filter=category
-                )
+                # DISABLED: Semantic search using ChromaDB
+                # similar_products = await chroma_service.search_products(
+                #     query=query,
+                #     max_results=limit,
+                #     category_filter=category
+                # )
+                similar_products = []  # Temporarily return empty results
 
                 if similar_products:
                     # Get product IDs from ChromaDB results
@@ -1470,35 +1472,33 @@ async def search_products(
 
 async def _create_product_embedding(product_id: str, product_data: Dict[str, Any]):
     """Background task to create ChromaDB embedding for new product."""
-    try:
-        await chroma_service.add_product_embedding(
-            product_id=product_id,
-            product_data=product_data
-        )
-        logger.info(f"Created embedding for product {product_id}")
-    except Exception as e:
-        logger.error(f"Failed to create embedding for product {product_id}: {str(e)}")
+    # DISABLED: ChromaDB embeddings temporarily disabled
+    pass
+    # try:
+    #     await chroma_service.add_product_embedding(
+    #         product_id=product_id,
+    #         product_data=product_data
+    #     )
+    #     logger.info(f"Created embedding for product {product_id}")
+    # except Exception as e:
+    #     logger.error(f"Failed to create embedding for product {product_id}: {str(e)}")
 
 
 async def _update_product_embedding(product_id: str, product_data: Dict[str, Any]):
     """Background task to update ChromaDB embedding for product."""
-    try:
-        await chroma_service.update_product_embedding(
-            product_id=product_id,
-            product_data=product_data
-        )
-        logger.info(f"Updated embedding for product {product_id}")
-    except Exception as e:
-        logger.error(f"Failed to update embedding for product {product_id}: {str(e)}")
+    # DISABLED: ChromaDB embeddings temporarily disabled
+    pass
 
 
 async def _delete_product_embedding(product_id: str):
     """Background task to delete ChromaDB embedding for product."""
-    try:
-        await chroma_service.delete_product_embedding(product_id)
-        logger.info(f"Deleted embedding for product {product_id}")
-    except Exception as e:
-        logger.error(f"Failed to delete embedding for product {product_id}: {str(e)}")
+    # DISABLED: ChromaDB embeddings temporarily disabled
+    pass
+    # try:
+    #     await chroma_service.delete_product_embedding(product_id)
+    #     logger.info(f"Deleted embedding for product {product_id}")
+    # except Exception as e:
+    #     logger.error(f"Failed to delete embedding for product {product_id}: {str(e)}")
 
 
 # =======================================================================================
