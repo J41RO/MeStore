@@ -1,0 +1,54 @@
+# ============================================================================
+# MeStocker API - Production Requirements (Lightweight)
+# ============================================================================
+#
+# Este archivo contiene SOLO las dependencias esenciales para producción:
+# - FastAPI + Uvicorn
+# - PostgreSQL (async)
+# - SQLAlchemy ORM
+# - Alembic migrations
+# - Authentication (JWT + bcrypt)
+# - Pydantic validation
+# - Environment config
+# - Structured logging
+#
+# EXCLUIDAS: ChromaDB, torch, sentence-transformers, Redis, y todas las
+# librerías de ML/AI que no son críticas para el funcionamiento básico.
+# ============================================================================
+
+# FastAPI Framework
+fastapi==0.116.1
+uvicorn[standard]==0.35.0
+python-multipart==0.0.6
+
+# PostgreSQL Drivers (async + sync)
+asyncpg==0.29.0
+psycopg2-binary==2.9.9
+
+# SQLAlchemy ORM (async support)
+sqlalchemy==2.0.41
+
+# Database Migrations
+alembic==1.13.1
+
+# Pydantic (validation + settings)
+pydantic==2.11.7
+pydantic-settings==2.2.1
+email-validator==2.1.0
+
+# Authentication & Security
+python-jose==3.5.0
+passlib==1.7.4
+bcrypt==4.3.0
+
+# Configuration
+python-dotenv==1.1.1
+
+# Structured Logging
+structlog==25.4.0
+
+# ============================================================================
+# Total: 15 packages (vs ~50+ en requirements.txt completo)
+# Tamaño estimado: ~50MB (vs ~2GB+ con ML libraries)
+# Tiempo de instalación: ~30 segundos (vs ~5+ minutos)
+# ============================================================================
