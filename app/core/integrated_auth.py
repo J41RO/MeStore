@@ -26,7 +26,6 @@ from app.services.secure_auth_service import SecureAuthService, SecurityAuditLog
 from app.core.auth import AuthService  # Legacy auth service
 from app.models.user import User
 from app.core.security import create_access_token, decode_access_token
-import sqlite3
 from passlib.context import CryptContext
 
 logger = logging.getLogger(__name__)
@@ -63,50 +62,26 @@ class IntegratedAuthService:
             self.secure_auth = SecureAuthService(redis_client=redis_client)
         return self.secure_auth
 
-    async def _authenticate_user_simple(self, email: str, password: str) -> Optional[User]:
-        """Simple SQLite-based authentication for debugging"""
+    async def _authenticate_user_simple(self, email: str, password: str, db: AsyncSession) -> Optional[User]:
+        """Simple async authentication compatible with PostgreSQL and SQLite"""
         try:
-            # Direct SQLite query for testing - using settings.DATABASE_URL
-            from app.core.config import settings
-            db_path = settings.DATABASE_URL.replace("sqlite+aiosqlite://", "").replace("sqlite://", "").lstrip("/")
-            conn = sqlite3.connect(db_path)
-            cursor = conn.execute(
-                'SELECT id, email, password_hash, user_type, nombre, is_active FROM users WHERE email = ?',
-                (email,)
-            )
-            row = cursor.fetchone()
-            conn.close()
+            from sqlalchemy import select
+            from app.models.user import User, UserType
 
-            if not row:
-                logger.warning(f"User not found in SQLite: {email}")
+            # Query async using SQLAlchemy
+            result = await db.execute(
+                select(User).where(User.email == email)
+            )
+            user = result.scalar_one_or_none()
+
+            if not user:
+                logger.warning(f"User not found: {email}")
                 return None
 
-            user_id, user_email, password_hash, user_type, nombre, is_active = row
-
-            # Verify password with passlib
-            if not self.pwd_context.verify(password, password_hash):
+            # Verify password
+            if not self.pwd_context.verify(password, user.password_hash):
                 logger.warning(f"Password verification failed for: {email}")
                 return None
-
-            # Create a simple User object with proper enum conversion
-            from app.models.user import UserType
-
-            user = User()
-            user.id = user_id
-            user.email = user_email
-            user.password_hash = password_hash
-
-            # Convert string user_type to enum - database has UPPERCASE values
-            try:
-                user.user_type = UserType(user_type)
-                logger.info(f"User type converted successfully: {user_type} -> {user.user_type}")
-            except ValueError as ve:
-                logger.error(f"Invalid user_type from database: {user_type}, error: {ve}")
-                # Set default if conversion fails
-                user.user_type = UserType.BUYER
-
-            user.nombre = nombre
-            user.is_active = bool(is_active)
 
             logger.info(f"Simple authentication successful for: {email}, user_type: {user.user_type}")
             return user
@@ -175,7 +150,7 @@ class IntegratedAuthService:
             else:
                 # Use simple SQLite authentication for now
                 logger.info(f"Using simple authentication for user: {email}")
-                return await self._authenticate_user_simple(email, password)
+                return await self._authenticate_user_simple(email, password, db)
 
         except HTTPException as e:
             # Re-raise HTTP exceptions (e.g., account locked)
