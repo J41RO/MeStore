@@ -58,3 +58,5 @@ loguru==0.7.2
 # Tamaño estimado: ~60MB (vs ~2GB+ con ML libraries)
 # Tiempo de instalación: ~30 segundos (vs ~5+ minutos)
 # ============================================================================
+
+# Updated dependencies
