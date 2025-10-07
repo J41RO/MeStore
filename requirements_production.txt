@@ -51,9 +51,10 @@ redis>=5.0.0
 
 # Structured Logging
 structlog==25.4.0
+loguru==0.7.2
 
 # ============================================================================
-# Total: 17 packages (vs ~50+ en requirements.txt completo)
+# Total: 18 packages (vs ~50+ en requirements.txt completo)
 # Tamaño estimado: ~60MB (vs ~2GB+ con ML libraries)
 # Tiempo de instalación: ~30 segundos (vs ~5+ minutos)
 # ============================================================================
