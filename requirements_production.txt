@@ -62,8 +62,11 @@ aiofiles>=23.0.0
 # Image Processing
 pillow>=10.0.0
 
+# Template Engine
+jinja2>=3.1.0
+
 # ============================================================================
-# Total: 21 packages (vs ~50+ en requirements.txt completo)
+# Total: 22 packages (vs ~50+ en requirements.txt completo)
 # Tamaño estimado: ~70MB (vs ~2GB+ con ML libraries)
 # Tiempo de instalación: ~40 segundos (vs ~5+ minutos)
 # ============================================================================
