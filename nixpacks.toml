@@ -2,7 +2,7 @@
 # This file tells Railway/Nixpacks how to build and run the application
 
 [phases.setup]
-nixPkgs = ["python311", "pip"]
+nixPkgs = ["python311"]
 
 [phases.install]
 cmds = ["pip install -r requirements_production.txt"]
