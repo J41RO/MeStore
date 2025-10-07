@@ -2,10 +2,14 @@
 # This file tells Railway/Nixpacks how to build and run the application
 
 [phases.setup]
-nixPkgs = ["python311", "python311Packages.pip"]
+nixPkgs = ["python311", "python311Packages.virtualenv"]
 
 [phases.install]
-cmds = ["pip install --upgrade pip", "pip install -r requirements_production.txt"]
+cmds = [
+  "python -m venv /opt/venv",
+  ". /opt/venv/bin/activate && pip install --upgrade pip",
+  ". /opt/venv/bin/activate && pip install -r requirements_production.txt"
+]
 
 [start]
-cmd = "python scripts/create_admin_on_startup.py && uvicorn app.main_production:app --host 0.0.0.0 --port $PORT"
+cmd = ". /opt/venv/bin/activate && python scripts/create_admin_on_startup.py && uvicorn app.main_production:app --host 0.0.0.0 --port $PORT"
