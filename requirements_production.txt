@@ -12,8 +12,8 @@
 # - Environment config
 # - Structured logging
 #
-# EXCLUIDAS: torch y librerías de ML/AI extremadamente pesadas.
-# ChromaDB y sentence-transformers incluidos (requeridos por el código).
+# EXCLUIDAS: torch, chromadb, sentence-transformers y librerías ML/AI.
+# Estas se agregarán cuando sean necesarias para producción.
 # Redis incluido para caching y sessions.
 # ============================================================================
 
@@ -68,14 +68,8 @@ jinja2>=3.1.0
 # QR Code Generation
 qrcode[pil]>=7.4.0
 
-# Vector Database (ChromaDB for semantic search)
-chromadb>=0.4.0
-sentence-transformers>=2.2.0
-
 # ============================================================================
-# Total: 25 packages (vs ~50+ en requirements.txt completo)
-# Tamaño estimado: ~800MB (vs ~2GB+ con torch completo)
-# Tiempo de instalación: ~3-4 minutos (vs ~10+ minutos con todas las ML libs)
+# Total: 23 packages (vs ~50+ en requirements.txt completo)
+# Tamaño estimado: ~75MB (lightweight deployment)
+# Tiempo de instalación: ~45 segundos
 # ============================================================================
-
-# Updated dependencies - Force rebuild 2
