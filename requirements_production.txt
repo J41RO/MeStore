@@ -59,10 +59,13 @@ twilio>=8.0.0
 # Async File I/O
 aiofiles>=23.0.0
 
+# Image Processing
+pillow>=10.0.0
+
 # ============================================================================
-# Total: 20 packages (vs ~50+ en requirements.txt completo)
-# Tamaño estimado: ~65MB (vs ~2GB+ con ML libraries)
-# Tiempo de instalación: ~35 segundos (vs ~5+ minutos)
+# Total: 21 packages (vs ~50+ en requirements.txt completo)
+# Tamaño estimado: ~70MB (vs ~2GB+ con ML libraries)
+# Tiempo de instalación: ~40 segundos (vs ~5+ minutos)
 # ============================================================================
 
 # Updated dependencies
