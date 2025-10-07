@@ -77,4 +77,4 @@ chromadb>=0.4.0
 # Tiempo de instalación: ~2 minutos (vs ~5+ minutos)
 # ============================================================================
 
-# Updated dependencies
+# Updated dependencies - Force rebuild 2
