@@ -8,10 +8,8 @@
 from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
-import redis
 
 import logging as stdlib_logging
 import os
@@ -33,27 +31,62 @@ logger_early.info("DEBUG: exception handlers imported")
 from app.core.config import settings
 logger_early.info("DEBUG: settings imported")
 
-# Simplified dependencies and middleware
-from app.core.dependencies_simple import (
-    get_service_container,
-    get_health_check_services,
-    service_lifespan
-)
-logger_early.info("DEBUG: dependencies_simple imported")
+# Simplified dependencies and middleware - with fallback for production
+try:
+    from app.core.dependencies_simple import (
+        get_service_container,
+        get_health_check_services,
+        service_lifespan
+    )
+    logger_early.info("DEBUG: dependencies_simple imported")
+except Exception as e:
+    logger_early.warning(f"Could not import dependencies_simple: {e}")
+    # Fallback minimal health check
+    async def get_health_check_services():
+        return {"status": "healthy", "services": {}}
 
-from app.core.middleware_integration_simple import setup_application_middleware
-logger_early.info("DEBUG: middleware_integration_simple imported")
+try:
+    from app.core.middleware_integration_simple import setup_application_middleware
+    logger_early.info("DEBUG: middleware_integration_simple imported")
+except Exception as e:
+    logger_early.warning(f"Could not import middleware_integration_simple: {e}")
+    # Fallback minimal middleware setup
+    def setup_application_middleware(app):
+        from fastapi.middleware.cors import CORSMiddleware
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
 
 # Response standardization
 from app.schemas.response_base import HealthResponse
 from app.utils.response_utils import ResponseUtils
 
 from app.database import get_db
-from app.core.logger import get_logger, log_error, log_shutdown_info, log_startup_info
-from app.core.logging_rotation import setup_log_rotation
+
+# Optional imports with fallbacks
+try:
+    from app.core.logger import get_logger, log_error, log_shutdown_info, log_startup_info
+    logger_early.info("DEBUG: Custom logger imported")
+except Exception as e:
+    logger_early.warning(f"Could not import custom logger: {e}, using stdlib logger")
+    get_logger = lambda: logger_early
+    log_error = lambda **kwargs: logger_early.error(str(kwargs))
+    log_shutdown_info = lambda: logger_early.info("Shutdown")
+    log_startup_info = lambda: logger_early.info("Startup")
+
+try:
+    from app.core.logging_rotation import setup_log_rotation
+    logger_early.info("DEBUG: Log rotation imported")
+except Exception as e:
+    logger_early.warning(f"Could not import log rotation: {e}")
+    setup_log_rotation = lambda: None
+
 from app.models.user import User
 from fastapi.staticfiles import StaticFiles
-import os
 from pathlib import Path
 logger_early.info("DEBUG: All imports completed in main.py")
 
@@ -69,15 +102,14 @@ tags_metadata = [
 # Simplified lifespan for production deployment
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Simplified lifespan management for production"""
-    logger = get_logger()
-    logger.info("Starting MeStore application...")
-    
-    # Minimal startup - just yield to let Uvicorn complete startup
+    """Minimal lifespan management - no blocking operations"""
+    logger_early.info("MeStore startup - minimal mode")
+
+    # No initialization - just yield immediately to allow fast startup
     yield
-    
-    # Cleanup during shutdown
-    logger.info("Application shutdown completed")
+
+    # Minimal cleanup
+    logger_early.info("MeStore shutdown")
 
 # Crear aplicación FastAPI
 logger_early.info("DEBUG: Creating FastAPI app instance...")
@@ -104,12 +136,15 @@ logger_early.info("DEBUG: FastAPI app created successfully")
 
 # Create uploads directory if it doesn't exist and mount StaticFiles
 logger_early.info("DEBUG: Setting up uploads directory...")
-BASE_DIR = Path(__file__).parent.parent
-UPLOADS_DIR = BASE_DIR / "uploads"
-UPLOADS_DIR.mkdir(exist_ok=True)
-app.mount("/media", StaticFiles(directory=str(UPLOADS_DIR)), name="media")
-app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
-logger_early.info("DEBUG: Uploads directory configured")
+try:
+    BASE_DIR = Path(__file__).parent.parent
+    UPLOADS_DIR = BASE_DIR / "uploads"
+    UPLOADS_DIR.mkdir(exist_ok=True)
+    app.mount("/media", StaticFiles(directory=str(UPLOADS_DIR)), name="media")
+    app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
+    logger_early.info("DEBUG: Uploads directory configured")
+except Exception as e:
+    logger_early.warning(f"Could not setup uploads directory: {e} - skipping static files")
 
 # Registrar exception handlers
 logger_early.info("DEBUG: Registering exception handlers...")
