@@ -12,8 +12,8 @@
 # - Environment config
 # - Structured logging
 #
-# EXCLUIDAS: torch, sentence-transformers, y librerías de ML/AI pesadas.
-# ChromaDB incluido para búsqueda semántica (necesario por el código).
+# EXCLUIDAS: torch y librerías de ML/AI extremadamente pesadas.
+# ChromaDB y sentence-transformers incluidos (requeridos por el código).
 # Redis incluido para caching y sessions.
 # ============================================================================
 
@@ -70,11 +70,12 @@ qrcode[pil]>=7.4.0
 
 # Vector Database (ChromaDB for semantic search)
 chromadb>=0.4.0
+sentence-transformers>=2.2.0
 
 # ============================================================================
-# Total: 24 packages (vs ~50+ en requirements.txt completo)
-# Tamaño estimado: ~200MB (vs ~2GB+ con torch/transformers)
-# Tiempo de instalación: ~2 minutos (vs ~5+ minutos)
+# Total: 25 packages (vs ~50+ en requirements.txt completo)
+# Tamaño estimado: ~800MB (vs ~2GB+ con torch completo)
+# Tiempo de instalación: ~3-4 minutos (vs ~10+ minutos con todas las ML libs)
 # ============================================================================
 
 # Updated dependencies - Force rebuild 2
