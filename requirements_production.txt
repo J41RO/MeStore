@@ -53,10 +53,13 @@ redis>=5.0.0
 structlog==25.4.0
 loguru==0.7.2
 
+# Communications (SMS/WhatsApp)
+twilio>=8.0.0
+
 # ============================================================================
-# Total: 18 packages (vs ~50+ en requirements.txt completo)
-# Tamaño estimado: ~60MB (vs ~2GB+ con ML libraries)
-# Tiempo de instalación: ~30 segundos (vs ~5+ minutos)
+# Total: 19 packages (vs ~50+ en requirements.txt completo)
+# Tamaño estimado: ~65MB (vs ~2GB+ con ML libraries)
+# Tiempo de instalación: ~35 segundos (vs ~5+ minutos)
 # ============================================================================
 
 # Updated dependencies
