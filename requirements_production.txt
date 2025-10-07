@@ -56,8 +56,11 @@ loguru==0.7.2
 # Communications (SMS/WhatsApp)
 twilio>=8.0.0
 
+# Async File I/O
+aiofiles>=23.0.0
+
 # ============================================================================
-# Total: 19 packages (vs ~50+ en requirements.txt completo)
+# Total: 20 packages (vs ~50+ en requirements.txt completo)
 # Tamaño estimado: ~65MB (vs ~2GB+ con ML libraries)
 # Tiempo de instalación: ~35 segundos (vs ~5+ minutos)
 # ============================================================================
