@@ -21,6 +21,9 @@ from app.api.v1.endpoints.vendors import router as vendors_registration_router
 from app.api.v1.endpoints.categories import router as categories_router
 from app.api.v1.endpoints.inventory import router as inventory_router
 
+# DEBUG ENDPOINTS (Development only):
+from app.api.v1.endpoints.debug import router as debug_router
+
 # STILL DISABLED - Will re-enable in next steps:
 # from app.api.v1.endpoints.agents import router as agents_router
 # from app.api.v1.endpoints.alerts import router as alerts_router
@@ -140,6 +143,9 @@ api_router.include_router(admin_users_router, prefix="/admin", tags=["admin-user
 
 # Database reset operations (dev/test only)
 api_router.include_router(database_reset_router, prefix="/admin", tags=["database-reset"])
+
+# Debug endpoints (development only)
+api_router.include_router(debug_router, prefix="/admin/debug", tags=["debug"])
 
 # # System configuration
 # api_router.include_router(system_config_router, prefix="/system", tags=["system"])
