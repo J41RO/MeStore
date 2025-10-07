@@ -12,8 +12,9 @@
 # - Environment config
 # - Structured logging
 #
-# EXCLUIDAS: ChromaDB, torch, sentence-transformers, Redis, y todas las
+# EXCLUIDAS: ChromaDB, torch, sentence-transformers, y todas las
 # librerías de ML/AI que no son críticas para el funcionamiento básico.
+# Redis incluido para caching y sessions.
 # ============================================================================
 
 # FastAPI Framework
@@ -45,11 +46,14 @@ cryptography==44.0.0
 # Configuration
 python-dotenv==1.1.1
 
+# Redis (async support for caching & sessions)
+redis>=5.0.0
+
 # Structured Logging
 structlog==25.4.0
 
 # ============================================================================
-# Total: 16 packages (vs ~50+ en requirements.txt completo)
-# Tamaño estimado: ~50MB (vs ~2GB+ con ML libraries)
+# Total: 17 packages (vs ~50+ en requirements.txt completo)
+# Tamaño estimado: ~60MB (vs ~2GB+ con ML libraries)
 # Tiempo de instalación: ~30 segundos (vs ~5+ minutos)
 # ============================================================================
