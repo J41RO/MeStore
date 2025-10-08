@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { UserType } from '../stores/authStore';
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, Lock, Mail } from 'lucide-react';
 import GoogleSignInButton from '../components/auth/GoogleSignInButton';
 import axios from 'axios';
 import { validateEmail, validatePassword } from '../utils/formValidation';
@@ -193,28 +193,41 @@ const Login: React.FC = () => {
       <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
 
         {/* LADO IZQUIERDO: Formulario (50%) */}
-        <div className="flex items-center justify-center p-6 lg:p-12">
-          <div className="w-full max-w-md space-y-8">
+        <div className="flex items-center justify-center p-6 lg:p-12 relative">
+
+          {/* Mobile brand message - solo visible en mobile */}
+          <div className="absolute top-6 left-0 right-0 text-center lg:hidden px-6">
+            <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm border border-gray-200">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+              </div>
+              <span className="text-sm font-bold text-gray-900">MeStocker</span>
+            </div>
+          </div>
+
+          <div className="w-full max-w-md space-y-8 mt-16 lg:mt-0">
 
             {/* Header del formulario */}
             <div className="text-center">
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">
+              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
                 Iniciar Sesión
-              </h2>
-              <p className="text-gray-600">
+              </h1>
+              <p className="text-base text-gray-600 font-medium">
                 Accede a tu cuenta MeStocker
               </p>
 
               {/* Contextual message for checkout flow */}
               {returnTo === '/checkout' && (
-                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl" role="status" aria-live="polite">
                   <div className="flex items-center gap-2 mb-2">
-                    <ShoppingCart className="w-5 h-5 text-blue-600" />
+                    <ShoppingCart className="w-5 h-5 text-blue-600 flex-shrink-0" aria-hidden="true" />
                     <p className="text-sm font-semibold text-blue-900">
                       Inicia sesión para completar tu compra
                     </p>
                   </div>
-                  <p className="text-xs text-blue-700">
+                  <p className="text-xs text-blue-700 leading-relaxed">
                     Tu carrito está guardado. Después de iniciar sesión, podrás continuar con el checkout.
                   </p>
                 </div>
@@ -226,104 +239,109 @@ const Login: React.FC = () => {
 
               {/* Error Display */}
               {error && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-sm text-red-700">{error}</p>
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg" role="alert">
+                  <p className="text-sm text-red-700 font-medium">{error}</p>
                 </div>
               )}
 
               {/* Campo Email */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+              <div className="space-y-2">
+                <label htmlFor="email-input" className="block text-sm font-semibold text-gray-700">
+                  <Mail className="inline w-4 h-4 mr-2" aria-hidden="true" />
                   Email *
                 </label>
                 <div className="relative">
                   <input
+                    id="email-input"
                     type="email"
                     required
                     value={email}
                     onChange={e => handleEmailChange(e.target.value)}
                     onBlur={() => handleBlur('email')}
                     placeholder="tu@email.com"
+                    aria-invalid={emailError ? 'true' : 'false'}
+                    aria-describedby={emailError ? 'email-error' : undefined}
                     className={`w-full px-4 py-3 rounded-lg border ${
                       emailError
                         ? 'border-red-500 focus:ring-red-500/20'
                         : touched.email && email
                         ? 'border-green-500 focus:ring-green-500/20'
                         : 'border-gray-300 focus:ring-blue-500/20'
-                    } focus:outline-none focus:ring-2 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
+                    } focus:outline-none focus:ring-2 transition-all duration-200 text-gray-900 placeholder-gray-500 bg-white font-medium`}
                   />
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                     {emailError ? (
-                      <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5 text-red-500 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     ) : touched.email && email ? (
-                      <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5 text-green-500 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     ) : (
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-                      </svg>
+                      <Mail className="w-5 h-5 text-gray-400 transition-all" aria-hidden="true" />
                     )}
                   </div>
                 </div>
                 {emailError && (
-                  <p className="mt-1 text-sm text-red-600">{emailError}</p>
+                  <p id="email-error" className="text-sm text-red-600 font-medium" role="alert">{emailError}</p>
                 )}
               </div>
 
               {/* Campo Contraseña */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+              <div className="space-y-2">
+                <label htmlFor="password-input" className="block text-sm font-semibold text-gray-700">
+                  <Lock className="inline w-4 h-4 mr-2" aria-hidden="true" />
                   Contraseña *
                 </label>
                 <div className="relative">
                   <input
+                    id="password-input"
                     type="password"
                     required
                     value={password}
                     onChange={e => handlePasswordChange(e.target.value)}
                     onBlur={() => handleBlur('password')}
                     placeholder="Tu contraseña"
+                    aria-invalid={passwordError ? 'true' : 'false'}
+                    aria-describedby={passwordError ? 'password-error' : undefined}
                     className={`w-full px-4 py-3 rounded-lg border ${
                       passwordError
                         ? 'border-red-500 focus:ring-red-500/20'
                         : touched.password && password
                         ? 'border-green-500 focus:ring-green-500/20'
                         : 'border-gray-300 focus:ring-blue-500/20'
-                    } focus:outline-none focus:ring-2 transition-colors text-gray-900 placeholder-gray-400 bg-white font-medium`}
+                    } focus:outline-none focus:ring-2 transition-all duration-200 text-gray-900 placeholder-gray-500 bg-white font-medium`}
                   />
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                     {passwordError ? (
-                      <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5 text-red-500 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     ) : touched.password && password ? (
-                      <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5 text-green-500 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     ) : (
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                      </svg>
+                      <Lock className="w-5 h-5 text-gray-400 transition-all" aria-hidden="true" />
                     )}
                   </div>
                 </div>
                 {passwordError && (
-                  <p className="mt-1 text-sm text-red-600">{passwordError}</p>
+                  <p id="password-error" className="text-sm text-red-600 font-medium" role="alert">{passwordError}</p>
                 )}
               </div>
 
               {/* Recordar sesión */}
-              <div className="flex items-center">
+              <div className="flex items-center pt-2">
                 <input
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
                   checked={rememberMe}
                   onChange={e => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 border-gray-300 rounded transition-colors"
+                  aria-label="Recordar mi sesión en este dispositivo"
                 />
                 <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700 font-medium">
                   Recordar sesión
@@ -334,27 +352,38 @@ const Login: React.FC = () => {
               <button
                 type="submit"
                 disabled={isLoading || !isFormValid()}
-                className={`w-full py-4 px-6 rounded-lg font-bold text-lg transition-all focus:outline-none focus:ring-4 shadow-xl border ${
+                aria-busy={isLoading}
+                className={`w-full py-4 px-6 rounded-xl font-semibold text-base transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 shadow-lg ${
                   isLoading || !isFormValid()
-                    ? 'bg-gray-400 text-gray-200 cursor-not-allowed border-gray-500'
-                    : 'bg-gradient-to-r from-blue-700 to-indigo-700 text-white hover:from-blue-800 hover:to-indigo-800 transform hover:scale-105 focus:ring-blue-500/30 border-blue-600'
+                    ? 'bg-gray-400 text-gray-200 cursor-not-allowed border border-gray-500'
+                    : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 hover:shadow-xl transform hover:-translate-y-0.5 focus:ring-blue-500 border border-blue-600'
                 }`}
               >
-                {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+                {isLoading ? (
+                  <div className="flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Iniciando sesión...
+                  </div>
+                ) : (
+                  'Iniciar Sesión'
+                )}
               </button>
 
               {/* Divider */}
-              <div className="relative">
+              <div className="relative" aria-hidden="true">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-gray-300" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-slate-50 text-gray-500">O continúa con</span>
+                  <span className="px-3 bg-white text-gray-500 font-medium">O continúa con</span>
                 </div>
               </div>
 
               {/* Botones OAuth */}
-              <div className="space-y-3">
+              <div className="space-y-3" role="group" aria-label="Opciones de inicio de sesión con redes sociales">
                 <GoogleSignInButton
                   onSuccess={handleGoogleSuccess}
                   onError={handleGoogleError}
@@ -366,9 +395,10 @@ const Login: React.FC = () => {
 
                 <button
                   type="button"
-                  className="w-full inline-flex justify-center items-center py-4 px-6 border border-gray-300 rounded-lg shadow-sm bg-white text-base font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="w-full inline-flex justify-center items-center py-3 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
+                  aria-label="Continuar con Facebook"
                 >
-                  <svg className="w-5 h-5 mr-2" fill="#1877F2" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 mr-3" fill="#1877F2" viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                   </svg>
                   Continuar con Facebook
@@ -376,18 +406,18 @@ const Login: React.FC = () => {
               </div>
 
               {/* Link al registro */}
-              <div className="text-center">
-                <p className="text-sm text-gray-600">
+              <div className="text-center pt-2">
+                <p className="text-sm text-gray-600 font-medium">
                   ¿No tienes cuenta?{' '}
                   <a
                     href={returnTo ? `/register?returnTo=${encodeURIComponent(returnTo)}` : '/register'}
-                    className="font-medium text-blue-600 hover:text-blue-500 transition-colors"
+                    className="font-semibold text-blue-600 hover:text-blue-700 hover:underline transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-1"
                   >
                     Regístrate aquí
                   </a>
                 </p>
                 {returnTo === '/checkout' && (
-                  <p className="text-xs text-gray-500 mt-2">
+                  <p className="text-xs text-gray-500 mt-2 leading-relaxed">
                     Crear una cuenta es rápido y te permitirá hacer seguimiento a tus pedidos
                   </p>
                 )}
@@ -396,11 +426,12 @@ const Login: React.FC = () => {
             </form>
 
             {/* Forgot password link - OUTSIDE form to prevent submit conflicts */}
-            <div className="mt-6 text-center">
+            <div className="mt-6 text-center border-t border-gray-200 pt-6">
               <button
                 type="button"
                 onClick={() => navigate('/login/forgot-password')}
-                className="text-sm text-blue-600 hover:text-blue-700 hover:underline transition-colors font-medium"
+                className="text-sm text-blue-600 hover:text-blue-700 hover:underline transition-colors font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-2 py-1"
+                aria-label="Recuperar contraseña olvidada"
               >
                 ¿Olvidaste tu contraseña?
               </button>
