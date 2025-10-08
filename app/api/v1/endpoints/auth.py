@@ -140,17 +140,17 @@ async def login(
         # Verificar protección contra fuerza bruta
         if not await auth_service.check_brute_force_protection(login_data.email, ip_address):
             logger.warning("Login bloqueado por protección de fuerza bruta",
-                         login_data.email, ip=ip_address)
+                         email=login_data.email, ip=ip_address)
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 detail="Demasiados intentos fallidos. Cuenta temporalmente bloqueada."
             )
 
         # Validar credenciales usando IntegratedAuthService
-        user = await auth_service.authenticate_user(db, 
+        user = await auth_service.authenticate_user(db,
             login_data.email,
             login_data.password,
-            
+
             ip_address=ip_address,
             user_agent=user_agent
         )
@@ -224,7 +224,7 @@ async def admin_login(
         # Verificar protección contra fuerza bruta
         if not await auth_service.check_brute_force_protection(login_data.email, ip_address):
             logger.warning("Admin login bloqueado por protección de fuerza bruta",
-                         login_data.email, ip=ip_address)
+                         email=login_data.email, ip=ip_address)
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 detail="Demasiados intentos fallidos. Cuenta temporalmente bloqueada."
@@ -241,7 +241,7 @@ async def admin_login(
 
         if not user:
             logger.warning("Admin login fallido - credenciales inválidas",
-                         login_data.email, ip=ip_address)
+                         email=login_data.email, ip=ip_address)
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Email o contraseña incorrectos",
@@ -254,7 +254,7 @@ async def admin_login(
         from app.models.user import UserType
         if user.user_type not in [UserType.ADMIN, UserType.SUPERUSER]:
             logger.warning("Acceso administrativo denegado - privilegios insuficientes",
-                         login_data.email, user_type=user.user_type.value, ip=ip_address)
+                         email=login_data.email, user_type=user.user_type.value, ip=ip_address)
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Privilegios administrativos requeridos"
