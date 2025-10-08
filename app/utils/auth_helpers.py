@@ -124,14 +124,16 @@ async def send_verification_email(email: str, code: str, name: Optional[str] = N
         </html>
         """
 
-        await email_service.send_email(
-            to_email=email,
-            subject=subject,
-            html_content=html_content
+        # Usar send_otp_email que es el método correcto en EmailService
+        result = await email_service.send_otp_email(
+            email=email,
+            otp_code=code,
+            user_name=name
         )
 
-        logger.info(f"✅ Verification email sent to {email}")
-        return True
+        if result:
+            logger.info(f"✅ Verification email sent to {email}")
+        return result
 
     except Exception as e:
         logger.error(f"❌ Error sending verification email to {email}: {str(e)}")
@@ -260,14 +262,15 @@ async def send_welcome_email(email: str, name: Optional[str] = None) -> bool:
         </html>
         """
 
-        await email_service.send_email(
+        # Usar send_welcome_email que es el método correcto en EmailService
+        result = await email_service.send_welcome_email(
             to_email=email,
-            subject=subject,
-            html_content=html_content
+            user_name=name or "Usuario"
         )
 
-        logger.info(f"✅ Welcome email sent to {email}")
-        return True
+        if result:
+            logger.info(f"✅ Welcome email sent to {email}")
+        return result
 
     except Exception as e:
         logger.error(f"❌ Error sending welcome email to {email}: {str(e)}")

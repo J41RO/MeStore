@@ -1031,9 +1031,9 @@ async def register_customer(
         logger.info(f"📧 Programando envío de email de verificación")
         background_tasks.add_task(
             send_verification_email,
-            email=new_user.email,
-            code=email_code,
-            name=data.first_name
+            new_user.email,      # Parámetro posicional: email
+            email_code,          # Parámetro posicional: code
+            data.first_name      # Parámetro posicional: name
         )
         logger.info(f"✅ Email de verificación programado en background tasks")
 
@@ -1055,8 +1055,8 @@ async def register_customer(
         logger.info(f"📧 Programando envío de email de bienvenida")
         background_tasks.add_task(
             send_welcome_email,
-            email=new_user.email,
-            name=data.first_name
+            new_user.email,      # Parámetro posicional: email
+            data.first_name      # Parámetro posicional: name
         )
         logger.info(f"✅ Email de bienvenida programado en background tasks")
 
