@@ -889,6 +889,15 @@ async def reset_password(
                 detail="La contraseña debe tener al menos 8 caracteres"
             )
 
+        # Validar que la nueva contraseña sea diferente a la anterior
+        from app.core.security import verify_password
+        is_same_password = await verify_password(request.new_password, user.password_hash)
+        if is_same_password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="La nueva contraseña debe ser diferente a la anterior"
+            )
+
         # Actualizar contraseña
         user.password_hash = await hash_password(request.new_password)
 
@@ -901,15 +910,18 @@ async def reset_password(
         # Enviar email de confirmación
         try:
             email_service = EmailService()
-            # TODO: Implementar send_password_changed_confirmation_email
-            logger.info(f"Password actualizado exitosamente", email=user.email)
+            await email_service.send_password_changed_email(
+                to_email=user.email,
+                user_name=user.nombre or user.email.split('@')[0]
+            )
+            logger.info(f"Password actualizado exitosamente y email de confirmación enviado", email=user.email)
         except Exception as email_error:
             logger.error(f"Error enviando email de confirmación: {str(email_error)}", email=user.email)
             # No fallar si el email de confirmación falla, la contraseña ya fue actualizada
 
         return PasswordResetResponse(
             success=True,
-            message="Tu contraseña ha sido actualizada correctamente"
+            message="Tu contraseña ha sido actualizada correctamente. Revisa tu email para confirmar el cambio."
         )
 
     except HTTPException:

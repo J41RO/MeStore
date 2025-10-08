@@ -17,6 +17,7 @@ const ResetPassword: React.FC = () => {
   const [status, setStatus] = useState<'idle' | 'success' | 'error' | 'invalid-token'>('idle');
   const [message, setMessage] = useState('');
   const [passwordStrength, setPasswordStrength] = useState({ score: 0, text: '', color: '' });
+  const [countdown, setCountdown] = useState(3);
   const navigate = useNavigate();
 
   const token = searchParams.get('token');
@@ -88,10 +89,21 @@ const ResetPassword: React.FC = () => {
 
       if (response.data.success) {
         setStatus('success');
-        setMessage('Tu contraseña ha sido actualizada correctamente. Redirigiendo al login...');
-        setTimeout(() => {
-          navigate('/admin-login');
-        }, 3000);
+        setMessage(response.data.message || 'Tu contraseña ha sido actualizada correctamente.');
+
+        // Countdown timer antes de redireccionar
+        let timeLeft = 3;
+        setCountdown(timeLeft);
+
+        const countdownInterval = setInterval(() => {
+          timeLeft -= 1;
+          setCountdown(timeLeft);
+
+          if (timeLeft <= 0) {
+            clearInterval(countdownInterval);
+            navigate('/admin-login');
+          }
+        }, 1000);
       } else {
         setStatus('error');
         setMessage(response.data.message || 'Error al restablecer la contraseña');
@@ -162,16 +174,25 @@ const ResetPassword: React.FC = () => {
                 <CheckCircle className="w-8 h-8 text-green-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                Contraseña Actualizada
+                ¡Contraseña Actualizada!
               </h3>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 mb-4">
                 {message}
               </p>
-              <div className="flex items-center justify-center">
-                <svg className="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+                <p className="text-blue-800 font-medium mb-2">
+                  Redirigiendo al login en:
+                </p>
+                <div className="text-4xl font-bold text-blue-600">
+                  {countdown}
+                </div>
+              </div>
+              <div className="flex items-center justify-center text-sm text-gray-500">
+                <svg className="animate-spin h-4 w-4 text-blue-600 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
+                Preparando tu sesión...
               </div>
             </div>
           ) : (
