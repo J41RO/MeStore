@@ -53,13 +53,25 @@ class EmailService:
         self.from_email = os.getenv('EMAIL_FROM', 'onboarding@resend.dev')
         self.from_name = os.getenv('EMAIL_FROM_NAME', 'MeStocker')
 
+        # Detailed diagnostic logging
+        logger.info(f"🔍 EmailService Initialization Diagnostics:")
+        logger.info(f"   - RESEND_AVAILABLE: {RESEND_AVAILABLE}")
+        logger.info(f"   - RESEND_API_KEY configured: {bool(self.api_key)}")
+        logger.info(f"   - API Key length: {len(self.api_key) if self.api_key else 0}")
+        logger.info(f"   - FROM_EMAIL: {self.from_email}")
+        logger.info(f"   - FROM_NAME: {self.from_name}")
+
         if not self.api_key or not RESEND_AVAILABLE:
             if not self.api_key:
-                logger.warning("RESEND_API_KEY no configurado. Email service en modo simulación")
+                logger.error("❌ RESEND_API_KEY no configurado. Email service en modo simulación")
+            if not RESEND_AVAILABLE:
+                logger.error("❌ Resend library not installed. Email service en modo simulación")
             self.simulation_mode = True
+            logger.warning("⚠️  EmailService running in SIMULATION MODE - no real emails will be sent")
         else:
             self.simulation_mode = False
             resend.api_key = self.api_key
+            logger.info(f"✅ EmailService initialized successfully with Resend API")
 
     async def send_otp_email(
         self,
@@ -129,16 +141,25 @@ class EmailService:
             subject = "Recuperación de Contraseña - MeStocker"
             html_content = self._create_reset_html_template(reset_token, name)
 
+            logger.info(f"📧 Attempting to send password reset email to: {to_email}")
+            logger.info(f"   - Simulation mode: {self.simulation_mode}")
+            logger.info(f"   - User name: {name}")
+            logger.info(f"   - Token length: {len(reset_token)}")
+
             if self.simulation_mode:
-                logger.info(f"SIMULACIÓN EMAIL RESET - Para: {to_email}, Token: {reset_token}")
-                print(f"📧 SIMULACIÓN EMAIL RESET:")
+                logger.warning(f"⚠️  SIMULACIÓN EMAIL RESET - Para: {to_email}, Token: {reset_token}")
+                print(f"\n{'='*80}")
+                print(f"📧 SIMULACIÓN EMAIL RESET (NO REAL EMAIL SENT):")
                 print(f"   Para: {to_email}")
                 print(f"   Token: {reset_token}")
                 print(f"   Usuario: {name}")
                 print(f"   Enlace: {self.config.FRONTEND_URL}/admin-login/reset-password?token={reset_token}")
+                print(f"{'='*80}\n")
+                logger.error("❌ Email NOT sent - running in simulation mode. Configure RESEND_API_KEY in Railway!")
                 return True
 
             # Enviar con Resend
+            logger.info(f"✉️  Sending real email via Resend API...")
             params = {
                 "from": f"{self.from_name} <{self.from_email}>",
                 "to": [to_email],
@@ -147,11 +168,18 @@ class EmailService:
             }
 
             response = resend.Emails.send(params)
-            logger.info(f"Email reset enviado exitosamente. ID: {response.get('id')}")
+            logger.info(f"✅ Password reset email sent successfully!")
+            logger.info(f"   - Resend ID: {response.get('id')}")
+            logger.info(f"   - To: {to_email}")
+            logger.info(f"   - Subject: {subject}")
             return True
 
         except Exception as e:
-            logger.error(f"Error enviando email de reset: {str(e)}")
+            logger.error(f"❌ Error enviando email de reset: {str(e)}")
+            logger.error(f"   - Exception type: {type(e).__name__}")
+            logger.error(f"   - To email: {to_email}")
+            import traceback
+            logger.error(f"   - Traceback: {traceback.format_exc()}")
             return False
 
     async def send_password_changed_email(
