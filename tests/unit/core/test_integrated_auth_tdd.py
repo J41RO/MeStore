@@ -451,9 +451,9 @@ class TestIntegratedAuthServiceAuthenticationTDD:
             mock_simple_auth.return_value = self.mock_user
 
             result = await self.service.authenticate_user(
+                self.mock_db,
                 self.test_email,
                 self.test_password,
-                self.mock_db,
                 self.test_ip,
                 self.test_user_agent
             )

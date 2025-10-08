@@ -363,6 +363,17 @@ const Login: React.FC = () => {
                 {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
               </button>
 
+              {/* Forgot password link */}
+              <div className="mt-4 text-center">
+                <button
+                  type="button"
+                  onClick={() => navigate('/login/forgot-password')}
+                  className="text-sm text-blue-600 hover:text-blue-700 hover:underline transition-colors font-medium"
+                >
+                  ¿Olvidaste tu contraseña?
+                </button>
+              </div>
+
               {/* Divider */}
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">

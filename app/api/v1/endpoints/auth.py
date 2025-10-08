@@ -777,26 +777,15 @@ async def forgot_password(
                 message="Si el correo existe en nuestro sistema, recibirás un enlace de recuperación."
             )
 
-        # Verificar que sea un usuario administrativo
-        from app.models.user import UserType
-        admin_roles = [
-            UserType.OWNER,
-            UserType.SUPERUSER,
-            UserType.ADMIN,
-            UserType.ADMIN_SALES,
-            UserType.ADMIN_SUPPORT,
-            UserType.ADMIN_LOGISTICS,
-            UserType.ADMIN_MARKETING
-        ]
-
-        if user.user_type not in admin_roles:
-            logger.warning(f"Password reset solicitado para usuario no-admin", email=request.email, user_type=user.user_type)
+        # Verificar que el usuario esté activo
+        if not user.is_active:
+            logger.warning(f"Password reset solicitado para usuario inactivo", email=request.email, user_id=str(user.id))
             return PasswordResetResponse(
                 success=True,
                 message="Si el correo existe en nuestro sistema, recibirás un enlace de recuperación."
             )
 
-        # Generar token de recuperación seguro
+        # Generar token de recuperación seguro (permitido para TODOS los usuarios: Admin, Vendor, Buyer)
         reset_token = secrets.token_urlsafe(32)
 
         # Guardar token en base de datos con expiración de 1 hora

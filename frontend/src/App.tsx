@@ -65,6 +65,8 @@ const Login = lazy(() => import('./pages/Login'));
 const AdminLogin = lazy(() => import('./pages/AdminLogin'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const PublicForgotPassword = lazy(() => import('./pages/PublicForgotPassword'));
+const PublicResetPassword = lazy(() => import('./pages/PublicResetPassword'));
 const AdminPortal = lazy(() => import('./pages/AdminPortal'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const RegisterVendor = lazy(() => import('./pages/RegisterVendor'));
@@ -476,7 +478,7 @@ function App() {
           }
         />
 
-        {/* Password recovery routes */}
+        {/* Password recovery routes - Admin */}
         <Route
           path="/admin-login/forgot-password"
           element={
@@ -490,6 +492,24 @@ function App() {
           element={
             <Suspense fallback={<PageLoader />}>
               <ResetPassword />
+            </Suspense>
+          }
+        />
+
+        {/* Password recovery routes - Public (Vendors & Buyers) */}
+        <Route
+          path="/login/forgot-password"
+          element={
+            <Suspense fallback={<PageLoader />}>
+              <PublicForgotPassword />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/login/reset-password"
+          element={
+            <Suspense fallback={<PageLoader />}>
+              <PublicResetPassword />
             </Suspense>
           }
         />
