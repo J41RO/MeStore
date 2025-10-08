@@ -966,28 +966,36 @@ async def register_customer(
         logger.info(f"📝 Iniciando registro de customer", email=data.email)
 
         # 1. Verificar si email ya existe
+        logger.info(f"🔍 Verificando unicidad de email: {data.email}")
         existing_user = await db.execute(
             select(User).where(User.email == data.email)
         )
         if existing_user.scalar_one_or_none():
+            logger.warning(f"⚠️ Email ya registrado: {data.email}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="El email ya está registrado"
             )
+        logger.info(f"✅ Email disponible: {data.email}")
 
         # 2. Verificar si teléfono ya existe
+        logger.info(f"🔍 Verificando unicidad de teléfono: {data.phone}")
         existing_phone = await db.execute(
             select(User).where(User.telefono == data.phone)
         )
         if existing_phone.scalar_one_or_none():
+            logger.warning(f"⚠️ Teléfono ya registrado: {data.phone}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="El teléfono ya está registrado"
             )
+        logger.info(f"✅ Teléfono disponible: {data.phone}")
 
         # 3. Crear usuario con account_status=PENDING
+        logger.info(f"🔐 Generando hash de contraseña")
         password_hash = get_password_hash(data.password)
 
+        logger.info(f"👤 Creando usuario en base de datos")
         new_user = User(
             email=data.email,
             password_hash=password_hash,
@@ -1001,44 +1009,56 @@ async def register_customer(
         )
 
         db.add(new_user)
+        logger.info(f"💾 Usuario agregado a sesión DB, ejecutando flush")
         await db.flush()  # Get user ID without committing
+        logger.info(f"✅ Flush completado, user_id obtenido: {new_user.id}")
 
         # 4. Generar código de verificación de email
+        logger.info(f"🎲 Generando código de verificación de email")
         email_code = generate_verification_code()
         new_user.email_verification_code = email_code
         new_user.email_verification_expires_at = datetime.utcnow() + timedelta(minutes=10)
+        logger.info(f"✅ Código de verificación generado (expira en 10 min)")
 
+        logger.info(f"💾 Ejecutando commit a base de datos")
         await db.commit()
+        logger.info(f"✅ Commit exitoso, refrescando usuario")
         await db.refresh(new_user)
 
         logger.info(f"✅ Usuario creado exitosamente", user_id=str(new_user.id), email=new_user.email)
 
         # 5. Enviar código de verificación por email (background)
+        logger.info(f"📧 Programando envío de email de verificación")
         background_tasks.add_task(
             send_verification_email,
             email=new_user.email,
             code=email_code,
             name=data.first_name
         )
+        logger.info(f"✅ Email de verificación programado en background tasks")
 
         # 6. Enviar código de verificación por SMS (Twilio Verify)
         try:
+            logger.info(f"📱 Iniciando envío de SMS verification con Twilio")
             sms_service = SMSService()
             sms_result = await sms_service.send_verification_code(
                 phone_number=data.phone,
                 channel="sms"
             )
-            logger.info(f"📱 SMS verification enviado", phone=data.phone, status=sms_result.get('status'))
+            logger.info(f"✅ SMS verification enviado", phone=data.phone, status=sms_result.get('status'))
         except Exception as sms_error:
             logger.error(f"❌ Error enviando SMS verification: {str(sms_error)}")
+            logger.error(f"❌ SMS error type: {type(sms_error).__name__}", exc_info=True)
             # No fallar el registro si SMS falla, el usuario puede reenviar
 
         # 7. Enviar email de bienvenida (background)
+        logger.info(f"📧 Programando envío de email de bienvenida")
         background_tasks.add_task(
             send_welcome_email,
             email=new_user.email,
             name=data.first_name
         )
+        logger.info(f"✅ Email de bienvenida programado en background tasks")
 
         return CustomerRegisterResponse(
             success=True,
@@ -1052,11 +1072,20 @@ async def register_customer(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ Error en register_customer: {str(e)}")
-        await db.rollback()
+        logger.error(f"❌ CRITICAL ERROR en register_customer: {str(e)}")
+        logger.error(f"❌ Error type: {type(e).__name__}")
+        logger.error(f"❌ Full traceback:", exc_info=True)
+
+        # Rollback de la transacción
+        try:
+            await db.rollback()
+            logger.info(f"✅ Database rollback completado")
+        except Exception as rollback_error:
+            logger.error(f"❌ Error en rollback: {str(rollback_error)}", exc_info=True)
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error procesando registro de usuario"
+            detail=f"Error procesando registro de usuario: {type(e).__name__} - {str(e)}"
         )
 
 
