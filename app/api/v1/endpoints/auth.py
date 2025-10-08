@@ -249,10 +249,19 @@ async def admin_login(
             )
 
         # 🛡️ VERIFICACIÓN CRÍTICA DE PRIVILEGIOS ADMINISTRATIVOS - NO MODIFICAR SIN AUTORIZACIÓN
-        # Esta validación garantiza que solo admin@mestocker.com y otros ADMIN/SUPERUSER puedan acceder
+        # Esta validación garantiza que solo OWNER, SUPERUSER y ADMIN puedan acceder al portal administrativo
         # CUALQUIER MODIFICACIÓN DEBE SER APROBADA POR EL USUARIO PRINCIPAL
         from app.models.user import UserType
-        if user.user_type not in [UserType.ADMIN, UserType.SUPERUSER]:
+        allowed_roles = [
+            UserType.OWNER,
+            UserType.SUPERUSER,
+            UserType.ADMIN,
+            UserType.ADMIN_SALES,
+            UserType.ADMIN_SUPPORT,
+            UserType.ADMIN_LOGISTICS,
+            UserType.ADMIN_MARKETING
+        ]
+        if user.user_type not in allowed_roles:
             logger.warning("Acceso administrativo denegado - privilegios insuficientes",
                          email=login_data.email, user_type=user.user_type.value, ip=ip_address)
             raise HTTPException(
