@@ -357,6 +357,78 @@ class SMSService:
 
         return f"Error Twilio: {str(error)}"
 
+    async def send_sms(self, to_phone: str, message: str) -> dict:
+        """
+        Envía SMS genérico usando Twilio.
+        Método wrapper para compatibilidad con test endpoint.
+
+        Args:
+            to_phone: Número de teléfono destino en formato internacional
+            message: Mensaje a enviar
+
+        Returns:
+            dict: Detalles del SMS enviado
+
+        Raises:
+            Exception: Si hay error enviando el SMS
+        """
+        try:
+            # Formatear número telefónico
+            formatted_number = self._format_international_phone(to_phone)
+            if not formatted_number:
+                raise ValueError(f"Número telefónico inválido: {to_phone}")
+
+            # Verificar rate limiting
+            rate_allowed, rate_message = self._check_rate_limit(formatted_number)
+            if not rate_allowed:
+                raise Exception(f"Rate limit excedido: {rate_message}")
+
+            if self.simulation_mode:
+                logger.info(f"🧪 SIMULACIÓN SMS - Para: {formatted_number}")
+                print(f"📱 SIMULACIÓN SMS:")
+                print(f"   Para: {formatted_number}")
+                print(f"   Mensaje: {message}")
+                print(f"   Timestamp: {datetime.now()}")
+
+                self._increment_rate_limit(formatted_number)
+                return {
+                    'sid': f'SIMULATED_{int(time.time())}',
+                    'status': 'simulated',
+                    'to': formatted_number,
+                    'from': self.from_number or '+18555746064',
+                    'date_sent': str(datetime.now())
+                }
+
+            # Enviar SMS real con Twilio
+            sms_message = self.client.messages.create(
+                body=message,
+                from_=self.from_number,
+                to=formatted_number
+            )
+
+            # Increment rate limit
+            self._increment_rate_limit(formatted_number)
+
+            logger.info(f"✅ SMS enviado exitosamente. SID: {sms_message.sid}, Status: {sms_message.status}")
+
+            return {
+                'sid': sms_message.sid,
+                'status': sms_message.status,
+                'to': sms_message.to,
+                'from': sms_message.from_,
+                'date_sent': str(sms_message.date_sent) if sms_message.date_sent else None,
+                'price': sms_message.price,
+                'price_unit': sms_message.price_unit
+            }
+
+        except TwilioException as e:
+            error_details = self._parse_twilio_error(e)
+            logger.error(f"❌ Error Twilio enviando SMS: {error_details}")
+            raise Exception(f"Error Twilio: {error_details}")
+        except Exception as e:
+            logger.error(f"❌ Error enviando SMS: {str(e)}")
+            raise
+
     def send_notification_sms(
         self,
         phone_number: str,

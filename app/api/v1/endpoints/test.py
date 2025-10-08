@@ -49,17 +49,20 @@ async def check_sms_service():
         sms_service = SMSService()
 
         # Verificar que Twilio esté configurado
-        if not sms_service.twilio_phone_number:
+        if not sms_service.from_number:
             return {
                 'success': False,
-                'message': 'Twilio phone number not configured'
+                'message': 'Twilio phone number not configured',
+                'simulation_mode': sms_service.simulation_mode
             }
 
         return {
             'success': True,
             'message': 'SMS service is ready',
-            'from_phone': sms_service.twilio_phone_number,
-            'provider': 'Twilio'
+            'from_phone': sms_service.from_number,
+            'provider': 'Twilio',
+            'simulation_mode': sms_service.simulation_mode,
+            'sms_enabled': sms_service.sms_enabled
         }
     except Exception as e:
         logger.error(f'❌ Error checking SMS service: {str(e)}')
