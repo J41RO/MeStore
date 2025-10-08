@@ -993,7 +993,7 @@ async def register_customer(
 
         # 3. Crear usuario con account_status=PENDING
         logger.info(f"🔐 Generando hash de contraseña")
-        password_hash = get_password_hash(data.password)
+        password_hash = await get_password_hash(data.password)
 
         logger.info(f"👤 Creando usuario en base de datos")
         new_user = User(
