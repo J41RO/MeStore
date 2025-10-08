@@ -20,23 +20,35 @@ def setup_application_middleware(app: FastAPI):
     """Setup essential middleware - ULTRA SIMPLIFIED for deployment reliability"""
     logger.info("Setting up minimal middleware for fast startup...")
 
-    # Get CORS origins from configuration for all environments
+    # Get CORS origins from configuration - use direct CORS_ORIGINS for reliability
+    # This ensures all configured origins (including Vercel) are always included
     try:
-        allowed_origins = settings.get_cors_origins_for_environment()
-        logger.info(f"✅ Loaded CORS origins from config")
-    except Exception as e:
-        logger.warning(f"⚠️  Failed to load CORS origins from config: {e}")
-        # Fallback to permissive for emergency startup
-        if settings.ENVIRONMENT == "production":
-            # Production fallback: use configured origins or safe defaults
-            allowed_origins = [
-                origin.strip()
-                for origin in settings.CORS_ORIGINS.split(",")
-                if origin.strip()
+        # First, get base origins from CORS_ORIGINS setting
+        base_origins = [
+            origin.strip()
+            for origin in settings.CORS_ORIGINS.split(",")
+            if origin.strip()
+        ]
+
+        # Add localhost variations for development convenience
+        if settings.ENVIRONMENT == "development":
+            localhost_origins = [
+                "http://localhost:5173",
+                "http://localhost:3000",
+                "http://127.0.0.1:5173",
+                "http://127.0.0.1:3000",
             ]
+            # Combine and remove duplicates
+            allowed_origins = list(set(base_origins + localhost_origins))
         else:
-            # Development fallback
-            allowed_origins = ["http://localhost:5173", "http://localhost:3000"]
+            # Production: use base_origins directly (includes Vercel)
+            allowed_origins = base_origins
+
+        logger.info(f"✅ Loaded {len(allowed_origins)} CORS origins from config")
+    except Exception as e:
+        logger.error(f"❌ Failed to parse CORS origins: {e}")
+        # Emergency fallback
+        allowed_origins = ["http://localhost:5173", "http://localhost:3000"]
 
     logger.info(f"Environment: {settings.ENVIRONMENT}")
     logger.info(f"CORS allowed origins: {allowed_origins}")
