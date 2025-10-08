@@ -6,11 +6,18 @@
 import type { EntityId, Timestamp, BaseEntity, StandardResponse } from './core.types';
 
 // User types matching backend UserType enum (English lowercase)
+// Hierarchical roles: OWNER (100) > SUPERUSER (50) > ADMIN (10) > VENDOR (5) > BUYER/CUSTOMER (1)
 export enum UserType {
-  BUYER = 'buyer',
-  VENDOR = 'vendor',
+  OWNER = 'owner',
+  SUPERUSER = 'superuser',
   ADMIN = 'admin',
-  SUPERUSER = 'superuser'
+  ADMIN_SALES = 'admin_sales',
+  ADMIN_SUPPORT = 'admin_support',
+  ADMIN_LOGISTICS = 'admin_logistics',
+  ADMIN_MARKETING = 'admin_marketing',
+  VENDOR = 'vendor',
+  BUYER = 'buyer',
+  CUSTOMER = 'customer'  // Alias for BUYER
 }
 
 // Base user interface matching backend User model
@@ -138,6 +145,7 @@ export interface AuthActions {
   clearAuth: () => void;
 
   // Role helpers
+  isOwner: () => boolean;
   isAdmin: () => boolean;
   isSuperuser: () => boolean;
   isVendor: () => boolean;

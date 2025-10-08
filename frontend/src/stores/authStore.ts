@@ -86,23 +86,41 @@ const convertUserInfo = (userInfo: UserInfo): User => {
     console.log('🔍 mapBackendUserType input:', backendType, typeof backendType);
 
     const typeMapping: Record<string, UserType> = {
-      // Backend UPPERCASE values (CRITICAL FIX)
+      // Backend UPPERCASE values (CRITICAL FIX) - Hierarchical order
+      'OWNER': UserType.OWNER,
+      'SUPERUSER': UserType.SUPERUSER,
+      'ADMIN': UserType.ADMIN,
+      'ADMIN_SALES': UserType.ADMIN_SALES,
+      'ADMIN_SUPPORT': UserType.ADMIN_SUPPORT,
+      'ADMIN_LOGISTICS': UserType.ADMIN_LOGISTICS,
+      'ADMIN_MARKETING': UserType.ADMIN_MARKETING,
       'VENDOR': UserType.VENDOR,
       'BUYER': UserType.BUYER,
-      'ADMIN': UserType.ADMIN,
-      'SUPERUSER': UserType.SUPERUSER,
+      'CUSTOMER': UserType.CUSTOMER,
 
       // Legacy string literals (if any)
+      'UserType.OWNER': UserType.OWNER,
+      'UserType.SUPERUSER': UserType.SUPERUSER,
+      'UserType.ADMIN': UserType.ADMIN,
+      'UserType.ADMIN_SALES': UserType.ADMIN_SALES,
+      'UserType.ADMIN_SUPPORT': UserType.ADMIN_SUPPORT,
+      'UserType.ADMIN_LOGISTICS': UserType.ADMIN_LOGISTICS,
+      'UserType.ADMIN_MARKETING': UserType.ADMIN_MARKETING,
       'UserType.VENDOR': UserType.VENDOR,
       'UserType.BUYER': UserType.BUYER,
-      'UserType.ADMIN': UserType.ADMIN,
-      'UserType.SUPERUSER': UserType.SUPERUSER,
+      'UserType.CUSTOMER': UserType.CUSTOMER,
 
       // Frontend lowercase values (compatibility)
+      'owner': UserType.OWNER,
+      'superuser': UserType.SUPERUSER,
+      'admin': UserType.ADMIN,
+      'admin_sales': UserType.ADMIN_SALES,
+      'admin_support': UserType.ADMIN_SUPPORT,
+      'admin_logistics': UserType.ADMIN_LOGISTICS,
+      'admin_marketing': UserType.ADMIN_MARKETING,
       'vendor': UserType.VENDOR,
       'buyer': UserType.BUYER,
-      'admin': UserType.ADMIN,
-      'superuser': UserType.SUPERUSER
+      'customer': UserType.CUSTOMER
     };
 
     const mappedType = typeMapping[backendType];
@@ -412,11 +430,21 @@ export const useAuthStore = create<AuthState>()(
       },
 
       // Métodos de utilidad - funciones helper para detección de roles
+      isOwner: () => {
+        const state = get();
+        return state.user?.user_type === UserType.OWNER;
+      },
+
       isAdmin: () => {
         const state = get();
         return (
+          state.user?.user_type === UserType.OWNER ||
+          state.user?.user_type === UserType.SUPERUSER ||
           state.user?.user_type === UserType.ADMIN ||
-          state.user?.user_type === UserType.SUPERUSER
+          state.user?.user_type === UserType.ADMIN_SALES ||
+          state.user?.user_type === UserType.ADMIN_SUPPORT ||
+          state.user?.user_type === UserType.ADMIN_LOGISTICS ||
+          state.user?.user_type === UserType.ADMIN_MARKETING
         );
       },
 
@@ -427,7 +455,10 @@ export const useAuthStore = create<AuthState>()(
 
       isBuyer: () => {
         const state = get();
-        return state.user?.user_type === UserType.BUYER;
+        return (
+          state.user?.user_type === UserType.BUYER ||
+          state.user?.user_type === UserType.CUSTOMER
+        );
       },
 
       isSuperuser: () => {
