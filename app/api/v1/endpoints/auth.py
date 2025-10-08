@@ -875,8 +875,8 @@ async def reset_password(
                 detail="Token de recuperación expirado. Solicita uno nuevo."
             )
 
-        # Validar que las contraseñas coincidan
-        if request.new_password != request.confirm_password:
+        # Validar que las contraseñas coincidan (solo si confirm_password fue enviado)
+        if request.confirm_password and request.new_password != request.confirm_password:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Las contraseñas no coinciden"

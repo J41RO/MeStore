@@ -262,18 +262,20 @@ class PasswordResetConfirm(BaseModel):
         json_schema_extra={
             "example": {
                 "token": "abc123def456ghi789jkl012mno345pqr678stu901vwx234yz",
+                "new_password": "SecurePass123!"
             }
         }
     )
 
     token: str = Field(..., min_length=32, max_length=100, description="Token de reset recibido por email")
     new_password: str = Field(..., min_length=8, max_length=128, description="Nueva contraseña (mínimo 8 caracteres)")
-    confirm_password: str = Field(..., min_length=8, max_length=128, description="Confirmación de la nueva contraseña")
+    confirm_password: Optional[str] = Field(None, min_length=8, max_length=128, description="Confirmación de la nueva contraseña (opcional, frontend ya valida)")
 
     @field_validator('confirm_password')
     @classmethod
     def passwords_match(cls, v, info):
-        if 'new_password' in info.data and v != info.data['new_password']:
+        # Only validate if confirm_password is provided
+        if v is not None and 'new_password' in info.data and v != info.data['new_password']:
             raise ValueError('Las contraseñas no coinciden')
         return v
 
