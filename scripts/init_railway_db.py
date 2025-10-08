@@ -177,8 +177,25 @@ def main():
 
         async def create_initial_users():
             async with AsyncSessionLocal() as db:
-                # Add permissions column if it doesn't exist
                 from sqlalchemy import text
+
+                # Add new user roles to PostgreSQL enum
+                new_roles = ['OWNER', 'ADMIN_SALES', 'ADMIN_SUPPORT', 'ADMIN_LOGISTICS', 'ADMIN_MARKETING', 'CUSTOMER']
+                print("🔧 Updating usertype enum with new roles...")
+                for role in new_roles:
+                    try:
+                        await db.execute(text(f"ALTER TYPE usertype ADD VALUE '{role}'"))
+                        await db.commit()
+                        print(f"   ✅ Added role: {role}")
+                    except Exception as e:
+                        # Role already exists or other error - this is fine
+                        await db.rollback()
+                        if "already exists" in str(e).lower() or "duplicate" in str(e).lower():
+                            print(f"   ℹ️  Role already exists: {role}")
+                        else:
+                            print(f"   ⚠️  Role {role}: {str(e)[:50]}")
+
+                # Add permissions column if it doesn't exist
                 try:
                     await db.execute(text(
                         "ALTER TABLE users ADD COLUMN IF NOT EXISTS permissions JSON DEFAULT '[]'::json"
