@@ -219,18 +219,6 @@ const Login: React.FC = () => {
                   </p>
                 </div>
               )}
-
-              {/* Credenciales de prueba visible */}
-              {!returnTo && (
-                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-xs text-blue-700 font-medium mb-1">Credenciales de Prueba (API Real):</p>
-                  <div className="text-xs text-blue-600 space-y-1">
-                    <div>🔑 admin@test.com / admin123 (Admin)</div>
-                    <div>🔑 vendor@test.com / vendor123 (Vendedor)</div>
-                    <div>🔑 buyer@test.com / buyer123 (Comprador)</div>
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Formulario de login */}
@@ -363,17 +351,6 @@ const Login: React.FC = () => {
                 {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
               </button>
 
-              {/* Forgot password link */}
-              <div className="mt-4 text-center">
-                <button
-                  type="button"
-                  onClick={() => navigate('/login/forgot-password')}
-                  className="text-sm text-blue-600 hover:text-blue-700 hover:underline transition-colors font-medium"
-                >
-                  ¿Olvidaste tu contraseña?
-                </button>
-              </div>
-
               {/* Divider */}
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
@@ -425,6 +402,17 @@ const Login: React.FC = () => {
               </div>
 
             </form>
+
+            {/* Forgot password link - OUTSIDE form to prevent submit conflicts */}
+            <div className="mt-6 text-center">
+              <button
+                type="button"
+                onClick={() => navigate('/login/forgot-password')}
+                className="text-sm text-blue-600 hover:text-blue-700 hover:underline transition-colors font-medium"
+              >
+                ¿Olvidaste tu contraseña?
+              </button>
+            </div>
           </div>
         </div>
 
