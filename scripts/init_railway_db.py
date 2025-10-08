@@ -177,6 +177,18 @@ def main():
 
         async def create_initial_users():
             async with AsyncSessionLocal() as db:
+                # Add permissions column if it doesn't exist
+                from sqlalchemy import text
+                try:
+                    await db.execute(text(
+                        "ALTER TABLE users ADD COLUMN IF NOT EXISTS permissions JSON DEFAULT '[]'::json"
+                    ))
+                    await db.commit()
+                    print("✅ Permissions column verified/created")
+                except Exception as e:
+                    print(f"⚠️  Permissions column check: {str(e)}")
+                    await db.rollback()
+
                 # User 1: OWNER (jairo.colina.co@gmail.com)
                 result = await db.execute(
                     select(User).where(User.email == "jairo.colina.co@gmail.com")
