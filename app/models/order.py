@@ -97,7 +97,7 @@ class OrderItem(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     order_id = Column(Integer, ForeignKey("orders.id"), nullable=False)
-    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    product_id = Column(String(36), ForeignKey("products.id"), nullable=False)  # Changed from Integer to String to match Product.id
     
     # Item details at time of purchase
     product_name = Column(String(500), nullable=False)
