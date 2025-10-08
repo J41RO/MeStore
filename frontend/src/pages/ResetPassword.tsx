@@ -3,7 +3,7 @@ import { Shield, Lock, CheckCircle, AlertTriangle, Eye, EyeOff } from 'lucide-re
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 const ResetPassword: React.FC = () => {
   const [searchParams] = useSearchParams();
