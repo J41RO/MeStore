@@ -408,72 +408,7 @@ async def register(
             detail="Error interno del servidor"
         )
 
-
-@router.post("/forgot-password", response_model=PasswordResetResponse, status_code=status.HTTP_200_OK)
-async def forgot_password(
-    request: PasswordResetRequest,
-    db: AsyncSession = Depends(get_db)
-):
-    """Solicita recuperación de contraseña por email."""
-    auth_service = get_auth_service()
-    
-    try:
-        success, message = await auth_service.send_password_reset_email(
-            
-            email=request.email
-        )
-        
-        return PasswordResetResponse(
-            success=True,
-            message="Si el email existe, recibirás instrucciones de recuperación"
-        )
-
-    except Exception as e:
-        logger.error(f"Error en forgot_password: {str(e)}")
-        return PasswordResetResponse(
-            success=True,
-            message="Si el email existe, recibirás instrucciones de recuperación"
-        )
-
-
-@router.post("/reset-password", response_model=PasswordResetResponse, status_code=status.HTTP_200_OK)
-async def reset_password(
-    request: PasswordResetConfirm,
-    db: AsyncSession = Depends(get_db)
-):
-    """Confirma reset de contraseña con token."""
-    auth_service = get_auth_service()
-    
-    try:
-        if request.new_password != request.confirm_password:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Las contraseñas no coinciden"
-            )
-
-        success, message = await auth_service.reset_password_with_token(
-            
-            token=request.token,
-            new_password=request.new_password
-        )
-
-        if success:
-            return PasswordResetResponse(success=True, message=message)
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=message
-            )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error en reset_password: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error interno del servidor"
-        )
-
+# Password reset endpoints moved below (lines 817+) with EmailService implementation
 
 # ===== OTP/SMS VERIFICATION ENDPOINTS =====
 
