@@ -164,8 +164,8 @@ def main():
         print(f"⚠️  Could not verify tables: {str(e)}")
         print()
 
-    # Step 7: Create admin user
-    print("👤 Creating admin user...")
+    # Step 7: Create initial users (OWNER and SUPERUSER)
+    print("👤 Creating initial users...")
     try:
         import asyncio
         from app.database import AsyncSessionLocal
@@ -175,50 +175,88 @@ def main():
         from uuid import uuid4
         from datetime import datetime
 
-        async def create_admin():
+        async def create_initial_users():
             async with AsyncSessionLocal() as db:
-                # Check if admin exists
+                # User 1: OWNER (jairo.colina.co@gmail.com)
                 result = await db.execute(
-                    select(User).where(User.email == "admin@mestocker.com")
+                    select(User).where(User.email == "jairo.colina.co@gmail.com")
                 )
-                existing = result.scalar_one_or_none()
+                existing_owner = result.scalar_one_or_none()
 
-                if existing:
-                    print("✅ Admin user already exists")
-                    return
+                if not existing_owner:
+                    hashed_password = await hash_password("Admin123456")
+                    owner = User(
+                        id=str(uuid4()),
+                        email="jairo.colina.co@gmail.com",
+                        password_hash=hashed_password,
+                        nombre="Jairo",
+                        apellido="Colina",
+                        user_type="OWNER",
+                        permissions=[],  # OWNER has all permissions by default (hardcoded)
+                        is_active=True,
+                        is_verified=True,
+                        email_verified=True,
+                        phone_verified=False,
+                        created_at=datetime.utcnow(),
+                        updated_at=datetime.utcnow()
+                    )
+                    db.add(owner)
+                    await db.commit()
+                    print("✅ OWNER user created")
+                    print("   Email: jairo.colina.co@gmail.com")
+                    print("   Role: OWNER (nivel 100)")
+                    print("   Permissions: ALL (hardcoded)")
+                else:
+                    print("✅ OWNER user already exists")
 
-                # Hash password asynchronously
-                hashed_password = await hash_password("Admin123456")
-
-                # Create admin
-                admin = User(
-                    id=str(uuid4()),
-                    email="admin@mestocker.com",
-                    password_hash=hashed_password,
-                    nombre="Admin",
-                    apellido="MeStocker",
-                    user_type="SUPERUSER",
-                    is_active=True,
-                    is_verified=True,
-                    email_verified=True,
-                    phone_verified=False,
-                    created_at=datetime.utcnow(),
-                    updated_at=datetime.utcnow()
+                # User 2: SUPERUSER (andreita2516@gmail.com)
+                result = await db.execute(
+                    select(User).where(User.email == "andreita2516@gmail.com")
                 )
+                existing_superuser = result.scalar_one_or_none()
 
-                db.add(admin)
-                await db.commit()
+                if not existing_superuser:
+                    hashed_password = await hash_password("Admin123456")
+                    superuser = User(
+                        id=str(uuid4()),
+                        email="andreita2516@gmail.com",
+                        password_hash=hashed_password,
+                        nombre="Andrea",
+                        apellido="Admin",
+                        user_type="SUPERUSER",
+                        permissions=[
+                            "users.*",
+                            "products.*",
+                            "orders.*",
+                            "vendors.manage",
+                            "reports.view",
+                            "analytics.view"
+                        ],
+                        is_active=True,
+                        is_verified=True,
+                        email_verified=True,
+                        phone_verified=False,
+                        created_at=datetime.utcnow(),
+                        updated_at=datetime.utcnow()
+                    )
+                    db.add(superuser)
+                    await db.commit()
+                    print("✅ SUPERUSER user created")
+                    print("   Email: andreita2516@gmail.com")
+                    print("   Role: SUPERUSER (nivel 50)")
+                    print("   Permissions: users.*, products.*, orders.*, vendors.manage, reports.view, analytics.view")
+                else:
+                    print("✅ SUPERUSER user already exists")
 
-                print("✅ Admin user created")
-                print("   Email: admin@mestocker.com")
-                print("   Password: Admin123456")
+                print()
+                print("📋 Password for both users: Admin123456")
 
-        asyncio.run(create_admin())
+        asyncio.run(create_initial_users())
         print()
 
     except Exception as e:
-        print(f"⚠️  Could not create admin user: {str(e)}")
-        print("   You can create it manually later")
+        print(f"⚠️  Could not create initial users: {str(e)}")
+        print("   You can create them manually later")
         print()
 
     # Cleanup

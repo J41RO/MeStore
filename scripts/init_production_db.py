@@ -156,8 +156,8 @@ def verify_migrations():
 
 
 async def create_admin_user():
-    """Create default admin user if it doesn't exist."""
-    logger.info("Checking for admin user...")
+    """Create initial users (OWNER and SUPERUSER) if they don't exist."""
+    logger.info("Checking for initial users...")
 
     try:
         from app.database import AsyncSessionLocal
@@ -168,45 +168,83 @@ async def create_admin_user():
         from datetime import datetime
 
         async with AsyncSessionLocal() as db:
-            # Check if admin exists
+            # User 1: OWNER (jairo.colina.co@gmail.com)
             result = await db.execute(
-                select(User).where(User.email == "admin@mestocker.com")
+                select(User).where(User.email == "jairo.colina.co@gmail.com")
             )
-            existing_admin = result.scalar_one_or_none()
+            existing_owner = result.scalar_one_or_none()
 
-            if existing_admin:
-                logger.info("✅ Admin user already exists")
-                return True
+            if not existing_owner:
+                hashed_password = await hash_password("Admin123456")
+                owner = User(
+                    id=str(uuid4()),
+                    email="jairo.colina.co@gmail.com",
+                    password_hash=hashed_password,
+                    nombre="Jairo",
+                    apellido="Colina",
+                    user_type="OWNER",
+                    permissions=[],  # OWNER has all permissions by default (hardcoded)
+                    is_active=True,
+                    is_verified=True,
+                    email_verified=True,
+                    phone_verified=False,
+                    created_at=datetime.utcnow(),
+                    updated_at=datetime.utcnow()
+                )
+                db.add(owner)
+                await db.commit()
+                logger.info("✅ OWNER user created successfully")
+                logger.info("   Email: jairo.colina.co@gmail.com")
+                logger.info("   Role: OWNER (nivel 100)")
+                logger.info("   Permissions: ALL (hardcoded)")
+            else:
+                logger.info("✅ OWNER user already exists")
 
-            # Hash password asynchronously
-            hashed_password = await hash_password("Admin123456")
-
-            # Create admin user
-            admin = User(
-                id=str(uuid4()),
-                email="admin@mestocker.com",
-                password_hash=hashed_password,
-                nombre="Admin",
-                apellido="MeStocker",
-                user_type="SUPERUSER",
-                is_active=True,
-                is_verified=True,
-                email_verified=True,
-                phone_verified=False,
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow()
+            # User 2: SUPERUSER (andreita2516@gmail.com)
+            result = await db.execute(
+                select(User).where(User.email == "andreita2516@gmail.com")
             )
+            existing_superuser = result.scalar_one_or_none()
 
-            db.add(admin)
-            await db.commit()
+            if not existing_superuser:
+                hashed_password = await hash_password("Admin123456")
+                superuser = User(
+                    id=str(uuid4()),
+                    email="andreita2516@gmail.com",
+                    password_hash=hashed_password,
+                    nombre="Andrea",
+                    apellido="Admin",
+                    user_type="SUPERUSER",
+                    permissions=[
+                        "users.*",
+                        "products.*",
+                        "orders.*",
+                        "vendors.manage",
+                        "reports.view",
+                        "analytics.view"
+                    ],
+                    is_active=True,
+                    is_verified=True,
+                    email_verified=True,
+                    phone_verified=False,
+                    created_at=datetime.utcnow(),
+                    updated_at=datetime.utcnow()
+                )
+                db.add(superuser)
+                await db.commit()
+                logger.info("✅ SUPERUSER user created successfully")
+                logger.info("   Email: andreita2516@gmail.com")
+                logger.info("   Role: SUPERUSER (nivel 50)")
+                logger.info("   Permissions: users.*, products.*, orders.*, vendors.manage, reports.view, analytics.view")
+            else:
+                logger.info("✅ SUPERUSER user already exists")
 
-            logger.info("✅ Admin user created successfully")
-            logger.info("   Email: admin@mestocker.com")
-            logger.info("   Password: Admin123456")
+            logger.info("")
+            logger.info("📋 Password for both users: Admin123456")
             return True
 
     except Exception as e:
-        logger.error(f"❌ Failed to create admin user: {str(e)}")
+        logger.error(f"❌ Failed to create initial users: {str(e)}")
         return False
 
 

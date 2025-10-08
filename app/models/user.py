@@ -52,22 +52,50 @@ from app.models.base import BaseModel
 
 class UserType(PyEnum):
     """
-    Enumeración para tipos de usuario en el sistema.
+    Enumeración para tipos de usuario en el sistema con jerarquía de niveles.
 
-    Jerarquía de permisos (menor a mayor):
-        BUYER: Usuario básico que puede realizar compras
-        VENDOR: Usuario que puede vender productos
-        ADMIN: Administrador con permisos de gestión
-        SUPERUSER: Super administrador con todos los permisos
-        SYSTEM: Usuario sistema para operaciones internas
+    Jerarquía de permisos por nivel (menor a mayor):
+        CUSTOMER (1): Usuario básico que puede realizar compras
+        VENDOR (5): Usuario que puede vender productos
+        ADMIN_MARKETING (10): Administrador de marketing
+        ADMIN_LOGISTICS (10): Administrador de logística
+        ADMIN_SUPPORT (10): Administrador de soporte
+        ADMIN_SALES (10): Administrador de ventas
+        SUPERUSER (50): Super administrador con permisos configurables
+        OWNER (100): Poder absoluto, todos los permisos siempre
+        SYSTEM (999): Usuario sistema para operaciones internas
 
     IMPORTANT: Values match database enum (uppercase)
     """
-    BUYER = "BUYER"
+    CUSTOMER = "CUSTOMER"
+    BUYER = "BUYER"  # Alias for CUSTOMER (backward compatibility)
     VENDOR = "VENDOR"
-    ADMIN = "ADMIN"
+    ADMIN_MARKETING = "ADMIN_MARKETING"
+    ADMIN_LOGISTICS = "ADMIN_LOGISTICS"
+    ADMIN_SUPPORT = "ADMIN_SUPPORT"
+    ADMIN_SALES = "ADMIN_SALES"
+    ADMIN = "ADMIN"  # Generic admin (backward compatibility)
     SUPERUSER = "SUPERUSER"
+    OWNER = "OWNER"
     SYSTEM = "SYSTEM"
+
+    @classmethod
+    def get_level(cls, user_type: str) -> int:
+        """Get hierarchy level for a user type."""
+        levels = {
+            "CUSTOMER": 1,
+            "BUYER": 1,
+            "VENDOR": 5,
+            "ADMIN_MARKETING": 10,
+            "ADMIN_LOGISTICS": 10,
+            "ADMIN_SUPPORT": 10,
+            "ADMIN_SALES": 10,
+            "ADMIN": 10,
+            "SUPERUSER": 50,
+            "OWNER": 100,
+            "SYSTEM": 999,
+        }
+        return levels.get(user_type, 0)
 
 class VendorStatus(str, PyEnum):
     """
@@ -266,6 +294,14 @@ class User(BaseModel):
         nullable=False,
         default=UserType.BUYER,
         comment="Tipo de usuario: buyer, vendor, admin o superuser"
+    )
+
+    # === SISTEMA DE PERMISOS GRANULARES ===
+    permissions = Column(
+        JSON,
+        nullable=True,
+        default=list,
+        comment="Lista de permisos granulares asignados al usuario. OWNER tiene todos los permisos siempre."
     )
 
     vendor_status = Column(
@@ -777,13 +813,23 @@ class User(BaseModel):
         self.reset_attempts = 0
 
     # === MÉTODOS DE AUTORIZACIÓN ===
+    def is_owner(self) -> bool:
+        """Verifica si el usuario es OWNER (nivel 100)."""
+        return self.user_type == UserType.OWNER
+
     def is_superuser(self) -> bool:
-        """Verifica si el usuario es SUPERUSER."""
+        """Verifica si el usuario es SUPERUSER (nivel 50)."""
         return self.user_type == UserType.SUPERUSER
 
     def is_admin(self) -> bool:
-        """Verifica si el usuario es ADMIN."""
-        return self.user_type == UserType.ADMIN
+        """Verifica si el usuario es ADMIN (cualquier tipo de admin)."""
+        return self.user_type in [
+            UserType.ADMIN,
+            UserType.ADMIN_SALES,
+            UserType.ADMIN_SUPPORT,
+            UserType.ADMIN_LOGISTICS,
+            UserType.ADMIN_MARKETING
+        ]
 
     def is_admin_or_higher(self) -> bool:
         """Verifica si el usuario es ADMIN, SUPERUSER o SYSTEM."""
@@ -813,6 +859,69 @@ class User(BaseModel):
         habeas_data = getattr(self, 'habeas_data_accepted', False)
         data_processing = getattr(self, 'data_processing_consent', False)
         return habeas_data and data_processing
+
+    # === SISTEMA DE PERMISOS GRANULARES ===
+    def get_role_level(self) -> int:
+        """Obtiene el nivel jerárquico del rol del usuario."""
+        return UserType.get_level(self.user_type.value)
+
+    def has_permission(self, permission: str) -> bool:
+        """
+        Verifica si el usuario tiene un permiso específico.
+
+        Args:
+            permission: Permiso en formato "resource.action" (ej: "users.create")
+
+        Returns:
+            bool: True si el usuario tiene el permiso
+
+        Reglas:
+            - OWNER siempre tiene TODOS los permisos (hardcoded)
+            - SUPERUSER y ADMIN tienen permisos configurables en campo 'permissions'
+            - Soporta wildcards: "users.*" da acceso a todos los permisos de users
+        """
+        # OWNER tiene todos los permisos siempre
+        if self.user_type == UserType.OWNER:
+            return True
+
+        # Verificar permisos personalizados
+        if not self.permissions:
+            return False
+
+        # Verificar permiso exacto
+        if permission in self.permissions:
+            return True
+
+        # Verificar wildcards (ej: "users.*" cubre "users.create")
+        resource = permission.split('.')[0]
+        wildcard = f"{resource}.*"
+        if wildcard in self.permissions:
+            return True
+
+        # Verificar wildcard global "*"
+        if "*" in self.permissions:
+            return True
+
+        return False
+
+    def can_assign_permissions(self) -> bool:
+        """Solo OWNER puede asignar el permiso 'permissions.assign'."""
+        return self.user_type == UserType.OWNER
+
+    def can_manage_role(self, target_user_type: str) -> bool:
+        """
+        Verifica si este usuario puede gestionar otro rol.
+        Solo puede gestionar roles de nivel inferior.
+
+        Args:
+            target_user_type: Tipo de usuario del objetivo
+
+        Returns:
+            bool: True si puede gestionar ese rol
+        """
+        my_level = self.get_role_level()
+        target_level = UserType.get_level(target_user_type)
+        return my_level > target_level
 
 # Alias para Buyer - usar User con user_type='buyer'
 # Se define aquí para referencia en los modelos de orden
