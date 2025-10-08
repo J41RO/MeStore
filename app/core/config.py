@@ -135,10 +135,10 @@ class Settings(BaseSettings):
         default=True, description="Enable Email OTP functionality"
     )
 
-    # CORS Configuration - SECURITY FIX: No wildcard origins
+    # CORS Configuration - SECURITY FIX: No wildcard origins (except Vercel subdomains)
     CORS_ORIGINS: str = Field(
-        default="http://localhost:5173,http://localhost:3000,http://192.168.1.137:5173,http://192.168.1.137:5175,http://192.168.1.137:5176,https://me-store-alpha.vercel.app",
-        description="Comma-separated list of allowed CORS origins (NO WILDCARDS for security)"
+        default="http://localhost:5173,http://localhost:3000,http://192.168.1.137:5173,http://192.168.1.137:5175,http://192.168.1.137:5176,https://me-store-alpha.vercel.app,https://me-store-4rch67v8-jairos-projects-6e49f915.vercel.app,https://*.vercel.app",
+        description="Comma-separated list of allowed CORS origins (Vercel wildcard permitted)"
     )
     CORS_ALLOW_CREDENTIALS: bool = True
     CORS_ALLOW_METHODS: str = Field(
@@ -153,9 +153,17 @@ class Settings(BaseSettings):
     @field_validator("CORS_ORIGINS")
     @classmethod
     def validate_cors_origins(cls, v: str) -> str:
-        """Validate CORS origins - ensure no wildcards for security."""
+        """Validate CORS origins - allow Vercel wildcard patterns only."""
+        # Allow Vercel-specific wildcard patterns like https://*.vercel.app
+        allowed_wildcards = ["https://*.vercel.app"]
+
+        # Check if there are wildcards
         if "*" in v:
-            raise ValueError("CORS origins cannot contain wildcards (*) for security reasons")
+            # Split by comma and check each origin
+            origins = [origin.strip() for origin in v.split(",")]
+            for origin in origins:
+                if "*" in origin and origin not in allowed_wildcards:
+                    raise ValueError(f"CORS origin wildcard not allowed: {origin}. Only Vercel wildcards permitted.")
         return v
 
     def get_cors_origins_for_environment(self) -> list[str]:
