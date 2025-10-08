@@ -31,11 +31,17 @@ const Unauthorized: React.FC = () => {
   };
 
   const handleGoHome = () => {
-    if (user?.user_type === UserType.ADMIN || user?.user_type === UserType.SUPERUSER) {
+    if (user?.user_type === UserType.OWNER ||
+        user?.user_type === UserType.SUPERUSER ||
+        user?.user_type === UserType.ADMIN ||
+        user?.user_type === UserType.ADMIN_SALES ||
+        user?.user_type === UserType.ADMIN_SUPPORT ||
+        user?.user_type === UserType.ADMIN_LOGISTICS ||
+        user?.user_type === UserType.ADMIN_MARKETING) {
       navigate('/admin-secure-portal/dashboard');
-    } else if (user?.user_type === UserType.VENDEDOR) {
+    } else if (user?.user_type === UserType.VENDOR) {
       navigate('/app/dashboard');
-    } else if (user?.user_type === UserType.COMPRADOR) {
+    } else if (user?.user_type === UserType.BUYER || user?.user_type === UserType.CUSTOMER) {
       navigate('/marketplace');
     } else {
       navigate('/');
@@ -53,11 +59,17 @@ const Unauthorized: React.FC = () => {
   };
 
   const getContactInfo = () => {
-    const contactEmails: Record<UserType, string> = {
-      [UserType.COMPRADOR]: 'soporte@mestocker.com',
-      [UserType.VENDEDOR]: 'vendedores@mestocker.com',
+    const contactEmails: Partial<Record<UserType, string>> = {
+      [UserType.OWNER]: 'owner@mestocker.com',
+      [UserType.SUPERUSER]: 'tech@mestocker.com',
       [UserType.ADMIN]: 'admin@mestocker.com',
-      [UserType.SUPERUSER]: 'tech@mestocker.com'
+      [UserType.ADMIN_SALES]: 'admin@mestocker.com',
+      [UserType.ADMIN_SUPPORT]: 'admin@mestocker.com',
+      [UserType.ADMIN_LOGISTICS]: 'admin@mestocker.com',
+      [UserType.ADMIN_MARKETING]: 'admin@mestocker.com',
+      [UserType.VENDOR]: 'vendedores@mestocker.com',
+      [UserType.BUYER]: 'soporte@mestocker.com',
+      [UserType.CUSTOMER]: 'soporte@mestocker.com',
     };
 
     if (currentRole) {

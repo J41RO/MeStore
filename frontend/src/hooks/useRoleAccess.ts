@@ -6,6 +6,7 @@ export interface UseRoleAccessReturn {
   hasAnyRole: (roles: UserType[]) => boolean;
   hasAllRoles: (roles: UserType[]) => boolean;
   hasMinimumRole: (minimumRole: UserType) => boolean;
+  isOwner: boolean;
   isAdmin: boolean;
   isSuperUser: boolean;
   isVendor: boolean;
@@ -16,11 +17,18 @@ export interface UseRoleAccessReturn {
 }
 
 // Define role hierarchy levels (higher number = more permissions)
+// Matches backend hierarchy: OWNER (100) > SUPERUSER (50) > ADMIN (10) > VENDOR (5) > BUYER (1)
 const ROLE_HIERARCHY: Record<UserType, number> = {
+  [UserType.OWNER]: 100,
+  [UserType.SUPERUSER]: 50,
+  [UserType.ADMIN]: 10,
+  [UserType.ADMIN_SALES]: 10,
+  [UserType.ADMIN_SUPPORT]: 10,
+  [UserType.ADMIN_LOGISTICS]: 10,
+  [UserType.ADMIN_MARKETING]: 10,
+  [UserType.VENDOR]: 5,
   [UserType.BUYER]: 1,
-  [UserType.VENDOR]: 2,
-  [UserType.ADMIN]: 3,
-  [UserType.SUPERUSER]: 4,
+  [UserType.CUSTOMER]: 1,
 };
 
 /**
@@ -112,10 +120,15 @@ export const useRoleAccess = (): UseRoleAccessReturn => {
       },
 
       // Convenience boolean properties
-      isAdmin: currentUserType === UserType.ADMIN,
+      isOwner: currentUserType === UserType.OWNER,
+      isAdmin: currentUserType === UserType.ADMIN ||
+               currentUserType === UserType.ADMIN_SALES ||
+               currentUserType === UserType.ADMIN_SUPPORT ||
+               currentUserType === UserType.ADMIN_LOGISTICS ||
+               currentUserType === UserType.ADMIN_MARKETING,
       isSuperUser: currentUserType === UserType.SUPERUSER,
       isVendor: currentUserType === UserType.VENDOR,
-      isBuyer: currentUserType === UserType.BUYER,
+      isBuyer: currentUserType === UserType.BUYER || currentUserType === UserType.CUSTOMER,
     };
   }, [user, isAuthenticated]);
 
@@ -135,22 +148,68 @@ export const createRoleHook = (allowedRoles: UserType[]) => {
 /**
  * Predefined role hooks for common use cases
  */
-export const useIsAdminOrHigher = createRoleHook([UserType.ADMIN, UserType.SUPERUSER]);
-export const useIsVendorOrHigher = createRoleHook([UserType.VENDOR, UserType.ADMIN, UserType.SUPERUSER]);
-export const useCanManageUsers = createRoleHook([UserType.ADMIN, UserType.SUPERUSER]);
-export const useCanManageInventory = createRoleHook([UserType.VENDOR, UserType.ADMIN, UserType.SUPERUSER]);
-export const useCanViewReports = createRoleHook([UserType.VENDOR, UserType.ADMIN, UserType.SUPERUSER]);
-export const useCanAccessAdmin = createRoleHook([UserType.ADMIN, UserType.SUPERUSER]);
+export const useIsAdminOrHigher = createRoleHook([
+  UserType.OWNER,
+  UserType.SUPERUSER,
+  UserType.ADMIN,
+  UserType.ADMIN_SALES,
+  UserType.ADMIN_SUPPORT,
+  UserType.ADMIN_LOGISTICS,
+  UserType.ADMIN_MARKETING
+]);
+export const useIsVendorOrHigher = createRoleHook([
+  UserType.OWNER,
+  UserType.SUPERUSER,
+  UserType.ADMIN,
+  UserType.ADMIN_SALES,
+  UserType.ADMIN_SUPPORT,
+  UserType.ADMIN_LOGISTICS,
+  UserType.ADMIN_MARKETING,
+  UserType.VENDOR
+]);
+export const useCanManageUsers = createRoleHook([UserType.OWNER, UserType.SUPERUSER, UserType.ADMIN]);
+export const useCanManageInventory = createRoleHook([
+  UserType.OWNER,
+  UserType.SUPERUSER,
+  UserType.ADMIN,
+  UserType.ADMIN_LOGISTICS,
+  UserType.VENDOR
+]);
+export const useCanViewReports = createRoleHook([
+  UserType.OWNER,
+  UserType.SUPERUSER,
+  UserType.ADMIN,
+  UserType.ADMIN_SALES,
+  UserType.ADMIN_SUPPORT,
+  UserType.ADMIN_LOGISTICS,
+  UserType.ADMIN_MARKETING,
+  UserType.VENDOR
+]);
+export const useCanAccessAdmin = createRoleHook([
+  UserType.OWNER,
+  UserType.SUPERUSER,
+  UserType.ADMIN,
+  UserType.ADMIN_SALES,
+  UserType.ADMIN_SUPPORT,
+  UserType.ADMIN_LOGISTICS,
+  UserType.ADMIN_MARKETING
+]);
 
 /**
  * Utility function to get role display name
  */
 export const getRoleDisplayName = (role: UserType): string => {
   const roleNames: Record<UserType, string> = {
-    [UserType.BUYER]: 'Comprador',
-    [UserType.VENDOR]: 'Vendedor',
-    [UserType.ADMIN]: 'Administrador',
+    [UserType.OWNER]: 'Propietario',
     [UserType.SUPERUSER]: 'Super Usuario',
+    [UserType.ADMIN]: 'Administrador',
+    [UserType.ADMIN_SALES]: 'Admin. Ventas',
+    [UserType.ADMIN_SUPPORT]: 'Admin. Soporte',
+    [UserType.ADMIN_LOGISTICS]: 'Admin. Logística',
+    [UserType.ADMIN_MARKETING]: 'Admin. Marketing',
+    [UserType.VENDOR]: 'Vendedor',
+    [UserType.BUYER]: 'Comprador',
+    [UserType.CUSTOMER]: 'Cliente',
   };
   return roleNames[role] || 'Desconocido';
 };
@@ -160,30 +219,67 @@ export const getRoleDisplayName = (role: UserType): string => {
  */
 export const getRolePermissions = (role: UserType): string[] => {
   const permissions: Record<UserType, string[]> = {
+    [UserType.OWNER]: [
+      'Control total del sistema',
+      'Gestionar todos los usuarios y roles',
+      'Configuración avanzada del sistema',
+      'Asignar y revocar permisos',
+      'Acceso a todas las funcionalidades',
+      'Auditoría completa del sistema',
+    ],
+    [UserType.SUPERUSER]: [
+      'Gestionar usuarios y vendedores',
+      'Configuración del sistema',
+      'Ver todos los reportes',
+      'Auditoría del sistema',
+      'Gestión de inventario global',
+    ],
+    [UserType.ADMIN]: [
+      'Gestionar usuarios',
+      'Configurar sistema',
+      'Ver reportes',
+      'Gestionar vendedores',
+      'Configurar inventario',
+    ],
+    [UserType.ADMIN_SALES]: [
+      'Gestionar ventas',
+      'Ver reportes de ventas',
+      'Gestionar productos',
+      'Configurar precios',
+    ],
+    [UserType.ADMIN_SUPPORT]: [
+      'Gestionar tickets de soporte',
+      'Ver usuarios',
+      'Procesar devoluciones',
+      'Gestionar comunicaciones',
+    ],
+    [UserType.ADMIN_LOGISTICS]: [
+      'Gestionar envíos',
+      'Configurar transportistas',
+      'Ver reportes de logística',
+      'Gestionar almacenes',
+    ],
+    [UserType.ADMIN_MARKETING]: [
+      'Gestionar campañas',
+      'Ver analytics de marketing',
+      'Configurar promociones',
+      'Gestionar contenido',
+    ],
+    [UserType.VENDOR]: [
+      'Gestionar inventario propio',
+      'Procesar pedidos',
+      'Ver reportes de ventas',
+      'Gestionar productos',
+    ],
     [UserType.BUYER]: [
       'Ver productos disponibles',
       'Realizar compras',
       'Gestionar perfil personal',
     ],
-    [UserType.VENDOR]: [
-      'Gestionar inventario',
-      'Procesar pedidos',
-      'Ver reportes de ventas',
-      'Gestionar productos',
-    ],
-    [UserType.ADMIN]: [
-      'Gestionar usuarios',
-      'Configurar sistema',
-      'Ver todos los reportes',
-      'Gestionar vendedores',
-      'Configurar inventario',
-    ],
-    [UserType.SUPERUSER]: [
-      'Acceso completo al sistema',
-      'Gestionar administradores',
-      'Configuración avanzada',
-      'Auditoría del sistema',
-      'Backup y restauración',
+    [UserType.CUSTOMER]: [
+      'Ver productos disponibles',
+      'Realizar compras',
+      'Gestionar perfil personal',
     ],
   };
   return permissions[role] || [];
