@@ -479,7 +479,7 @@ function App() {
         <Route
           path='/admin-secure-portal/*'
           element={
-            <AuthGuard requiredRoles={[UserType.ADMIN, UserType.SUPERUSER]} unauthorizedPath="/unauthorized">
+            <AuthGuard requiredRoles={[UserType.OWNER, UserType.SUPERUSER, UserType.ADMIN, UserType.ADMIN_SALES, UserType.ADMIN_SUPPORT, UserType.ADMIN_LOGISTICS, UserType.ADMIN_MARKETING]} unauthorizedPath="/unauthorized">
               <Suspense fallback={<PageLoader />}>
                 <AdminLayout>
                   <Routes>
@@ -491,115 +491,115 @@ function App() {
 
                     {/* USERS Category Routes */}
                     <Route path='users' element={
-                      <RoleGuard roles={[UserType.ADMIN, UserType.SUPERUSER]} strategy="any">
+                      <RoleGuard roles={[UserType.OWNER, UserType.SUPERUSER, UserType.ADMIN]} strategy="any">
                         <UserManagement />
                       </RoleGuard>
                     } />
                     <Route path='roles' element={
-                      <RoleGuard roles={[UserType.SUPERUSER]} strategy="exact">
+                      <RoleGuard roles={[UserType.OWNER, UserType.SUPERUSER]} strategy="exact">
                         <RolesPage />
                       </RoleGuard>
                     } />
                     <Route path='user-registration' element={
-                      <RoleGuard roles={[UserType.ADMIN, UserType.SUPERUSER]} strategy="any">
+                      <RoleGuard roles={[UserType.OWNER, UserType.SUPERUSER, UserType.ADMIN]} strategy="any">
                         <UserRegistrationPage />
                       </RoleGuard>
                     } />
                     <Route path='auth-logs' element={
-                      <RoleGuard roles={[UserType.SUPERUSER]} strategy="exact">
+                      <RoleGuard roles={[UserType.OWNER, UserType.SUPERUSER]} strategy="exact">
                         <AuthenticationLogsPage />
                       </RoleGuard>
                     } />
 
                     {/* VENDORS Category Routes */}
                     <Route path='vendors' element={
-                      <RoleGuard roles={[UserType.ADMIN, UserType.SUPERUSER]} strategy="any">
+                      <RoleGuard roles={[UserType.OWNER, UserType.SUPERUSER, UserType.ADMIN]} strategy="any">
                         <VendorsPage />
                       </RoleGuard>
                     } />
                     <Route path='vendor-applications' element={
-                      <RoleGuard roles={[UserType.ADMIN, UserType.SUPERUSER]} strategy="any">
+                      <RoleGuard roles={[UserType.OWNER, UserType.SUPERUSER, UserType.ADMIN]} strategy="any">
                         <VendorApplicationsPage />
                       </RoleGuard>
                     } />
                     <Route path='vendor-products' element={
-                      <RoleGuard roles={[UserType.ADMIN, UserType.SUPERUSER]} strategy="any">
+                      <RoleGuard roles={[UserType.OWNER, UserType.SUPERUSER, UserType.ADMIN]} strategy="any">
                         <VendorProductsPage />
                       </RoleGuard>
                     } />
                     <Route path='product-approval' element={
-                      <RoleGuard roles={[UserType.ADMIN, UserType.SUPERUSER]} strategy="any">
+                      <RoleGuard roles={[UserType.OWNER, UserType.SUPERUSER, UserType.ADMIN]} strategy="any">
                         <ProductApprovalPage />
                       </RoleGuard>
                     } />
                     <Route path='vendor-orders' element={
-                      <RoleGuard roles={[UserType.ADMIN, UserType.SUPERUSER]} strategy="any">
+                      <RoleGuard roles={[UserType.OWNER, UserType.SUPERUSER, UserType.ADMIN]} strategy="any">
                         <VendorOrdersPage />
                       </RoleGuard>
                     } />
                     <Route path='vendor-commissions' element={
-                      <RoleGuard roles={[UserType.ADMIN, UserType.SUPERUSER]} strategy="any">
+                      <RoleGuard roles={[UserType.OWNER, UserType.SUPERUSER, UserType.ADMIN]} strategy="any">
                         <VendorCommissionsPage />
                       </RoleGuard>
                     } />
 
                     {/* ORDERS Category Routes */}
                     <Route path='orders' element={
-                      <RoleGuard roles={[UserType.SUPERUSER]} strategy="exact">
+                      <RoleGuard roles={[UserType.OWNER, UserType.SUPERUSER]} strategy="exact">
                         <AdminOrders />
                       </RoleGuard>
                     } />
 
                     {/* ANALYTICS Category Routes */}
                     <Route path='analytics' element={
-                      <RoleGuard roles={[UserType.ADMIN, UserType.SUPERUSER]} strategy="any">
+                      <RoleGuard roles={[UserType.OWNER, UserType.SUPERUSER, UserType.ADMIN]} strategy="any">
                         <AnalyticsDashboard />
                       </RoleGuard>
                     } />
                     <Route path='sales-reports' element={
-                      <RoleGuard roles={[UserType.ADMIN, UserType.SUPERUSER]} strategy="any">
+                      <RoleGuard roles={[UserType.OWNER, UserType.SUPERUSER, UserType.ADMIN]} strategy="any">
                         <SalesReportsPage />
                       </RoleGuard>
                     } />
                     <Route path='financial-reports' element={
-                      <RoleGuard roles={[UserType.ADMIN, UserType.SUPERUSER]} strategy="any">
+                      <RoleGuard roles={[UserType.OWNER, UserType.SUPERUSER, UserType.ADMIN]} strategy="any">
                         <FinancialReportsPage />
                       </RoleGuard>
                     } />
                     <Route path='performance' element={
-                      <RoleGuard roles={[UserType.ADMIN, UserType.SUPERUSER]} strategy="any">
+                      <RoleGuard roles={[UserType.OWNER, UserType.SUPERUSER, UserType.ADMIN]} strategy="any">
                         <PerformanceMetricsPage />
                       </RoleGuard>
                     } />
                     <Route path='custom-reports' element={
-                      <RoleGuard roles={[UserType.ADMIN, UserType.SUPERUSER]} strategy="any">
+                      <RoleGuard roles={[UserType.OWNER, UserType.SUPERUSER, UserType.ADMIN]} strategy="any">
                         <CustomReportsPage />
                       </RoleGuard>
                     } />
 
                     {/* SETTINGS Category Routes */}
                     <Route path='system-config' element={
-                      <RoleGuard roles={[UserType.SUPERUSER]} strategy="exact">
+                      <RoleGuard roles={[UserType.OWNER, UserType.SUPERUSER]} strategy="exact">
                         <GeneralSettingsPage />
                       </RoleGuard>
                     } />
                     <Route path='security' element={
-                      <RoleGuard roles={[UserType.SUPERUSER]} strategy="exact">
+                      <RoleGuard roles={[UserType.OWNER, UserType.SUPERUSER]} strategy="exact">
                         <SecuritySettingsPage />
                       </RoleGuard>
                     } />
                     <Route path='database' element={
-                      <RoleGuard roles={[UserType.SUPERUSER]} strategy="exact">
+                      <RoleGuard roles={[UserType.OWNER, UserType.SUPERUSER]} strategy="exact">
                         <PaymentSettingsPage />
                       </RoleGuard>
                     } />
                     <Route path='notifications' element={
-                      <RoleGuard roles={[UserType.ADMIN, UserType.SUPERUSER]} strategy="any">
+                      <RoleGuard roles={[UserType.OWNER, UserType.SUPERUSER, UserType.ADMIN]} strategy="any">
                         <NotificationSettingsPage />
                       </RoleGuard>
                     } />
                     <Route path='integrations' element={
-                      <RoleGuard roles={[UserType.ADMIN, UserType.SUPERUSER]} strategy="any">
+                      <RoleGuard roles={[UserType.OWNER, UserType.SUPERUSER, UserType.ADMIN]} strategy="any">
                         <IntegrationsPage />
                       </RoleGuard>
                     } />
