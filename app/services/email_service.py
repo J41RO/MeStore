@@ -1,123 +1,112 @@
 # ~/app/services/email_service.py
 # ---------------------------------------------------------------------------------------------
-# MeStore - Servicio Email
+# MeStore - Servicio Email con Resend
 # Copyright (c) 2025 Jairo. Todos los derechos reservados.
 # ---------------------------------------------------------------------------------------------
 
 """
-Servicio Email para MeStore.
+Servicio Email para MeStore usando Resend.
 
 Este módulo maneja el envío de emails:
 - Emails de verificación con códigos OTP
 - Emails de recuperación de contraseña
 - Templates HTML para emails atractivos
-- Configuración SendGrid
+- Configuración Resend
 - Manejo de errores de envío
 """
 
 import os
 from typing import Optional
-from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail, From, To, Subject, HtmlContent, PlainTextContent, Content, Email
 import logging
 
 logger = logging.getLogger(__name__)
 
+# Try to import resend, if not available use simulation mode
+try:
+    import resend
+    RESEND_AVAILABLE = True
+except ImportError:
+    RESEND_AVAILABLE = False
+    logger.warning("Resend library not installed. Email service will run in simulation mode.")
+
 
 class EmailConfig:
     """PRODUCTION_READY: Configuración dinámica para emails"""
-    
+
     def __init__(self):
         self.ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')
         self.FRONTEND_URL = self._get_frontend_url()
-        
+
     def _get_frontend_url(self) -> str:
         if self.ENVIRONMENT == 'production':
-            # TODO_HOSTING: Configurar dominio real
-            return os.getenv('FRONTEND_URL', 'https://tudominio.com')
+            return os.getenv('FRONTEND_URL', 'https://me-store-alpha.vercel.app')
         return os.getenv('DEV_FRONTEND_URL', 'http://192.168.1.137:5173')
 
 
 class EmailService:
-    """Servicio para envío de emails usando SendGrid."""
-    
+    """Servicio para envío de emails usando Resend."""
+
     def __init__(self):
         """Inicializar servicio de email con configuración."""
         self.config = EmailConfig()
-        self.api_key = os.getenv('SENDGRID_API_KEY')
-        self.from_email = os.getenv('FROM_EMAIL', 'noreply@mestore.com')
-        self.from_name = os.getenv('FROM_NAME', 'MeStore')
-        
-        if not self.api_key:
-            logger.warning("SENDGRID_API_KEY no configurado. Email service en modo simulación")
+        self.api_key = os.getenv('RESEND_API_KEY')
+        self.from_email = os.getenv('EMAIL_FROM', 'onboarding@resend.dev')
+        self.from_name = os.getenv('EMAIL_FROM_NAME', 'MeStocker')
+
+        if not self.api_key or not RESEND_AVAILABLE:
+            if not self.api_key:
+                logger.warning("RESEND_API_KEY no configurado. Email service en modo simulación")
             self.simulation_mode = True
         else:
             self.simulation_mode = False
-            self.sg = SendGridAPIClient(api_key=self.api_key)
-    
-    def send_otp_email(
-        self, 
-        email: str, 
-        otp_code: str, 
+            resend.api_key = self.api_key
+
+    async def send_otp_email(
+        self,
+        email: str,
+        otp_code: str,
         user_name: Optional[str] = None
     ) -> bool:
         """
         Envía email con código OTP de verificación.
-        
+
         Args:
             email: Email destino
             otp_code: Código OTP de 6 dígitos
             user_name: Nombre del usuario (opcional)
-            
+
         Returns:
             bool: True si se envió exitosamente
         """
         try:
-            # Preparar contenido del email
-            subject_text = f"MeStore - Código de verificación: {otp_code}"
-            
-            # Contenido HTML
-            html_content = self._create_otp_html_template(
-                otp_code=otp_code,
-                user_name=user_name or "Usuario"
-            )
-            
-            # Contenido texto plano
-            plain_content = self._create_otp_plain_template(
-                otp_code=otp_code,
-                user_name=user_name or "Usuario"
-            )
-            
+            name = user_name or "Usuario"
+            subject = f"MeStocker - Código de verificación: {otp_code}"
+            html_content = self._create_otp_html_template(otp_code, name)
+
             if self.simulation_mode:
-                logger.info(f"SIMULACIÓN EMAIL - Para: {email}, OTP: {otp_code}")
+                logger.info(f"SIMULACIÓN EMAIL OTP - Para: {email}, OTP: {otp_code}")
                 print(f"📧 SIMULACIÓN EMAIL OTP:")
                 print(f"   Para: {email}")
                 print(f"   Código: {otp_code}")
-                print(f"   Usuario: {user_name}")
+                print(f"   Usuario: {name}")
                 return True
-            
-            # Crear y enviar email
-            message = Mail(
-                from_email=From(self.from_email, self.from_name),
-                to_emails=To(email),
-                subject=Subject(subject_text),
-                html_content=HtmlContent(html_content),
-                plain_text_content=PlainTextContent(plain_content)
-            )
-            
-            response = self.sg.send(message)
-            
-            if response.status_code in [200, 201, 202]:
-                logger.info(f"Email OTP enviado exitosamente a {email}")
-                return True
-            else:
-                logger.error(f"Error enviando email OTP: {response.status_code}")
-                return False
-                
+
+            # Enviar con Resend
+            params = {
+                "from": f"{self.from_name} <{self.from_email}>",
+                "to": [email],
+                "subject": subject,
+                "html": html_content
+            }
+
+            response = resend.Emails.send(params)
+            logger.info(f"Email OTP enviado exitosamente a {email}. ID: {response.get('id')}")
+            return True
+
         except Exception as e:
             logger.error(f"Excepción enviando email OTP: {str(e)}")
             return False
-    
+
     async def send_password_reset_email(
         self,
         to_email: str,
@@ -136,21 +125,9 @@ class EmailService:
             bool: True si se envió exitosamente
         """
         try:
-            # Crear mensaje de email
-            message = Mail()
-            message.from_email = Email(self.from_email, self.from_name)
-            message.to = [To(to_email)]
-            message.subject = "Recuperación de Contraseña - MeStore"
-
-            # Crear contenido HTML y texto plano
             name = user_name or "Usuario"
+            subject = "Recuperación de Contraseña - MeStocker"
             html_content = self._create_reset_html_template(reset_token, name)
-            plain_content = self._create_reset_plain_template(reset_token, name)
-
-            message.content = [
-                Content("text/plain", plain_content),
-                Content("text/html", html_content)
-            ]
 
             if self.simulation_mode:
                 logger.info(f"SIMULACIÓN EMAIL RESET - Para: {to_email}, Token: {reset_token}")
@@ -161,109 +138,112 @@ class EmailService:
                 print(f"   Enlace: {self.config.FRONTEND_URL}/admin-login/reset-password?token={reset_token}")
                 return True
 
-            # Enviar email real
-            response = self.sg.send(message)
-            logger.info(f"Email reset enviado exitosamente. Status: {response.status_code}")
+            # Enviar con Resend
+            params = {
+                "from": f"{self.from_name} <{self.from_email}>",
+                "to": [to_email],
+                "subject": subject,
+                "html": html_content
+            }
+
+            response = resend.Emails.send(params)
+            logger.info(f"Email reset enviado exitosamente. ID: {response.get('id')}")
             return True
 
         except Exception as e:
             logger.error(f"Error enviando email de reset: {str(e)}")
             return False
-    
-    def send_lead_welcome_email(
+
+    async def send_password_changed_email(
         self,
-        email: str,
-        nombre: str,
-        tipo_negocio: str
+        to_email: str,
+        user_name: str
     ) -> bool:
         """
-        Envía email de bienvenida para leads nuevos.
+        Envía email de confirmación de cambio de contraseña.
 
         Args:
-            email: Email del lead
-            nombre: Nombre del lead
-            tipo_negocio: Tipo de negocio (vendedor/comprador/ambos)
+            to_email: Email destino
+            user_name: Nombre del usuario
 
         Returns:
             bool: True si se envió exitosamente
         """
         try:
-            subject_text = "¡Bienvenido al futuro del fulfillment! - MeStocker Early Access"
-            
-            # Contenido personalizado por tipo de negocio
-            business_benefits = {
-                'vendedor': {
-                    'title': 'Para Vendedores Inteligentes',
-                    'benefits': [
-                        'Automatización completa de inventario 24/7',
-                        'IA que optimiza tus precios automáticamente',
-                        'Acceso directo a 500+ compradores activos',
-                        'Reducción del 40% en costos operativos'
-                    ]
-                },
-                'comprador': {
-                    'title': 'Para Compradores Estratégicos', 
-                    'benefits': [
-                        'Acceso prioritario a productos exclusivos',
-                        'Precios mayoristas automatizados',
-                        'Fulfillment local en Bucaramanga',
-                        'Análisis predictivo de stock disponible'
-                    ]
-                },
-                'ambos': {
-                    'title': 'Para Empresarios Visionarios',
-                    'benefits': [
-                        'Doble flujo de ingresos: compra y vende',
-                        'Plataforma unificada B2B + B2C',
-                        'IA especializada para ambos roles',
-                        'ROI maximizado con estrategia híbrida'
-                    ]
-                }
-            }
-            
-            # Contenido HTML
-            html_content = self._create_lead_welcome_html_template(
-                nombre=nombre,
-                tipo_negocio=tipo_negocio,
-                business_info=business_benefits.get(tipo_negocio, business_benefits['vendedor'])
-            )
-            
-            # Contenido texto plano
-            plain_content = self._create_lead_welcome_plain_template(
-                nombre=nombre,
-                tipo_negocio=tipo_negocio
-            )
-            
+            name = user_name or "Usuario"
+            subject = "Contraseña Actualizada - MeStocker"
+            html_content = self._create_password_changed_html_template(name)
+
             if self.simulation_mode:
-                logger.info(f"SIMULACIÓN EMAIL LEAD - Para: {email}, Lead: {nombre}")
-                print(f"📧 SIMULACIÓN EMAIL LEAD WELCOME:")
-                print(f"   Para: {email}")
-                print(f"   Nombre: {nombre}")
-                print(f"   Tipo: {tipo_negocio}")
+                logger.info(f"SIMULACIÓN EMAIL PASSWORD CHANGED - Para: {to_email}")
+                print(f"📧 SIMULACIÓN EMAIL PASSWORD CHANGED:")
+                print(f"   Para: {to_email}")
+                print(f"   Usuario: {name}")
                 return True
-            
-            # Crear y enviar email
-            message = Mail(
-                from_email=From(self.from_email, "MeStocker Team"),
-                to_emails=To(email),
-                subject=Subject(subject_text),
-                html_content=HtmlContent(html_content),
-                plain_text_content=PlainTextContent(plain_content)
-            )
-            
-            response = self.sg.send(message)
-            
-            if response.status_code in [200, 201, 202]:
-                logger.info(f"Email lead welcome enviado exitosamente a {email}")
-                return True
-            else:
-                logger.error(f"Error enviando email lead welcome: {response.status_code}")
-                return False
-                
+
+            # Enviar con Resend
+            params = {
+                "from": f"{self.from_name} <{self.from_email}>",
+                "to": [to_email],
+                "subject": subject,
+                "html": html_content
+            }
+
+            response = resend.Emails.send(params)
+            logger.info(f"Email password changed enviado exitosamente. ID: {response.get('id')}")
+            return True
+
         except Exception as e:
-            logger.error(f"Excepción enviando email lead welcome: {str(e)}")
+            logger.error(f"Error enviando email de confirmación: {str(e)}")
             return False
-    
+
+    async def send_welcome_email(
+        self,
+        to_email: str,
+        user_name: str
+    ) -> bool:
+        """
+        Envía email de bienvenida a nuevos usuarios.
+
+        Args:
+            to_email: Email destino
+            user_name: Nombre del usuario
+
+        Returns:
+            bool: True si se envió exitosamente
+        """
+        try:
+            name = user_name or "Usuario"
+            subject = "¡Bienvenido a MeStocker! 🎉"
+            html_content = self._create_welcome_html_template(name)
+
+            if self.simulation_mode:
+                logger.info(f"SIMULACIÓN EMAIL WELCOME - Para: {to_email}")
+                print(f"📧 SIMULACIÓN EMAIL WELCOME:")
+                print(f"   Para: {to_email}")
+                print(f"   Usuario: {name}")
+                return True
+
+            # Enviar con Resend
+            params = {
+                "from": f"{self.from_name} <{self.from_email}>",
+                "to": [to_email],
+                "subject": subject,
+                "html": html_content
+            }
+
+            response = resend.Emails.send(params)
+            logger.info(f"Email welcome enviado exitosamente. ID: {response.get('id')}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Error enviando email de bienvenida: {str(e)}")
+            return False
+
+    # ============================================================================
+    # EMAIL TEMPLATES
+    # ============================================================================
+
     def _create_otp_html_template(self, otp_code: str, user_name: str) -> str:
         """Crea template HTML para email OTP."""
         return f"""
@@ -271,208 +251,317 @@ class EmailService:
         <html>
         <head>
             <meta charset="UTF-8">
-            <title>Código de Verificación MeStore</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Código de Verificación MeStocker</title>
         </head>
-        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <div style="background-color: #f8f9fa; padding: 20px; text-align: center;">
-                <h1 style="color: #007bff;">MeStore</h1>
-                <h2 style="color: #333;">Código de Verificación</h2>
-            </div>
-            
-            <div style="padding: 30px; background-color: white;">
-                <p>Hola <strong>{user_name}</strong>,</p>
-                
-                <p>Has solicitado verificar tu email en MeStore. Tu código de verificación es:</p>
-                
-                <div style="text-align: center; margin: 30px 0;">
-                    <span style="font-size: 32px; font-weight: bold; color: #007bff; 
-                                 letter-spacing: 8px; background-color: #f8f9fa; 
-                                 padding: 15px 25px; border-radius: 8px; border: 2px solid #007bff;">
-                        {otp_code}
-                    </span>
-                </div>
-                
-                <p style="color: #dc3545; font-weight: bold;">
-                    ⏰ Este código expira en 10 minutos
-                </p>
-                
-                <p>Si no solicitaste este código, puedes ignorar este email.</p>
-                
-                <hr style="margin: 30px 0; border: 1px solid #dee2e6;">
-                
-                <p style="font-size: 12px; color: #6c757d; text-align: center;">
-                    MeStore - Tu marketplace de confianza<br>
-                    Este email fue enviado automáticamente, no responder.
-                </p>
-            </div>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+            <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f5f7fa;">
+                <tr>
+                    <td style="padding: 40px 20px;">
+                        <table role="presentation" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                            <!-- Header -->
+                            <tr>
+                                <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px; text-align: center; border-radius: 12px 12px 0 0;">
+                                    <h1 style="margin: 0; color: #ffffff; font-size: 32px; font-weight: 700;">MeStocker</h1>
+                                    <p style="margin: 10px 0 0; color: #e0e7ff; font-size: 16px;">Código de Verificación</p>
+                                </td>
+                            </tr>
+
+                            <!-- Body -->
+                            <tr>
+                                <td style="padding: 40px 40px 30px;">
+                                    <p style="margin: 0 0 20px; font-size: 16px; color: #374151;">Hola <strong>{user_name}</strong>,</p>
+
+                                    <p style="margin: 0 0 30px; font-size: 16px; color: #374151; line-height: 1.6;">
+                                        Has solicitado verificar tu email en MeStocker. Usa el siguiente código de verificación:
+                                    </p>
+
+                                    <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                                        <tr>
+                                            <td style="text-align: center; padding: 20px 0;">
+                                                <div style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px 40px; border-radius: 12px;">
+                                                    <span style="font-size: 36px; font-weight: 700; color: #ffffff; letter-spacing: 8px;">
+                                                        {otp_code}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </table>
+
+                                    <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 30px 0;">
+                                        <tr>
+                                            <td style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 8px;">
+                                                <p style="margin: 0; font-size: 14px; color: #92400e;">
+                                                    <strong>⏰ Importante:</strong> Este código expira en 10 minutos
+                                                </p>
+                                            </td>
+                                        </tr>
+                                    </table>
+
+                                    <p style="margin: 0; font-size: 14px; color: #6b7280; line-height: 1.6;">
+                                        Si no solicitaste este código, puedes ignorar este email con seguridad.
+                                    </p>
+                                </td>
+                            </tr>
+
+                            <!-- Footer -->
+                            <tr>
+                                <td style="background-color: #f9fafb; padding: 30px; text-align: center; border-radius: 0 0 12px 12px;">
+                                    <p style="margin: 0; font-size: 12px; color: #9ca3af;">
+                                        © 2025 MeStocker - Tu plataforma de fulfillment inteligente
+                                    </p>
+                                    <p style="margin: 10px 0 0; font-size: 12px; color: #9ca3af;">
+                                        Este email fue enviado automáticamente, por favor no responder.
+                                    </p>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
         </body>
         </html>
-        """
-    
-    def _create_otp_plain_template(self, otp_code: str, user_name: str) -> str:
-        """Crea template texto plano para email OTP."""
-        return f"""
-MeStore - Código de Verificación
-
-Hola {user_name},
-
-Has solicitado verificar tu email en MeStore.
-
-Tu código de verificación es: {otp_code}
-
-Este código expira en 10 minutos.
-
-Si no solicitaste este código, puedes ignorar este email.
-
----
-MeStore - Tu marketplace de confianza
-Este email fue enviado automáticamente, no responder.
         """
 
     def _create_reset_html_template(self, reset_token: str, user_name: str) -> str:
         """Crea template HTML para email de reset de contraseña."""
-        reset_url = f"{self.config.FRONTEND_URL}/reset-password?token={reset_token}"
-        
+        reset_url = f"{self.config.FRONTEND_URL}/admin-login/reset-password?token={reset_token}"
+
         return f"""<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Recuperación de Contraseña - MeStore</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recuperación de Contraseña - MeStocker</title>
 </head>
-<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-    <div style="background-color: #f8f9fa; padding: 20px; text-align: center;">
-        <img src="https://mestore.com/logo.png" alt="MeStore" style="max-width: 150px;">
-        <h1 style="color: #333;">Recuperación de Contraseña</h1>
-    </div>
-    
-    <div style="padding: 30px; background-color: white;">
-        <h2 style="color: #333;">Hola {user_name},</h2>
-        
-        <p style="font-size: 16px; line-height: 1.6; color: #555;">
-            Hemos recibido una solicitud para restablecer la contraseña de tu cuenta en MeStore.
-        </p>
-        
-        <div style="text-align: center; margin: 30px 0;">
-            <a href="{reset_url}" 
-               style="background-color: #007bff; color: white; padding: 15px 30px; 
-                      text-decoration: none; border-radius: 5px; font-weight: bold;
-                      display: inline-block;">
-                Restablecer Contraseña
-            </a>
-        </div>
-        
-        <p style="font-size: 14px; color: #666;">
-            Si no puedes hacer clic en el botón, copia y pega este enlace en tu navegador:
-        </p>
-        <p style="font-size: 12px; color: #888; word-break: break-all;">
-            {reset_url}
-        </p>
-        
-        <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; 
-                   padding: 15px; border-radius: 5px; margin: 20px 0;">
-            <p style="color: #856404; margin: 0; font-size: 14px;">
-                <strong>⚠️ Importante:</strong> Este enlace expira en 1 hora. 
-                Si no solicitaste este cambio, ignora este email.
-            </p>
-        </div>
-        
-        <p style="font-size: 14px; color: #666;">
-            Por tu seguridad, nunca compartimos enlaces de recuperación por teléfono o redes sociales.
-        </p>
-    </div>
-    
-    <div style="background-color: #f8f9fa; padding: 20px; text-align: center;">
-        <p style="color: #888; font-size: 12px; margin: 0;">
-            © 2025 MeStore. Todos los derechos reservados.
-        </p>
-    </div>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f5f7fa;">
+        <tr>
+            <td style="padding: 40px 20px;">
+                <table role="presentation" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <!-- Header -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px; text-align: center; border-radius: 12px 12px 0 0;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 32px; font-weight: 700;">MeStocker</h1>
+                            <p style="margin: 10px 0 0; color: #e0e7ff; font-size: 16px;">Recuperación de Contraseña</p>
+                        </td>
+                    </tr>
+
+                    <!-- Body -->
+                    <tr>
+                        <td style="padding: 40px 40px 30px;">
+                            <p style="margin: 0 0 20px; font-size: 16px; color: #374151;">Hola <strong>{user_name}</strong>,</p>
+
+                            <p style="margin: 0 0 30px; font-size: 16px; color: #374151; line-height: 1.6;">
+                                Hemos recibido una solicitud para restablecer la contraseña de tu cuenta administrativa en MeStocker.
+                            </p>
+
+                            <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                                <tr>
+                                    <td style="text-align: center; padding: 20px 0;">
+                                        <a href="{reset_url}"
+                                           style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                                  color: #ffffff; padding: 16px 40px; text-decoration: none;
+                                                  border-radius: 8px; font-weight: 600; font-size: 16px;">
+                                            Restablecer Contraseña
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p style="margin: 30px 0 10px; font-size: 14px; color: #6b7280;">
+                                Si no puedes hacer clic en el botón, copia y pega este enlace en tu navegador:
+                            </p>
+                            <p style="margin: 0; font-size: 12px; color: #9ca3af; word-break: break-all; background-color: #f9fafb; padding: 12px; border-radius: 6px;">
+                                {reset_url}
+                            </p>
+
+                            <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 30px 0;">
+                                <tr>
+                                    <td style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 8px;">
+                                        <p style="margin: 0; font-size: 14px; color: #92400e;">
+                                            <strong>⚠️ Importante:</strong> Este enlace expira en 1 hora.
+                                        </p>
+                                        <p style="margin: 10px 0 0; font-size: 14px; color: #92400e;">
+                                            Si no solicitaste este cambio, ignora este email.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p style="margin: 0; font-size: 14px; color: #6b7280; line-height: 1.6;">
+                                Por tu seguridad, nunca compartimos enlaces de recuperación por teléfono o redes sociales.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f9fafb; padding: 30px; text-align: center; border-radius: 0 0 12px 12px;">
+                            <p style="margin: 0; font-size: 12px; color: #9ca3af;">
+                                © 2025 MeStocker - Portal Administrativo
+                            </p>
+                            <p style="margin: 10px 0 0; font-size: 12px; color: #9ca3af;">
+                                Bucaramanga, Colombia
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>"""
 
-    def _create_reset_plain_template(self, reset_token: str, user_name: str) -> str:
-        # Crea template texto plano para email de reset
-        reset_url = f"{self.config.FRONTEND_URL}/reset-password?token={reset_token}"
-        
-        lines = [
-            "MeStore - Recuperacion de Contrasena",
-            "",
-            f"Hola {user_name},",
-            "",
-            "Hemos recibido una solicitud para restablecer la contrasena de tu cuenta en MeStore.",
-            "",
-            "Para restablecer tu contrasena, haz clic en el siguiente enlace:",
-            reset_url,
-            "",
-            "IMPORTANTE:",
-            "- Este enlace expira en 1 hora",
-            "- Si no solicitaste este cambio, ignora este email",
-            "",
-            "Saludos,",
-            "Equipo MeStore",
-            "",
-            "2025 MeStore. Todos los derechos reservados."
-        ]
-        return "\n".join(lines)
-    
-    def _create_lead_welcome_html_template(self, nombre: str, tipo_negocio: str, business_info: dict) -> str:
-        # Crea template HTML para email de bienvenida de leads
-        benefits_html = "".join([f"<li>{benefit}</li>" for benefit in business_info['benefits']])
-        
-        html_parts = [
-            "<!DOCTYPE html>",
-            "<html>",
-            "<head><meta charset='UTF-8'><title>Bienvenido a MeStocker</title></head>",
-            "<body style='font-family: Arial; max-width: 600px; margin: 0 auto;'>",
-            f"<div style='background: #667eea; padding: 30px; text-align: center;'>",
-            f"<h1 style='color: white; margin: 0;'>MeStocker</h1>",
-            f"<p style='color: white;'>El futuro del fulfillment inteligente</p>",
-            "</div>",
-            "<div style='padding: 30px; background: white;'>",
-            f"<h2>Bienvenido, {nombre}!</h2>",
-            "<p>Gracias por unirte al Early Access de MeStocker.</p>",
-            f"<h3>{business_info['title']}</h3>",
-            f"<ul>{benefits_html}</ul>",
-            "<h3>Proximos Pasos:</h3>",
-            "<p>1. Te contactaremos en 48 horas</p>",
-            "<p>2. Configuracion de cuenta</p>",
-            "<p>3. Acceso prioritario</p>",
-            "<p>Saludos,<br>Equipo MeStocker</p>",
-            "</div>",
-            "<div style='background: #f8f9fa; padding: 20px; text-align: center;'>",
-            "<p style='font-size: 12px;'>2025 MeStocker. Bucaramanga, Colombia.</p>",
-            "</div>",
-            "</body>",
-            "</html>"
-        ]
-        
-        return "\n".join(html_parts)
-    
-    def _create_lead_welcome_plain_template(self, nombre: str, tipo_negocio: str) -> str:
-        # Crea template texto plano para email de bienvenida de leads
-        lines = [
-            "MeStocker - Bienvenido al Early Access!",
-            "",
-            f"Hola {nombre},",
-            "",
-            "Gracias por unirte al Early Access de MeStocker. Eres de los primeros en descubrir la plataforma de fulfillment mas avanzada de Colombia.",
-            "",
-            f"Como {tipo_negocio}, tendras acceso a:",
-            "- Automatizacion completa de inventario 24/7",
-            "- IA que optimiza precios automaticamente",
-            "- Acceso a red de 500+ compradores/vendedores", 
-            "- Reduccion del 40% en costos operativos",
-            "",
-            "PROXIMOS PASOS:",
-            "1. Te contactaremos en las proximas 48 horas",
-            "2. Configuracion personalizada de tu cuenta",
-            "3. Acceso prioritario al beta",
-            "",
-            "Tienes preguntas? Responde a este email.",
-            "",
-            "Saludos,",
-            "Equipo MeStocker",
-            "Revolucionando el fulfillment en Colombia",
-            "",
-            "2025 MeStocker. Bucaramanga, Colombia."
-        ]
-        return "\n".join(lines)
+    def _create_password_changed_html_template(self, user_name: str) -> str:
+        """Crea template HTML para confirmación de cambio de contraseña."""
+        return f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contraseña Actualizada - MeStocker</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f5f7fa;">
+        <tr>
+            <td style="padding: 40px 20px;">
+                <table role="presentation" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <!-- Header -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 40px; text-align: center; border-radius: 12px 12px 0 0;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 32px; font-weight: 700;">✓ Contraseña Actualizada</h1>
+                        </td>
+                    </tr>
+
+                    <!-- Body -->
+                    <tr>
+                        <td style="padding: 40px 40px 30px;">
+                            <p style="margin: 0 0 20px; font-size: 16px; color: #374151;">Hola <strong>{user_name}</strong>,</p>
+
+                            <p style="margin: 0 0 30px; font-size: 16px; color: #374151; line-height: 1.6;">
+                                Tu contraseña ha sido actualizada exitosamente. Ya puedes iniciar sesión con tu nueva contraseña.
+                            </p>
+
+                            <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 30px 0;">
+                                <tr>
+                                    <td style="background-color: #d1fae5; border-left: 4px solid #10b981; padding: 16px; border-radius: 8px;">
+                                        <p style="margin: 0; font-size: 14px; color: #065f46;">
+                                            <strong>🔒 Cuenta segura:</strong> Tu cuenta está protegida.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 30px 0;">
+                                <tr>
+                                    <td style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 8px;">
+                                        <p style="margin: 0; font-size: 14px; color: #92400e;">
+                                            <strong>⚠️ ¿No fuiste tú?</strong>
+                                        </p>
+                                        <p style="margin: 10px 0 0; font-size: 14px; color: #92400e;">
+                                            Si no realizaste este cambio, contacta inmediatamente a soporte@mestocker.com
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f9fafb; padding: 30px; text-align: center; border-radius: 0 0 12px 12px;">
+                            <p style="margin: 0; font-size: 12px; color: #9ca3af;">
+                                © 2025 MeStocker - Portal Administrativo
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>"""
+
+    def _create_welcome_html_template(self, user_name: str) -> str:
+        """Crea template HTML para email de bienvenida."""
+        return f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bienvenido a MeStocker</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f5f7fa;">
+        <tr>
+            <td style="padding: 40px 20px;">
+                <table role="presentation" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <!-- Header -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px; text-align: center; border-radius: 12px 12px 0 0;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 36px; font-weight: 700;">¡Bienvenido! 🎉</h1>
+                            <p style="margin: 10px 0 0; color: #e0e7ff; font-size: 18px;">MeStocker</p>
+                        </td>
+                    </tr>
+
+                    <!-- Body -->
+                    <tr>
+                        <td style="padding: 40px 40px 30px;">
+                            <p style="margin: 0 0 20px; font-size: 18px; color: #374151;">Hola <strong>{user_name}</strong>,</p>
+
+                            <p style="margin: 0 0 30px; font-size: 16px; color: #374151; line-height: 1.6;">
+                                ¡Gracias por unirte a MeStocker! Estamos emocionados de tenerte en nuestra plataforma de fulfillment inteligente.
+                            </p>
+
+                            <h3 style="margin: 30px 0 15px; color: #667eea; font-size: 20px;">Próximos Pasos:</h3>
+
+                            <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                                <tr>
+                                    <td style="padding: 12px; background-color: #f9fafb; border-radius: 8px; margin-bottom: 10px;">
+                                        <p style="margin: 0; font-size: 15px; color: #374151;">
+                                            <strong>1.</strong> Completa tu perfil administrativo
+                                        </p>
+                                    </td>
+                                </tr>
+                                <tr><td style="height: 10px;"></td></tr>
+                                <tr>
+                                    <td style="padding: 12px; background-color: #f9fafb; border-radius: 8px;">
+                                        <p style="margin: 0; font-size: 15px; color: #374151;">
+                                            <strong>2.</strong> Explora el panel administrativo
+                                        </p>
+                                    </td>
+                                </tr>
+                                <tr><td style="height: 10px;"></td></tr>
+                                <tr>
+                                    <td style="padding: 12px; background-color: #f9fafb; border-radius: 8px;">
+                                        <p style="margin: 0; font-size: 15px; color: #374151;">
+                                            <strong>3.</strong> Configura tu equipo y permisos
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p style="margin: 30px 0 0; font-size: 14px; color: #6b7280; line-height: 1.6;">
+                                Si tienes alguna pregunta, nuestro equipo de soporte está aquí para ayudarte.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f9fafb; padding: 30px; text-align: center; border-radius: 0 0 12px 12px;">
+                            <p style="margin: 0; font-size: 12px; color: #9ca3af;">
+                                © 2025 MeStocker - Fulfillment Inteligente
+                            </p>
+                            <p style="margin: 10px 0 0; font-size: 12px; color: #9ca3af;">
+                                Bucaramanga, Colombia
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>"""
