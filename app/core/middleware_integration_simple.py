@@ -20,14 +20,22 @@ def setup_application_middleware(app: FastAPI):
     """Setup essential middleware - ULTRA SIMPLIFIED for deployment reliability"""
     logger.info("Setting up minimal middleware for fast startup...")
 
-    # MINIMAL CORS - No validation to prevent startup blocking
-    allowed_origins = ["*"]  # Temporary for startup - can be restricted later
-
-    # Only in development, use specific origins
-    if settings.ENVIRONMENT == "development":
-        try:
-            allowed_origins = settings.get_cors_origins_for_environment()
-        except:
+    # Get CORS origins from configuration for all environments
+    try:
+        allowed_origins = settings.get_cors_origins_for_environment()
+        logger.info(f"✅ Loaded CORS origins from config")
+    except Exception as e:
+        logger.warning(f"⚠️  Failed to load CORS origins from config: {e}")
+        # Fallback to permissive for emergency startup
+        if settings.ENVIRONMENT == "production":
+            # Production fallback: use configured origins or safe defaults
+            allowed_origins = [
+                origin.strip()
+                for origin in settings.CORS_ORIGINS.split(",")
+                if origin.strip()
+            ]
+        else:
+            # Development fallback
             allowed_origins = ["http://localhost:5173", "http://localhost:3000"]
 
     logger.info(f"Environment: {settings.ENVIRONMENT}")
