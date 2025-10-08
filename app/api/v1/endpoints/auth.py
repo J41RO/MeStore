@@ -31,13 +31,23 @@ from app.schemas.auth import (
     TokenResponse,
     RefreshTokenRequest,
     LogoutRequest,
-    AuthResponse
+    AuthResponse,
+    CustomerRegisterRequest,
+    CustomerRegisterResponse,
+    VerifyEmailRequest,
+    VerifyPhoneRequest,
+    VerificationResponse
 )
 from app.core.redis import RedisService, get_redis_service
 from app.core.logger import get_logger
 from app.services.email_service import EmailService
+from app.services.sms_service import SMSService
+from app.utils.auth_helpers import generate_verification_code, send_verification_email, send_welcome_email
+from app.core.security import get_password_hash
+from app.models.user import UserType, AccountStatus
 import secrets
 from datetime import datetime, timedelta
+from fastapi import BackgroundTasks
 
 # Configurar router y logger
 router = APIRouter()
@@ -920,4 +930,316 @@ async def reset_password(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error procesando actualización de contraseña"
+        )
+
+
+# =============================================================================
+# CUSTOMER REGISTRATION ENDPOINTS
+# =============================================================================
+
+@router.post(
+    '/register/customer',
+    response_model=CustomerRegisterResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Registrar nuevo comprador/customer",
+    description="Crea cuenta de comprador, envía códigos de verificación por email y SMS"
+)
+async def register_customer(
+    data: CustomerRegisterRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Registro de nuevo comprador con verificación dual (email + SMS).
+
+    Flujo:
+    1. Valida datos y contraseña
+    2. Verifica que email y teléfono no existan
+    3. Crea usuario con account_status=PENDING
+    4. Genera y envía código de verificación por email
+    5. Envía código de verificación por SMS (Twilio Verify)
+    6. Envía email de bienvenida
+    7. Retorna información del usuario creado
+    """
+    try:
+        logger.info(f"📝 Iniciando registro de customer", email=data.email)
+
+        # 1. Verificar si email ya existe
+        existing_user = await db.execute(
+            select(User).where(User.email == data.email)
+        )
+        if existing_user.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El email ya está registrado"
+            )
+
+        # 2. Verificar si teléfono ya existe
+        existing_phone = await db.execute(
+            select(User).where(User.telefono == data.phone)
+        )
+        if existing_phone.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El teléfono ya está registrado"
+            )
+
+        # 3. Crear usuario con account_status=PENDING
+        password_hash = get_password_hash(data.password)
+
+        new_user = User(
+            email=data.email,
+            password_hash=password_hash,
+            nombre=f"{data.first_name} {data.last_name}",
+            telefono=data.phone,
+            user_type=UserType.BUYER,
+            account_status=AccountStatus.PENDING,
+            is_active=True,  # Activo pero pendiente de verificación
+            email_verified=False,
+            phone_verified=False
+        )
+
+        db.add(new_user)
+        await db.flush()  # Get user ID without committing
+
+        # 4. Generar código de verificación de email
+        email_code = generate_verification_code()
+        new_user.email_verification_code = email_code
+        new_user.email_verification_expires_at = datetime.utcnow() + timedelta(minutes=10)
+
+        await db.commit()
+        await db.refresh(new_user)
+
+        logger.info(f"✅ Usuario creado exitosamente", user_id=str(new_user.id), email=new_user.email)
+
+        # 5. Enviar código de verificación por email (background)
+        background_tasks.add_task(
+            send_verification_email,
+            email=new_user.email,
+            code=email_code,
+            name=data.first_name
+        )
+
+        # 6. Enviar código de verificación por SMS (Twilio Verify)
+        try:
+            sms_service = SMSService()
+            sms_result = await sms_service.send_verification_code(
+                phone_number=data.phone,
+                channel="sms"
+            )
+            logger.info(f"📱 SMS verification enviado", phone=data.phone, status=sms_result.get('status'))
+        except Exception as sms_error:
+            logger.error(f"❌ Error enviando SMS verification: {str(sms_error)}")
+            # No fallar el registro si SMS falla, el usuario puede reenviar
+
+        # 7. Enviar email de bienvenida (background)
+        background_tasks.add_task(
+            send_welcome_email,
+            email=new_user.email,
+            name=data.first_name
+        )
+
+        return CustomerRegisterResponse(
+            success=True,
+            message="Registro exitoso. Por favor verifica tu email y teléfono.",
+            user_id=str(new_user.id),
+            email=new_user.email,
+            phone=new_user.telefono,
+            account_status=new_user.account_status.value
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error en register_customer: {str(e)}")
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error procesando registro de usuario"
+        )
+
+
+@router.post(
+    '/verify/email',
+    response_model=VerificationResponse,
+    summary="Verificar email con código",
+    description="Verifica el email del usuario con código de 6 dígitos"
+)
+async def verify_email(
+    data: VerifyEmailRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Verifica el email del usuario con código de 6 dígitos.
+
+    Si email y teléfono están verificados, activa la cuenta (account_status=ACTIVE).
+    """
+    try:
+        logger.info(f"📧 Verificando email", email=data.email)
+
+        # 1. Buscar usuario por email
+        result = await db.execute(
+            select(User).where(User.email == data.email)
+        )
+        user = result.scalar_one_or_none()
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Usuario no encontrado"
+            )
+
+        # 2. Verificar si ya está verificado
+        if user.email_verified:
+            return VerificationResponse(
+                success=True,
+                message="El email ya está verificado",
+                email_verified=True,
+                phone_verified=user.phone_verified,
+                account_active=(user.account_status == AccountStatus.ACTIVE)
+            )
+
+        # 3. Verificar código y expiración
+        if not user.email_verification_code:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No hay código de verificación pendiente"
+            )
+
+        if user.email_verification_expires_at < datetime.utcnow():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El código de verificación ha expirado. Solicita uno nuevo."
+            )
+
+        if user.email_verification_code != data.code:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Código de verificación inválido"
+            )
+
+        # 4. Marcar email como verificado
+        user.email_verified = True
+        user.email_verification_code = None
+        user.email_verification_expires_at = None
+
+        # 5. Si teléfono también está verificado, activar cuenta
+        if user.phone_verified:
+            user.account_status = AccountStatus.ACTIVE
+            logger.info(f"🎉 Cuenta activada completamente", user_id=str(user.id))
+
+        await db.commit()
+
+        logger.info(f"✅ Email verificado exitosamente", email=user.email)
+
+        return VerificationResponse(
+            success=True,
+            message="Email verificado exitosamente" if not user.phone_verified
+                    else "Email verificado. Tu cuenta está ahora activa.",
+            email_verified=True,
+            phone_verified=user.phone_verified,
+            account_active=(user.account_status == AccountStatus.ACTIVE)
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error en verify_email: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error procesando verificación de email"
+        )
+
+
+@router.post(
+    '/verify/phone',
+    response_model=VerificationResponse,
+    summary="Verificar teléfono con código",
+    description="Verifica el teléfono del usuario con código de 6 dígitos (Twilio Verify)"
+)
+async def verify_phone(
+    data: VerifyPhoneRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Verifica el teléfono del usuario con código de 6 dígitos usando Twilio Verify.
+
+    Si email y teléfono están verificados, activa la cuenta (account_status=ACTIVE).
+    """
+    try:
+        logger.info(f"📱 Verificando teléfono", phone=data.phone)
+
+        # 1. Buscar usuario por teléfono
+        result = await db.execute(
+            select(User).where(User.telefono == data.phone)
+        )
+        user = result.scalar_one_or_none()
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Usuario no encontrado"
+            )
+
+        # 2. Verificar si ya está verificado
+        if user.phone_verified:
+            return VerificationResponse(
+                success=True,
+                message="El teléfono ya está verificado",
+                email_verified=user.email_verified,
+                phone_verified=True,
+                account_active=(user.account_status == AccountStatus.ACTIVE)
+            )
+
+        # 3. Verificar código con Twilio Verify
+        try:
+            sms_service = SMSService()
+            verify_result = await sms_service.verify_code(
+                phone_number=data.phone,
+                code=data.code
+            )
+
+            if not verify_result.get('valid'):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Código de verificación inválido o expirado. Status: {verify_result.get('status')}"
+                )
+
+        except HTTPException:
+            raise
+        except Exception as twilio_error:
+            logger.error(f"❌ Error verificando código con Twilio: {str(twilio_error)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error verificando código de teléfono"
+            )
+
+        # 4. Marcar teléfono como verificado
+        user.phone_verified = True
+
+        # 5. Si email también está verificado, activar cuenta
+        if user.email_verified:
+            user.account_status = AccountStatus.ACTIVE
+            logger.info(f"🎉 Cuenta activada completamente", user_id=str(user.id))
+
+        await db.commit()
+
+        logger.info(f"✅ Teléfono verificado exitosamente", phone=user.telefono)
+
+        return VerificationResponse(
+            success=True,
+            message="Teléfono verificado exitosamente" if not user.email_verified
+                    else "Teléfono verificado. Tu cuenta está ahora activa.",
+            email_verified=user.email_verified,
+            phone_verified=True,
+            account_active=(user.account_status == AccountStatus.ACTIVE)
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error en verify_phone: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error procesando verificación de teléfono"
         )
