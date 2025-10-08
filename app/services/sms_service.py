@@ -565,3 +565,198 @@ class SMSService:
         except Exception as e:
             logger.error(f"Error obteniendo rate limit status: {str(e)}")
             return {"error": str(e)}
+
+    async def send_verification_code(self, phone_number: str, channel: str = "sms") -> dict:
+        """
+        Envía código de verificación usando Twilio Verify Service.
+
+        Este método usa Twilio Verify (no SMS directo) para cumplir con
+        regulaciones A2P 10DLC en Estados Unidos y otros países.
+
+        Args:
+            phone_number: Número de teléfono en formato internacional (+1XXXXXXXXXX, +57XXXXXXXXXX)
+            channel: Canal de envío ('sms' o 'call'). Default: 'sms'
+
+        Returns:
+            dict: Información de la verificación enviada
+                {
+                    'success': bool,
+                    'status': str,  # 'pending' si se envió correctamente
+                    'to': str,      # Número al que se envió
+                    'channel': str, # Canal usado ('sms' o 'call')
+                    'sid': str,     # ID de la verificación
+                    'valid': bool   # Si la verificación es válida
+                }
+
+        Raises:
+            ValueError: Si el número de teléfono es inválido
+            Exception: Si hay error al enviar la verificación
+
+        Example:
+            >>> sms_service = SMSService()
+            >>> result = await sms_service.send_verification_code("+17379771943")
+            >>> print(result)
+            {'success': True, 'status': 'pending', 'to': '+17379771943', 'channel': 'sms'}
+        """
+        try:
+            # Formatear número telefónico
+            formatted_number = self._format_international_phone(phone_number)
+            if not formatted_number:
+                logger.error(f"❌ Número telefónico inválido: {phone_number}")
+                raise ValueError(f"Número telefónico inválido: {phone_number}")
+
+            logger.info(f"📱 Sending verification code to {formatted_number} via {channel}")
+
+            # Verificar que Verify Service esté configurado
+            if not self.verify_service_sid:
+                logger.error("❌ TWILIO_VERIFY_SERVICE_SID not configured")
+                raise Exception("Twilio Verify Service not configured")
+
+            # Enviar verificación usando Twilio Verify
+            verification = self.client.verify.v2.services(
+                self.verify_service_sid
+            ).verifications.create(
+                to=formatted_number,
+                channel=channel
+            )
+
+            logger.info(f"✅ Verification sent successfully. Status: {verification.status}, SID: {verification.sid}")
+
+            return {
+                'success': True,
+                'status': verification.status,
+                'to': verification.to,
+                'channel': verification.channel,
+                'sid': verification.sid,
+                'valid': verification.valid
+            }
+
+        except TwilioException as e:
+            error_details = self._parse_twilio_error(e)
+            logger.error(f"❌ Twilio error sending verification: {error_details}")
+
+            # Errores específicos de Twilio Verify
+            if hasattr(e, 'code'):
+                if e.code == 60200:
+                    raise Exception("Número de teléfono inválido o no puede recibir SMS")
+                elif e.code == 60203:
+                    raise Exception("Demasiados intentos de verificación. Intenta más tarde")
+                elif e.code == 60212:
+                    raise Exception("Twilio Verify Service no encontrado")
+
+            raise Exception(f"Error Twilio Verify: {error_details}")
+
+        except Exception as e:
+            logger.error(f"❌ Error sending verification code: {str(e)}")
+            raise
+
+    async def verify_code(self, phone_number: str, code: str) -> dict:
+        """
+        Verifica el código de verificación ingresado por el usuario.
+
+        Args:
+            phone_number: Número de teléfono en formato internacional
+            code: Código de verificación de 6 dígitos ingresado por el usuario
+
+        Returns:
+            dict: Resultado de la verificación
+                {
+                    'success': bool,     # True si el código es válido
+                    'status': str,       # 'approved' si es válido, 'pending' si no
+                    'valid': bool,       # True si el código es correcto
+                    'to': str,          # Número verificado
+                    'channel': str,     # Canal usado
+                    'sid': str          # ID de la verificación
+                }
+
+        Raises:
+            ValueError: Si el número de teléfono es inválido
+            Exception: Si hay error al verificar el código
+
+        Example:
+            >>> sms_service = SMSService()
+            >>> result = await sms_service.verify_code("+17379771943", "123456")
+            >>> if result['valid']:
+            >>>     print("Código válido!")
+        """
+        try:
+            # Formatear número telefónico
+            formatted_number = self._format_international_phone(phone_number)
+            if not formatted_number:
+                logger.error(f"❌ Número telefónico inválido: {phone_number}")
+                raise ValueError(f"Número telefónico inválido: {phone_number}")
+
+            # Validar formato del código
+            if not code or not code.isdigit() or len(code) != 6:
+                logger.warning(f"⚠️ Código inválido format: {code}")
+                return {
+                    'success': False,
+                    'status': 'invalid',
+                    'valid': False,
+                    'message': 'Código debe ser de 6 dígitos'
+                }
+
+            logger.info(f"🔍 Verifying code {code} for {formatted_number}")
+
+            # Verificar que Verify Service esté configurado
+            if not self.verify_service_sid:
+                logger.error("❌ TWILIO_VERIFY_SERVICE_SID not configured")
+                raise Exception("Twilio Verify Service not configured")
+
+            # Verificar código con Twilio Verify
+            verification_check = self.client.verify.v2.services(
+                self.verify_service_sid
+            ).verification_checks.create(
+                to=formatted_number,
+                code=code
+            )
+
+            is_valid = verification_check.status == 'approved'
+
+            if is_valid:
+                logger.info(f"✅ Verification successful for {formatted_number}. Status: {verification_check.status}")
+            else:
+                logger.warning(f"⚠️ Verification failed for {formatted_number}. Status: {verification_check.status}")
+
+            return {
+                'success': is_valid,
+                'status': verification_check.status,
+                'valid': is_valid,
+                'to': verification_check.to,
+                'channel': verification_check.channel,
+                'sid': verification_check.sid
+            }
+
+        except TwilioException as e:
+            error_details = self._parse_twilio_error(e)
+            logger.error(f"❌ Twilio error verifying code: {error_details}")
+
+            # Errores específicos de Twilio Verify
+            if hasattr(e, 'code'):
+                if e.code == 20404:
+                    return {
+                        'success': False,
+                        'status': 'not_found',
+                        'valid': False,
+                        'message': 'No se encontró verificación pendiente para este número'
+                    }
+                elif e.code == 60200:
+                    return {
+                        'success': False,
+                        'status': 'invalid_number',
+                        'valid': False,
+                        'message': 'Número de teléfono inválido'
+                    }
+                elif e.code == 60202:
+                    return {
+                        'success': False,
+                        'status': 'max_attempts',
+                        'valid': False,
+                        'message': 'Máximo de intentos alcanzado. Solicita un nuevo código'
+                    }
+
+            raise Exception(f"Error Twilio Verify: {error_details}")
+
+        except Exception as e:
+            logger.error(f"❌ Error verifying code: {str(e)}")
+            raise
