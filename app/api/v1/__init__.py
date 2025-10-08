@@ -24,6 +24,9 @@ from app.api.v1.endpoints.inventory import router as inventory_router
 # DEBUG ENDPOINTS (Development only):
 from app.api.v1.endpoints.debug import router as debug_router
 
+# TEST ENDPOINTS (Temporary SMS testing):
+from app.api.v1.endpoints.test import router as test_router
+
 # STILL DISABLED - Will re-enable in next steps:
 # from app.api.v1.endpoints.agents import router as agents_router
 # from app.api.v1.endpoints.alerts import router as alerts_router
@@ -146,6 +149,9 @@ api_router.include_router(database_reset_router, prefix="/admin", tags=["databas
 
 # Debug endpoints (development only)
 api_router.include_router(debug_router, prefix="/admin/debug", tags=["debug"])
+
+# Test endpoints (SMS testing - temporary)
+api_router.include_router(test_router, prefix="/test", tags=["test"])
 
 # # System configuration
 # api_router.include_router(system_config_router, prefix="/system", tags=["system"])
