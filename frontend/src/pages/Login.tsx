@@ -395,7 +395,8 @@ const Login: React.FC = () => {
 
                 <button
                   type="button"
-                  className="w-full inline-flex justify-center items-center py-3 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
+                  className="w-full inline-flex justify-center items-center py-3.5 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
+                  style={{ height: '48px' }}
                   aria-label="Continuar con Facebook"
                 >
                   <svg className="w-5 h-5 mr-3" fill="#1877F2" viewBox="0 0 24 24" aria-hidden="true">
