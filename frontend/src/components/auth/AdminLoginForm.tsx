@@ -176,8 +176,19 @@ const AdminLoginForm: React.FC<AdminLoginFormProps> = ({ onLoginSuccess }) => {
             </button>
           </form>
 
+          {/* Forgot password link */}
+          <div className="mt-6 text-center">
+            <button
+              type="button"
+              onClick={() => navigate('/admin-login/forgot-password')}
+              className="text-sm text-blue-600 hover:text-blue-700 hover:underline transition-colors"
+            >
+              ¿Olvidaste tu contraseña?
+            </button>
+          </div>
+
           {/* Security notice */}
-          <div className="mt-8 text-center">
+          <div className="mt-6 text-center">
             <p className="text-gray-500 text-xs flex items-center justify-center">
               <Building2 className="w-4 h-4 mr-1" />
               Acceso monitorizado y registrado para auditoría

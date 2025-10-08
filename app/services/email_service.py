@@ -118,19 +118,19 @@ class EmailService:
             logger.error(f"Excepción enviando email OTP: {str(e)}")
             return False
     
-    def send_password_reset_email(
+    async def send_password_reset_email(
         self,
-        email: str,
-        reset_token: str,
-        user_name: Optional[str] = None
+        to_email: str,
+        user_name: str,
+        reset_token: str
     ) -> bool:
         """
         Envía email con enlace para reset de contraseña.
 
         Args:
-            email: Email destino
+            to_email: Email destino
+            user_name: Nombre del usuario
             reset_token: Token de reset único
-            user_name: Nombre del usuario (opcional)
 
         Returns:
             bool: True si se envió exitosamente
@@ -139,7 +139,7 @@ class EmailService:
             # Crear mensaje de email
             message = Mail()
             message.from_email = Email(self.from_email, self.from_name)
-            message.to = [To(email)]
+            message.to = [To(to_email)]
             message.subject = "Recuperación de Contraseña - MeStore"
 
             # Crear contenido HTML y texto plano
@@ -153,12 +153,12 @@ class EmailService:
             ]
 
             if self.simulation_mode:
-                logger.info(f"SIMULACIÓN EMAIL RESET - Para: {email}, Token: {reset_token}")
+                logger.info(f"SIMULACIÓN EMAIL RESET - Para: {to_email}, Token: {reset_token}")
                 print(f"📧 SIMULACIÓN EMAIL RESET:")
-                print(f"   Para: {email}")
+                print(f"   Para: {to_email}")
                 print(f"   Token: {reset_token}")
                 print(f"   Usuario: {name}")
-                print(f"   Enlace: {self.config.FRONTEND_URL}/reset-password?token={reset_token}")
+                print(f"   Enlace: {self.config.FRONTEND_URL}/admin-login/reset-password?token={reset_token}")
                 return True
 
             # Enviar email real

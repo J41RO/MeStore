@@ -63,6 +63,8 @@ const CommissionReport = lazy(
 );
 const Login = lazy(() => import('./pages/Login'));
 const AdminLogin = lazy(() => import('./pages/AdminLogin'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const AdminPortal = lazy(() => import('./pages/AdminPortal'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const RegisterVendor = lazy(() => import('./pages/RegisterVendor'));
@@ -473,6 +475,25 @@ function App() {
             </Suspense>
           }
         />
+
+        {/* Password recovery routes */}
+        <Route
+          path="/admin-login/forgot-password"
+          element={
+            <Suspense fallback={<PageLoader />}>
+              <ForgotPassword />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/admin-login/reset-password"
+          element={
+            <Suspense fallback={<PageLoader />}>
+              <ResetPassword />
+            </Suspense>
+          }
+        />
+
         {/* Portal Admin Oculto - FUTURO SUBDOMAIN admin.mestocker.com */}
         {/* MIGRATION NOTE: Esta ruta será migrada a admin.mestocker.com en producción */}
         {/* Ver MIGRATION_TO_SUBDOMAIN.md para pasos completos de migración */}

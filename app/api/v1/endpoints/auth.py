@@ -35,6 +35,9 @@ from app.schemas.auth import (
 )
 from app.core.redis import RedisService, get_redis_service
 from app.core.logger import get_logger
+from app.services.email_service import EmailService
+import secrets
+from datetime import datetime, timedelta
 
 # Configurar router y logger
 router = APIRouter()
@@ -804,4 +807,181 @@ async def logout(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error interno del servidor"
+        )
+
+
+# ============================================================================
+# PASSWORD RESET ENDPOINTS
+# ============================================================================
+
+@router.post("/forgot-password", response_model=PasswordResetResponse)
+async def forgot_password(
+    request: PasswordResetRequest,
+    db: AsyncSession = Depends(get_db)
+) -> PasswordResetResponse:
+    """
+    Endpoint para solicitar recuperación de contraseña.
+    Genera un token de recuperación y envía email al usuario.
+
+    Security: No revela si el email existe o no para prevenir enumeración de usuarios.
+    """
+    try:
+        from sqlalchemy import select
+
+        # Buscar usuario por email
+        result = await db.execute(
+            select(User).where(User.email == request.email.lower())
+        )
+        user = result.scalar_one_or_none()
+
+        # IMPORTANT: Siempre retornar success para prevenir enumeración de usuarios
+        if not user:
+            logger.warning(f"Password reset solicitado para email no existente", email=request.email)
+            return PasswordResetResponse(
+                success=True,
+                message="Si el correo existe en nuestro sistema, recibirás un enlace de recuperación."
+            )
+
+        # Verificar que sea un usuario administrativo
+        from app.models.user import UserType
+        admin_roles = [
+            UserType.OWNER,
+            UserType.SUPERUSER,
+            UserType.ADMIN,
+            UserType.ADMIN_SALES,
+            UserType.ADMIN_SUPPORT,
+            UserType.ADMIN_LOGISTICS,
+            UserType.ADMIN_MARKETING
+        ]
+
+        if user.user_type not in admin_roles:
+            logger.warning(f"Password reset solicitado para usuario no-admin", email=request.email, user_type=user.user_type)
+            return PasswordResetResponse(
+                success=True,
+                message="Si el correo existe en nuestro sistema, recibirás un enlace de recuperación."
+            )
+
+        # Generar token de recuperación seguro
+        reset_token = secrets.token_urlsafe(32)
+
+        # Guardar token en base de datos con expiración de 1 hora
+        user.reset_token = reset_token
+        user.reset_token_expires_at = datetime.utcnow() + timedelta(hours=1)
+        await db.commit()
+
+        # Enviar email con enlace de recuperación
+        try:
+            email_service = EmailService()
+            await email_service.send_password_reset_email(
+                to_email=user.email,
+                user_name=user.nombre or user.email.split('@')[0],
+                reset_token=reset_token
+            )
+            logger.info(f"Password reset email enviado", email=user.email)
+        except Exception as email_error:
+            logger.error(f"Error enviando email de reset: {str(email_error)}", email=user.email)
+            # Revertir cambios en BD si falla el envío de email
+            user.reset_token = None
+            user.reset_token_expires_at = None
+            await db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error enviando email de recuperación. Por favor intenta de nuevo."
+            )
+
+        return PasswordResetResponse(
+            success=True,
+            message="Si el correo existe en nuestro sistema, recibirás un enlace de recuperación."
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error en forgot-password: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error procesando solicitud de recuperación"
+        )
+
+
+@router.post("/reset-password", response_model=PasswordResetResponse)
+async def reset_password(
+    request: PasswordResetConfirm,
+    db: AsyncSession = Depends(get_db)
+) -> PasswordResetResponse:
+    """
+    Endpoint para restablecer contraseña con token.
+    Valida el token y actualiza la contraseña del usuario.
+    """
+    try:
+        from sqlalchemy import select
+        from app.core.security import hash_password
+
+        # Buscar usuario por token
+        result = await db.execute(
+            select(User).where(User.reset_token == request.token)
+        )
+        user = result.scalar_one_or_none()
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Token de recuperación inválido o expirado"
+            )
+
+        # Verificar que el token no haya expirado
+        if not user.is_reset_token_valid():
+            # Limpiar token expirado
+            user.reset_token = None
+            user.reset_token_expires_at = None
+            await db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Token de recuperación expirado. Solicita uno nuevo."
+            )
+
+        # Validar que las contraseñas coincidan
+        if request.new_password != request.confirm_password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Las contraseñas no coinciden"
+            )
+
+        # Validar fortaleza de contraseña
+        if len(request.new_password) < 8:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="La contraseña debe tener al menos 8 caracteres"
+            )
+
+        # Actualizar contraseña
+        user.password_hash = await hash_password(request.new_password)
+
+        # Limpiar token de recuperación
+        user.reset_token = None
+        user.reset_token_expires_at = None
+
+        await db.commit()
+
+        # Enviar email de confirmación
+        try:
+            email_service = EmailService()
+            # TODO: Implementar send_password_changed_confirmation_email
+            logger.info(f"Password actualizado exitosamente", email=user.email)
+        except Exception as email_error:
+            logger.error(f"Error enviando email de confirmación: {str(email_error)}", email=user.email)
+            # No fallar si el email de confirmación falla, la contraseña ya fue actualizada
+
+        return PasswordResetResponse(
+            success=True,
+            message="Tu contraseña ha sido actualizada correctamente"
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error en reset-password: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error procesando actualización de contraseña"
         )
