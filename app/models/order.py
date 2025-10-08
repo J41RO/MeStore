@@ -7,6 +7,10 @@ from decimal import Decimal
 from typing import Optional
 import uuid
 
+def generate_uuid():
+    """Generate UUID string for primary keys"""
+    return str(uuid.uuid4())
+
 class OrderStatus(PyEnum):
     PENDING = "pending"
     CONFIRMED = "confirmed"
@@ -27,7 +31,7 @@ class PaymentStatus(PyEnum):
 class Order(Base):
     __tablename__ = "orders"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String(36), primary_key=True, default=generate_uuid, index=True)  # Changed from Integer to String(36)
     order_number = Column(String(50), unique=True, nullable=False, index=True)
     buyer_id = Column(String(36), ForeignKey("users.id"), nullable=False)
     
@@ -95,8 +99,8 @@ class Order(Base):
 class OrderItem(Base):
     __tablename__ = "order_items"
 
-    id = Column(Integer, primary_key=True, index=True)
-    order_id = Column(Integer, ForeignKey("orders.id"), nullable=False)
+    id = Column(String(36), primary_key=True, default=generate_uuid, index=True)  # Changed from Integer to String(36)
+    order_id = Column(String(36), ForeignKey("orders.id"), nullable=False)  # Changed from Integer to String(36)
     product_id = Column(String(36), ForeignKey("products.id"), nullable=False)  # Changed from Integer to String to match Product.id
     
     # Item details at time of purchase
@@ -124,9 +128,9 @@ class OrderItem(Base):
 class OrderTransaction(Base):
     __tablename__ = "order_transactions"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String(36), primary_key=True, default=generate_uuid, index=True)  # Changed from Integer to String(36)
     transaction_reference = Column(String(100), unique=True, nullable=False, index=True)
-    order_id = Column(Integer, ForeignKey("orders.id"), nullable=False)
+    order_id = Column(String(36), ForeignKey("orders.id"), nullable=False)  # Changed from Integer to String(36)
     
     # Payment details - Using DECIMAL for precise amount tracking
     amount = Column(Numeric(10, 2), nullable=False)
@@ -135,7 +139,7 @@ class OrderTransaction(Base):
     
     # Payment method information
     payment_method_type = Column(String(50), nullable=False)  # card, pse, nequi, etc.
-    payment_method_id = Column(Integer, ForeignKey("payment_methods.id"), nullable=True)
+    payment_method_id = Column(String(36), ForeignKey("payment_methods.id"), nullable=True)  # Changed from Integer to String(36)
     
     # Gateway specific data
     gateway = Column(String(50), nullable=False, default="wompi")
@@ -166,7 +170,7 @@ Transaction = OrderTransaction
 class PaymentMethod(Base):
     __tablename__ = "payment_methods"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String(36), primary_key=True, default=generate_uuid, index=True)  # Changed from Integer to String(36)
     buyer_id = Column(String(36), ForeignKey("users.id"), nullable=False)
     
     # Method type and details

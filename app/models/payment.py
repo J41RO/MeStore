@@ -26,9 +26,9 @@ class WebhookEventStatus(PyEnum):
 class Payment(Base):
     __tablename__ = "payments"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()), index=True)  # Changed from Integer to String(36)
     payment_reference = Column(String(100), unique=True, nullable=False, index=True)
-    transaction_id = Column(Integer, ForeignKey("order_transactions.id"), nullable=False)
+    transaction_id = Column(String(36), ForeignKey("order_transactions.id"), nullable=False)  # Changed from Integer to String(36)
     
     # Payment identification
     wompi_transaction_id = Column(String(200), nullable=True, index=True)
@@ -73,9 +73,9 @@ class Payment(Base):
 class WebhookEvent(Base):
     __tablename__ = "webhook_events"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()), index=True)  # Changed from Integer to String(36)
     event_id = Column(String(100), unique=True, nullable=False, index=True)  # Wompi event ID
-    transaction_id = Column(Integer, ForeignKey("order_transactions.id"), nullable=True)
+    transaction_id = Column(String(36), ForeignKey("order_transactions.id"), nullable=True)  # Changed from Integer to String(36)
     
     # Event details
     event_type = Column(Enum(WebhookEventType), nullable=False)
@@ -104,10 +104,10 @@ class WebhookEvent(Base):
 class PaymentRefund(Base):
     __tablename__ = "payment_refunds"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()), index=True)  # Changed from Integer to String(36)
     refund_reference = Column(String(100), unique=True, nullable=False, index=True)
-    payment_id = Column(Integer, ForeignKey("payments.id"), nullable=False)
-    transaction_id = Column(Integer, ForeignKey("order_transactions.id"), nullable=False)
+    payment_id = Column(String(36), ForeignKey("payments.id"), nullable=False)  # Changed from Integer to String(36)
+    transaction_id = Column(String(36), ForeignKey("order_transactions.id"), nullable=False)  # Changed from Integer to String(36)
     
     # Refund details
     refund_amount_in_cents = Column(Integer, nullable=False)
@@ -142,9 +142,9 @@ class PaymentRefund(Base):
 class PaymentIntent(Base):
     __tablename__ = "payment_intents"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()), index=True)  # Changed from Integer to String(36)
     intent_reference = Column(String(100), unique=True, nullable=False, index=True)
-    order_id = Column(Integer, ForeignKey("orders.id"), nullable=False)
+    order_id = Column(String(36), ForeignKey("orders.id"), nullable=False)  # Changed from Integer to String(36)
     
     # Intent details
     amount_in_cents = Column(Integer, nullable=False)
