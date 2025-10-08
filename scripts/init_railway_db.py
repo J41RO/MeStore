@@ -187,11 +187,14 @@ def main():
                     print("✅ Admin user already exists")
                     return
 
+                # Hash password asynchronously
+                hashed_password = await hash_password("Admin123456")
+
                 # Create admin
                 admin = User(
                     id=str(uuid4()),
                     email="admin@mestocker.com",
-                    password_hash=hash_password("Admin123456"),
+                    password_hash=hashed_password,
                     nombre="Admin",
                     apellido="MeStocker",
                     user_type="SUPERUSER",
