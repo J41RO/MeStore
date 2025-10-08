@@ -100,10 +100,10 @@ class UserType(PyEnum):
 class VendorStatus(str, PyEnum):
     """
     Estados granulares para el proceso de onboarding de vendors.
-    
+
     Flujo de estados:
         DRAFT: Registro iniciado, documentos pendientes
-        PENDING_DOCUMENTS: Documentos subidos, pendientes de verificación  
+        PENDING_DOCUMENTS: Documentos subidos, pendientes de verificación
         PENDING_APPROVAL: Documentos verificados, pendiente aprobación admin
         APPROVED: Vendor aprobado y activo
         REJECTED: Vendor rechazado con motivo
@@ -113,6 +113,22 @@ class VendorStatus(str, PyEnum):
     PENDING_APPROVAL = "pending_approval"
     APPROVED = "approved"
     REJECTED = "rejected"
+
+
+class AccountStatus(str, PyEnum):
+    """
+    Estados de la cuenta de usuario.
+
+    Flujo de estados:
+        PENDING: Cuenta creada, pendiente de verificación email/phone
+        ACTIVE: Cuenta verificada y activa
+        SUSPENDED: Cuenta suspendida temporalmente (por admin o sistema)
+        DELETED: Cuenta eliminada (soft delete)
+    """
+    PENDING = "pending"
+    ACTIVE = "active"
+    SUSPENDED = "suspended"
+    DELETED = "deleted"
 
 
 class User(BaseModel):
@@ -309,6 +325,14 @@ class User(BaseModel):
         nullable=True,
         default=VendorStatus.DRAFT,
         comment="Estado específico del proceso de onboarding de vendor"
+    )
+
+    account_status = Column(
+        Enum(AccountStatus),
+        nullable=False,
+        default=AccountStatus.PENDING,
+        server_default='pending',
+        comment="Estado general de la cuenta: pending, active, suspended, deleted"
     )
 
     is_active = Column(

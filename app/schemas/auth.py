@@ -307,3 +307,123 @@ class PasswordResetResponse(BaseModel):
 
     success: bool = Field(..., description="Indica si la operación fue exitosa")
     message: str = Field(..., description="Mensaje descriptivo del resultado")
+
+
+# === CUSTOMER REGISTRATION SCHEMAS ===
+
+class CustomerRegisterRequest(BaseModel):
+    """Esquema para registro de nuevo comprador/customer."""
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "email": "cliente@ejemplo.com",
+                "password": "MiPassword123",
+                "confirm_password": "MiPassword123",
+                "first_name": "Juan",
+                "last_name": "Pérez",
+                "phone": "+573001234567"
+            }
+        }
+    )
+
+    email: EmailStr = Field(..., description="Email del usuario")
+    password: str = Field(..., min_length=8, max_length=128, description="Contraseña (mínimo 8 caracteres)")
+    confirm_password: str = Field(..., min_length=8, max_length=128, description="Confirmación de contraseña")
+    first_name: str = Field(..., min_length=2, max_length=50, description="Nombre(s)")
+    last_name: str = Field(..., min_length=2, max_length=50, description="Apellido(s)")
+    phone: str = Field(..., pattern=r'^\+[1-9]\d{1,14}$', description="Teléfono en formato internacional E.164 (+573001234567)")
+
+    @field_validator('confirm_password')
+    @classmethod
+    def passwords_match(cls, v: str, info) -> str:
+        """Valida que las contraseñas coincidan."""
+        if 'password' in info.data and v != info.data['password']:
+            raise ValueError('Las contraseñas no coinciden')
+        return v
+
+    @field_validator('password')
+    @classmethod
+    def password_strength(cls, v: str) -> str:
+        """Valida la fortaleza de la contraseña."""
+        import re
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('La contraseña debe contener al menos una letra mayúscula')
+        if not re.search(r'[a-z]', v):
+            raise ValueError('La contraseña debe contener al menos una letra minúscula')
+        if not re.search(r'\d', v):
+            raise ValueError('La contraseña debe contener al menos un número')
+        return v
+
+
+class CustomerRegisterResponse(BaseModel):
+    """Respuesta del registro de customer."""
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "success": True,
+                "message": "Registro exitoso. Por favor verifica tu email y teléfono.",
+                "user_id": "uuid-here",
+                "email": "cliente@ejemplo.com",
+                "phone": "+573001234567",
+                "account_status": "pending"
+            }
+        }
+    )
+
+    success: bool = Field(..., description="Indica si el registro fue exitoso")
+    message: str = Field(..., description="Mensaje descriptivo")
+    user_id: str = Field(..., description="ID del usuario creado")
+    email: str = Field(..., description="Email registrado")
+    phone: str = Field(..., description="Teléfono registrado")
+    account_status: str = Field(..., description="Estado de la cuenta (pending, active, suspended)")
+
+
+class VerifyEmailRequest(BaseModel):
+    """Esquema para verificar email con código."""
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "email": "cliente@ejemplo.com",
+                "code": "123456"
+            }
+        }
+    )
+
+    email: EmailStr = Field(..., description="Email a verificar")
+    code: str = Field(..., min_length=6, max_length=6, pattern=r'^\d{6}$', description="Código de 6 dígitos")
+
+
+class VerifyPhoneRequest(BaseModel):
+    """Esquema para verificar teléfono con código."""
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "phone": "+573001234567",
+                "code": "123456"
+            }
+        }
+    )
+
+    phone: str = Field(..., pattern=r'^\+[1-9]\d{1,14}$', description="Teléfono en formato E.164")
+    code: str = Field(..., min_length=6, max_length=6, pattern=r'^\d{6}$', description="Código de 6 dígitos")
+
+
+class VerificationResponse(BaseModel):
+    """Respuesta de verificación de email o phone."""
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "success": True,
+                "message": "Teléfono verificado exitosamente",
+                "email_verified": True,
+                "phone_verified": True,
+                "account_active": True
+            }
+        }
+    )
+
+    success: bool = Field(..., description="Indica si la verificación fue exitosa")
+    message: str = Field(..., description="Mensaje descriptivo")
+    email_verified: bool = Field(..., description="Si el email está verificado")
+    phone_verified: bool = Field(..., description="Si el teléfono está verificado")
+    account_active: bool = Field(..., description="Si la cuenta está activa (ambos verificados)")
