@@ -14,6 +14,7 @@ from app.core.integrated_auth import integrated_auth_service
 from app.services.auth_service import AuthService  # Fallback legacy
 from app.core.database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from app.models.user import User
 from app.services.audit_logging_service import EnterpriseAuditLoggingService
 from app.core.security import decode_access_token, decode_refresh_token, create_access_token, create_refresh_token
