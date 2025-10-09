@@ -1,0 +1,34 @@
+[32m2025-10-09 11:32:54[0m | [33m[1mWARNING [0m | [36mapp.services.smtp_email_service[0m:[36m__init__[0m:[36m62[0m | [33m[1mEMAIL_HOST_USER o EMAIL_HOST_PASSWORD no configurados. Email service en modo simulación[0m
+[32m2025-10-09 11:32:54[0m | [33m[1mWARNING [0m | [36mapp.services.smtp_email_service[0m:[36m__init__[0m:[36m62[0m | [33m[1mEMAIL_HOST_USER o EMAIL_HOST_PASSWORD no configurados. Email service en modo simulación[0m
+[32m2025-10-09 11:32:54[0m | [1mINFO    [0m | [36mapp.services.sms_service[0m:[36m__init__[0m:[36m70[0m | [1mSMS Service inicializado correctamente con Twilio[0m
+[32m2025-10-09 11:32:57[0m | [1mINFO    [0m | [36mapp.main[0m:[36m<module>[0m:[36m18[0m | [1mDEBUG: Starting imports in main.py[0m
+[32m2025-10-09 11:32:57[0m | [1mINFO    [0m | [36mapp.main[0m:[36m<module>[0m:[36m23[0m | [1mDEBUG: Heavy services disabled for fast startup[0m
+[32m2025-10-09 11:32:57[0m | [34m[1mDEBUG   [0m | [36mpasslib.utils.compat[0m:[36m__getattr__[0m:[36m449[0m | [34m[1mloaded lazy attr 'SafeConfigParser': <class 'configparser.ConfigParser'>[0m
+[32m2025-10-09 11:32:57[0m | [34m[1mDEBUG   [0m | [36mpasslib.utils.compat[0m:[36m__getattr__[0m:[36m449[0m | [34m[1mloaded lazy attr 'NativeStringIO': <class '_io.StringIO'>[0m
+[32m2025-10-09 11:32:57[0m | [34m[1mDEBUG   [0m | [36mpasslib.utils.compat[0m:[36m__getattr__[0m:[36m449[0m | [34m[1mloaded lazy attr 'BytesIO': <class '_io.BytesIO'>[0m
+[32m2025-10-09 11:32:57[0m | [34m[1mDEBUG   [0m | [36mpasslib.registry[0m:[36mregister_crypt_handler[0m:[36m296[0m | [34m[1mregistered 'bcrypt' handler: <class 'passlib.handlers.bcrypt.bcrypt'>[0m
+ImportError while loading conftest '/home/admin-jairo/MeStore/tests/conftest.py'.
+tests/conftest.py:30: in <module>
+    from app.main import app
+app/main.py:25: in <module>
+    from app.api.v1 import api_router
+app/api/v1/__init__.py:14: in <module>
+    from app.api.v1.endpoints.auth import router as auth_router
+app/api/v1/endpoints/auth.py:13: in <module>
+    from app.core.integrated_auth import integrated_auth_service
+app/core/integrated_auth.py:25: in <module>
+    from app.services.secure_auth_service import SecureAuthService, SecurityAuditLogger
+app/services/secure_auth_service.py:37: in <module>
+    from app.core.security import create_access_token, create_refresh_token, decode_access_token
+app/core/security.py:204: in <module>
+    encryption_manager = EncryptionManager()
+                         ^^^^^^^^^^^^^^^^^^^
+app/core/security.py:99: in __init__
+    self._initialize_encryption()
+app/core/security.py:128: in _initialize_encryption
+    kdf = PBKDF2HMAC(
+.venv/lib/python3.11/site-packages/cryptography/hazmat/primitives/kdf/pbkdf2.py:35: in __init__
+    raise UnsupportedAlgorithm(
+E   cryptography.exceptions.UnsupportedAlgorithm: sha256 is not supported for PBKDF2.
+2025-10-09 11:32:54 [info     ] Encryption manager initialized successfully key_length=32 salt_length=16
+2025-10-09 11:32:57 [error    ] Failed to initialize encryption manager error='sha256 is not supported for PBKDF2.'
