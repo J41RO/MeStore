@@ -424,7 +424,7 @@ async def register(
 # ===== OTP/SMS VERIFICATION ENDPOINTS =====
 
 @router.post("/send-verification-email", response_model=OTPResponse, status_code=status.HTTP_200_OK)
-async def send_verification_email(
+async def send_verification_email_endpoint(
     request: OTPSendRequest,
     current_user: User = Depends(get_current_user_clean),
     db: AsyncSession = Depends(get_db),
@@ -480,7 +480,7 @@ async def send_verification_email(
 
 
 @router.post("/send-verification-sms", response_model=OTPResponse, status_code=status.HTTP_200_OK)
-async def send_verification_sms(
+async def send_verification_sms_endpoint(
     request: OTPSendRequest,
     current_user: User = Depends(get_current_user_clean),
     db: AsyncSession = Depends(get_db),
