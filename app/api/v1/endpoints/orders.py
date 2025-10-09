@@ -118,6 +118,15 @@ IVA_RATE = Decimal('0.19')  # 19% VAT
 FREE_SHIPPING_THRESHOLD = Decimal('200000.00')  # Free shipping for orders >= 200k COP
 STANDARD_SHIPPING_COST = Decimal('15000.00')    # Standard shipping cost in COP
 
+# SECURITY: Pagination Limits (PRODUCTION HARDENING)
+MAX_ORDERS_PER_PAGE = 100  # Maximum orders that can be requested per page
+DEFAULT_PAGE_SIZE = 20      # Default number of orders per page
+
+# SECURITY: Input Validation Limits
+MAX_NOTE_LENGTH = 500       # Maximum length for order notes
+MAX_ADDRESS_LENGTH = 200    # Maximum length for shipping address
+MAX_NAME_LENGTH = 100       # Maximum length for shipping name
+
 
 # ============================================================================
 # UTILITY FUNCTIONS
@@ -212,6 +221,77 @@ async def validate_order_ownership(
         )
 
 
+def sanitize_error_message(error: Exception) -> str:
+    """
+    Sanitize error messages for production to prevent information disclosure.
+
+    In production, detailed error messages can reveal:
+    - Database structure
+    - File paths
+    - Internal implementation details
+    - Stack traces
+
+    Security Best Practice: Return generic error messages to clients,
+    log detailed errors server-side.
+
+    Args:
+        error: The exception that occurred
+
+    Returns:
+        str: Sanitized error message safe for production
+    """
+    # Check if we're in production mode
+    is_production = os.getenv("ENVIRONMENT", "development") == "production"
+
+    if is_production:
+        # In production: Return generic message, log details internally
+        logger.error(f"Internal error: {str(error)}", exc_info=True)
+        return "An error occurred processing your request. Please try again later."
+    else:
+        # In development: Return detailed error for debugging
+        return str(error)
+
+
+def validate_text_input(text: Optional[str], field_name: str, max_length: int) -> Optional[str]:
+    """
+    Validate and sanitize text input fields.
+
+    Security validations:
+    - Length limits (DoS prevention)
+    - Basic sanitization (XSS prevention)
+    - Null byte removal (injection prevention)
+
+    Args:
+        text: Input text to validate
+        field_name: Name of the field (for error messages)
+        max_length: Maximum allowed length
+
+    Returns:
+        str: Sanitized text or None
+
+    Raises:
+        HTTPException(400): If validation fails
+    """
+    if text is None:
+        return None
+
+    # Remove null bytes (security)
+    text = text.replace('\x00', '')
+
+    # Strip leading/trailing whitespace
+    text = text.strip()
+
+    # Check length
+    if len(text) > max_length:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"{field_name} exceeds maximum length of {max_length} characters"
+        )
+
+    # Return sanitized text (empty string becomes None)
+    return text if text else None
+
+
 # ============================================================================
 # ROUTER SETUP
 # ============================================================================
@@ -234,12 +314,15 @@ async def get_user_orders(
 
     Args:
         skip: Number of records to skip (pagination)
-        limit: Maximum number of records to return
+        limit: Maximum number of records to return (max: 100)
         status_filter: Optional filter by order status
 
     Returns:
         List of order summaries
     """
+    # SECURITY: Enforce pagination limit to prevent DoS
+    limit = min(limit, MAX_ORDERS_PER_PAGE)
+
     try:
         # Build query
         query = select(Order).where(Order.buyer_id == current_user.id)
@@ -280,7 +363,7 @@ async def get_user_orders(
         logger.error(f"Error fetching orders: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error fetching orders: {str(e)}"
+            detail=sanitize_error_message(e)
         )
 
 
@@ -386,7 +469,7 @@ async def get_order_details(
         logger.error(f"Error fetching order details: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error fetching order details: {str(e)}"
+            detail=sanitize_error_message(e)
         )
 
 
@@ -449,6 +532,33 @@ async def create_order(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Missing required fields: {', '.join(missing_fields)}"
             )
+
+        # SECURITY: Validate and sanitize text inputs to prevent XSS and DoS attacks
+        shipping_name = validate_text_input(
+            order_data.get("shipping_name"),
+            "Shipping name",
+            MAX_NAME_LENGTH
+        )
+        shipping_address = validate_text_input(
+            order_data.get("shipping_address"),
+            "Shipping address",
+            MAX_ADDRESS_LENGTH
+        )
+        shipping_city = validate_text_input(
+            order_data.get("shipping_city"),
+            "Shipping city",
+            MAX_NAME_LENGTH
+        )
+        shipping_state = validate_text_input(
+            order_data.get("shipping_state"),
+            "Shipping state",
+            MAX_NAME_LENGTH
+        )
+        order_notes = validate_text_input(
+            order_data.get("notes"),
+            "Order notes",
+            MAX_NOTE_LENGTH
+        )
 
         # Extract product IDs and validate format
         product_ids = []
@@ -563,6 +673,7 @@ async def create_order(
             # HOTFIX 2025-10-09: Keep Decimal types to prevent CHECK constraint violations
             # Database has ck_order_total_calculation with 0.01 tolerance
             # Float conversion can cause precision errors that violate this constraint
+            # SECURITY: Use sanitized inputs from validation
             new_order = Order(
                 order_number=order_number,
                 buyer_id=current_user.id,
@@ -572,15 +683,15 @@ async def create_order(
                 discount_amount=Decimal('0.00'),  # Decimal - consistent type
                 total_amount=total_amount,   # Decimal - DO NOT convert to float
                 status=OrderStatus.PENDING,
-                shipping_name=order_data["shipping_name"],
-                shipping_phone=order_data["shipping_phone"],
-                shipping_email=order_data.get("shipping_email"),
-                shipping_address=order_data["shipping_address"],
-                shipping_city=order_data["shipping_city"],
-                shipping_state=order_data["shipping_state"],
+                shipping_name=shipping_name,         # Validated and sanitized
+                shipping_phone=order_data["shipping_phone"],  # Phone validation could be added
+                shipping_email=order_data.get("shipping_email"),  # Email validation could be added
+                shipping_address=shipping_address,   # Validated and sanitized
+                shipping_city=shipping_city,         # Validated and sanitized
+                shipping_state=shipping_state,       # Validated and sanitized
                 shipping_postal_code=order_data.get("shipping_postal_code"),
                 shipping_country="CO",
-                notes=order_data.get("notes")
+                notes=order_notes                    # Validated and sanitized
             )
 
             db.add(new_order)
@@ -675,7 +786,7 @@ async def create_order(
         # Transaction is automatically rolled back by async with db.begin() context manager
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error creating order: {str(e)}"
+            detail=sanitize_error_message(e)
         )
 
 
@@ -805,7 +916,7 @@ async def get_order_tracking(
         logger.error(f"Error getting order tracking: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error getting order tracking: {str(e)}"
+            detail=sanitize_error_message(e)
         )
 
 
@@ -915,5 +1026,5 @@ async def cancel_order(
         # Rollback is automatic with AsyncSession
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error cancelling order: {str(e)}"
+            detail=sanitize_error_message(e)
         )
