@@ -480,14 +480,17 @@ async def create_order(
             order_number = generate_order_number()
 
             # Create Order
+            # HOTFIX 2025-10-09: Keep Decimal types to prevent CHECK constraint violations
+            # Database has ck_order_total_calculation with 0.01 tolerance
+            # Float conversion can cause precision errors that violate this constraint
             new_order = Order(
                 order_number=order_number,
                 buyer_id=current_user.id,
-                subtotal=float(subtotal),
-                tax_amount=float(tax_amount),
-                shipping_cost=float(shipping_cost),
-                discount_amount=0.0,
-                total_amount=float(total_amount),
+                subtotal=subtotal,           # Decimal - DO NOT convert to float
+                tax_amount=tax_amount,       # Decimal - DO NOT convert to float
+                shipping_cost=shipping_cost, # Decimal - DO NOT convert to float
+                discount_amount=Decimal('0.00'),  # Decimal - consistent type
+                total_amount=total_amount,   # Decimal - DO NOT convert to float
                 status=OrderStatus.PENDING,
                 shipping_name=order_data["shipping_name"],
                 shipping_phone=order_data["shipping_phone"],
@@ -516,15 +519,16 @@ async def create_order(
                 if hasattr(product, 'images') and product.images:
                     product_image_url = product.images[0].url if product.images[0].url else None
 
+                # HOTFIX 2025-10-09: Keep Decimal types for OrderItems too
                 order_item = OrderItem(
                     order_id=new_order.id,
                     product_id=product.id,  # Store as string UUID
                     product_name=product.name,
                     product_sku=product.sku,
                     product_image_url=product_image_url,
-                    unit_price=float(unit_price),
+                    unit_price=unit_price,   # Decimal - DO NOT convert to float
                     quantity=quantity,
-                    total_price=float(item_total),
+                    total_price=item_total,  # Decimal - DO NOT convert to float
                     variant_attributes=None  # Future support for variants
                 )
 
