@@ -57,26 +57,18 @@ const MarketplaceHome: React.FC<MarketplaceHomeProps> = () => {
     try {
       setIsLoading(true);
 
-      // Try to fetch from dedicated featured endpoint
-      try {
-        const response = await api.marketplace.getFeatured();
-        setFeaturedProducts(response.data || []);
-      } catch (featuredError) {
-        console.log('Featured endpoint not available, using fallback');
+      // Fetch APPROVED products directly from products endpoint
+      const response = await api.products.getAll({
+        status: 'APPROVED',
+        limit: 6,
+        sort_by: 'salesCount',
+        sort_order: 'desc',
+        in_stock: true
+      });
 
-        // Fallback: Get regular products with high rating/sales
-        // Fetch approved products sorted by sales or rating
-        const fallbackResponse = await api.products.getAll({
-          limit: 6,
-          sort_by: 'salesCount',
-          sort_order: 'desc',
-          in_stock: true
-        });
-
-        // Handle paginated response
-        const products = fallbackResponse.data?.data || fallbackResponse.data || [];
-        setFeaturedProducts(products.slice(0, 6));
-      }
+      // Handle paginated response
+      const products = response.data?.data || response.data || [];
+      setFeaturedProducts(products.slice(0, 6));
     } catch (error) {
       console.error('Error loading featured products:', error);
       setFeaturedProducts([]);
