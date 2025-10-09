@@ -61,7 +61,12 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
     setIsZoomed(!isZoomed);
   };
 
-  const getImageUrl = (url: string) => {
+  const getImageUrl = (url: string | undefined) => {
+    // Handle undefined or null URLs
+    if (!url) {
+      return 'https://via.placeholder.com/600x600?text=Sin+Imagen';
+    }
+
     // If the URL is already absolute, use it as is
     if (url.startsWith('http://') || url.startsWith('https://')) {
       return url;
