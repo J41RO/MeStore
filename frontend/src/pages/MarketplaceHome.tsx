@@ -61,9 +61,9 @@ const MarketplaceHome: React.FC<MarketplaceHomeProps> = () => {
       const response = await api.products.getAll({
         status: 'APPROVED',
         limit: 6,
-        sort_by: 'salesCount',
-        sort_order: 'desc',
-        in_stock: true
+        sort_by: 'created_at',  // Use valid sort field from backend
+        sort_order: 'desc'
+        // Removed in_stock parameter which requires JOIN with inventory
       });
 
       // Handle paginated response
