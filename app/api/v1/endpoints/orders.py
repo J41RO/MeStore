@@ -109,10 +109,33 @@ async def get_current_user_for_orders(
 
 
 # ============================================================================
+# BUSINESS CONSTANTS
+# ============================================================================
+# Colombian Tax Rate (IVA)
+IVA_RATE = Decimal('0.19')  # 19% VAT
+
+# Shipping Configuration
+FREE_SHIPPING_THRESHOLD = Decimal('200000.00')  # Free shipping for orders >= 200k COP
+STANDARD_SHIPPING_COST = Decimal('15000.00')    # Standard shipping cost in COP
+
+
+# ============================================================================
 # UTILITY FUNCTIONS
 # ============================================================================
 def generate_order_number() -> str:
-    """Generate unique order number with format: ORD-YYYYMMDD-XXXXXXXX"""
+    """
+    Generate unique order number with format: ORD-YYYYMMDD-XXXXXXXX.
+
+    Format:
+    - Prefix: ORD
+    - Date: YYYYMMDD (20251009)
+    - Random ID: 8 hex characters
+
+    Example: ORD-20251009-A1B2C3D4
+
+    Returns:
+        str: Unique order number
+    """
     order_uuid = uuid.uuid4()
     order_number = f"ORD-{datetime.now().strftime('%Y%m%d')}-{order_uuid.hex[:8].upper()}"
     return order_number
@@ -120,18 +143,21 @@ def generate_order_number() -> str:
 
 def calculate_shipping_cost(subtotal: Decimal) -> Decimal:
     """
-    Calculate shipping cost based on subtotal.
+    Calculate shipping cost based on order subtotal.
 
-    Rules:
+    Business Rules:
     - Free shipping for orders >= 200,000 COP
-    - Standard shipping: 15,000 COP
-    """
-    FREE_SHIPPING_THRESHOLD = Decimal('200000.00')
-    STANDARD_SHIPPING = Decimal('15000.00')
+    - Standard shipping: 15,000 COP for orders below threshold
 
+    Args:
+        subtotal: Order subtotal amount before shipping
+
+    Returns:
+        Decimal: Shipping cost (0.00 for free shipping or 15000.00)
+    """
     if subtotal >= FREE_SHIPPING_THRESHOLD:
         return Decimal('0.00')
-    return STANDARD_SHIPPING
+    return STANDARD_SHIPPING_COST
 
 
 def calculate_tax(subtotal: Decimal) -> Decimal:
@@ -142,10 +168,48 @@ def calculate_tax(subtotal: Decimal) -> Decimal:
         subtotal: Pre-tax amount
 
     Returns:
-        Tax amount (19% of subtotal)
+        Decimal: Tax amount (19% of subtotal)
+
+    Example:
+        >>> calculate_tax(Decimal('100000'))
+        Decimal('19000.00')
     """
-    IVA_RATE = Decimal('0.19')
     return subtotal * IVA_RATE
+
+
+async def validate_order_ownership(
+    order: Order,
+    current_user,
+    order_id: int
+) -> None:
+    """
+    Validate that the current user owns the specified order.
+
+    This helper function consolidates ownership validation logic that was
+    previously duplicated across multiple endpoints.
+
+    Args:
+        order: Order object to validate (can be None)
+        current_user: Authenticated user making the request
+        order_id: Order ID being accessed
+
+    Raises:
+        HTTPException(404): If order is not found
+        HTTPException(403): If user is not the owner of the order
+    """
+    # Validate order exists
+    if not order:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Order {order_id} not found"
+        )
+
+    # Security: Validate ownership
+    if order.buyer_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not authorized to access this order"
+        )
 
 
 # ============================================================================
@@ -247,17 +311,25 @@ async def get_order_details(
     """
     Get detailed information for a specific order.
 
+    Security:
+    - Requires authentication
+    - User can only access their own orders (ownership validation)
+
     Args:
         order_id: Order ID
 
     Returns:
         Complete order details with items
+
+    Raises:
+        401: If not authenticated
+        403: If user is not the owner
+        404: If order not found
     """
     try:
         # Query order with eager loading
         query = select(Order).where(
-            Order.id == order_id,
-            Order.buyer_id == current_user.id
+            Order.id == order_id
         ).options(
             selectinload(Order.items),
             selectinload(Order.buyer)
@@ -266,11 +338,8 @@ async def get_order_details(
         result = await db.execute(query)
         order = result.scalar_one_or_none()
 
-        if not order:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Order {order_id} not found"
-            )
+        # REFACTOR: Use consolidated ownership validation
+        await validate_order_ownership(order, current_user, order_id)
 
         # Format response
         return {
@@ -646,19 +715,8 @@ async def get_order_tracking(
         result = await db.execute(query)
         order = result.scalar_one_or_none()
 
-        # Validate order exists
-        if not order:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Order {order_id} not found"
-            )
-
-        # Security: Validate ownership
-        if order.buyer_id != current_user.id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You are not authorized to view this order's tracking information"
-            )
+        # REFACTOR: Use consolidated ownership validation
+        await validate_order_ownership(order, current_user, order_id)
 
         # Build tracking timeline based on order status and timestamps
         tracking_history = []
@@ -791,19 +849,8 @@ async def cancel_order(
         result = await db.execute(query)
         order = result.scalar_one_or_none()
 
-        # Validate order exists
-        if not order:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Order {order_id} not found"
-            )
-
-        # Security: Validate ownership
-        if order.buyer_id != current_user.id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You are not authorized to cancel this order"
-            )
+        # REFACTOR: Use consolidated ownership validation
+        await validate_order_ownership(order, current_user, order_id)
 
         # Business Rule: Check if order can be cancelled
         if order.status == OrderStatus.CANCELLED:
