@@ -43,8 +43,8 @@ from fastapi.testclient import TestClient
 from typing import Dict, Any
 from uuid import uuid4
 
-# Import fixtures
-pytest_plugins = ["tests.fixtures.orders.conftest"]
+# Use fixtures from main conftest.py
+# pytest_plugins removed - using auto-discovery
 
 
 # ============================================================================
@@ -77,17 +77,17 @@ def test_user_cannot_view_other_user_order(
     - SHOULD PASS if buyer_id filter works
     """
     # Arrange: Create User A's token
-    from tests.fixtures.orders.conftest import create_test_jwt_token
+    from app.core.security import create_access_token
 
     user_a_data = {
-        "id": str(uuid4()),
+        "sub": str(uuid4()),
         "email": "user_a@test.com",
         "nombre": "User A",
         "user_type": "CUSTOMER",
         "is_active": True,
         "is_verified": True
     }
-    user_a_token = create_test_jwt_token(user_a_data)
+    user_a_token = create_access_token(data=user_a_data)
     user_a_headers = {"Authorization": f"Bearer {user_a_token}"}
 
     # SIMULATION: Assume User A created order_id = 12345
@@ -135,18 +135,18 @@ def test_user_cannot_cancel_other_user_order(
     - SHOULD PASS if validation exists (line 720)
     - MIGHT FAIL if ownership check missing
     """
-    from tests.fixtures.orders.conftest import create_test_jwt_token
+    from app.core.security import create_access_token
 
     # Arrange: Create User A
     user_a_data = {
-        "id": str(uuid4()),
+        "sub": str(uuid4()),
         "email": "user_a_cancel@test.com",
         "nombre": "User A",
         "user_type": "CUSTOMER",
         "is_active": True,
         "is_verified": True
     }
-    user_a_token = create_test_jwt_token(user_a_data)
+    user_a_token = create_access_token(data=user_a_data)
     user_a_headers = {"Authorization": f"Bearer {user_a_token}"}
 
     # Simulate User A's order
@@ -197,18 +197,18 @@ def test_user_cannot_track_other_user_order(
     - SHOULD PASS if validation exists (line 575)
     - MIGHT FAIL if check missing
     """
-    from tests.fixtures.orders.conftest import create_test_jwt_token
+    from app.core.security import create_access_token
 
     # Arrange: Create User A
     user_a_data = {
-        "id": str(uuid4()),
+        "sub": str(uuid4()),
         "email": "user_a_track@test.com",
         "nombre": "User A",
         "user_type": "CUSTOMER",
         "is_active": True,
         "is_verified": True
     }
-    user_a_token = create_test_jwt_token(user_a_data)
+    user_a_token = create_access_token(data=user_a_data)
     user_a_headers = {"Authorization": f"Bearer {user_a_token}"}
 
     # Simulate User A's order
@@ -295,29 +295,29 @@ def test_user_list_only_shows_own_orders(
     - MIGHT FAIL if we had test data to verify
     - Conceptual test - validates query logic
     """
-    from tests.fixtures.orders.conftest import create_test_jwt_token
+    from app.core.security import create_access_token
 
     # Create two different users
     user_1_data = {
-        "id": str(uuid4()),
+        "sub": str(uuid4()),
         "email": "user1_list@test.com",
-        "nome": "User 1",
+        "nombre": "User 1",
         "user_type": "CUSTOMER",
         "is_active": True,
         "is_verified": True
     }
-    user_1_token = create_test_jwt_token(user_1_data)
+    user_1_token = create_access_token(data=user_1_data)
     user_1_headers = {"Authorization": f"Bearer {user_1_token}"}
 
     user_2_data = {
-        "id": str(uuid4()),
+        "sub": str(uuid4()),
         "email": "user2_list@test.com",
         "nombre": "User 2",
         "user_type": "CUSTOMER",
         "is_active": True,
         "is_verified": True
     }
-    user_2_token = create_test_jwt_token(user_2_data)
+    user_2_token = create_access_token(data=user_2_data)
     user_2_headers = {"Authorization": f"Bearer {user_2_token}"}
 
     # Act: Get orders for both users
@@ -349,7 +349,7 @@ def test_user_list_only_shows_own_orders(
 @pytest.mark.auth
 def test_admin_can_view_all_orders(
     client: TestClient,
-    admin_auth_headers: Dict[str, str]
+    auth_headers_admin: Dict[str, str]
 ):
     """
     Test that ADMIN/SUPERUSER has elevated access to view any order.
@@ -371,7 +371,7 @@ def test_admin_can_view_all_orders(
     # Act: Try admin endpoint (if exists)
     response_admin_endpoint = client.get(
         "/api/v1/admin/orders/",
-        headers=admin_auth_headers
+        headers=auth_headers_admin
     )
 
     # If admin endpoint exists, should be 200
@@ -399,7 +399,7 @@ def test_admin_can_view_all_orders(
 @pytest.mark.auth
 def test_admin_can_view_specific_order(
     client: TestClient,
-    admin_auth_headers: Dict[str, str]
+    auth_headers_admin: Dict[str, str]
 ):
     """
     Test that ADMIN can view details of any order by ID.
@@ -418,7 +418,7 @@ def test_admin_can_view_specific_order(
     # Act: Admin tries to view any order
     response = client.get(
         f"/api/v1/orders/{any_order_id}",
-        headers=admin_auth_headers
+        headers=auth_headers_admin
     )
 
     # NOTE: This test is conceptual

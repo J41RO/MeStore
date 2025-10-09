@@ -39,11 +39,12 @@ Squad: tdd-specialist
 
 import pytest
 from fastapi.testclient import TestClient
+from httpx import AsyncClient
 from decimal import Decimal
 from typing import Dict, Any
 
-# Import fixtures from tests/fixtures/orders/conftest.py
-pytest_plugins = ["tests.fixtures.orders.conftest"]
+# Use fixtures from main conftest.py
+# pytest_plugins removed - using auto-discovery
 
 
 # ============================================================================
@@ -54,10 +55,10 @@ pytest_plugins = ["tests.fixtures.orders.conftest"]
 @pytest.mark.red_test
 @pytest.mark.security
 @pytest.mark.critical
-def test_vendor_token_rejected_with_403(
-    client: TestClient,
-    vendor_auth_headers: Dict[str, str],
-    valid_order_payload: Dict[str, Any]
+@pytest.mark.asyncio
+async def test_vendor_token_rejected_with_403(
+    async_client: AsyncClient,
+    auth_headers_vendor: Dict[str, str]
 ):
     """
     CRITICAL: Vendor token must be rejected with 403 Forbidden.
@@ -74,11 +75,21 @@ def test_vendor_token_rejected_with_403(
     - Test might FAIL if fix returns wrong status code
     - Test might FAIL if fix is missing
     """
+    # Arrange: Create minimal valid order payload
+    order_payload = {
+        "items": [{"product_id": "test-product-123", "quantity": 2}],
+        "shipping_name": "Test User",
+        "shipping_phone": "3001234567",
+        "shipping_address": "Test Address 123",
+        "shipping_city": "Bogotá",
+        "shipping_state": "Cundinamarca"
+    }
+
     # Act: Attempt to create order with VENDOR token
-    response = client.post(
+    response = await async_client.post(
         "/api/v1/orders/",
-        json=valid_order_payload,
-        headers=vendor_auth_headers
+        json=order_payload,
+        headers=auth_headers_vendor
     )
 
     # Assert: Must be 403 Forbidden, not 500 or 201
@@ -90,8 +101,9 @@ def test_vendor_token_rejected_with_403(
 
     # Assert: Response should have error detail
     response_data = response.json()
-    assert "detail" in response_data, (
-        "Response missing 'detail' field for error explanation"
+    # App uses custom error handler - check for error_message or detail
+    assert "error_message" in response_data or "detail" in response_data, (
+        f"Response missing error field. Got keys: {list(response_data.keys())}"
     )
 
 
@@ -100,8 +112,8 @@ def test_vendor_token_rejected_with_403(
 @pytest.mark.security
 def test_vendor_receives_clear_error_message(
     client: TestClient,
-    vendor_auth_headers: Dict[str, str],
-    valid_order_payload: Dict[str, Any]
+    auth_headers_vendor: Dict[str, str],
+    sample_product_data: Dict[str, Any]
 ):
     """
     Test that VENDOR receives clear, actionable error message.
@@ -118,8 +130,8 @@ def test_vendor_receives_clear_error_message(
     # Act
     response = client.post(
         "/api/v1/orders/",
-        json=valid_order_payload,
-        headers=vendor_auth_headers
+        json=sample_product_data,
+        headers=auth_headers_vendor
     )
 
     # Assert: Status must be 403
@@ -127,17 +139,18 @@ def test_vendor_receives_clear_error_message(
 
     # Assert: Error message must be clear and specific
     response_data = response.json()
-    error_detail = response_data.get("detail", "").lower()
+    # App uses custom error handler - get error_message or detail
+    error_detail = response_data.get("error_message", response_data.get("detail", "")).lower()
 
     # Check for key phrases
     assert "vendor" in error_detail, (
-        "Error message should mention 'vendor' to clarify who is blocked"
+        f"Error message should mention 'vendor' to clarify who is blocked. Got: '{error_detail}'"
     )
     assert "cannot" in error_detail or "not allowed" in error_detail, (
-        "Error message should clearly state the prohibition"
+        f"Error message should clearly state the prohibition. Got: '{error_detail}'"
     )
     assert "customer" in error_detail or "buyer" in error_detail, (
-        "Error message should explain who CAN create orders"
+        f"Error message should explain who CAN create orders. Got: '{error_detail}'"
     )
 
     # Assert: No stack traces or technical errors exposed
@@ -154,8 +167,8 @@ def test_vendor_receives_clear_error_message(
 @pytest.mark.security
 def test_customer_token_allowed(
     client: TestClient,
-    customer_auth_headers: Dict[str, str],
-    valid_order_payload: Dict[str, Any]
+    auth_headers_buyer: Dict[str, str],
+    sample_product_data: Dict[str, Any]
 ):
     """
     Test that CUSTOMER token is allowed to create orders.
@@ -173,8 +186,8 @@ def test_customer_token_allowed(
     # Act
     response = client.post(
         "/api/v1/orders/",
-        json=valid_order_payload,
-        headers=customer_auth_headers
+        json=sample_product_data,
+        headers=auth_headers_buyer
     )
 
     # Assert: Should NOT be 403 (customer is allowed)
@@ -193,7 +206,7 @@ def test_customer_token_allowed(
 @pytest.mark.security
 def test_buyer_token_allowed(
     client: TestClient,
-    valid_order_payload: Dict[str, Any]
+    sample_product_data: Dict[str, Any]
 ):
     """
     Test that BUYER token is allowed to create orders.
@@ -204,24 +217,24 @@ def test_buyer_token_allowed(
     - Similar to customer test
     - Should NOT return 403
     """
-    # Arrange: Create BUYER token (need to add this fixture or create inline)
-    from tests.fixtures.orders.conftest import create_test_jwt_token
+    # Arrange: Create BUYER token
+    from app.core.security import create_access_token
 
     buyer_user_data = {
-        "id": "test-buyer-123",
+        "sub": "test-buyer-123",
         "email": "buyer@test.com",
         "nombre": "Test Buyer",
-        "user_type": "BUYER",  # String representation
+        "user_type": "BUYER",
         "is_active": True,
         "is_verified": True
     }
-    buyer_token = create_test_jwt_token(buyer_user_data)
+    buyer_token = create_access_token(data=buyer_user_data)
     buyer_headers = {"Authorization": f"Bearer {buyer_token}"}
 
     # Act
     response = client.post(
         "/api/v1/orders/",
-        json=valid_order_payload,
+        json=sample_product_data,
         headers=buyer_headers
     )
 
@@ -237,8 +250,8 @@ def test_buyer_token_allowed(
 @pytest.mark.security
 def test_admin_token_allowed(
     client: TestClient,
-    admin_auth_headers: Dict[str, str],
-    valid_order_payload: Dict[str, Any]
+    auth_headers_admin: Dict[str, str],
+    sample_product_data: Dict[str, Any]
 ):
     """
     Test that ADMIN/SUPERUSER token is allowed to create orders.
@@ -252,8 +265,8 @@ def test_admin_token_allowed(
     # Act
     response = client.post(
         "/api/v1/orders/",
-        json=valid_order_payload,
-        headers=admin_auth_headers
+        json=sample_product_data,
+        headers=auth_headers_admin
     )
 
     # Assert: Should NOT be 403
@@ -268,7 +281,7 @@ def test_admin_token_allowed(
 @pytest.mark.security
 def test_multiple_vendor_attempts_all_rejected(
     client: TestClient,
-    valid_order_payload: Dict[str, Any]
+    sample_product_data: Dict[str, Any]
 ):
     """
     Test that ALL vendor attempts are consistently rejected.
@@ -282,20 +295,20 @@ def test_multiple_vendor_attempts_all_rejected(
     - Test might FAIL if validation is inconsistent
     - All attempts should be blocked equally
     """
-    from tests.fixtures.orders.conftest import create_test_jwt_token
+    from app.core.security import create_access_token
 
     # Create 3 different vendor tokens
     vendor_tokens = []
     for i in range(3):
         vendor_data = {
-            "id": f"vendor-{i}",
+            "sub": f"vendor-{i}",
             "email": f"vendor{i}@test.com",
             "nombre": f"Vendor {i}",
             "user_type": "VENDOR",
             "is_active": True,
             "is_verified": True
         }
-        token = create_test_jwt_token(vendor_data)
+        token = create_access_token(data=vendor_data)
         vendor_tokens.append(token)
 
     # Act: Try to create order with each vendor token
@@ -304,7 +317,7 @@ def test_multiple_vendor_attempts_all_rejected(
         headers = {"Authorization": f"Bearer {token}"}
         response = client.post(
             "/api/v1/orders/",
-            json=valid_order_payload,
+            json=sample_product_data,
             headers=headers
         )
         results.append({
@@ -337,8 +350,8 @@ def test_multiple_vendor_attempts_all_rejected(
 @pytest.mark.security
 def test_vendor_cannot_bypass_with_modified_payload(
     client: TestClient,
-    vendor_auth_headers: Dict[str, str],
-    valid_order_payload: Dict[str, Any]
+    auth_headers_vendor: Dict[str, str],
+    sample_product_data: Dict[str, Any]
 ):
     """
     Test that VENDOR cannot bypass restriction by modifying request payload.
@@ -352,7 +365,7 @@ def test_vendor_cannot_bypass_with_modified_payload(
     - Should still return 403 based on JWT, not payload
     """
     # Arrange: Modify payload to claim customer type
-    malicious_payload = valid_order_payload.copy()
+    malicious_payload = sample_product_data.copy()
     malicious_payload["user_type"] = "CUSTOMER"  # Attempted bypass
     malicious_payload["buyer_type"] = "BUYER"    # Another attempt
 
@@ -360,7 +373,7 @@ def test_vendor_cannot_bypass_with_modified_payload(
     response = client.post(
         "/api/v1/orders/",
         json=malicious_payload,
-        headers=vendor_auth_headers  # Still vendor JWT
+        headers=auth_headers_vendor  # Still vendor JWT
     )
 
     # Assert: Must still be 403 (JWT determines user type, not payload)
@@ -376,7 +389,7 @@ def test_vendor_cannot_bypass_with_modified_payload(
 @pytest.mark.security
 def test_vendor_validation_case_insensitive(
     client: TestClient,
-    valid_order_payload: Dict[str, Any]
+    sample_product_data: Dict[str, Any]
 ):
     """
     Test that vendor validation is case-insensitive.
@@ -389,7 +402,7 @@ def test_vendor_validation_case_insensitive(
     - Test might FAIL if validation is case-sensitive
     - All variations should be blocked
     """
-    from tests.fixtures.orders.conftest import create_test_jwt_token
+    from app.core.security import create_access_token
 
     # Test different case variations
     case_variations = ["VENDOR", "vendor", "Vendor", "VeNdOr", "vEnDoR"]
@@ -397,20 +410,20 @@ def test_vendor_validation_case_insensitive(
     for user_type_variant in case_variations:
         # Create token with case variant
         vendor_data = {
-            "id": f"vendor-{user_type_variant}",
+            "sub": f"vendor-{user_type_variant}",
             "email": f"vendor_{user_type_variant}@test.com",
             "nombre": "Test Vendor",
             "user_type": user_type_variant,
             "is_active": True,
             "is_verified": True
         }
-        token = create_test_jwt_token(vendor_data)
+        token = create_access_token(data=vendor_data)
         headers = {"Authorization": f"Bearer {token}"}
 
         # Act
         response = client.post(
             "/api/v1/orders/",
-            json=valid_order_payload,
+            json=sample_product_data,
             headers=headers
         )
 

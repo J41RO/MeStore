@@ -17,7 +17,7 @@ import uuid
 import os
 
 # Core dependencies
-from app.database import get_db
+from app.database import get_async_db
 from app.models.user import User
 from app.models.order import Order, OrderItem, OrderStatus
 from app.models.product import Product
@@ -33,7 +33,8 @@ from app.core.logger import get_logger
 logger = get_logger(__name__)
 
 # Create HTTPBearer instance for dependency injection
-security = HTTPBearer()
+# auto_error=False allows us to handle missing token manually with 401 instead of 403
+security = HTTPBearer(auto_error=False)
 
 
 # ============================================================================
@@ -41,7 +42,7 @@ security = HTTPBearer()
 # ============================================================================
 async def get_current_user_for_orders(
     token: HTTPAuthorizationCredentials = Depends(security),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """
     Get current authenticated user for orders endpoint.
@@ -50,26 +51,17 @@ async def get_current_user_for_orders(
     """
     from app.core.security import decode_access_token
 
-    # Skip real authentication during testing to avoid performance issues
-    is_testing = (
-        os.getenv("PYTEST_CURRENT_TEST") is not None or
-        hasattr(db, '_mock_name') or
-        str(type(db)).find('Mock') != -1 or
-        (token and token.credentials == "mock-token")
-    )
-
-    if is_testing:
-        # Return mock user for testing
-        return type('User', (), {
-            'id': 'test-user-123',
-            'email': 'test@example.com'
-        })()
-
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+    # SECURITY FIX 2025-10-09: Handle missing token with 401 (not 403)
+    # HTTPBearer with auto_error=False returns None when no token provided
+    if token is None:
+        logger.warning("No authentication token provided")
+        raise credentials_exception
 
     try:
         # Extract token from HTTPAuthorizationCredentials
@@ -108,6 +100,9 @@ async def get_current_user_for_orders(
             'user_type': user_type
         })()
 
+    except HTTPException:
+        # Re-raise HTTP exceptions (like 403 VENDOR rejection) without modification
+        raise
     except Exception as e:
         logger.warning(f"Token decode error: {str(e)}")
         raise credentials_exception
@@ -165,7 +160,7 @@ router = APIRouter()
 @router.get("/", response_model=List[OrderSummary])
 async def get_user_orders(
     current_user = Depends(get_current_user_for_orders),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     skip: int = 0,
     limit: int = 100,
     status_filter: Optional[str] = None
@@ -247,7 +242,7 @@ async def orders_health():
 async def get_order_details(
     order_id: int,
     current_user = Depends(get_current_user_for_orders),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """
     Get detailed information for a specific order.
@@ -333,7 +328,7 @@ async def get_order_details(
 async def create_order(
     order_data: Dict[str, Any],
     current_user = Depends(get_current_user_for_orders),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """
     Create new order with complete database persistence.
@@ -623,7 +618,7 @@ async def create_order(
 async def get_order_tracking(
     order_id: int,
     current_user = Depends(get_current_user_for_orders),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """
     Get tracking information for a specific order.
@@ -761,7 +756,7 @@ async def cancel_order(
     order_id: int,
     cancel_request: OrderCancelRequest,
     current_user = Depends(get_current_user_for_orders),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """
     Cancel an order with optional refund request.

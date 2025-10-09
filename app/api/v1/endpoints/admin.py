@@ -17,6 +17,7 @@ from app.api.v1.deps.auth import get_current_user
 from app.api.v1.deps import get_sync_db
 from app.database import get_async_db as get_db
 from app.models import User, Product, Transaction
+from app.models.order import Order
 from app.schemas.user import UserRead
 from app.models.transaction import EstadoTransaccion
 from app.models.product import ProductStatus
@@ -2312,3 +2313,80 @@ async def get_user_status(
         "last_seen": datetime.now().isoformat(),
         "status": "online"
     }
+
+
+# =============================================================================
+# ORDERS MANAGEMENT ENDPOINT FOR ADMIN
+# =============================================================================
+
+@router.get("/orders/")
+async def get_all_orders_admin(
+    *,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    skip: int = 0,
+    limit: int = 100
+):
+    """
+    Get ALL orders for admin/superuser (no buyer_id filter).
+    
+    Business Rule:
+    - ADMIN and SUPERUSER can view all orders across all users
+    - Used for customer support, dispute resolution, and management
+    
+    Security:
+    - Requires ADMIN or SUPERUSER user_type
+    - Returns 403 Forbidden for other user types
+    """
+    # Verify admin permissions
+    if not (current_user.user_type in [UserType.ADMIN, UserType.SUPERUSER]):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos para acceder a todas las órdenes. Solo administradores."
+        )
+    
+    # GREEN PHASE: Add rate limiting check
+    check_admin_rate_limit(str(current_user.id))
+    
+    # GREEN PHASE: Add audit logging
+    audit_logger.log_admin_action(
+        user_id=str(current_user.id),
+        action="GET",
+        endpoint="/api/v1/admin/orders/"
+    )
+    
+    try:
+        # Query ALL orders (no buyer_id filter) with pagination
+        from sqlalchemy.orm import selectinload
+        
+        query = select(Order).options(
+            selectinload(Order.items),
+            selectinload(Order.buyer)
+        ).offset(skip).limit(limit).order_by(Order.created_at.desc())
+        
+        result = await db.execute(query)
+        orders = result.scalars().all()
+        
+        # Convert to list of dicts
+        orders_data = []
+        for order in orders:
+            orders_data.append({
+                "id": str(order.id),
+                "order_number": order.order_number,
+                "buyer_id": str(order.buyer_id),
+                "status": order.status.value if hasattr(order.status, "value") else str(order.status),
+                "total_amount": float(order.total_amount),
+                "created_at": order.created_at.isoformat() if order.created_at else None,
+                "shipping_name": order.shipping_name,
+                "shipping_city": order.shipping_city,
+                "item_count": len(order.items) if order.items else 0
+            })
+        
+        return orders_data
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error retrieving admin orders: {str(e)}"
+        )
+

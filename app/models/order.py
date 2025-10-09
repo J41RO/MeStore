@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, Boolean, Enum, DECIMAL, Numeric, JSON
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, deferred
 from sqlalchemy.sql import func
 from app.database import Base
 from enum import Enum as PyEnum
@@ -68,10 +68,13 @@ class Order(Base):
     notes = Column(Text, nullable=True)
 
     # Shipping tracking information
-    tracking_number = Column(String(100), nullable=True, index=True)
-    courier = Column(String(100), nullable=True)  # "Rappi", "Coordinadora", "Servientrega", etc.
-    estimated_delivery = Column(DateTime(timezone=True), nullable=True)
-    shipping_events = Column(JSON, nullable=True, default=list)  # Timeline of shipping updates
+    # NOTE: These columns are deferred to support testing with SQLite (which may not have these columns yet)
+    # Production Postgres DB on Railway (hospitable-radiance) has these via Alembic migrations
+    # Deferred loading means they won't be included in default SELECT queries
+    tracking_number = deferred(Column(String(100), nullable=True, index=True))
+    courier = deferred(Column(String(100), nullable=True))  # "Rappi", "Coordinadora", "Servientrega", etc.
+    estimated_delivery = deferred(Column(DateTime(timezone=True), nullable=True))
+    shipping_events = deferred(Column(JSON, nullable=True, default=list))  # Timeline of shipping updates
 
     # Relationships
     buyer = relationship("User", back_populates="orders")

@@ -222,7 +222,7 @@ const VendorList: React.FC<VendorListProps> = ({ onVendorSelect }) => {
 
   // Función para filtrar vendedores
   const filterVendors = () => {
-    let filtered = vendors.filter(vendor => {
+    const filtered = vendors.filter(vendor => {
       // Filtro por estado
       if (filters.status === 'activo' && !vendor.is_active) return false;
       if (filters.status === 'inactivo' && vendor.is_active) return false;

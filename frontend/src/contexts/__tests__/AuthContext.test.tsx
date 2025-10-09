@@ -5,7 +5,7 @@ import { AuthProvider, useAuthContext } from '../AuthContext';
 // Mock the auth store and service
 jest.mock('../../services/authService');
 
-let mockAuthStore = {
+const mockAuthStore = {
   user: null,
   token: null,
   isAuthenticated: false,

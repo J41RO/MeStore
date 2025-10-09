@@ -102,7 +102,7 @@ const ConfigField: React.FC<ConfigFieldProps> = ({
                 className="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out"
               />
               <span className="ml-2 text-sm text-gray-700">
-                {Boolean(localValue) ? 'Activado' : 'Desactivado'}
+                {localValue ? 'Activado' : 'Desactivado'}
               </span>
             </label>
           </div>

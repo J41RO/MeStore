@@ -165,7 +165,7 @@ describe('NavigationProvider - TDD RED PHASE (MUST FAIL)', () => {
       const toggleButton = screen.getByTestId('toggle-category');
 
       // Initial state - category should not be collapsed
-      let collapsedState = false;
+      const collapsedState = false;
 
       await act(async () => {
         fireEvent.click(toggleButton);

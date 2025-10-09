@@ -146,7 +146,7 @@ export class MobileUxAuditor {
     ];
 
     const elements: TouchTargetElement[] = [];
-    let minCompliantSize = 44; // WCAG 2.1 AA minimum
+    const minCompliantSize = 44; // WCAG 2.1 AA minimum
     let totalCompliant = 0;
 
     touchableSelectors.forEach(selector => {
@@ -363,7 +363,7 @@ export class MobileUxAuditor {
   public generateReport(): string {
     const metrics = this.metrics as MobileUxMetrics;
 
-    let report = `
+    const report = `
 🚀 MOBILE UX AUDIT REPORT - MeStocker Hierarchical Sidebar
 ================================================================
 

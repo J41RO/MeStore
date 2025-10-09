@@ -46,8 +46,8 @@ import jwt
 
 from app.core.config import settings
 
-# Import fixtures
-pytest_plugins = ["tests.fixtures.orders.conftest"]
+# Use fixtures from main conftest.py
+# pytest_plugins removed - using auto-discovery
 
 
 # ============================================================================
@@ -89,8 +89,9 @@ def test_no_token_returns_401(
 
     # Assert: Response should indicate authentication issue
     response_data = response.json()
-    assert "detail" in response_data, (
-        "401 response should include 'detail' field explaining error"
+    # App uses custom error handler - check for error_message or detail
+    assert "error_message" in response_data or "detail" in response_data, (
+        "401 response should include 'error_message' or 'detail' field explaining error"
     )
 
 

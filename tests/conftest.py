@@ -399,7 +399,7 @@ async def test_buyer_user(async_session: AsyncSession) -> User:
 # === AUTHENTICATION TEST FIXTURES ===
 
 @pytest.fixture(scope="function")
-def auth_token_vendor(test_vendor_user: User) -> str:
+async def auth_token_vendor(test_vendor_user: User) -> str:
     """Generate valid JWT token for vendor user"""
     from app.core.security import create_access_token
     token_data = {
@@ -456,6 +456,71 @@ def auth_headers_admin(auth_token_admin: str) -> dict:
 def auth_headers_buyer(auth_token_buyer: str) -> dict:
     """Valid authentication headers for buyer user"""
     return {"Authorization": f"Bearer {auth_token_buyer}"}
+
+
+# === ORDER TEST FIXTURES ===
+
+@pytest.fixture(scope="function")
+def valid_order_payload() -> dict:
+    """
+    Fixture para payload válido de orden para tests de authentication/authorization.
+
+    Returns: Dict con estructura mínima válida para crear una orden.
+    """
+    return {
+        "items": [{"product_id": "test-product-123", "quantity": 2}],
+        "shipping_name": "Test User",
+        "shipping_phone": "3001234567",
+        "shipping_address": "Test Address 123",
+        "shipping_city": "Bogotá",
+        "shipping_state": "Cundinamarca"
+    }
+
+
+@pytest.fixture(scope="function")
+def customer_user_data() -> dict:
+    """
+    Fixture para datos de usuario CUSTOMER para tests de authentication.
+
+    Returns: Dict con datos de usuario customer con estructura JWT.
+    """
+    from app.core.types import generate_uuid
+    from app.models.user import UserType
+
+    return {
+        "id": generate_uuid(),
+        "email": "test_customer@example.com",
+        "nombre": "Test Customer",
+        "apellido": "User",
+        "user_type": UserType.CUSTOMER,
+        "is_active": True,
+        "is_verified": True
+    }
+
+
+@pytest.fixture(scope="function")
+def customer_auth_headers(customer_user_data: dict) -> dict:
+    """
+    Fixture para headers de autenticación de usuario CUSTOMER.
+
+    Args:
+        customer_user_data: Datos del usuario customer
+
+    Returns: Dict con Authorization header y JWT token válido.
+    """
+    from app.core.security import create_access_token
+
+    token_data = {
+        "sub": customer_user_data["id"],
+        "email": customer_user_data["email"],
+        "nombre": customer_user_data["nombre"],
+        "apellido": customer_user_data.get("apellido", ""),
+        "user_type": customer_user_data["user_type"].value,
+        "is_active": customer_user_data["is_active"],
+        "is_verified": customer_user_data["is_verified"]
+    }
+    token = create_access_token(data=token_data)
+    return {"Authorization": f"Bearer {token}"}
 
 
 # === FINANCIAL TEST FIXTURES ===
