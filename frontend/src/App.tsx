@@ -109,6 +109,8 @@ const VendorOrdersManagement = lazy(() => import('./pages/vendor/VendorOrders'))
 
 // Checkout pages
 const ConfirmationPage = lazy(() => import('./pages/checkout/ConfirmationPage'));
+const OrderConfirmationPage = lazy(() => import('./pages/OrderConfirmationPage'));
+const CheckoutPage = lazy(() => import('./pages/CheckoutPage'));
 
 function App() {
   return (
@@ -173,14 +175,14 @@ function App() {
         } />
         <Route path="/checkout" element={
           <Suspense fallback={<PageLoader />}>
-            <Checkout />
+            <CheckoutPage />
           </Suspense>
         } />
 
         {/* Checkout Confirmation Page */}
-        <Route path="/checkout/confirmation" element={
+        <Route path="/checkout/confirmation/:orderId" element={
           <Suspense fallback={<PageLoader />}>
-            <ConfirmationPage />
+            <OrderConfirmationPage />
           </Suspense>
         } />
 
