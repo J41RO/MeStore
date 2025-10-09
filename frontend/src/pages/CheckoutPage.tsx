@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { useAuthContext } from '../contexts/AuthContext';
+import CheckoutTimeline from '../components/checkout/CheckoutTimeline';
 import {
   ShoppingBag,
   Truck,
@@ -43,7 +44,7 @@ interface ValidationErrors {
 const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
   const { items, totalAmount, clearCart } = useCart();
-  const { getToken } = useAuthContext();
+  const { getToken, user, isAuthenticated } = useAuthContext();
 
   // Form state
   const [formData, setFormData] = useState<ShippingForm>({
@@ -61,6 +62,19 @@ const CheckoutPage: React.FC = () => {
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  // Authentication check
+  useEffect(() => {
+    if (!isAuthenticated) {
+      // Save current path to return after login
+      const returnUrl = '/checkout';
+      localStorage.setItem('returnUrl', returnUrl);
+      navigate(`/auth/login?returnUrl=${encodeURIComponent(returnUrl)}`);
+    } else {
+      setIsCheckingAuth(false);
+    }
+  }, [isAuthenticated, navigate]);
 
   // Calculations
   const calculateSubtotal = (): number => {
@@ -153,22 +167,39 @@ const CheckoutPage: React.FC = () => {
     }
   };
 
+  // Error messages
+  const ERROR_MESSAGES = {
+    NETWORK: 'Error de conexión. Verifica tu internet.',
+    TIMEOUT: 'La solicitud tardó demasiado. Intenta nuevamente.',
+    AUTH: 'Tu sesión expiró. Inicia sesión nuevamente.',
+    STOCK: 'Algunos productos no tienen stock suficiente.',
+    VALIDATION: 'Completa todos los campos requeridos.',
+    UNKNOWN: 'Ocurrió un error. Intenta nuevamente.'
+  };
+
   // Handle order submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validateForm()) {
+      setSubmitError(ERROR_MESSAGES.VALIDATION);
       return;
     }
 
     setIsSubmitting(true);
     setSubmitError(null);
 
+    // Create abort controller for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
     try {
       const token = getToken();
 
       if (!token) {
-        throw new Error('No se encontró token de autenticación');
+        setSubmitError(ERROR_MESSAGES.AUTH);
+        navigate('/auth/login?returnUrl=/checkout');
+        return;
       }
 
       // Prepare order payload matching backend expectations
@@ -187,7 +218,13 @@ const CheckoutPage: React.FC = () => {
         notes: formData.additionalNotes || undefined
       };
 
-      const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const BACKEND_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
+      console.debug('🚀 Creating order:', {
+        url: `${BACKEND_URL}/api/v1/orders`,
+        itemCount: items.length,
+        token: token ? 'present' : 'missing'
+      });
 
       const response = await fetch(`${BACKEND_URL}/api/v1/orders`, {
         method: 'POST',
@@ -195,16 +232,46 @@ const CheckoutPage: React.FC = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(orderPayload)
+        body: JSON.stringify(orderPayload),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      console.debug('📥 Order response:', {
+        status: response.status,
+        ok: response.ok,
+        statusText: response.statusText
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || 'Error al crear el pedido');
+        console.error('❌ Order creation failed:', errorData);
+
+        // Handle specific error codes
+        if (response.status === 401) {
+          setSubmitError(ERROR_MESSAGES.AUTH);
+          navigate('/auth/login?returnUrl=/checkout');
+          return;
+        } else if (response.status === 400) {
+          setSubmitError(errorData.detail || ERROR_MESSAGES.VALIDATION);
+        } else if (response.status === 409) {
+          setSubmitError(ERROR_MESSAGES.STOCK);
+        } else {
+          setSubmitError(errorData.detail || errorData.message || ERROR_MESSAGES.UNKNOWN);
+        }
+        return;
       }
 
       const data = await response.json();
-      const orderId = data.data.id;
+      console.debug('✅ Order created:', data);
+
+      const orderId = data.data?.id || data.id;
+
+      if (!orderId) {
+        console.error('❌ No order ID in response:', data);
+        throw new Error('No se recibió ID de pedido');
+      }
 
       // Clear cart after successful order
       clearCart();
@@ -213,12 +280,34 @@ const CheckoutPage: React.FC = () => {
       navigate(`/checkout/confirmation/${orderId}`);
 
     } catch (error) {
-      console.error('Error creating order:', error);
-      setSubmitError(error instanceof Error ? error.message : 'Error al procesar el pedido');
+      clearTimeout(timeoutId);
+
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.error('⏱️ Order creation timeout');
+        setSubmitError(ERROR_MESSAGES.TIMEOUT);
+      } else if (error instanceof TypeError && error.message.includes('fetch')) {
+        console.error('🌐 Network error:', error);
+        setSubmitError(ERROR_MESSAGES.NETWORK);
+      } else {
+        console.error('❌ Order creation error:', error);
+        setSubmitError(error instanceof Error ? error.message : ERROR_MESSAGES.UNKNOWN);
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // Show loading while checking authentication
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Verificando sesión...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Empty cart state
   if (items.length === 0) {
@@ -253,6 +342,9 @@ const CheckoutPage: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Checkout</h1>
           <p className="text-gray-600">Completa tu información para finalizar la compra</p>
         </div>
+
+        {/* Checkout Timeline */}
+        <CheckoutTimeline currentStep={2} />
 
         {/* Trust Indicators */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -594,14 +686,33 @@ const CheckoutPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Error Message */}
+                {/* Error Message with Retry */}
                 {submitError && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-2">
-                    <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-red-800">Error al procesar el pedido</p>
-                      <p className="text-sm text-red-600">{submitError}</p>
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-red-800">Error al procesar el pedido</p>
+                        <p className="text-sm text-red-600 mt-1">{submitError}</p>
+                      </div>
+                      <button
+                        onClick={() => setSubmitError(null)}
+                        className="text-red-600 hover:text-red-800 text-xl leading-none"
+                        aria-label="Cerrar error"
+                      >
+                        ×
+                      </button>
                     </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        setSubmitError(null);
+                        handleSubmit(e as React.FormEvent<Element>);
+                      }}
+                      className="mt-3 text-sm text-red-700 font-medium underline hover:text-red-900"
+                    >
+                      Reintentar
+                    </button>
                   </div>
                 )}
 
@@ -632,6 +743,22 @@ const CheckoutPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Loading Overlay */}
+      {isSubmitting && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-sm mx-4 text-center">
+            <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Procesando tu pedido</h3>
+            <p className="text-sm text-gray-600">
+              Esto puede tomar unos segundos...
+            </p>
+            <div className="mt-4 h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-full bg-blue-600 animate-pulse" style={{width: '60%'}}></div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
