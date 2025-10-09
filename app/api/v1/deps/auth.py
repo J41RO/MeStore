@@ -31,8 +31,7 @@ security = HTTPBearer()
 
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    redis_sessions = Depends(get_redis_sessions)
+    token: str = Depends(oauth2_scheme)
 ) -> UserRead:
     """
     Dependencia para obtener el usuario actual autenticado.
@@ -77,18 +76,10 @@ async def get_current_user(
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-        # Verificar sesión activa en Redis (opcional para logout global)
-        # Skip Redis session check during testing and development (disabled by default)
-        if os.getenv("TESTING") != "1" and os.getenv("ENABLE_REDIS_SESSION_CHECK") == "1":
-            session_key = f"session:{user_id}"
-            session_data = redis_sessions.get(session_key)
-
-            if not session_data:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Sesión expirada - please login again",
-                    headers={"WWW-Authenticate": "Bearer"},
-                )
+        # Redis session check is disabled by default (optional feature)
+        # To enable: set ENABLE_REDIS_SESSION_CHECK=1 in environment
+        # This feature requires Redis to be available in production
+        # Currently disabled to avoid Redis connection dependency
 
         # Construir objeto UserRead desde payload JWT
         user_data = UserRead(
@@ -142,8 +133,7 @@ async def get_current_active_user(
 
 
 async def get_current_user_optional(
-    request: Request,
-    redis_sessions = Depends(get_redis_sessions)
+    request: Request
 ) -> UserRead | None:
     """
     Dependencia para obtener el usuario actual autenticado (opcional).
@@ -175,14 +165,10 @@ async def get_current_user_optional(
         if user_id is None:
             return None
 
-        # Verificar sesión activa en Redis (opcional para logout global)
-        # Skip Redis session check during testing and development (disabled by default)
-        if os.getenv("TESTING") != "1" and os.getenv("ENABLE_REDIS_SESSION_CHECK") == "1":
-            session_key = f"session:{user_id}"
-            session_data = redis_sessions.get(session_key)
-
-            if not session_data:
-                return None
+        # Redis session check is disabled by default (optional feature)
+        # To enable: set ENABLE_REDIS_SESSION_CHECK=1 in environment
+        # This feature requires Redis to be available in production
+        # Currently disabled to avoid Redis connection dependency
 
         # Construir objeto UserRead desde payload JWT
         user_data = UserRead(

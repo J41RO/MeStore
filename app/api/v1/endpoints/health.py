@@ -57,7 +57,6 @@ async def health_check() -> Dict[str, str]:
 
 @router.get("/ready", summary="Readiness Check", description="Checks all dependencies before accepting traffic")
 async def readiness_check(
-    redis_client = Depends(get_redis),
     db = Depends(get_db)
 ) -> Dict[str, Any]:
     """
@@ -89,16 +88,24 @@ async def readiness_check(
         all_ready = False
         await logger.aerror("PostgreSQL check failed", service="postgresql", error=str(e))
 
-    # Check Redis
-    try:
-        await logger.adebug("Checking Redis connectivity")
-        await redis_client.ping()
-        checks["redis"] = {"status": "ready", "error": None}
-        await logger.ainfo("Redis check passed", service="redis", status="ready")
-    except Exception as e:
-        checks["redis"] = {"status": "not_ready", "error": str(e)}
-        all_ready = False
-        await logger.aerror("Redis check failed", service="redis", error=str(e))
+    # Redis check is optional - only check if ENABLE_REDIS_SESSION_CHECK is enabled
+    # This avoids hard dependency on Redis in production environments
+    import os
+    if os.getenv("ENABLE_REDIS_SESSION_CHECK") == "1":
+        try:
+            await logger.adebug("Checking Redis connectivity")
+            from app.core.redis import get_redis
+            redis_client = await get_redis()
+            await redis_client.ping()
+            checks["redis"] = {"status": "ready", "error": None}
+            await logger.ainfo("Redis check passed", service="redis", status="ready")
+        except Exception as e:
+            checks["redis"] = {"status": "optional", "error": str(e)}
+            # Don't mark as not ready since Redis is optional
+            await logger.awarning("Redis check failed (optional service)", service="redis", error=str(e))
+    else:
+        checks["redis"] = {"status": "disabled", "error": None}
+        await logger.adebug("Redis check skipped (disabled)", service="redis")
 
     response_time = round((time.time() - start_time) * 1000, 2)
 
