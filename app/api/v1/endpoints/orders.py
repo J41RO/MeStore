@@ -576,7 +576,7 @@ async def create_order(
         raise
     except Exception as e:
         logger.error(f"Error creating order: {e}", exc_info=True)
-        await db.rollback()
+        # Transaction is automatically rolled back by async with db.begin() context manager
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error creating order: {str(e)}"
@@ -838,7 +838,7 @@ async def cancel_order(
         raise
     except Exception as e:
         logger.error(f"Error cancelling order: {e}", exc_info=True)
-        await db.rollback()
+        # Rollback is automatic with AsyncSession
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error cancelling order: {str(e)}"
