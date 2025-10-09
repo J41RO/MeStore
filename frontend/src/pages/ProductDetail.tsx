@@ -76,7 +76,11 @@ const ProductDetail: React.FC = () => {
         const data = responseData.data || responseData; // Handle both StandardResponse and direct data
 
         // Solo mostrar productos aprobados en el marketplace público
-        if (data.status !== 'APPROVED' && data.estado !== 'aprobado') {
+        // Validar que status y estado existen antes de comparar
+        const status = data.status || data.estado || '';
+        const isApproved = status === 'APPROVED' || status === 'aprobado' || status === 'ACTIVE' || status === 'active';
+
+        if (!isApproved && status) {
           setError('Este producto no está disponible');
           setLoading(false);
           return;
