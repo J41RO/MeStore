@@ -641,8 +641,11 @@ async def get_product(
         # Build query with optional includes
         stmt = select(Product).where(Product.id == product_id)
 
-        if include_images:
-            stmt = stmt.options(selectinload(Product.images))
+        # ALWAYS eager load images AND inventory for stock calculation
+        stmt = stmt.options(
+            selectinload(Product.images),
+            selectinload(Product.ubicaciones_inventario)
+        )
 
         result = await db.execute(stmt)
         product = result.scalar_one_or_none()
@@ -671,8 +674,37 @@ async def get_product(
                     detail="Product not found"
                 )
 
-        # Convert to response
-        product_data = ProductResponse.model_validate(_prepare_product_dict_for_response(product))
+        # Convert to response with stock calculation
+        product_dict_data = _prepare_product_dict_for_response(product)
+
+        # Add images from loaded relationship
+        from app.utils.url_helper import build_public_url
+        product_dict_data["images"] = [
+            {
+                "id": str(img.id),
+                "product_id": str(img.product_id),
+                "filename": img.filename,
+                "original_filename": img.original_filename,
+                "file_path": img.file_path,
+                "file_size": img.file_size,
+                "mime_type": img.mime_type,
+                "width": img.width,
+                "height": img.height,
+                "order_index": img.order_index,
+                "created_at": img.created_at,
+                "updated_at": img.updated_at,
+                "public_url": build_public_url(img.file_path)
+            }
+            for img in product.images
+        ]
+
+        # Calculate stock from inventory relationship
+        stock_total = 0
+        if product.ubicaciones_inventario:
+            stock_total = sum(inv.cantidad for inv in product.ubicaciones_inventario)
+        product_dict_data['stock_quantity'] = stock_total
+
+        product_data = ProductResponse.model_validate(product_dict_data)
 
         # Add analytics if requested and user is the vendor
         if include_analytics and (
