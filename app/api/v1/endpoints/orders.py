@@ -86,10 +86,26 @@ async def get_current_user_for_orders(
             logger.warning("Token validation failed - missing sub claim")
             raise credentials_exception
 
+        # SECURITY FIX 2025-10-09: Validate user_type for order creation
+        # Only BUYERS, CUSTOMERS, ADMINS, and SUPERUSERS can create orders
+        # Vendors are sellers, NOT buyers - they cannot create orders
+        user_type: str = payload.get("user_type", "").upper()
+        user_email: str = payload.get('email', 'unknown@example.com')
+
+        # Reject VENDOR attempts to create orders
+        if user_type == "VENDOR":
+            logger.warning(f"VENDOR {user_email} attempted to create order - REJECTED")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Vendors cannot create orders. Only customers can place orders. "
+                       "If you want to purchase products, please register a customer account."
+            )
+
         # Create a simple user object for orders
         return type('User', (), {
             'id': user_id,
-            'email': payload.get('email', 'unknown@example.com')
+            'email': user_email,
+            'user_type': user_type
         })()
 
     except Exception as e:
