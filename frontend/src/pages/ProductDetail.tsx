@@ -123,6 +123,8 @@ const ProductDetail: React.FC = () => {
     if (!product) return;
 
     // Convert backend product to cart-compatible product
+    const maxStock = product.stock_quantity || product.stock || 0;
+
     const cartProduct = {
       id: String(product.id),
       vendor_id: String(product.vendor?.id || ''),
@@ -130,7 +132,7 @@ const ProductDetail: React.FC = () => {
       name: product.name,
       description: product.description,
       price: product.precio_venta,
-      stock: product.stock_quantity || 0,
+      stock: maxStock,
       precio_venta: product.precio_venta,
       precio_costo: 0,
       is_active: true,
@@ -154,20 +156,21 @@ const ProductDetail: React.FC = () => {
         created_at: '',
         updated_at: ''
       })) || [],
-      main_image_url: product.images?.find(img => img.is_primary)?.image_url,
+      main_image_url: product.images?.find(img => img.is_primary)?.image_url || 'https://via.placeholder.com/600x600?text=Producto',
       created_at: product.created_at,
       updated_at: product.updated_at
     };
 
     addItem(cartProduct as any, quantity);
-    console.log(`Added ${quantity}x ${product.name} to cart`);
+    console.log(`✅ Added ${quantity}x ${product.name} to cart (Stock: ${maxStock})`);
   };
 
   const handleQuantityChange = (delta: number) => {
     setQuantity(prev => {
       const newValue = prev + delta;
       if (newValue < 1) return 1;
-      if (product && newValue > product.stock) return product.stock;
+      const maxStock = product?.stock_quantity || product?.stock || 0;
+      if (product && newValue > maxStock) return maxStock;
       return newValue;
     });
   };
@@ -303,12 +306,18 @@ const ProductDetail: React.FC = () => {
               </div>
             )}
 
-            {/* Stock Info - TEMPORAL: Mostrar disponible siempre */}
+            {/* Stock Info - Show numeric stock */}
             <div className="flex items-center space-x-2">
               <span className="text-sm font-medium text-gray-700">Stock disponible:</span>
-              <span className="text-sm font-semibold text-green-600">
-                Disponible
-              </span>
+              {product.stock_quantity && product.stock_quantity > 0 ? (
+                <span className="text-sm font-semibold text-green-600">
+                  {product.stock_quantity} disponibles
+                </span>
+              ) : (
+                <span className="text-sm font-semibold text-red-600">
+                  Agotado
+                </span>
+              )}
             </div>
 
             {/* Quantity Selector */}
@@ -348,11 +357,13 @@ const ProductDetail: React.FC = () => {
               {/* Add to Cart Button */}
               <button
                 onClick={handleAddToCart}
-                disabled={!product.stock_quantity || product.stock_quantity === 0}
+                disabled={!product.stock_quantity && !product.stock}
                 className="w-full bg-blue-600 text-white py-4 px-6 rounded-lg font-semibold text-lg hover:bg-blue-700 transition-all disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center space-x-3 transform hover:scale-105"
               >
                 <ShoppingCart className="w-6 h-6" />
-                <span>Agregar al Carrito</span>
+                <span>
+                  {(product.stock_quantity || product.stock) ? 'Agregar al Carrito' : 'Agotado'}
+                </span>
               </button>
 
               {/* Wishlist Button */}
