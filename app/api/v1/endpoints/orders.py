@@ -400,7 +400,7 @@ async def create_order(
         )
 
         result = await db.execute(query)
-        products = result.scalars().all()
+        products = list(result.unique().scalars().all())
         products_dict = {str(p.id): p for p in products}
 
         # Verify all products exist
