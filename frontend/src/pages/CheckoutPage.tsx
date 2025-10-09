@@ -63,6 +63,7 @@ const CheckoutPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
 
   // Authentication check
   useEffect(() => {
@@ -75,6 +76,39 @@ const CheckoutPage: React.FC = () => {
       setIsCheckingAuth(false);
     }
   }, [isAuthenticated, navigate]);
+
+  // Auto-populate form with user data
+  useEffect(() => {
+    if (isAuthenticated && user && !isDataLoaded) {
+      console.log('📋 Auto-populating form with user data:', user);
+
+      // Extract user profile data
+      const userProfile = {
+        fullName: user.nombre || user.name || user.email.split('@')[0],
+        email: user.email,
+        phone: (user as any).telefono || (user as any).phone || '',
+        address: (user as any).direccion || (user as any).address || '',
+        city: (user as any).ciudad || 'Bucaramanga',
+        state: (user as any).departamento || 'Santander',
+        postalCode: (user as any).codigo_postal || ''
+      };
+
+      console.log('✅ Populating form with:', userProfile);
+
+      setFormData(prev => ({
+        ...prev,
+        fullName: userProfile.fullName,
+        email: userProfile.email,
+        phone: userProfile.phone,
+        address: userProfile.address,
+        city: userProfile.city,
+        state: userProfile.state,
+        postalCode: userProfile.postalCode
+      }));
+
+      setIsDataLoaded(true);
+    }
+  }, [isAuthenticated, user, isDataLoaded]);
 
   // Calculations
   const calculateSubtotal = (): number => {
@@ -225,12 +259,28 @@ const CheckoutPage: React.FC = () => {
           ? 'https://mestocker-backend-production.up.railway.app'
           : 'http://localhost:8000');
 
-      console.debug('🚀 Creating order:', {
-        url: `${BACKEND_URL}/api/v1/orders/`,
-        itemCount: items.length,
-        token: token ? 'present' : 'missing',
-        hostname: window.location.hostname
+      // COMPREHENSIVE DEBUGGING - LOG ALL ORDER CREATION DETAILS
+      console.group('🚀 ORDER CREATION DEBUG');
+      console.log('📦 Full Order Payload:', JSON.stringify(orderPayload, null, 2));
+      console.log('🔑 Auth Token (first 20 chars):', token ? token.substring(0, 20) + '...' : 'MISSING');
+      console.log('🌐 Backend URL:', `${BACKEND_URL}/api/v1/orders/`);
+      console.log('🏠 Current Hostname:', window.location.hostname);
+      console.log('👤 User Info:', {
+        email: user?.email,
+        user_type: user?.user_type,
+        isAuthenticated
       });
+      console.log('📋 Request Headers:', {
+        'Content-Type': 'application/json',
+        'Authorization': token ? `Bearer ${token.substring(0, 20)}...` : 'MISSING'
+      });
+      console.log('🛒 Cart Items:', items.map(item => ({
+        id: item.id,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.precio_venta
+      })));
+      console.groupEnd();
 
       const response = await fetch(`${BACKEND_URL}/api/v1/orders/`, {
         method: 'POST',
@@ -244,15 +294,27 @@ const CheckoutPage: React.FC = () => {
 
       clearTimeout(timeoutId);
 
-      console.debug('📥 Order response:', {
-        status: response.status,
-        ok: response.ok,
-        statusText: response.statusText
-      });
+      // LOG RESPONSE DETAILS
+      console.group('📥 ORDER RESPONSE');
+      console.log('📊 Status:', response.status, response.statusText);
+      console.log('✅ OK:', response.ok);
+      console.log('🔗 URL:', response.url);
+      console.log('⏱️ Response Time:', new Date().toISOString());
+      console.groupEnd();
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('❌ Order creation failed:', errorData);
+        console.group('❌ ORDER CREATION FAILED');
+        console.error('Status Code:', response.status);
+        console.error('Error Data:', errorData);
+        console.error('Full Response:', {
+          status: response.status,
+          statusText: response.statusText,
+          ok: response.ok,
+          url: response.url,
+          headers: Object.fromEntries(response.headers.entries())
+        });
+        console.groupEnd();
 
         // Handle specific error codes
         if (response.status === 401) {
@@ -270,23 +332,44 @@ const CheckoutPage: React.FC = () => {
       }
 
       const data = await response.json();
-      console.debug('✅ Order created:', data);
+
+      // LOG SUCCESS
+      console.group('✅ ORDER CREATED SUCCESSFULLY');
+      console.log('📋 Full Response Data:', JSON.stringify(data, null, 2));
+      console.log('🆔 Order ID:', data.data?.id || data.id);
+      console.log('📝 Order Number:', data.data?.order_number || data.order_number);
+      console.log('💰 Total Amount:', data.data?.total_amount || data.total_amount);
+      console.log('📊 Order Status:', data.data?.status || data.status);
+      console.groupEnd();
 
       const orderId = data.data?.id || data.id;
 
       if (!orderId) {
-        console.error('❌ No order ID in response:', data);
+        console.group('❌ MISSING ORDER ID');
+        console.error('Response Data:', data);
+        console.error('data.data:', data.data);
+        console.error('data.id:', data.id);
+        console.groupEnd();
         throw new Error('No se recibió ID de pedido');
       }
 
+      console.log('🛒 Clearing cart...');
       // Clear cart after successful order
       clearCart();
 
+      console.log('🔄 Navigating to confirmation page:', `/checkout/confirmation/${orderId}`);
       // Navigate to confirmation page
       navigate(`/checkout/confirmation/${orderId}`);
 
     } catch (error) {
       clearTimeout(timeoutId);
+
+      console.group('❌ ORDER CREATION EXCEPTION');
+      console.error('Error Type:', error instanceof Error ? error.constructor.name : typeof error);
+      console.error('Error Message:', error instanceof Error ? error.message : String(error));
+      console.error('Error Stack:', error instanceof Error ? error.stack : 'N/A');
+      console.error('Full Error:', error);
+      console.groupEnd();
 
       if (error instanceof Error && error.name === 'AbortError') {
         console.error('⏱️ Order creation timeout');
@@ -299,6 +382,7 @@ const CheckoutPage: React.FC = () => {
         setSubmitError(error instanceof Error ? error.message : ERROR_MESSAGES.UNKNOWN);
       }
     } finally {
+      console.log('🏁 Order submission complete. isSubmitting = false');
       setIsSubmitting(false);
     }
   };
@@ -471,6 +555,21 @@ const CheckoutPage: React.FC = () => {
                     <MapPin className="w-5 h-5" />
                     Información de Envío
                   </h3>
+
+                  {/* Data Loaded Indicator */}
+                  {isDataLoaded && (
+                    <div className="mb-4 bg-green-50 border border-green-200 rounded-lg p-3">
+                      <div className="flex items-center gap-2 text-green-800">
+                        <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                        <p className="text-sm font-medium">
+                          ✓ Datos cargados de tu perfil
+                        </p>
+                      </div>
+                      <p className="text-xs text-green-600 mt-1 ml-6">
+                        Puedes editar cualquier campo si necesitas actualizarlo
+                      </p>
+                    </div>
+                  )}
 
                   <div className="space-y-4">
                     {/* Full Name */}
