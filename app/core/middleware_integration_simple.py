@@ -27,7 +27,13 @@ def setup_application_middleware(app: FastAPI):
         base_origins = [
             origin.strip()
             for origin in settings.CORS_ORIGINS.split(",")
-            if origin.strip()
+            if origin.strip() and not origin.strip().startswith("https://*")
+        ]
+
+        # Add specific Vercel deployment URLs (wildcards not supported by FastAPI CORS)
+        vercel_origins = [
+            "https://me-store-alpha.vercel.app",
+            "https://me-store-4rch67v8-jairos-projects-6e49f915.vercel.app",
         ]
 
         # Add localhost variations for development convenience
@@ -38,17 +44,21 @@ def setup_application_middleware(app: FastAPI):
                 "http://127.0.0.1:5173",
                 "http://127.0.0.1:3000",
             ]
-            # Combine and remove duplicates
-            allowed_origins = list(set(base_origins + localhost_origins))
+            # Combine all origins and remove duplicates
+            allowed_origins = list(set(base_origins + localhost_origins + vercel_origins))
         else:
-            # Production: use base_origins directly (includes Vercel)
-            allowed_origins = base_origins
+            # Production: combine base_origins with Vercel origins
+            allowed_origins = list(set(base_origins + vercel_origins))
 
         logger.info(f"✅ Loaded {len(allowed_origins)} CORS origins from config")
     except Exception as e:
         logger.error(f"❌ Failed to parse CORS origins: {e}")
-        # Emergency fallback
-        allowed_origins = ["http://localhost:5173", "http://localhost:3000"]
+        # Emergency fallback with Vercel
+        allowed_origins = [
+            "http://localhost:5173",
+            "http://localhost:3000",
+            "https://me-store-alpha.vercel.app"
+        ]
 
     logger.info(f"Environment: {settings.ENVIRONMENT}")
     logger.info(f"CORS allowed origins: {allowed_origins}")
