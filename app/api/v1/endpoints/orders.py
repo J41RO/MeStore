@@ -5,7 +5,7 @@ Restored by: backend-framework-ai
 Date: 2025-10-01
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -15,6 +15,7 @@ from datetime import datetime
 from decimal import Decimal
 import uuid
 import os
+import re
 
 # Core dependencies
 from app.database import get_async_db
@@ -126,6 +127,19 @@ DEFAULT_PAGE_SIZE = 20      # Default number of orders per page
 MAX_NOTE_LENGTH = 500       # Maximum length for order notes
 MAX_ADDRESS_LENGTH = 200    # Maximum length for shipping address
 MAX_NAME_LENGTH = 100       # Maximum length for shipping name
+
+# SECURITY: Rate Limiting Configuration (FASE 6.1)
+RATE_LIMIT_ORDERS_PER_MINUTE = 10   # Max order creations per minute per user
+RATE_LIMIT_REQUESTS_PER_MINUTE = 60  # Max API requests per minute per IP
+RATE_LIMIT_WINDOW = 60               # Rate limit window in seconds
+
+# SECURITY: Phone Validation (Colombian Format - FASE 6.2)
+COLOMBIAN_PHONE_PATTERN = r'^(\+57|0057)?[3][0-9]{9}$'  # Colombian mobile format
+
+# SECURITY: Fraud Detection Thresholds (FASE 6.4)
+MAX_ORDER_VALUE_THRESHOLD = Decimal('10000000.00')  # 10M COP - suspicious high value
+MAX_ITEMS_PER_ORDER = 50                             # Maximum items per order (DoS + Fraud)
+MIN_ORDER_INTERVAL_SECONDS = 30                      # Minimum seconds between orders per user
 
 
 # ============================================================================
@@ -290,6 +304,208 @@ def validate_text_input(text: Optional[str], field_name: str, max_length: int) -
 
     # Return sanitized text (empty string becomes None)
     return text if text else None
+
+
+# ============================================================================
+# FASE 6 ENHANCEMENTS: Rate Limiting, Validation & Fraud Detection
+# ============================================================================
+
+# Rate Limiting Storage (In-memory - could be Redis in production)
+from collections import defaultdict, deque
+import time
+
+_rate_limit_storage: Dict[str, deque] = defaultdict(deque)
+_last_order_time: Dict[str, float] = {}
+
+
+def check_rate_limit(identifier: str, max_requests: int, window_seconds: int) -> None:
+    """
+    Check rate limit for a given identifier (IP or user_id).
+
+    Args:
+        identifier: Unique identifier (IP address or user_id)
+        max_requests: Maximum number of requests allowed in the window
+        window_seconds: Time window in seconds
+
+    Raises:
+        HTTPException(429): If rate limit exceeded
+    """
+    now = time.time()
+    window_start = now - window_seconds
+
+    # Clean old requests outside the window
+    requests = _rate_limit_storage[identifier]
+    while requests and requests[0] < window_start:
+        requests.popleft()
+
+    # Check if we've exceeded the limit
+    if len(requests) >= max_requests:
+        retry_after = int(requests[0] + window_seconds - now) + 1
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Rate limit exceeded. Too many requests. Try again in {retry_after} seconds.",
+            headers={"Retry-After": str(retry_after)}
+        )
+
+    # Add current request
+    requests.append(now)
+
+
+def validate_colombian_phone(phone: Optional[str]) -> Optional[str]:
+    """
+    Validate Colombian phone number format.
+
+    Colombian mobile numbers:
+    - Start with +57 or 0057 (optional)
+    - Follow with 3 (mobile prefix)
+    - Then 9 more digits
+    - Examples: +573001234567, 3001234567, 00573001234567
+
+    Args:
+        phone: Phone number to validate
+
+    Returns:
+        Standardized phone number or None
+
+    Raises:
+        HTTPException(400): If phone format is invalid
+    """
+    if not phone:
+        return None
+
+    # Remove spaces and dashes
+    phone = phone.replace(' ', '').replace('-', '')
+
+    # Validate format
+    if not re.match(COLOMBIAN_PHONE_PATTERN, phone):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid Colombian phone number. Format: +573001234567 or 3001234567"
+        )
+
+    # Standardize to +57 format
+    if phone.startswith('0057'):
+        phone = '+57' + phone[4:]
+    elif not phone.startswith('+57'):
+        phone = '+57' + phone
+
+    return phone
+
+
+def validate_email_format(email: Optional[str]) -> Optional[str]:
+    """
+    Validate email format with basic regex.
+
+    Args:
+        email: Email address to validate
+
+    Returns:
+        Lowercase email or None
+
+    Raises:
+        HTTPException(400): If email format is invalid
+    """
+    if not email:
+        return None
+
+    # Basic email regex
+    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+
+    email = email.strip().lower()
+
+    if not re.match(email_pattern, email):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid email format"
+        )
+
+    return email
+
+
+def detect_fraud_patterns(
+    user_id: str,
+    total_amount: Decimal,
+    item_count: int
+) -> None:
+    """
+    Basic fraud detection heuristics.
+
+    Fraud Indicators:
+    1. Unusually high order value (> 10M COP)
+    2. Too many items in one order (> 50)
+    3. Multiple orders in short time (< 30 seconds)
+
+    Args:
+        user_id: User creating the order
+        total_amount: Total order amount
+        item_count: Number of items in the order
+
+    Raises:
+        HTTPException(400): If fraud pattern detected
+    """
+    # Check 1: Unusually high order value
+    if total_amount > MAX_ORDER_VALUE_THRESHOLD:
+        logger.warning(
+            f"FRAUD ALERT: High-value order detected. User: {user_id}, Amount: {total_amount}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Order value exceeds maximum allowed. Please contact support for large orders."
+        )
+
+    # Check 2: Too many items
+    if item_count > MAX_ITEMS_PER_ORDER:
+        logger.warning(
+            f"FRAUD ALERT: Excessive items in order. User: {user_id}, Items: {item_count}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Maximum {MAX_ITEMS_PER_ORDER} items per order. Please split into multiple orders."
+        )
+
+    # Check 3: Rapid sequential orders
+    last_order_timestamp = _last_order_time.get(user_id)
+    if last_order_timestamp:
+        time_since_last_order = time.time() - last_order_timestamp
+        if time_since_last_order < MIN_ORDER_INTERVAL_SECONDS:
+            wait_time = int(MIN_ORDER_INTERVAL_SECONDS - time_since_last_order) + 1
+            logger.warning(
+                f"FRAUD ALERT: Rapid sequential orders. User: {user_id}, "
+                f"Interval: {time_since_last_order:.1f}s"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Please wait {wait_time} seconds before placing another order.",
+                headers={"Retry-After": str(wait_time)}
+            )
+
+    # Update last order time
+    _last_order_time[user_id] = time.time()
+
+
+def get_client_ip(request: Request) -> str:
+    """
+    Extract client IP address from request, considering proxies.
+
+    Args:
+        request: FastAPI request object
+
+    Returns:
+        Client IP address
+    """
+    # Check X-Forwarded-For header (if behind proxy)
+    forwarded_for = request.headers.get("X-Forwarded-For")
+    if forwarded_for:
+        # X-Forwarded-For can contain multiple IPs, take the first one
+        return forwarded_for.split(",")[0].strip()
+
+    # Check X-Real-IP header
+    real_ip = request.headers.get("X-Real-IP")
+    if real_ip:
+        return real_ip.strip()
+
+    # Fallback to direct client IP
+    return request.client.host if request.client else "unknown"
 
 
 # ============================================================================
@@ -479,6 +695,7 @@ async def get_order_details(
 @router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_order(
     order_data: Dict[str, Any],
+    request: Request,
     current_user = Depends(get_current_user_for_orders),
     db: AsyncSession = Depends(get_async_db)
 ):
@@ -511,6 +728,25 @@ async def create_order(
         Complete order details with all calculated values
     """
     try:
+        # ====================================================================
+        # FASE 6 SECURITY: Rate Limiting & Fraud Detection
+        # ====================================================================
+
+        # FASE 6.1: Rate Limiting by IP (prevent DoS attacks)
+        client_ip = get_client_ip(request)
+        check_rate_limit(
+            f"ip_{client_ip}",
+            RATE_LIMIT_REQUESTS_PER_MINUTE,
+            RATE_LIMIT_WINDOW
+        )
+
+        # FASE 6.1: Rate Limiting by User (prevent abuse)
+        check_rate_limit(
+            f"user_{current_user.id}",
+            RATE_LIMIT_ORDERS_PER_MINUTE,
+            RATE_LIMIT_WINDOW
+        )
+
         # ====================================================================
         # STEP 1: Validate Request Data
         # ====================================================================
@@ -559,6 +795,12 @@ async def create_order(
             "Order notes",
             MAX_NOTE_LENGTH
         )
+
+        # FASE 6.2: Validate Colombian Phone Number Format
+        shipping_phone = validate_colombian_phone(order_data.get("shipping_phone"))
+
+        # FASE 6.3: Validate Email Format
+        shipping_email = validate_email_format(order_data.get("shipping_email"))
 
         # Extract product IDs and validate format
         product_ids = []
@@ -663,6 +905,15 @@ async def create_order(
         total_amount = subtotal + tax_amount + shipping_cost
 
         # ====================================================================
+        # FASE 6.4: Fraud Detection
+        # ====================================================================
+        detect_fraud_patterns(
+            user_id=current_user.id,
+            total_amount=total_amount,
+            item_count=len(items)
+        )
+
+        # ====================================================================
         # STEP 5: Create Order in Database (Atomic Transaction)
         # ====================================================================
         async with db.begin():
@@ -673,7 +924,7 @@ async def create_order(
             # HOTFIX 2025-10-09: Keep Decimal types to prevent CHECK constraint violations
             # Database has ck_order_total_calculation with 0.01 tolerance
             # Float conversion can cause precision errors that violate this constraint
-            # SECURITY: Use sanitized inputs from validation
+            # SECURITY: Use sanitized inputs from validation (FASE 5 + FASE 6)
             new_order = Order(
                 order_number=order_number,
                 buyer_id=current_user.id,
@@ -683,15 +934,15 @@ async def create_order(
                 discount_amount=Decimal('0.00'),  # Decimal - consistent type
                 total_amount=total_amount,   # Decimal - DO NOT convert to float
                 status=OrderStatus.PENDING,
-                shipping_name=shipping_name,         # Validated and sanitized
-                shipping_phone=order_data["shipping_phone"],  # Phone validation could be added
-                shipping_email=order_data.get("shipping_email"),  # Email validation could be added
-                shipping_address=shipping_address,   # Validated and sanitized
-                shipping_city=shipping_city,         # Validated and sanitized
-                shipping_state=shipping_state,       # Validated and sanitized
+                shipping_name=shipping_name,         # FASE 5: Validated and sanitized
+                shipping_phone=shipping_phone,       # FASE 6.2: Colombian format validated
+                shipping_email=shipping_email,       # FASE 6.3: Email format validated
+                shipping_address=shipping_address,   # FASE 5: Validated and sanitized
+                shipping_city=shipping_city,         # FASE 5: Validated and sanitized
+                shipping_state=shipping_state,       # FASE 5: Validated and sanitized
                 shipping_postal_code=order_data.get("shipping_postal_code"),
                 shipping_country="CO",
-                notes=order_notes                    # Validated and sanitized
+                notes=order_notes                    # FASE 5: Validated and sanitized
             )
 
             db.add(new_order)
