@@ -5,6 +5,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './contexts/AuthContext';
 import { UserProvider } from './contexts/UserContext';
 import { NotificationProvider } from './contexts/NotificationContext';
+import { CartProvider } from './contexts/CartContext';
 import './index.css';
 import 'leaflet/dist/leaflet.css';
 import App from './App.tsx';
@@ -69,7 +70,9 @@ createRoot(document.getElementById('root')!).render(
         <AuthProvider>
           <UserProvider>
             <NotificationProvider>
-              <App />
+              <CartProvider>
+                <App />
+              </CartProvider>
             </NotificationProvider>
           </UserProvider>
         </AuthProvider>

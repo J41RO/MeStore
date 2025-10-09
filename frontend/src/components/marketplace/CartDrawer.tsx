@@ -24,12 +24,26 @@ import {
   Package,
   Truck,
 } from 'lucide-react';
-import {
-  useCartStore,
-  formatCOP,
-  hasFreeShipping,
-  amountNeededForFreeShipping,
-} from '../../store/cartStore';
+import { useCart } from '../../contexts/CartContext';
+
+// Helper functions
+const formatCOP = (amount: number) => {
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(amount);
+};
+
+const FREE_SHIPPING_THRESHOLD = 200000; // $200,000 COP
+
+const hasFreeShipping = (subtotal: number) => subtotal >= FREE_SHIPPING_THRESHOLD;
+
+const amountNeededForFreeShipping = (subtotal: number) => {
+  const needed = FREE_SHIPPING_THRESHOLD - subtotal;
+  return needed > 0 ? needed : 0;
+};
 
 // ========================================
 // COMPONENT
@@ -38,20 +52,24 @@ import {
 const CartDrawer: React.FC = () => {
   const navigate = useNavigate();
 
-  // Cart store
+  // Cart context
   const {
-    cart_items: items, // Use cart_items from unified store, alias as items
-    isDrawerOpen,
-    closeDrawer,
+    items,
+    itemCount,
+    totalAmount,
+    isOpen: isDrawerOpen,
+    closeCart: closeDrawer,
     removeItem,
     updateQuantity,
     clearCart,
-    getSubtotal,
-    getIVA,
-    getShipping,
-    getTotal,
-    getTotalItems,
-  } = useCartStore();
+  } = useCart();
+
+  // Calculate Colombian taxes and shipping
+  const getSubtotal = () => totalAmount;
+  const getIVA = () => totalAmount * 0.19; // 19% IVA
+  const getShipping = () => (hasFreeShipping(totalAmount) ? 0 : 15000); // $15,000 shipping
+  const getTotal = () => totalAmount + getIVA() + getShipping();
+  const getTotalItems = () => itemCount;
 
   // Lock body scroll when drawer is open
   useEffect(() => {
@@ -223,9 +241,9 @@ const CartDrawer: React.FC = () => {
                     >
                       {/* Product Image */}
                       <div className="w-20 h-20 bg-white rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
-                        {item.image_url ? (
+                        {item.main_image_url || (item.images && item.images[0]?.public_url) ? (
                           <img
-                            src={item.image_url}
+                            src={item.main_image_url || item.images![0].public_url}
                             alt={item.name}
                             className="w-full h-full object-cover"
                           />
@@ -246,7 +264,7 @@ const CartDrawer: React.FC = () => {
                         {/* Price */}
                         <div className="flex items-center justify-between mt-2">
                           <span className="text-sm font-bold text-blue-600">
-                            {formatCOP(item.price)}
+                            {formatCOP(item.precio_venta)}
                           </span>
 
                           {/* Quantity Controls */}
@@ -270,9 +288,7 @@ const CartDrawer: React.FC = () => {
                               onClick={() =>
                                 handleIncreaseQuantity(item.id, item.quantity)
                               }
-                              disabled={
-                                item.max_stock ? item.quantity >= item.max_stock : false
-                              }
+                              disabled={item.quantity >= item.stock}
                               className="w-7 h-7 flex items-center justify-center rounded-full border border-gray-300 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                               aria-label="Aumentar cantidad"
                             >
@@ -284,7 +300,7 @@ const CartDrawer: React.FC = () => {
                         {/* Subtotal & Remove */}
                         <div className="flex items-center justify-between mt-2">
                           <span className="text-xs text-gray-600">
-                            Subtotal: {formatCOP(item.price * item.quantity)}
+                            Subtotal: {formatCOP(item.precio_venta * item.quantity)}
                           </span>
 
                           <button

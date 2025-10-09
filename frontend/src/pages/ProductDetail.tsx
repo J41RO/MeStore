@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, AlertCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, AlertCircle, Loader2, ShoppingCart, Heart, Star, Minus, Plus, Truck, ShieldCheck } from 'lucide-react';
 import MarketplaceLayout from '../components/marketplace/MarketplaceLayout';
 import ProductImageGallery from '../components/marketplace/ProductImageGallery';
 import VendorInfo from '../components/marketplace/VendorInfo';
-import AddToCartButton from '../components/marketplace/AddToCartButton';
+import { useCart } from '../contexts/CartContext';
 
 interface ProductImage {
   id: number;
@@ -41,6 +41,10 @@ const ProductDetail: React.FC = () => {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [quantity, setQuantity] = useState(1);
+
+  // Cart context
+  const { addItem } = useCart();
 
   useEffect(() => {
     if (!id) {
@@ -115,9 +119,57 @@ const ProductDetail: React.FC = () => {
     }
   };
 
-  const handleAddToCart = (quantity: number) => {
-    // This will be handled by the AddToCartButton component
-    console.log(`Added ${quantity} of product ${id} to cart`);
+  const handleAddToCart = () => {
+    if (!product) return;
+
+    // Convert backend product to cart-compatible product
+    const cartProduct = {
+      id: String(product.id),
+      vendor_id: String(product.vendor?.id || ''),
+      sku: product.sku,
+      name: product.name,
+      description: product.description,
+      price: product.precio_venta,
+      stock: product.stock_quantity || 0,
+      precio_venta: product.precio_venta,
+      precio_costo: 0,
+      is_active: true,
+      is_featured: false,
+      is_digital: false,
+      sales_count: 0,
+      view_count: 0,
+      rating: 0,
+      review_count: 0,
+      images: product.images?.map(img => ({
+        id: String(img.id),
+        product_id: String(product.id),
+        filename: '',
+        original_filename: '',
+        file_path: '',
+        file_size: 0,
+        mime_type: '',
+        order_index: 0,
+        public_url: img.image_url,
+        is_primary: img.is_primary,
+        created_at: '',
+        updated_at: ''
+      })) || [],
+      main_image_url: product.images?.find(img => img.is_primary)?.image_url,
+      created_at: product.created_at,
+      updated_at: product.updated_at
+    };
+
+    addItem(cartProduct as any, quantity);
+    console.log(`Added ${quantity}x ${product.name} to cart`);
+  };
+
+  const handleQuantityChange = (delta: number) => {
+    setQuantity(prev => {
+      const newValue = prev + delta;
+      if (newValue < 1) return 1;
+      if (product && newValue > product.stock) return product.stock;
+      return newValue;
+    });
   };
 
   // Loading state
@@ -259,46 +311,55 @@ const ProductDetail: React.FC = () => {
               </span>
             </div>
 
-            {/* Add to Cart */}
+            {/* Quantity Selector */}
             <div className="pt-4 border-t border-gray-200">
-              <AddToCartButton
-                product={{
-                  id: String(product.id),
-                  name: product.name,
-                  price: product.precio_venta,
-                  stock: product.stock_quantity || 0,
-                  sku: product.sku,
-                  vendor_id: String(product.vendor?.id || 0),
-                  main_image_url: product.images?.find(img => img.is_primary)?.image_url,
-                  images: product.images?.map(img => ({
-                    id: String(img.id),
-                    product_id: String(product.id),
-                    public_url: img.image_url,
-                    is_primary: img.is_primary,
-                    order_index: 0,
-                    filename: '',
-                    original_filename: '',
-                    file_path: '',
-                    file_size: 0,
-                    mime_type: '',
-                    created_at: '',
-                    updated_at: ''
-                  })) || [],
-                  description: product.description,
-                  precio_venta: product.precio_venta,
-                  is_active: true,
-                  is_featured: false,
-                  is_digital: false,
-                  sales_count: 0,
-                  view_count: 0,
-                  rating: 0,
-                  review_count: 0,
-                  created_at: product.created_at,
-                  updated_at: product.updated_at
-                }}
-                onAddToCart={handleAddToCart}
-                disabled={false} // TEMPORAL: Habilitar carrito para pruebas (sin sistema de inventario)
-              />
+              <label className="block text-sm font-medium text-gray-900 mb-3">
+                Cantidad
+              </label>
+              <div className="flex items-center space-x-4 mb-4">
+                <div className="flex items-center border-2 border-gray-300 rounded-lg">
+                  <button
+                    onClick={() => handleQuantityChange(-1)}
+                    disabled={quantity <= 1}
+                    className="p-3 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    aria-label="Disminuir cantidad"
+                  >
+                    <Minus className="w-5 h-5" />
+                  </button>
+                  <span className="px-6 py-3 font-semibold text-lg min-w-[60px] text-center">
+                    {quantity}
+                  </span>
+                  <button
+                    onClick={() => handleQuantityChange(1)}
+                    disabled={quantity >= (product.stock_quantity || 0)}
+                    className="p-3 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    aria-label="Aumentar cantidad"
+                  >
+                    <Plus className="w-5 h-5" />
+                  </button>
+                </div>
+                {quantity >= (product.stock_quantity || 0) && (
+                  <span className="text-sm text-gray-500">
+                    Máximo disponible
+                  </span>
+                )}
+              </div>
+
+              {/* Add to Cart Button */}
+              <button
+                onClick={handleAddToCart}
+                disabled={!product.stock_quantity || product.stock_quantity === 0}
+                className="w-full bg-blue-600 text-white py-4 px-6 rounded-lg font-semibold text-lg hover:bg-blue-700 transition-all disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center space-x-3 transform hover:scale-105"
+              >
+                <ShoppingCart className="w-6 h-6" />
+                <span>Agregar al Carrito</span>
+              </button>
+
+              {/* Wishlist Button */}
+              <button className="w-full mt-3 bg-white text-gray-900 py-3 px-6 rounded-lg font-medium border-2 border-gray-300 hover:border-gray-400 transition-colors flex items-center justify-center space-x-2">
+                <Heart className="w-5 h-5" />
+                <span>Agregar a Favoritos</span>
+              </button>
             </div>
 
             {/* Product Meta */}
