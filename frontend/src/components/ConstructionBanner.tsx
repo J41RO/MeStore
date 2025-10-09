@@ -31,6 +31,7 @@ export const ConstructionBanner = () => {
   return (
     <div
       className="bg-gradient-to-r from-yellow-50 to-orange-50 border-b-2 border-yellow-300 shadow-sm"
+      style={{ marginTop: '64px' }}
       role="alert"
       aria-live="polite"
     >
