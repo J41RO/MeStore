@@ -218,12 +218,18 @@ const CheckoutPage: React.FC = () => {
         notes: formData.additionalNotes || undefined
       };
 
-      const BACKEND_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      // Force HTTPS for production (Railway backend)
+      // Vercel doesn't read .env.production, so hardcode production URL
+      const BACKEND_URL = import.meta.env.VITE_API_BASE_URL
+        || (window.location.hostname.includes('vercel.app')
+          ? 'https://mestocker-backend-production.up.railway.app'
+          : 'http://localhost:8000');
 
       console.debug('🚀 Creating order:', {
         url: `${BACKEND_URL}/api/v1/orders`,
         itemCount: items.length,
-        token: token ? 'present' : 'missing'
+        token: token ? 'present' : 'missing',
+        hostname: window.location.hostname
       });
 
       const response = await fetch(`${BACKEND_URL}/api/v1/orders`, {
