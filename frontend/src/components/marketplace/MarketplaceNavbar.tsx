@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, User, Menu, X, Heart, LogOut } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
@@ -8,8 +8,24 @@ import CartDrawer from './CartDrawer';
 const MarketplaceNavbar: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isHydrated, setIsHydrated] = useState(false);
   const navigate = useNavigate();
-  const { isLoggedIn, userName, userEmail, signOut } = useAuth();
+  const { isLoggedIn, userName, userEmail, signOut, checkAuth } = useAuth();
+
+  // Fix: Hydrate auth state from localStorage on mount
+  useEffect(() => {
+    const hydrateAuth = async () => {
+      try {
+        await checkAuth();
+      } catch (error) {
+        console.error('Error hydrating auth:', error);
+      } finally {
+        setIsHydrated(true);
+      }
+    };
+
+    hydrateAuth();
+  }, [checkAuth]);
 
   const handleLogout = async () => {
     await signOut();
