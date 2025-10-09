@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, User, Menu, X, Heart } from 'lucide-react';
+import { Search, User, Menu, X, Heart, LogOut } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
 import CartButton from './CartButton';
 import CartDrawer from './CartDrawer';
 
@@ -8,6 +9,12 @@ const MarketplaceNavbar: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
+  const { isLoggedIn, userName, userEmail, signOut } = useAuth();
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/marketplace');
+  };
 
   const categories = [
     'Electrónicos',
@@ -95,13 +102,50 @@ const MarketplaceNavbar: React.FC = () => {
               {/* Cart Button with Badge */}
               <CartButton />
 
-              <Link
-                to="/auth/login"
-                className="hidden md:flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors"
-              >
-                <User className="w-6 h-6" />
-                <span>Ingresar</span>
-              </Link>
+              {/* User Menu - Desktop */}
+              {isLoggedIn ? (
+                <div className="hidden md:flex items-center space-x-2 group relative">
+                  <div className="flex items-center space-x-2 text-gray-700 cursor-pointer">
+                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-medium">
+                      {userName.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium">{userName}</span>
+                      <span className="text-xs text-gray-500">{userEmail}</span>
+                    </div>
+                  </div>
+                  {/* Dropdown Menu */}
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-md shadow-lg py-1 hidden group-hover:block z-50">
+                    <Link
+                      to="/marketplace/profile"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      Mi Perfil
+                    </Link>
+                    <Link
+                      to="/marketplace/orders"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      Mis Pedidos
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 flex items-center space-x-2"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Cerrar Sesión</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <Link
+                  to="/auth/login"
+                  className="hidden md:flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors"
+                >
+                  <User className="w-6 h-6" />
+                  <span>Ingresar</span>
+                </Link>
+              )}
 
               {/* Mobile Menu Button */}
               <button
@@ -171,20 +215,67 @@ const MarketplaceNavbar: React.FC = () => {
 
               {/* Mobile User Actions */}
               <div className="border-t pt-4 space-y-2">
-                <Link
-                  to="/auth/login"
-                  className="block text-gray-600 hover:text-blue-600 py-1"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Iniciar Sesión
-                </Link>
-                <Link
-                  to="/marketplace/wishlist"
-                  className="block text-gray-600 hover:text-blue-600 py-1"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Lista de Deseos
-                </Link>
+                {isLoggedIn ? (
+                  <>
+                    <div className="flex items-center space-x-3 pb-2">
+                      <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-medium">
+                        {userName.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-gray-900">{userName}</span>
+                        <span className="text-xs text-gray-500">{userEmail}</span>
+                      </div>
+                    </div>
+                    <Link
+                      to="/marketplace/profile"
+                      className="block text-gray-600 hover:text-blue-600 py-1"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Mi Perfil
+                    </Link>
+                    <Link
+                      to="/marketplace/orders"
+                      className="block text-gray-600 hover:text-blue-600 py-1"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Mis Pedidos
+                    </Link>
+                    <Link
+                      to="/marketplace/wishlist"
+                      className="block text-gray-600 hover:text-blue-600 py-1"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Lista de Deseos
+                    </Link>
+                    <button
+                      onClick={() => {
+                        handleLogout();
+                        setIsMenuOpen(false);
+                      }}
+                      className="w-full text-left text-red-600 hover:text-red-700 py-1 flex items-center space-x-2"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Cerrar Sesión</span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      to="/auth/login"
+                      className="block text-gray-600 hover:text-blue-600 py-1"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Iniciar Sesión
+                    </Link>
+                    <Link
+                      to="/marketplace/wishlist"
+                      className="block text-gray-600 hover:text-blue-600 py-1"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Lista de Deseos
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           </div>
