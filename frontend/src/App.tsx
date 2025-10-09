@@ -12,6 +12,7 @@ import PageLoader from './components/ui/Loading/PageLoader';
 import LandingPage from './pages/LandingPage';
 import MarketplaceHome from './pages/MarketplaceHome';
 import MiniCart from './components/cart/MiniCart';
+import ConstructionBanner from './components/ConstructionBanner';
 import './App.css';
 
 // Lazy loading de páginas principales
@@ -115,6 +116,9 @@ const CheckoutPage = lazy(() => import('./pages/CheckoutPage'));
 function App() {
   return (
     <ErrorBoundary>
+      {/* Construction Banner - Visible on all pages */}
+      <ConstructionBanner />
+
       {/* Global MiniCart Drawer */}
       <MiniCart />
 
