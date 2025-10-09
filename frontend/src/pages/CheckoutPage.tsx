@@ -226,13 +226,13 @@ const CheckoutPage: React.FC = () => {
           : 'http://localhost:8000');
 
       console.debug('🚀 Creating order:', {
-        url: `${BACKEND_URL}/api/v1/orders`,
+        url: `${BACKEND_URL}/api/v1/orders/`,
         itemCount: items.length,
         token: token ? 'present' : 'missing',
         hostname: window.location.hostname
       });
 
-      const response = await fetch(`${BACKEND_URL}/api/v1/orders`, {
+      const response = await fetch(`${BACKEND_URL}/api/v1/orders/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
