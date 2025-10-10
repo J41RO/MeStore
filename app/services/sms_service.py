@@ -168,7 +168,7 @@ class SMSService:
             logger.error(f"❌ Error enviando SMS con Bird: {str(e)}")
             raise
 
-    def send_otp_sms(
+    async def send_otp_sms(
         self,
         phone_number: str,
         otp_code: str,
@@ -218,10 +218,9 @@ class SMSService:
                 self._increment_rate_limit(formatted_number)
                 return True, f"SMS simulado enviado a {formatted_number}"
 
-            # Enviar SMS real con Bird API (sync wrapper para async)
-            import asyncio
+            # Enviar SMS real con Bird API usando await
             try:
-                result = asyncio.run(self._send_bird_sms(formatted_number, message_body))
+                result = await self._send_bird_sms(formatted_number, message_body)
 
                 # Increment rate limit only on successful send
                 self._increment_rate_limit(formatted_number)
@@ -333,7 +332,7 @@ class SMSService:
             logger.error(f"❌ Error enviando SMS: {str(e)}")
             raise
 
-    def send_notification_sms(
+    async def send_notification_sms(
         self,
         phone_number: str,
         message: str,
@@ -373,10 +372,9 @@ class SMSService:
                 self._increment_rate_limit(formatted_number)
                 return True, f"SMS {message_type} simulado enviado"
 
-            # Send real SMS
-            import asyncio
+            # Send real SMS usando await
             try:
-                result = asyncio.run(self._send_bird_sms(formatted_number, message))
+                result = await self._send_bird_sms(formatted_number, message)
 
                 self._increment_rate_limit(formatted_number)
                 logger.info(f"SMS {message_type} enviado con Bird API")

@@ -755,8 +755,8 @@ class AuthService:
                 otp_type="SMS"
             )
 
-            # Enviar SMS usando el servicio mejorado
-            sms_sent, sms_message = self.sms_service.send_otp_sms(
+            # Enviar SMS usando el servicio mejorado (await porque es async)
+            sms_sent, sms_message = await self.sms_service.send_otp_sms(
                 phone_number=user.telefono,
                 otp_code=otp_code,
                 user_name=user.nombre
