@@ -1129,7 +1129,16 @@ async def register_customer(
         )
         logger.info(f"✅ Email de verificación programado en background tasks")
 
-        # 6. Enviar código de verificación por SMS (Twilio Verify)
+        # 6. Enviar email de bienvenida (background)
+        logger.info(f"📧 Programando envío de email de bienvenida")
+        background_tasks.add_task(
+            send_welcome_email,
+            new_user.email,      # Parámetro posicional: email
+            data.first_name      # Parámetro posicional: name
+        )
+        logger.info(f"✅ Email de bienvenida programado en background tasks")
+
+        # 7. Enviar código de verificación por SMS (Twilio Verify)
         try:
             logger.info(f"📱 Iniciando envío de SMS verification con Twilio")
             sms_service = SMSService()
@@ -1142,15 +1151,6 @@ async def register_customer(
             logger.error(f"❌ Error enviando SMS verification: {str(sms_error)}")
             logger.error(f"❌ SMS error type: {type(sms_error).__name__}", exc_info=True)
             # No fallar el registro si SMS falla, el usuario puede reenviar
-
-        # 7. Enviar email de bienvenida (background)
-        logger.info(f"📧 Programando envío de email de bienvenida")
-        background_tasks.add_task(
-            send_welcome_email,
-            new_user.email,      # Parámetro posicional: email
-            data.first_name      # Parámetro posicional: name
-        )
-        logger.info(f"✅ Email de bienvenida programado en background tasks")
 
         return CustomerRegisterResponse(
             success=True,
