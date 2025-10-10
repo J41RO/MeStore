@@ -54,7 +54,7 @@ structlog==25.4.0
 loguru==0.7.2
 
 # Communications (SMS/WhatsApp/Email)
-twilio>=8.0.0
+httpx>=0.28.0  # HTTP client for Bird SMS API
 resend>=2.0.0
 
 # Async File I/O
