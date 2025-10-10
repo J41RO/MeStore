@@ -110,21 +110,22 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 días
 
     # Twilio SMS Configuration - Tarea 1.3.1.5
+    # SECURITY: Set via environment variables, not hardcoded
     TWILIO_ACCOUNT_SID: str = Field(
-        default="AC6a938935d463d476368eac88ccf565ff",
-        description="Twilio Account SID for SMS services"
+        default="",
+        description="Twilio Account SID for SMS services - SET VIA ENV VAR"
     )
     TWILIO_AUTH_TOKEN: str = Field(
-        default="07da4616faa5513345c7411d9b46b2eb",
-        description="Twilio Authentication Token"
+        default="",
+        description="Twilio Authentication Token - SET VIA ENV VAR"
     )
     TWILIO_FROM_NUMBER: str = Field(
-        default="+17622631579",
-        description="Twilio phone number for sending SMS"
+        default="",
+        description="Twilio phone number for sending SMS - SET VIA ENV VAR"
     )
     TWILIO_VERIFY_SERVICE_SID: str = Field(
-        default="VAebb13c6b49019077b57d4cbb7501201d",
-        description="Twilio Verify Service SID for OTP verification"
+        default="",
+        description="Twilio Verify Service SID for OTP verification - SET VIA ENV VAR"
     )
 
     # OTP Configuration - Tarea 1.3.1.5
