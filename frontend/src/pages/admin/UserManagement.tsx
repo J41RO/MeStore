@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ENV } from "../../utils/env";
 import { Users, UserCheck, UserX, Shield, Plus, Edit, Trash2, UserMinus, CheckCircle } from 'lucide-react';
 import DeleteDiagnostic from '../../components/admin/DeleteDiagnostic';
 import UserDataTable from '../../components/admin/UserDataTable';
@@ -61,7 +62,7 @@ const UserManagement: React.FC = () => {
 
       // Cargar estadísticas
       try {
-        const statsResponse = await fetch('http://192.168.1.137:8000/api/v1/superuser-admin/users/stats', {
+        const statsResponse = await fetch(`${ENV.API_BASE_URL}/api/v1/superuser-admin/users/stats`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -102,8 +103,8 @@ const UserManagement: React.FC = () => {
       });
 
       const endpoint = showDeletedUsers
-        ? `http://192.168.1.137:8000/api/v1/superuser-admin/users/deleted?${params}`
-        : `http://192.168.1.137:8000/api/v1/superuser-admin/users?${params}`;
+        ? `${ENV.API_BASE_URL}/api/v1/superuser-admin/users/deleted?${params}`
+        : `${ENV.API_BASE_URL}/api/v1/superuser-admin/users?${params}`;
 
       const usersResponse = await fetch(endpoint, {
         headers: {
@@ -191,7 +192,7 @@ const UserManagement: React.FC = () => {
           console.log('🗑️ Iniciando DELETE para usuario:', userId);
           console.log('🔑 Token being used:', token.substring(0, 20) + '...');
 
-          const deleteUrl = `http://192.168.1.137:8000/api/v1/superuser-admin/users/${userId}?reason=${encodeURIComponent(reason || 'Eliminado por admin')}`;
+          const deleteUrl = `${ENV.API_BASE_URL}/api/v1/superuser-admin/users/${userId}?reason=${encodeURIComponent(reason || 'Eliminado por admin')}`;
           console.log('🌐 DELETE URL:', deleteUrl);
 
           const deleteHeaders = {
@@ -244,7 +245,7 @@ const UserManagement: React.FC = () => {
 
               // Test token with a simple GET request
               try {
-                const testResponse = await fetch('http://192.168.1.137:8000/api/v1/superuser-admin/users/stats', {
+                const testResponse = await fetch(`${ENV.API_BASE_URL}/api/v1/superuser-admin/users/stats`, {
                   headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -273,7 +274,7 @@ const UserManagement: React.FC = () => {
       console.log(`🔄 Ejecutando ${action} para usuario:`, userId);
       console.log('📦 Update data:', updateData);
 
-      const response = await fetch(`http://192.168.1.137:8000/api/v1/superuser-admin/users/${userId}`, {
+      const response = await fetch(`${ENV.API_BASE_URL}/api/v1/superuser-admin/users/${userId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -341,7 +342,7 @@ const UserManagement: React.FC = () => {
       setActionLoading(selectedUser.id);
       const token = localStorage.getItem('access_token');
 
-      const response = await fetch(`http://192.168.1.137:8000/api/v1/superuser-admin/users/${selectedUser.id}`, {
+      const response = await fetch(`${ENV.API_BASE_URL}/api/v1/superuser-admin/users/${selectedUser.id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

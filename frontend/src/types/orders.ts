@@ -1,4 +1,5 @@
 // ~/frontend/src/types/orders.ts
+import { ENV } from "../utils/env";
 // PRODUCTION_READY: Tipos TypeScript para sistema de órdenes enterprise
 
 export enum OrderStatus {
@@ -187,7 +188,7 @@ export const getApiBaseUrl = (): string => {
   return import.meta.env.VITE_API_URL || 
     (import.meta.env.MODE === 'production' 
       ? 'https://api.tudominio.com'  // TODO_HOSTING: Configurar dominio real
-      : 'http://192.168.1.137:8000'
+      : ENV.API_BASE_URL
     );
 };
 

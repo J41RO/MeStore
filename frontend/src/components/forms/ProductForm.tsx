@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { ENV } from "../../utils/env";
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { X, CheckCircle, AlertTriangle } from 'lucide-react';
@@ -1017,8 +1018,8 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
                 // Determinar URL y método según el modo
                 const url = mode === 'edit' && initialData?.id
-                  ? `http://192.168.1.137:8000/api/v1/products/${initialData.id}`
-                  : 'http://192.168.1.137:8000/api/v1/products';
+                  ? `${ENV.API_BASE_URL}/api/v1/products/${initialData.id}`
+                  : `${ENV.API_BASE_URL}/api/v1/products`;
                 const method = mode === 'edit' ? 'PUT' : 'POST';
 
                 console.log(`🌐 ${method} ${url}`);

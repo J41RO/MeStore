@@ -1,4 +1,5 @@
 /**
+import { ENV } from "../../utils/env";
  * ProductForm - Comprehensive product creation/editing form
  *
  * Features:
@@ -328,7 +329,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
           const token = localStorage.getItem('authToken') || localStorage.getItem('token') || '';
           console.log('🔑 Token encontrado:', token ? 'Sí (' + token.substring(0, 20) + '...)' : 'No');
 
-          const url = `http://192.168.1.137:8000/api/v1/products/${product.id}/imagenes`;
+          const url = `${ENV.API_BASE_URL}/api/v1/products/${product.id}/imagenes`;
           console.log('📡 Haciendo GET a:', url);
 
           // Fetch images from backend
@@ -437,7 +438,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
           try {
             console.log('🗑️ Eliminando imagen:', deletedImage.id);
             const deleteResponse = await fetch(
-              `http://192.168.1.137:8000/api/v1/products/imagenes/${deletedImage.id}`,
+              `${ENV.API_BASE_URL}/api/v1/products/imagenes/${deletedImage.id}`,
               {
                 method: 'DELETE',
                 headers: {
@@ -470,7 +471,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
           });
 
           const uploadResponse = await fetch(
-            `http://192.168.1.137:8000/api/v1/products/${productId}/imagenes`,
+            `${ENV.API_BASE_URL}/api/v1/products/${productId}/imagenes`,
             {
               method: 'POST',
               headers: {
@@ -503,7 +504,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
           const token = localStorage.getItem('authToken') || localStorage.getItem('token') || '';
           const uploadResponse = await fetch(
-            `http://192.168.1.137:8000/api/v1/products/${productId}/imagenes`,
+            `${ENV.API_BASE_URL}/api/v1/products/${productId}/imagenes`,
             {
               method: 'POST',
               headers: {

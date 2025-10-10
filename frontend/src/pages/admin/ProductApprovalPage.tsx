@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { ENV } from "../../utils/env";
 import {
   CheckCircle, XCircle, Clock, Package, RefreshCw,
   Eye, User, Calendar, AlertCircle, Filter
@@ -40,7 +41,7 @@ const ProductApprovalPage: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<string>('PENDING');
   const [processing, setProcessing] = useState<string | null>(null);
 
-  const API_BASE = 'http://192.168.1.137:8000';
+  const API_BASE = ENV.API_BASE_URL;
 
   const fetchProducts = useCallback(async (showRefresh = false) => {
     if (showRefresh) setRefreshing(true);

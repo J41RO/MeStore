@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ENV } from "../../utils/env";
 import { CreditCard, Building2, Loader, AlertCircle, Shield, CheckCircle } from 'lucide-react';
 
 interface PayUCheckoutProps {
@@ -174,7 +175,7 @@ export const PayUCheckout: React.FC<PayUCheckoutProps> = ({
       // Get auth token
       const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
 
-      const response = await fetch('http://192.168.1.137:8000/api/v1/payments/process/payu', {
+      const response = await fetch(`${ENV.API_BASE_URL}/api/v1/payments/process/payu', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

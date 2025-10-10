@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ClipboardCheck, Package, AlertTriangle, CheckCircle } from 'lucide-react';
+import { ENV } from '../../utils/env';
 
 interface AuditItem {
   id: string;
@@ -54,7 +55,7 @@ const InventoryAuditPanel: React.FC = () => {
     }
 
     try {
-      const response = await fetch('http://192.168.1.137:8000/api/v1/auth/login', {
+      const response = await fetch(`${ENV.API_BASE_URL}/api/v1/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -133,7 +134,7 @@ const InventoryAuditPanel: React.FC = () => {
     
     try {
       const headers = await getAuthHeaders();
-      const response = await makeRequestWithRateLimit('http://192.168.1.137:8000/api/v1/inventory/audits', {
+      const response = await makeRequestWithRateLimit(`${ENV.API_BASE_URL}/api/v1/inventory/audits`, {
         headers
       });
       
@@ -146,7 +147,7 @@ const InventoryAuditPanel: React.FC = () => {
               ...headers,
               'Authorization': `Bearer ${newToken}`
             };
-            const retryResponse = await makeRequestWithRateLimit('http://192.168.1.137:8000/api/v1/inventory/audits', {
+            const retryResponse = await makeRequestWithRateLimit(`${ENV.API_BASE_URL}/api/v1/inventory/audits`, {
               headers: retryHeaders
             });
             
@@ -186,7 +187,7 @@ const InventoryAuditPanel: React.FC = () => {
     setError(null);
     try {
       const headers = await getAuthHeaders();
-      const response = await makeRequestWithRateLimit('http://192.168.1.137:8000/api/v1/inventory/audits', {
+      const response = await makeRequestWithRateLimit(`${ENV.API_BASE_URL}/api/v1/inventory/audits`, {
         method: 'POST',
         headers: {
           ...headers,
@@ -203,7 +204,7 @@ const InventoryAuditPanel: React.FC = () => {
         if (response.status === 401 || response.status === 403) {
           const newToken = await getAuthToken();
           if (newToken && !rateLimitCooldown) {
-            const retryResponse = await makeRequestWithRateLimit('http://192.168.1.137:8000/api/v1/inventory/audits', {
+            const retryResponse = await makeRequestWithRateLimit(`${ENV.API_BASE_URL}/api/v1/inventory/audits`, {
               method: 'POST',
               headers: {
                 'Authorization': `Bearer ${newToken}`,
@@ -248,7 +249,7 @@ const InventoryAuditPanel: React.FC = () => {
 
     try {
       const headers = await getAuthHeaders();
-      const response = await makeRequestWithRateLimit(`http://192.168.1.137:8000/api/v1/inventory/audits/${auditId}/items`, {
+      const response = await makeRequestWithRateLimit(`${ENV.API_BASE_URL}/api/v1/inventory/audits/${auditId}/items`, {
         headers
       });
       
@@ -256,7 +257,7 @@ const InventoryAuditPanel: React.FC = () => {
         if (response.status === 401 || response.status === 403) {
           const newToken = await getAuthToken();
           if (newToken && !rateLimitCooldown) {
-            const retryResponse = await makeRequestWithRateLimit(`http://192.168.1.137:8000/api/v1/inventory/audits/${auditId}/items`, {
+            const retryResponse = await makeRequestWithRateLimit(`${ENV.API_BASE_URL}/api/v1/inventory/audits/${auditId}/items`, {
               headers: {
                 'Authorization': `Bearer ${newToken}`,
                 'User-Agent': 'Mozilla/5.0 (compatible; API-Client/1.0)'
@@ -289,7 +290,7 @@ const InventoryAuditPanel: React.FC = () => {
 
     try {
       const headers = await getAuthHeaders();
-      const response = await makeRequestWithRateLimit(`http://192.168.1.137:8000/api/v1/inventory/audit-items/${itemId}/count`, {
+      const response = await makeRequestWithRateLimit(`${ENV.API_BASE_URL}/api/v1/inventory/audit-items/${itemId}/count`, {
         method: 'PUT',
         headers: {
           ...headers,
@@ -304,7 +305,7 @@ const InventoryAuditPanel: React.FC = () => {
       if (!response.ok && (response.status === 401 || response.status === 403)) {
         const newToken = await getAuthToken();
         if (newToken && !rateLimitCooldown) {
-          const retryResponse = await makeRequestWithRateLimit(`http://192.168.1.137:8000/api/v1/inventory/audit-items/${itemId}/count`, {
+          const retryResponse = await makeRequestWithRateLimit(`${ENV.API_BASE_URL}/api/v1/inventory/audit-items/${itemId}/count`, {
             method: 'PUT',
             headers: {
               'Authorization': `Bearer ${newToken}`,

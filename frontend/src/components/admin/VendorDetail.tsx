@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ENV } from "../../utils/env";
 
 // Interfaces TypeScript
 interface VendorDetailProps {
@@ -86,7 +87,7 @@ const fetchMetrics = async () => {
   
   try {
     const token = localStorage.getItem('token') || localStorage.getItem('access_token');
-    const response = await fetch(`http://192.168.1.137:8000/api/v1/vendors/${vendor.id}/dashboard/resumen`, {
+    const response = await fetch(`${ENV.API_BASE_URL}/api/v1/vendors/${vendor.id}/dashboard/resumen`, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'

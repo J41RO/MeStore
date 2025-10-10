@@ -1,3 +1,4 @@
+import { ENV } from "../../utils/env";
 /**
  * Componente para generar, visualizar y gestionar códigos QR
  * Archivo: frontend/src/components/admin/QRGeneratorForm.tsx
@@ -48,7 +49,7 @@ export const QRGeneratorForm: React.FC<QRGeneratorFormProps> = ({
       setError(null);
       const token = localStorage.getItem('access_token');
       const response = await fetch(
-        `http://192.168.1.137:8000/api/v1/admin/incoming-products/${queueId}/qr-info`,
+        `${ENV.API_BASE_URL}/api/v1/admin/incoming-products/${queueId}/qr-info`,
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
@@ -77,7 +78,7 @@ export const QRGeneratorForm: React.FC<QRGeneratorFormProps> = ({
     try {
       const token = localStorage.getItem('access_token');
       const response = await fetch(
-        `http://192.168.1.137:8000/api/v1/admin/incoming-products/${queueId}/generate-qr?style=${qrStyle}`,
+        `${ENV.API_BASE_URL}/api/v1/admin/incoming-products/${queueId}/generate-qr?style=${qrStyle}`,
         {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` }
@@ -112,7 +113,7 @@ export const QRGeneratorForm: React.FC<QRGeneratorFormProps> = ({
       const token = localStorage.getItem('access_token');
       const endpoint = type === 'qr' ? 'qr-codes' : 'labels';
       const response = await fetch(
-        `http://192.168.1.137:8000/api/v1/admin/${endpoint}/${filename}`,
+        `${ENV.API_BASE_URL}/api/v1/admin/${endpoint}/${filename}`,
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
@@ -143,7 +144,7 @@ export const QRGeneratorForm: React.FC<QRGeneratorFormProps> = ({
     try {
       const token = localStorage.getItem('access_token');
       const response = await fetch(
-        `http://192.168.1.137:8000/api/v1/admin/incoming-products/${queueId}/regenerate-qr?style=${qrStyle}`,
+        `${ENV.API_BASE_URL}/api/v1/admin/incoming-products/${queueId}/regenerate-qr?style=${qrStyle}`,
         {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` }
@@ -179,7 +180,7 @@ export const QRGeneratorForm: React.FC<QRGeneratorFormProps> = ({
       
       const token = localStorage.getItem('access_token');
       const response = await fetch(
-        `http://192.168.1.137:8000/api/v1/admin/qr/decode`,
+        `${ENV.API_BASE_URL}/api/v1/admin/qr/decode`,
         {
           method: 'POST',
           headers: { 

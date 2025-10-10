@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ENV } from "../utils/env";
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, AlertCircle, Loader2, ShoppingCart, Heart, Star, Minus, Plus, Truck, ShieldCheck } from 'lucide-react';
 import MarketplaceLayout from '../components/marketplace/MarketplaceLayout';
@@ -59,7 +60,7 @@ const ProductDetail: React.FC = () => {
         setError(null);
 
         // Use full backend URL for API calls
-        const backendUrl = import.meta.env.VITE_API_BASE_URL || 'http://192.168.1.137:8000';
+        const backendUrl = import.meta.env.VITE_API_BASE_URL || `${ENV.API_BASE_URL}`;
         const response = await fetch(`${backendUrl}/api/v1/products/${id}`);
 
         if (response.status === 404) {

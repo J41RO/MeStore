@@ -1,4 +1,5 @@
 /**
+import { ENV } from "./env";
  * Security Utilities
  * Frontend Security AI Implementation
  *
@@ -16,7 +17,7 @@ export const initCSP = () => {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https:",
     "font-src 'self' https:",
-    "connect-src 'self' http://192.168.1.137:8000 ws: wss:",
+    "connect-src 'self' ${ENV.API_BASE_URL} ws: wss:",
     "frame-ancestors 'none'",
     "form-action 'self'",
     "base-uri 'self'"

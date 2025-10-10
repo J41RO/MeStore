@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { ENV } from "../../utils/env";
 import { useState, useEffect } from 'react';
 import { X, MapPin, Zap, Target, BarChart, Loader, CheckCircle, AlertTriangle, Info } from 'lucide-react';
 
@@ -67,7 +68,7 @@ export const LocationAssignmentForm: React.FC<LocationAssignmentFormProps> = ({
     try {
       const token = localStorage.getItem('access_token');
       const response = await fetch(
-        'http://192.168.1.137:8000/api/v1/admin/warehouse/availability',
+        '${ENV.API_BASE_URL}/api/v1/admin/warehouse/availability',
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -88,7 +89,7 @@ export const LocationAssignmentForm: React.FC<LocationAssignmentFormProps> = ({
     try {
       const token = localStorage.getItem('access_token');
       const response = await fetch(
-        `http://192.168.1.137:8000/api/v1/admin/incoming-products/${queueId}/location/suggestions?limit=5`,
+        `${ENV.API_BASE_URL}/api/v1/admin/incoming-products/${queueId}/location/suggestions?limit=5`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -112,7 +113,7 @@ export const LocationAssignmentForm: React.FC<LocationAssignmentFormProps> = ({
     try {
       const token = localStorage.getItem('access_token');
       const response = await fetch(
-        `http://192.168.1.137:8000/api/v1/admin/incoming-products/${queueId}/location/auto-assign`,
+        `${ENV.API_BASE_URL}/api/v1/admin/incoming-products/${queueId}/location/auto-assign`,
         {
           method: 'POST',
           headers: {
@@ -167,7 +168,7 @@ export const LocationAssignmentForm: React.FC<LocationAssignmentFormProps> = ({
     try {
       const token = localStorage.getItem('access_token');
       const response = await fetch(
-        `http://192.168.1.137:8000/api/v1/admin/incoming-products/${queueId}/location/manual-assign`,
+        `${ENV.API_BASE_URL}/api/v1/admin/incoming-products/${queueId}/location/manual-assign`,
         {
           method: 'POST',
           headers: {

@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { ENV } from "../../utils/env";
 import { useState } from 'react';
 import { X, AlertTriangle, Send, FileText, Clock, Shield } from 'lucide-react';
 
@@ -70,7 +71,7 @@ export const ProductRejectionForm: React.FC<ProductRejectionFormProps> = ({
     try {
       const token = localStorage.getItem('access_token');
       const response = await fetch(
-        `http://192.168.1.137:8000/api/v1/admin/incoming-products/${queueId}/verification/reject`,
+        `${ENV.API_BASE_URL}/api/v1/admin/incoming-products/${queueId}/verification/reject`,
         {
           method: 'POST',
           headers: {

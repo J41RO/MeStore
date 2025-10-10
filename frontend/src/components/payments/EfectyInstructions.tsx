@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { ENV } from "../../utils/env";
 import { Copy, Check, MapPin, Clock, AlertTriangle, Banknote, Info } from 'lucide-react';
 
 interface EfectyInstructionsProps {
@@ -42,7 +43,7 @@ export const EfectyInstructions: React.FC<EfectyInstructionsProps> = ({
       // Get auth token
       const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
 
-      const response = await fetch('http://192.168.1.137:8000/api/v1/payments/process/efecty', {
+      const response = await fetch(`${ENV.API_BASE_URL}/api/v1/payments/process/efecty', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

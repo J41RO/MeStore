@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ENV } from "../../utils/env";
 
 /**
  * DELETE Diagnostic Component
@@ -58,7 +59,7 @@ const DeleteDiagnostic: React.FC = () => {
     try {
       addResult('🧪 Testing GET /users/stats for auth validation...');
 
-      const response = await fetch('http://192.168.1.137:8000/api/v1/superuser-admin/users/stats', {
+      const response = await fetch('${ENV.API_BASE_URL}/api/v1/superuser-admin/users/stats', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -86,7 +87,7 @@ const DeleteDiagnostic: React.FC = () => {
     try {
       addResult('🚁 Testing CORS preflight for DELETE...');
 
-      const response = await fetch('http://192.168.1.137:8000/api/v1/superuser-admin/users/test-user-id', {
+      const response = await fetch('${ENV.API_BASE_URL}/api/v1/superuser-admin/users/test-user-id', {
         method: 'OPTIONS',
         headers: {
           'Access-Control-Request-Method': 'DELETE',
@@ -126,7 +127,7 @@ const DeleteDiagnostic: React.FC = () => {
 
       // Use a fake user ID for testing
       const testUserId = '00000000-0000-0000-0000-000000000000';
-      const deleteUrl = `http://192.168.1.137:8000/api/v1/superuser-admin/users/${testUserId}?reason=Diagnostic%20Test`;
+      const deleteUrl = `${ENV.API_BASE_URL}/api/v1/superuser-admin/users/${testUserId}?reason=Diagnostic%20Test`;
 
       addResult(`🎯 DELETE URL: ${deleteUrl}`);
       addResult(`🔑 Token (first 20 chars): ${token.substring(0, 20)}...`);
