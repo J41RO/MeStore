@@ -702,9 +702,9 @@ class AuthService:
                 return False, message
 
             # Generar código OTP
-            otp_code, expires_at = self.otp_service.create_otp_for_user(
-                db=db, 
-                user=user, 
+            otp_code, expires_at = await self.otp_service.create_otp_for_user(
+                db=db,
+                user=user,
                 otp_type="EMAIL"
             )
 
@@ -749,9 +749,9 @@ class AuthService:
                 return False, message
 
             # Generar código OTP
-            otp_code, expires_at = self.otp_service.create_otp_for_user(
-                db=db, 
-                user=user, 
+            otp_code, expires_at = await self.otp_service.create_otp_for_user(
+                db=db,
+                user=user,
                 otp_type="SMS"
             )
 
@@ -788,7 +788,7 @@ class AuthService:
             Tuple[bool, str]: (Es válido, Mensaje)
         """
         try:
-            return self.otp_service.validate_otp_code(db, user, otp_code)
+            return await self.otp_service.validate_otp_code(db, user, otp_code)
         except Exception as e:
             return False, f"Error verificando código: {str(e)}"
 
