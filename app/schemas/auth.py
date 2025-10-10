@@ -35,7 +35,7 @@ class RegisterRequest(BaseModel):
                 "email": "nuevousuario@ejemplo.com",
                 "password": "mi_password_seguro",
                 "nombre": "Juan Carlos",
-                "telefono": "300 123 4567",
+                "telefono": "+573001234567",
                 "user_type": "VENDOR"
             }
         }
@@ -43,8 +43,8 @@ class RegisterRequest(BaseModel):
 
     email: EmailStr = Field(..., description="Email del usuario")
     password: str = Field(..., min_length=6, description="Contraseña del usuario")
-    nombre: Optional[str] = Field(None, description="Nombre del usuario")
-    telefono: Optional[str] = Field(None, description="Teléfono del usuario")
+    nombre: str = Field(..., min_length=2, description="Nombre del usuario")
+    telefono: str = Field(..., pattern=r'^\+[1-9]\d{1,14}$', description="Teléfono en formato internacional E.164 (+573001234567)")
     user_type: Optional[UserType] = Field(UserType.BUYER, description="Tipo de usuario")
 
 

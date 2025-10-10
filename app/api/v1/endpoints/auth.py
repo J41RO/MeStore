@@ -455,24 +455,112 @@ async def update_current_user_profile(
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 async def register(
     user_data: RegisterRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db)
 ) -> TokenResponse:
-    """Registrar nuevo usuario con tipo específico."""
+    """
+    Registrar nuevo usuario con verificación de email y SMS.
+
+    Flujo:
+    1. Valida que email y teléfono no existan
+    2. Crea usuario con email_verified=False, phone_verified=False
+    3. Genera código de verificación de email
+    4. Envía email con código de verificación
+    5. Envía SMS con código Twilio Verify
+    6. Retorna tokens JWT para acceso inmediato
+    """
     logger.info(f"🔄 Register attempt with data: {user_data.dict()}")
-    auth_service = get_auth_service()
 
     try:
-        # Crear nuevo usuario con datos adicionales
-        new_user = await auth_service.create_user(
-            db,
-            email=user_data.email,
-            password=user_data.password,
-            user_type=user_data.user_type.value if user_data.user_type else "BUYER",
-            nombre=user_data.nombre,
-            telefono=user_data.telefono
+        # 1. Verificar si email ya existe
+        logger.info(f"🔍 Verificando unicidad de email: {user_data.email}")
+        existing_user = await db.execute(
+            select(User).where(User.email == user_data.email)
         )
-        
-        # Generar tokens para el nuevo usuario with consistent ID format
+        if existing_user.scalar_one_or_none():
+            logger.warning(f"⚠️ Email ya registrado: {user_data.email}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El correo electrónico ya está registrado. Por favor usa otro correo o inicia sesión."
+            )
+        logger.info(f"✅ Email disponible: {user_data.email}")
+
+        # 2. Verificar si teléfono ya existe
+        logger.info(f"🔍 Verificando unicidad de teléfono: {user_data.telefono}")
+        existing_phone = await db.execute(
+            select(User).where(User.telefono == user_data.telefono)
+        )
+        if existing_phone.scalar_one_or_none():
+            logger.warning(f"⚠️ Teléfono ya registrado: {user_data.telefono}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El teléfono ya está registrado. Por favor usa otro número."
+            )
+        logger.info(f"✅ Teléfono disponible: {user_data.telefono}")
+
+        # 3. Crear usuario
+        logger.info(f"🔐 Generando hash de contraseña")
+        password_hash = await get_password_hash(user_data.password)
+
+        logger.info(f"👤 Creando usuario en base de datos")
+        user_type_enum = UserType(user_data.user_type.value) if user_data.user_type else UserType.BUYER
+
+        new_user = User(
+            email=user_data.email,
+            password_hash=password_hash,
+            nombre=user_data.nombre,
+            telefono=user_data.telefono,
+            user_type=user_type_enum,
+            is_active=True,
+            email_verified=False,
+            phone_verified=False
+        )
+
+        db.add(new_user)
+        logger.info(f"💾 Usuario agregado a sesión DB, ejecutando flush")
+        await db.flush()
+        logger.info(f"✅ Flush completado, user_id obtenido: {new_user.id}")
+
+        # 4. Generar código de verificación de email
+        logger.info(f"🎲 Generando código de verificación de email")
+        email_code = generate_verification_code()
+        new_user.email_verification_code = email_code
+        new_user.email_verification_expires_at = datetime.utcnow() + timedelta(minutes=10)
+        logger.info(f"✅ Código de verificación generado (expira en 10 min)")
+
+        # 5. Commit a base de datos ANTES de enviar emails/SMS
+        logger.info(f"💾 Ejecutando commit a base de datos")
+        await db.commit()
+        logger.info(f"✅ Commit exitoso, refrescando usuario")
+        await db.refresh(new_user)
+
+        logger.info(f"✅ Usuario creado exitosamente", user_id=str(new_user.id), email=new_user.email)
+
+        # 6. Enviar email de verificación (background task)
+        logger.info(f"📧 Programando envío de email de verificación")
+        background_tasks.add_task(
+            send_verification_email,
+            new_user.email,
+            email_code,
+            user_data.nombre
+        )
+        logger.info(f"✅ Email de verificación programado")
+
+        # 7. Enviar SMS de verificación (Twilio Verify)
+        try:
+            logger.info(f"📱 Iniciando envío de SMS verification con Twilio")
+            sms_service = SMSService()
+            sms_result = await sms_service.send_verification_code(
+                phone_number=user_data.telefono,
+                channel="sms"
+            )
+            logger.info(f"✅ SMS verification enviado", phone=user_data.telefono, status=sms_result.get('status'))
+        except Exception as sms_error:
+            logger.error(f"❌ Error enviando SMS verification: {str(sms_error)}")
+            logger.error(f"❌ SMS error type: {type(sms_error).__name__}", exc_info=True)
+            # No fallar el registro si SMS falla, el usuario puede reenviar
+
+        # 8. Generar tokens JWT para acceso inmediato
         normalized_id = normalize_uuid_string(new_user.id)
         token_data = {
             "sub": normalized_id,
@@ -487,28 +575,36 @@ async def register(
             access_token=access_token,
             refresh_token=refresh_token,
             token_type="bearer",
-            expires_in=3600
+            expires_in=3600,
+            user={
+                "id": normalized_id,
+                "email": new_user.email,
+                "user_type": new_user.user_type.value,
+                "nombre": new_user.nombre,
+                "telefono": new_user.telefono,
+                "is_active": True,
+                "is_verified": False,
+                "email_verified": False,
+                "phone_verified": False
+            }
         )
-        
-    except ValueError as e:
-        error_message = str(e)
-        if "already exists" in error_message:
-            logger.warning(f"Duplicate email registration attempt: {user_data.email}")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="El correo electrónico ya está registrado. Por favor usa otro correo o inicia sesión."
-            )
-        else:
-            logger.error(f"Validation error en register: {error_message}")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Datos de registro inválidos"
-            )
+
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error interno en register: {str(e)}")
+        logger.error(f"❌ CRITICAL ERROR en register: {str(e)}")
+        logger.error(f"❌ Error type: {type(e).__name__}", exc_info=True)
+
+        # Rollback de la transacción
+        try:
+            await db.rollback()
+            logger.info(f"✅ Database rollback completado")
+        except Exception as rollback_error:
+            logger.error(f"❌ Error en rollback: {str(rollback_error)}", exc_info=True)
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error interno del servidor"
+            detail=f"Error procesando registro de usuario: {type(e).__name__} - {str(e)}"
         )
 
 # Password reset endpoints moved below (lines 817+) with EmailService implementation
