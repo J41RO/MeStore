@@ -37,7 +37,9 @@ from app.schemas.auth import (
     CustomerRegisterResponse,
     VerifyEmailRequest,
     VerifyPhoneRequest,
-    VerificationResponse
+    VerificationResponse,
+    UserProfileUpdateRequest,
+    UserProfileUpdateResponse
 )
 from app.core.redis import RedisService, get_redis_service
 from app.core.logger import get_logger
@@ -350,12 +352,102 @@ async def get_current_user_info(
             "phone_verified": getattr(current_user, 'phone_verified', False),
             "is_active": getattr(current_user, 'is_active', True)
         }
-        
+
     except Exception as e:
         logger.error(f"Error en get_current_user_info: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error al obtener información del usuario"
+        )
+
+
+@router.put("/users/me", response_model=UserProfileUpdateResponse, status_code=status.HTTP_200_OK)
+async def update_current_user_profile(
+    update_data: UserProfileUpdateRequest,
+    current_user: User = Depends(get_current_user_clean),
+    db: AsyncSession = Depends(get_db)
+) -> UserProfileUpdateResponse:
+    """
+    Actualizar perfil del usuario actual.
+
+    Permite actualizar:
+    - user_type (BUYER/VENDOR)
+    - Datos personales (cédula, dirección, ciudad, departamento)
+    - Datos de vendedor (dirección fiscal, nombre empresa, NIT, tipo vendedor)
+
+    Requiere autenticación JWT.
+    Solo el propio usuario puede actualizar su perfil.
+    """
+    try:
+        logger.info(f"🔄 Actualizando perfil de usuario", user_id=str(current_user.id), email=current_user.email)
+
+        # Actualizar solo los campos que fueron enviados (no None)
+        update_dict = update_data.model_dump(exclude_unset=True, exclude_none=True)
+
+        if not update_dict:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No se proporcionaron campos para actualizar"
+            )
+
+        logger.info(f"📝 Campos a actualizar: {list(update_dict.keys())}")
+
+        # Actualizar user_type si fue enviado
+        if "user_type" in update_dict:
+            new_user_type = update_dict.pop("user_type")
+            current_user.user_type = UserType(new_user_type) if isinstance(new_user_type, str) else new_user_type
+            logger.info(f"✅ user_type actualizado a: {current_user.user_type.value}")
+
+        # Actualizar resto de campos
+        for field, value in update_dict.items():
+            if hasattr(current_user, field):
+                setattr(current_user, field, value)
+                logger.debug(f"✅ {field} actualizado")
+            else:
+                logger.warning(f"⚠️ Campo ignorado (no existe en modelo): {field}")
+
+        # Guardar cambios
+        await db.commit()
+        await db.refresh(current_user)
+
+        logger.info(f"✅ Perfil actualizado exitosamente", user_id=str(current_user.id))
+
+        # Preparar respuesta
+        user_id = normalize_uuid_string(current_user.id)
+        user_response = {
+            "id": user_id,
+            "email": current_user.email,
+            "user_type": current_user.user_type.value if hasattr(current_user.user_type, 'value') else str(current_user.user_type),
+            "nombre": getattr(current_user, 'nombre', None),
+            "cedula": getattr(current_user, 'cedula', None),
+            "direccion": getattr(current_user, 'direccion', None),
+            "ciudad": getattr(current_user, 'ciudad', None),
+            "departamento": getattr(current_user, 'departamento', None),
+            "direccion_fiscal": getattr(current_user, 'direccion_fiscal', None),
+            "ciudad_fiscal": getattr(current_user, 'ciudad_fiscal', None),
+            "departamento_fiscal": getattr(current_user, 'departamento_fiscal', None),
+            "nombre_empresa": getattr(current_user, 'nombre_empresa', None),
+            "nit": getattr(current_user, 'nit', None),
+            "tipo_vendedor": getattr(current_user, 'tipo_vendedor', None)
+        }
+
+        # Remover campos None de la respuesta
+        user_response = {k: v for k, v in user_response.items() if v is not None}
+
+        return UserProfileUpdateResponse(
+            success=True,
+            message="Perfil actualizado exitosamente",
+            user=user_response
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error actualizando perfil: {str(e)}", exc_info=True)
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error interno del servidor: {str(e)}"
         )
 
 

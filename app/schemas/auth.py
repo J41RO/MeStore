@@ -427,3 +427,67 @@ class VerificationResponse(BaseModel):
     email_verified: bool = Field(..., description="Si el email está verificado")
     phone_verified: bool = Field(..., description="Si el teléfono está verificado")
     account_active: bool = Field(..., description="Si la cuenta está activa (ambos verificados)")
+
+
+# === USER PROFILE UPDATE SCHEMAS ===
+
+class UserProfileUpdateRequest(BaseModel):
+    """Esquema para actualización de perfil de usuario."""
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "user_type": "VENDOR",
+                "cedula": "1098765432",
+                "direccion": "Calle 123 #45-67",
+                "ciudad": "Bucaramanga",
+                "departamento": "Santander",
+                "direccion_fiscal": "Carrera 27 #123-45",
+                "ciudad_fiscal": "Bucaramanga",
+                "departamento_fiscal": "Santander",
+                "nombre_empresa": "Mi Empresa S.A.S",
+                "nit": "123456789-0",
+                "tipo_vendedor": "persona_juridica"
+            }
+        }
+    )
+
+    # Campos actualizables
+    user_type: Optional[UserType] = Field(None, description="Tipo de usuario (BUYER/VENDOR)")
+
+    # Campos comunes
+    cedula: Optional[str] = Field(None, min_length=8, max_length=10, description="Cédula de ciudadanía")
+    direccion: Optional[str] = Field(None, min_length=10, description="Dirección de entrega")
+    ciudad: Optional[str] = Field(None, min_length=3, description="Ciudad")
+    departamento: Optional[str] = Field(None, min_length=3, description="Departamento")
+
+    # Campos de vendedor
+    direccion_fiscal: Optional[str] = Field(None, min_length=10, description="Dirección fiscal (vendedores)")
+    ciudad_fiscal: Optional[str] = Field(None, min_length=3, description="Ciudad fiscal (vendedores)")
+    departamento_fiscal: Optional[str] = Field(None, min_length=3, description="Departamento fiscal (vendedores)")
+    nombre_empresa: Optional[str] = Field(None, min_length=3, description="Nombre de empresa (persona jurídica)")
+    nit: Optional[str] = Field(None, pattern=r'^\d{9}-\d$', description="NIT (formato: 123456789-0)")
+    tipo_vendedor: Optional[str] = Field(None, pattern="^(persona_natural|persona_juridica)$", description="Tipo de vendedor")
+
+
+class UserProfileUpdateResponse(BaseModel):
+    """Respuesta de actualización de perfil."""
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "success": True,
+                "message": "Perfil actualizado exitosamente",
+                "user": {
+                    "id": "uuid-here",
+                    "email": "usuario@ejemplo.com",
+                    "user_type": "VENDOR",
+                    "nombre": "Usuario Test",
+                    "cedula": "1098765432",
+                    "ciudad": "Bucaramanga"
+                }
+            }
+        }
+    )
+
+    success: bool = Field(..., description="Indica si la actualización fue exitosa")
+    message: str = Field(..., description="Mensaje descriptivo")
+    user: Dict[str, Any] = Field(..., description="Datos actualizados del usuario")

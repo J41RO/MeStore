@@ -384,8 +384,9 @@ ALTERNATIVA INMEDIATA: Usa localhost:5173 en lugar de 192.168.1.137:5173`;
 
     try {
       const fullPhoneNumber = `${selectedCountry.prefix}${basicFormData.telefono.replace(/\s/g, '')}`;
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
-      const response = await fetch('http://192.168.1.137:8000/api/v1/auth/send-verification-sms', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/send-verification-sms`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -431,8 +432,9 @@ ALTERNATIVA INMEDIATA: Usa localhost:5173 en lugar de 192.168.1.137:5173`;
       };
 
       console.log('🚀 Registrando usuario para SMS verification:', registrationData);
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
-      const response = await fetch('http://192.168.1.137:8000/api/v1/auth/register', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -455,7 +457,7 @@ ALTERNATIVA INMEDIATA: Usa localhost:5173 en lugar de 192.168.1.137:5173`;
         // Si el usuario ya existe, intentar login en su lugar
         console.log('⚠️ Usuario ya existe, intentando login...');
         try {
-          const loginResponse = await fetch('http://192.168.1.137:8000/api/v1/auth/login', {
+          const loginResponse = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -523,30 +525,69 @@ ALTERNATIVA INMEDIATA: Usa localhost:5173 en lugar de 192.168.1.137:5173`;
     }
   };
 
-  // Manejar verificación OTP (Paso 3) - Updated with validation
-  const handleOTPVerification = () => {
+  // Manejar verificación OTP (Paso 3) - INTEGRACIÓN REAL CON BACKEND
+  const handleOTPVerification = async () => {
     const enteredCode = otpCode.join('');
-    const validCode = '123456'; // Bypass code for testing
 
     if (enteredCode.length !== 6) {
       setOtpError('Por favor ingresa el código completo de 6 dígitos');
       return;
     }
 
-    if (enteredCode === validCode) {
-      // Valid code - show success feedback
-      setOtpError('');
-      setOtpVerified(true);
-      setTimeout(() => {
-        nextStep();
-      }, 1500);
-    } else {
-      // Invalid code - show error
-      setOtpError('Código incorrecto. Usa 123456 para testing.');
+    const token = localStorage.getItem('temp_access_token');
+    if (!token) {
+      setOtpError('Error: No hay token de autenticación. Reinicia el proceso.');
+      return;
+    }
+
+    setSmsLoading(true);
+    setOtpError('');
+
+    try {
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/verify-phone-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          otp_code: enteredCode
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ OTP verificado exitosamente:', result);
+
+        // Valid code - show success feedback
+        setOtpError('');
+        setOtpVerified(true);
+        setTimeout(() => {
+          nextStep();
+        }, 1500);
+      } else {
+        const errorData = await response.json();
+        console.error('❌ Error verificando OTP:', errorData);
+
+        // Invalid code - show error
+        setOtpError(errorData.detail || 'Código incorrecto. Inténtalo nuevamente.');
+
+        // Clear the inputs for retry
+        setOtpCode(['', '', '', '', '', '']);
+        const firstInput = document.querySelector(`input[data-otp-index="0"]`) as HTMLInputElement;
+        if (firstInput) firstInput.focus();
+      }
+    } catch (error) {
+      console.error('Error de conexión:', error);
+      setOtpError('Error de conexión. Verifica tu internet.');
+
       // Clear the inputs for retry
       setOtpCode(['', '', '', '', '', '']);
       const firstInput = document.querySelector(`input[data-otp-index="0"]`) as HTMLInputElement;
       if (firstInput) firstInput.focus();
+    } finally {
+      setSmsLoading(false);
     }
   };
 
@@ -586,22 +627,9 @@ ALTERNATIVA INMEDIATA: Usa localhost:5173 en lugar de 192.168.1.137:5173`;
 
       console.log('🚀 Actualizando usuario con rol:', updateData);
 
-      // Por ahora simulamos éxito ya que el usuario ya está registrado
-      console.log('✅ Usuario actualizado exitosamente con rol:', selectedRole);
-
-      // Limpiar token temporal
-      localStorage.removeItem('temp_access_token');
-
-      setRegistrationError('');
-      navigate('/login', {
-        state: {
-          email: basicFormData.email,
-          message: 'Registro completado exitosamente. Por favor inicia sesión.'
-        }
-      });
-
-      /* TODO: Implementar endpoint para actualizar usuario existente
-      const response = await fetch('http://192.168.1.137:8000/api/v1/auth/update-profile', {
+      // Llamar al endpoint real para actualizar el perfil del usuario
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const response = await fetch(`${API_BASE_URL}/api/v1/users/me`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -612,15 +640,23 @@ ALTERNATIVA INMEDIATA: Usa localhost:5173 en lugar de 192.168.1.137:5173`;
 
       if (response.ok) {
         const result = await response.json();
-        console.log('✅ Usuario actualizado:', result);
+        console.log('✅ Usuario actualizado exitosamente:', result);
+
+        // Limpiar token temporal
+        localStorage.removeItem('temp_access_token');
+
         setRegistrationError('');
-        navigate('/login', { state: { email: basicFormData.email, message: 'Registro completado exitosamente.' } });
+        navigate('/login', {
+          state: {
+            email: basicFormData.email,
+            message: 'Registro completado exitosamente. Por favor inicia sesión.'
+          }
+        });
       } else {
         const errorData = await response.json();
         console.error('❌ Error actualizando usuario:', errorData);
-        setRegistrationError('Error actualizando perfil. Inténtalo nuevamente.');
+        setRegistrationError(errorData.detail || 'Error actualizando perfil. Inténtalo nuevamente.');
       }
-      */
 
     } catch (error) {
       console.error('Error de conexión:', error);
@@ -1140,13 +1176,6 @@ ALTERNATIVA INMEDIATA: Usa localhost:5173 en lugar de 192.168.1.137:5173`;
                         <p className="text-red-600 text-sm text-center">{otpError}</p>
                       </div>
                     )}
-
-                    {/* Testing hint */}
-                    <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <p className="text-blue-600 text-sm text-center">
-                        💡 <strong>Testing:</strong> Usa el código <code className="bg-blue-100 px-2 py-1 rounded">123456</code> para probar
-                      </p>
-                    </div>
 
                     <p className="text-sm text-gray-500 mb-6">
                       ¿No recibiste el código?{' '}

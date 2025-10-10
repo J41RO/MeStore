@@ -91,7 +91,11 @@ export const ConstructionBanner = () => {
                 <ul className="space-y-1 text-gray-700">
                   <li className="flex items-start">
                     <span className="text-green-500 mr-2 mt-0.5">•</span>
-                    <span>Registro de usuarios y vendedores</span>
+                    <span>Registro completo con verificación SMS</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-green-500 mr-2 mt-0.5">•</span>
+                    <span>Login y autenticación segura</span>
                   </li>
                   <li className="flex items-start">
                     <span className="text-green-500 mr-2 mt-0.5">•</span>
@@ -99,11 +103,7 @@ export const ConstructionBanner = () => {
                   </li>
                   <li className="flex items-start">
                     <span className="text-green-500 mr-2 mt-0.5">•</span>
-                    <span>Ver detalles de productos</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-green-500 mr-2 mt-0.5">•</span>
-                    <span>Portal administrativo</span>
+                    <span>Portal administrativo completo</span>
                   </li>
                 </ul>
               </div>
