@@ -108,7 +108,7 @@ class OTPService:
         # Validar código
         if user.otp_secret == provided_code:
             # Código correcto - limpiar OTP y marcar como verificado
-            self._clear_otp_data(db, user)
+            self._clear_otp_data(user)
 
             # Marcar email o teléfono como verificado según tipo
             if user.otp_type == "EMAIL":
@@ -152,12 +152,11 @@ class OTPService:
         
         return True, "Puede solicitar nuevo código OTP"
     
-    def _clear_otp_data(self, db: Session, user: User):
+    def _clear_otp_data(self, user: User):
         """
         Limpia todos los datos OTP del usuario.
-        
+
         Args:
-            db: Sesión de base de datos
             user: Usuario a limpiar
         """
         user.otp_secret = None
@@ -184,7 +183,7 @@ class OTPService:
         expired_users = result.scalars().all()
 
         for user in expired_users:
-            self._clear_otp_data(db, user)
+            self._clear_otp_data(user)
 
         if expired_users:
             await db.commit()
