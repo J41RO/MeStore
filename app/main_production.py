@@ -44,17 +44,32 @@ app = FastAPI(
 )
 logger.info("✅ FastAPI application created")
 
-# CORS simple
+# CORS Configuration - Production Secure Origins
+# CRITICAL FIX: Explicit origins required when allow_credentials=True
+# Wildcard ["*"] is INVALID with allow_credentials=True per CORS spec
 logger.info("Setting up CORS middleware...")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # En producción, específica los dominios reales
+    allow_origins=[
+        "https://www.mestocker.com",           # Production frontend
+        "https://me-store-alpha.vercel.app",   # Vercel deployment
+        "http://localhost:5173",                # Local development (Vite)
+        "http://localhost:3000",                # Local development (React)
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "Accept",
+        "X-Requested-With",
+        "Cache-Control",
+        "X-API-Key",
+        "X-CSRF-Token",
+    ],
     max_age=3600,
 )
-logger.info("✅ CORS middleware configured")
+logger.info("✅ CORS middleware configured with explicit production origins")
 
 # Health check - siempre disponible
 @app.get("/health")

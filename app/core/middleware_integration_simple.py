@@ -30,9 +30,10 @@ def setup_application_middleware(app: FastAPI):
             if origin.strip() and not origin.strip().startswith("https://*")
         ]
 
-        # Add specific Vercel deployment URLs (wildcards not supported by FastAPI CORS)
-        vercel_origins = [
-            "https://me-store-alpha.vercel.app",
+        # Add production frontend origins (CRITICAL FIX: www.mestocker.com)
+        production_origins = [
+            "https://www.mestocker.com",           # Primary production frontend
+            "https://me-store-alpha.vercel.app",   # Vercel deployment
             "https://me-store-4rch67v8-jairos-projects-6e49f915.vercel.app",
         ]
 
@@ -45,19 +46,20 @@ def setup_application_middleware(app: FastAPI):
                 "http://127.0.0.1:3000",
             ]
             # Combine all origins and remove duplicates
-            allowed_origins = list(set(base_origins + localhost_origins + vercel_origins))
+            allowed_origins = list(set(base_origins + localhost_origins + production_origins))
         else:
-            # Production: combine base_origins with Vercel origins
-            allowed_origins = list(set(base_origins + vercel_origins))
+            # Production: combine base_origins with production origins
+            allowed_origins = list(set(base_origins + production_origins))
 
         logger.info(f"✅ Loaded {len(allowed_origins)} CORS origins from config")
     except Exception as e:
         logger.error(f"❌ Failed to parse CORS origins: {e}")
-        # Emergency fallback with Vercel
+        # Emergency fallback with production origins
         allowed_origins = [
-            "http://localhost:5173",
-            "http://localhost:3000",
-            "https://me-store-alpha.vercel.app"
+            "https://www.mestocker.com",          # Production frontend (CRITICAL)
+            "https://me-store-alpha.vercel.app",  # Vercel deployment
+            "http://localhost:5173",               # Development fallback
+            "http://localhost:3000",               # Development fallback
         ]
 
     logger.info(f"Environment: {settings.ENVIRONMENT}")
