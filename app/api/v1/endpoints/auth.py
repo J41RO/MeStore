@@ -1129,16 +1129,7 @@ async def register_customer(
         )
         logger.info(f"✅ Email de verificación programado en background tasks")
 
-        # 6. Enviar email de bienvenida (background)
-        logger.info(f"📧 Programando envío de email de bienvenida")
-        background_tasks.add_task(
-            send_welcome_email,
-            new_user.email,      # Parámetro posicional: email
-            data.first_name      # Parámetro posicional: name
-        )
-        logger.info(f"✅ Email de bienvenida programado en background tasks")
-
-        # 7. Enviar código de verificación por SMS (Twilio Verify)
+        # 6. Enviar código de verificación por SMS (Twilio Verify)
         try:
             logger.info(f"📱 Iniciando envío de SMS verification con Twilio")
             sms_service = SMSService()
@@ -1189,6 +1180,7 @@ async def register_customer(
 )
 async def verify_email(
     data: VerifyEmailRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -1245,7 +1237,16 @@ async def verify_email(
         user.email_verification_code = None
         user.email_verification_expires_at = None
 
-        # 5. Si teléfono también está verificado, activar cuenta
+        # 5. Enviar email de bienvenida (siempre que se verifique email)
+        logger.info(f"📧 Email verificado, programando email de bienvenida")
+        background_tasks.add_task(
+            send_welcome_email,
+            user.email,                    # Parámetro posicional: email
+            user.nombre or "Usuario"       # Parámetro posicional: name
+        )
+        logger.info(f"✅ Email de bienvenida programado en background tasks")
+
+        # 6. Si teléfono también está verificado, activar cuenta
         if user.phone_verified:
             user.account_status = AccountStatus.ACTIVE
             logger.info(f"🎉 Cuenta activada completamente", user_id=str(user.id))

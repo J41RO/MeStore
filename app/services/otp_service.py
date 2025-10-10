@@ -18,7 +18,7 @@ import random
 import string
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
 
@@ -42,90 +42,90 @@ class OTPService:
         """
         return ''.join(random.choices(string.digits, k=self.code_length))
     
-    def create_otp_for_user(
-        self, 
-        db: Session, 
-        user: User, 
+    async def create_otp_for_user(
+        self,
+        db: AsyncSession,
+        user: User,
         otp_type: str
     ) -> Tuple[str, datetime]:
         """
         Crea y asigna un código OTP a un usuario.
-        
+
         Args:
             db: Sesión de base de datos
             user: Usuario al que asignar el OTP
             otp_type: Tipo de OTP ('EMAIL' o 'SMS')
-            
+
         Returns:
             Tuple[str, datetime]: Código OTP y fecha de expiración
         """
         # Generar código y calcular expiración
         otp_code = self.generate_otp_code()
         expires_at = datetime.utcnow() + timedelta(minutes=self.expiry_minutes)
-        
+
         # Asignar al usuario
         user.otp_secret = otp_code
         user.otp_expires_at = expires_at
         user.otp_type = otp_type
         user.last_otp_sent = datetime.utcnow()
         user.otp_attempts = 0  # Reiniciar intentos al generar nuevo código
-        
+
         # Guardar en base de datos
-        db.commit()
-        db.refresh(user)
-        
+        await db.commit()
+        await db.refresh(user)
+
         return otp_code, expires_at
     
-    def validate_otp_code(
-        self, 
-        db: Session, 
-        user: User, 
+    async def validate_otp_code(
+        self,
+        db: AsyncSession,
+        user: User,
         provided_code: str
     ) -> Tuple[bool, str]:
         """
         Valida un código OTP proporcionado por el usuario.
-        
+
         Args:
             db: Sesión de base de datos
             user: Usuario que intenta validar
             provided_code: Código proporcionado por el usuario
-            
+
         Returns:
             Tuple[bool, str]: (Es válido, Mensaje de resultado)
         """
         # Verificar si hay código activo
         if not user.otp_secret:
             return False, "No hay código OTP activo"
-        
+
         # Verificar si está bloqueado por intentos
         if user.is_otp_blocked():
             return False, "Demasiados intentos fallidos. Solicite un nuevo código"
-        
+
         # Verificar expiración
         if not user.is_otp_valid():
             return False, "Código OTP expirado"
-        
+
         # Validar código
         if user.otp_secret == provided_code:
             # Código correcto - limpiar OTP y marcar como verificado
             self._clear_otp_data(db, user)
-            
+
             # Marcar email o teléfono como verificado según tipo
             if user.otp_type == "EMAIL":
                 user.email_verified = True
             elif user.otp_type == "SMS":
                 user.phone_verified = True
-            
-            db.commit()
-            db.refresh(user)
-            
+
+            await db.commit()
+            await db.refresh(user)
+
             return True, "Código OTP válido. Verificación completada"
         else:
             # Código incorrecto - incrementar intentos
             user.increment_otp_attempts()
-            db.commit()
-            db.refresh(user)
-            
+            await db.commit()
+            await db.refresh(user)
+
             remaining_attempts = self.max_attempts - user.otp_attempts
             if remaining_attempts <= 0:
                 return False, "Código incorrecto. Máximo de intentos alcanzado"
@@ -166,22 +166,27 @@ class OTPService:
         user.otp_attempts = 0
         # Mantener last_otp_sent para cooldown
     
-    def cleanup_expired_otps(self, db: Session):
+    async def cleanup_expired_otps(self, db: AsyncSession):
         """
         Limpia códigos OTP expirados de la base de datos.
-        
+
         Args:
             db: Sesión de base de datos
         """
-        expired_users = db.query(User).filter(
-            User.otp_expires_at < datetime.utcnow(),
-            User.otp_secret.isnot(None)
-        ).all()
-        
+        from sqlalchemy import select
+
+        result = await db.execute(
+            select(User).where(
+                User.otp_expires_at < datetime.utcnow(),
+                User.otp_secret.isnot(None)
+            )
+        )
+        expired_users = result.scalars().all()
+
         for user in expired_users:
             self._clear_otp_data(db, user)
-        
+
         if expired_users:
-            db.commit()
-            
+            await db.commit()
+
         return len(expired_users)
