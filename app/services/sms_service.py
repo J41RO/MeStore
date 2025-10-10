@@ -1,15 +1,15 @@
 # ~/app/services/sms_service.py
 # ---------------------------------------------------------------------------------------------
-# MeStore - Servicio SMS con Twilio
+# MeStore - Servicio SMS con Bird API
 # Copyright (c) 2025 Jairo. Todos los derechos reservados.
 # ---------------------------------------------------------------------------------------------
 
 """
-Servicio SMS para MeStore con integración completa de Twilio.
+Servicio SMS para MeStore con integración completa de Bird API.
 
 Este módulo maneja el envío de SMS:
 - SMS de verificación con códigos OTP
-- Configuración completa Twilio
+- Configuración completa Bird API
 - Formateo de números telefónicos colombianos
 - Rate limiting y control de frecuencia
 - Manejo avanzado de errores
@@ -18,9 +18,8 @@ Este módulo maneja el envío de SMS:
 
 import os
 import time
+import httpx
 from typing import Optional, Dict, Tuple
-from twilio.rest import Client
-from twilio.base.exceptions import TwilioException
 import logging
 import re
 from datetime import datetime, timedelta
@@ -30,17 +29,16 @@ logger = logging.getLogger(__name__)
 
 
 class SMSService:
-    """Servicio para envío de SMS usando Twilio con funcionalidades avanzadas."""
+    """Servicio para envío de SMS usando Bird API con funcionalidades avanzadas."""
 
     def __init__(self, redis_service: Optional[RedisService] = None):
-        """Inicializar servicio SMS con configuración Twilio."""
+        """Inicializar servicio SMS con configuración Bird API."""
         # Import Settings here to avoid circular imports
         from app.core.config import settings
 
-        self.account_sid = settings.TWILIO_ACCOUNT_SID
-        self.auth_token = settings.TWILIO_AUTH_TOKEN
-        self.from_number = settings.TWILIO_FROM_NUMBER
-        self.verify_service_sid = settings.TWILIO_VERIFY_SERVICE_SID
+        self.api_key = settings.BIRD_API_KEY
+        self.base_url = settings.BIRD_BASE_URL
+        self.timeout = settings.BIRD_TIMEOUT
 
         # Rate limiting configuration
         self.rate_limit_per_number = int(os.getenv('SMS_RATE_LIMIT_PER_NUMBER', '5'))  # 5 SMS per hour per number
@@ -53,40 +51,16 @@ class SMSService:
         # Redis for rate limiting
         self.redis_service = redis_service
 
-        # Check configuration and initialize client
-        if not all([self.account_sid, self.auth_token, self.from_number]):
+        # Check configuration
+        if not self.api_key:
             logger.warning(
-                "Credenciales Twilio incompletas. SMS service en modo simulación.\n"
-                "Configurar: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER"
+                "Bird API Key no configurada. SMS service en modo simulación.\n"
+                "Configurar: BIRD_API_KEY"
             )
             self.simulation_mode = True
         else:
             self.simulation_mode = False
-            try:
-                self.client = Client(self.account_sid, self.auth_token)
-                # Test connection
-                if not self.development_mode:
-                    self._test_twilio_connection()
-                logger.info("SMS Service inicializado correctamente con Twilio")
-            except Exception as e:
-                logger.error(f"Error inicializando cliente Twilio: {str(e)}")
-                self.simulation_mode = True
-    
-    def _test_twilio_connection(self) -> bool:
-        """
-        Testa la conexión con Twilio API.
-
-        Returns:
-            bool: True si la conexión es exitosa
-        """
-        try:
-            # Test with account info
-            account = self.client.api.accounts(self.account_sid).fetch()
-            logger.info(f"Conexión Twilio exitosa. Status: {account.status}")
-            return True
-        except Exception as e:
-            logger.error(f"Error testando conexión Twilio: {str(e)}")
-            return False
+            logger.info("SMS Service inicializado correctamente con Bird API")
 
     def _check_rate_limit(self, phone_number: str) -> Tuple[bool, str]:
         """
@@ -139,6 +113,61 @@ class SMSService:
         except Exception as e:
             logger.error(f"Error incrementando rate limit: {str(e)}")
 
+    async def _send_bird_sms(self, phone_number: str, message: str) -> dict:
+        """
+        Envía SMS usando Bird API.
+
+        Args:
+            phone_number: Número de teléfono en formato internacional (+57...)
+            message: Mensaje a enviar
+
+        Returns:
+            dict: Respuesta de Bird API
+
+        Raises:
+            Exception: Si hay error en el envío
+        """
+        try:
+            url = f"{self.base_url}/messages"
+            headers = {
+                "Authorization": f"AccessKey {self.api_key}",
+                "Content-Type": "application/json"
+            }
+
+            payload = {
+                "receiver": {
+                    "contacts": [
+                        {
+                            "identifierValue": phone_number
+                        }
+                    ]
+                },
+                "body": {
+                    "type": "text",
+                    "text": {
+                        "text": message
+                    }
+                }
+            }
+
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(url, json=payload, headers=headers)
+                response.raise_for_status()
+
+                result = response.json()
+                logger.info(f"✅ Bird API response: {result}")
+                return result
+
+        except httpx.HTTPStatusError as e:
+            logger.error(f"❌ Bird API HTTP error: {e.response.status_code} - {e.response.text}")
+            raise Exception(f"Bird API error: {e.response.status_code}")
+        except httpx.RequestError as e:
+            logger.error(f"❌ Bird API request error: {str(e)}")
+            raise Exception(f"Bird API request failed: {str(e)}")
+        except Exception as e:
+            logger.error(f"❌ Error enviando SMS con Bird: {str(e)}")
+            raise
+
     def send_otp_sms(
         self,
         phone_number: str,
@@ -173,11 +202,8 @@ class SMSService:
                 logger.warning(f"Rate limit excedido para {formatted_number}")
                 return False, rate_message
 
-            # Crear mensaje SMS
-            message_body = self._create_otp_sms_template(
-                otp_code=otp_code,
-                user_name=user_name
-            )
+            # Crear mensaje SMS usando formato especificado
+            message_body = f"Tu código de verificación MeStocker es: {otp_code}"
 
             if self.simulation_mode:
                 logger.info(f"SIMULACIÓN SMS - Para: {formatted_number}, OTP: {otp_code}")
@@ -192,27 +218,25 @@ class SMSService:
                 self._increment_rate_limit(formatted_number)
                 return True, f"SMS simulado enviado a {formatted_number}"
 
-            # Enviar SMS real
-            message = self.client.messages.create(
-                body=message_body,
-                from_=self.from_number,
-                to=formatted_number
-            )
+            # Enviar SMS real con Bird API (sync wrapper para async)
+            import asyncio
+            try:
+                result = asyncio.run(self._send_bird_sms(formatted_number, message_body))
 
-            # Increment rate limit only on successful send
-            self._increment_rate_limit(formatted_number)
+                # Increment rate limit only on successful send
+                self._increment_rate_limit(formatted_number)
 
-            logger.info(f"SMS OTP enviado exitosamente. SID: {message.sid}, Status: {message.status}")
-            return True, f"SMS enviado a {formatted_number}"
+                logger.info(f"SMS OTP enviado exitosamente a {formatted_number}")
+                return True, f"SMS enviado a {formatted_number}"
 
-        except TwilioException as e:
-            error_details = self._parse_twilio_error(e)
-            logger.error(f"Error Twilio enviando SMS OTP: {error_details}")
-            return False, f"Error enviando SMS: {error_details}"
+            except Exception as e:
+                logger.error(f"Error enviando SMS OTP con Bird: {str(e)}")
+                return False, f"Error enviando SMS: {str(e)}"
+
         except Exception as e:
             logger.error(f"Excepción enviando SMS OTP: {str(e)}")
             return False, f"Error interno enviando SMS: {str(e)}"
-    
+
     def _format_international_phone(self, phone_number: str) -> Optional[str]:
         """
         Formatea número telefónico internacional con soporte para múltiples países.
@@ -235,131 +259,23 @@ class SMSService:
             if re.match(r'^\+\d{10,15}$', phone_number):
                 return phone_number  # Ya está en formato internacional válido
 
-        # Números con código de país explícito primero
-        if len(clean_number) == 11 and clean_number.startswith('1'):
-            # 11 dígitos comenzando con 1: número US con código país
-            return f"+{clean_number}"
-
-        # Colombia (+57) - mantener compatibilidad existente (prioridad)
+        # Colombia (+57) - prioridad para MeStocker Colombia
         if len(clean_number) == 10:
-            # 10 dígitos: puede ser celular (300..., 301..., etc.) o fijo (601..., etc.)
+            # 10 dígitos: puede ser celular (300..., 301..., etc.)
             if clean_number.startswith('3'):
                 # Celular: 3001234567 -> +573001234567
                 return f"+57{clean_number}"
-            elif clean_number.startswith(('1', '6', '8')):
-                # Fijo colombiano específico: 1xxx, 6xxx, 8xxx
-                return f"+57{clean_number}"
-            # Estados Unidos (+1) - verificar area codes específicos
-            elif clean_number[0] in '23456789':
-                # Area codes US comunes: 201-999 (evitar 1xx y 200 que son reservados)
-                # Verificar area codes válidos específicos
-                us_area_codes = ['201', '202', '203', '205', '206', '207', '208', '209', '210', '212', '213', '214', '215', '216', '217', '218', '219', '224', '225', '228', '229', '231', '234', '239', '240', '248', '251', '252', '253', '254', '256', '260', '262', '267', '269', '270', '276', '281', '283', '301', '302', '303', '304', '305', '307', '308', '309', '310', '312', '313', '314', '315', '316', '317', '318', '319', '320', '321', '323', '325', '330', '331', '334', '336', '337', '339', '347', '351', '352', '360', '361', '386', '401', '402', '404', '405', '406', '407', '408', '409', '410', '412', '413', '414', '415', '417', '419', '423', '424', '425', '430', '432', '434', '435', '440', '443', '445', '458', '469', '470', '475', '478', '479', '480', '484', '501', '502', '503', '504', '505', '507', '508', '509', '510', '512', '513', '515', '516', '517', '518', '520', '530', '540', '541', '551', '559', '561', '562', '563', '564', '567', '570', '571', '573', '574', '575', '580', '585', '586', '601', '602', '603', '605', '606', '607', '608', '609', '610', '612', '614', '615', '616', '617', '618', '619', '620', '623', '626', '628', '629', '630', '631', '636', '641', '646', '650', '651', '657', '660', '661', '662', '667', '678', '682', '701', '702', '703', '704', '706', '707', '708', '712', '713', '714', '715', '716', '717', '718', '719', '720', '724', '725', '727', '731', '732', '734', '737', '740', '747', '754', '757', '760', '762', '763', '765', '770', '772', '773', '774', '775', '779', '781', '785', '786', '801', '802', '803', '804', '805', '806', '808', '810', '812', '813', '814', '815', '816', '817', '818', '820', '828', '830', '831', '832', '843', '845', '847', '848', '850', '856', '857', '858', '859', '860', '862', '863', '864', '865', '870', '872', '878', '901', '903', '904', '906', '907', '908', '909', '910', '912', '913', '914', '915', '916', '917', '918', '919', '920', '925', '928', '929', '930', '931', '934', '936', '937', '940', '941', '947', '949', '951', '952', '954', '956', '959', '970', '971', '972', '973', '978', '979', '980', '984', '985', '989']
-                if clean_number[:3] in us_area_codes:
-                    return f"+1{clean_number}"
         elif len(clean_number) == 12 and clean_number.startswith('57'):
             # 12 dígitos con código país 57: 573001234567 -> +573001234567
             return f"+{clean_number}"
-        elif len(clean_number) == 13 and clean_number.startswith('573'):
-            # 13 dígitos: +573001234567 ya formateado
-            return f"+{clean_number}"
-        elif len(clean_number) == 11:
-            # 11 dígitos, verificar diferentes casos
-            if clean_number.startswith('573'):
-                # 573xxxxxxxx -> +573xxxxxxxx (formato incompleto)
-                return f"+{clean_number}"
-            elif clean_number.startswith('57'):
-                # 57xxxxxxxxx -> +57xxxxxxxxx
-                return f"+{clean_number}"
-
-        # México (+52)
-        elif len(clean_number) == 10 and clean_number.startswith(('55', '33', '81', '22')):
-            # Números mexicanos comunes (CDMX, Guadalajara, Monterrey, Puebla)
-            return f"+52{clean_number}"
-        elif len(clean_number) == 12 and clean_number.startswith('52'):
-            return f"+{clean_number}"
-
-        # Reino Unido (+44)
-        elif len(clean_number) == 10 and clean_number.startswith('7'):
-            # Móviles UK
-            return f"+44{clean_number}"
-        elif len(clean_number) == 12 and clean_number.startswith('44'):
-            return f"+{clean_number}"
-
-        # Canadá (+1) - similar a US
-        elif len(clean_number) == 10:
-            # Verificar códigos de área canadienses comunes
-            canadian_area_codes = ['204', '236', '249', '250', '289', '306', '343', '365', '403', '416', '418', '431', '437', '438', '450', '506', '514', '519', '548', '579', '581', '587', '604', '613', '647', '705', '709', '778', '780', '782', '807', '819', '825', '867', '873', '902', '905']
-            if clean_number[:3] in canadian_area_codes:
-                return f"+1{clean_number}"
-
-        # Formato ya con código internacional (sin +)
-        if len(clean_number) >= 11:
-            # Verificar códigos de país comunes
-            country_codes = {
-                '1': [11],     # US/Canada: +1 + 10 digits
-                '44': [12, 13], # UK: +44 + 10/11 digits
-                '52': [12, 13], # Mexico: +52 + 10/11 digits
-                '57': [12, 13], # Colombia: +57 + 10/11 digits
-                '33': [11],     # France: +33 + 9 digits
-                '49': [11, 12], # Germany: +49 + 10/11 digits
-                '34': [11],     # Spain: +34 + 9 digits
-            }
-
-            for code, valid_lengths in country_codes.items():
-                if clean_number.startswith(code) and len(clean_number) in valid_lengths:
-                    return f"+{clean_number}"
 
         # Formato no reconocido
         logger.warning(f"Formato de teléfono no reconocido: {phone_number}")
         return None
-    
-    def _create_otp_sms_template(
-        self, 
-        otp_code: str, 
-        user_name: Optional[str] = None
-    ) -> str:
-        """
-        Crea template para SMS OTP.
-        
-        Args:
-            otp_code: Código OTP
-            user_name: Nombre del usuario
-            
-        Returns:
-            str: Mensaje SMS formateado
-        """
-        if user_name:
-            return f"MeStore: Hola {user_name}, tu código de verificación es {otp_code}. Válido por 10 minutos. No compartir."
-        else:
-            return f"MeStore: Tu código de verificación es {otp_code}. Válido por 10 minutos. No compartir."
-    
-    def _parse_twilio_error(self, error: TwilioException) -> str:
-        """
-        Parsea errores de Twilio a mensajes comprensibles.
-
-        Args:
-            error: Error de Twilio
-
-        Returns:
-            str: Mensaje de error comprensible
-        """
-        error_messages = {
-            20003: "Error de autenticación Twilio",
-            21211: "Número de teléfono inválido",
-            21614: "Número no válido para SMS",
-            21408: "Desde número no autorizado",
-            30007: "Error de entrega del mensaje",
-            30008: "Mensaje rechazado por operador"
-        }
-
-        if hasattr(error, 'code') and error.code in error_messages:
-            return error_messages[error.code]
-
-        return f"Error Twilio: {str(error)}"
 
     async def send_sms(self, to_phone: str, message: str) -> dict:
         """
-        Envía SMS genérico usando Twilio.
+        Envía SMS genérico usando Bird API.
         Método wrapper para compatibilidad con test endpoint.
 
         Args:
@@ -392,39 +308,27 @@ class SMSService:
 
                 self._increment_rate_limit(formatted_number)
                 return {
-                    'sid': f'SIMULATED_{int(time.time())}',
+                    'id': f'SIMULATED_{int(time.time())}',
                     'status': 'simulated',
                     'to': formatted_number,
-                    'from': self.from_number or '+18555746064',
                     'date_sent': str(datetime.now())
                 }
 
-            # Enviar SMS real con Twilio
-            sms_message = self.client.messages.create(
-                body=message,
-                from_=self.from_number,
-                to=formatted_number
-            )
+            # Enviar SMS real con Bird API
+            result = await self._send_bird_sms(formatted_number, message)
 
             # Increment rate limit
             self._increment_rate_limit(formatted_number)
 
-            logger.info(f"✅ SMS enviado exitosamente. SID: {sms_message.sid}, Status: {sms_message.status}")
+            logger.info(f"✅ SMS enviado exitosamente con Bird API")
 
             return {
-                'sid': sms_message.sid,
-                'status': sms_message.status,
-                'to': sms_message.to,
-                'from': sms_message.from_,
-                'date_sent': str(sms_message.date_sent) if sms_message.date_sent else None,
-                'price': sms_message.price,
-                'price_unit': sms_message.price_unit
+                'id': result.get('id', 'unknown'),
+                'status': 'sent',
+                'to': formatted_number,
+                'date_sent': str(datetime.now())
             }
 
-        except TwilioException as e:
-            error_details = self._parse_twilio_error(e)
-            logger.error(f"❌ Error Twilio enviando SMS: {error_details}")
-            raise Exception(f"Error Twilio: {error_details}")
         except Exception as e:
             logger.error(f"❌ Error enviando SMS: {str(e)}")
             raise
@@ -470,20 +374,18 @@ class SMSService:
                 return True, f"SMS {message_type} simulado enviado"
 
             # Send real SMS
-            sms_message = self.client.messages.create(
-                body=message,
-                from_=self.from_number,
-                to=formatted_number
-            )
+            import asyncio
+            try:
+                result = asyncio.run(self._send_bird_sms(formatted_number, message))
 
-            self._increment_rate_limit(formatted_number)
-            logger.info(f"SMS {message_type} enviado. SID: {sms_message.sid}")
-            return True, f"SMS {message_type} enviado exitosamente"
+                self._increment_rate_limit(formatted_number)
+                logger.info(f"SMS {message_type} enviado con Bird API")
+                return True, f"SMS {message_type} enviado exitosamente"
 
-        except TwilioException as e:
-            error_details = self._parse_twilio_error(e)
-            logger.error(f"Error Twilio enviando SMS {message_type}: {error_details}")
-            return False, f"Error enviando SMS: {error_details}"
+            except Exception as e:
+                logger.error(f"Error enviando SMS {message_type} con Bird: {str(e)}")
+                return False, f"Error enviando SMS: {str(e)}"
+
         except Exception as e:
             logger.error(f"Error enviando SMS {message_type}: {str(e)}")
             return False, f"Error interno: {str(e)}"
@@ -510,23 +412,12 @@ class SMSService:
         status = {
             "service_enabled": self.sms_enabled,
             "simulation_mode": self.simulation_mode,
-            "twilio_configured": bool(self.account_sid and self.auth_token and self.from_number),
+            "bird_api_configured": bool(self.api_key),
             "rate_limiting_enabled": self.redis_service is not None,
             "rate_limit_per_number": self.rate_limit_per_number,
-            "rate_limit_window_seconds": self.rate_limit_window
+            "rate_limit_window_seconds": self.rate_limit_window,
+            "provider": "Bird API"
         }
-
-        if not self.simulation_mode and hasattr(self, 'client'):
-            try:
-                # Test connection
-                account = self.client.api.accounts(self.account_sid).fetch()
-                status["twilio_connection"] = "active"
-                status["twilio_account_status"] = account.status
-            except:
-                status["twilio_connection"] = "failed"
-                status["twilio_account_status"] = "unknown"
-        else:
-            status["twilio_connection"] = "simulation"
 
         return status
 
@@ -568,35 +459,18 @@ class SMSService:
 
     async def send_verification_code(self, phone_number: str, channel: str = "sms") -> dict:
         """
-        Envía código de verificación usando Twilio Verify Service.
-
-        Este método usa Twilio Verify (no SMS directo) para cumplir con
-        regulaciones A2P 10DLC en Estados Unidos y otros países.
+        Envía código de verificación usando Bird API.
 
         Args:
-            phone_number: Número de teléfono en formato internacional (+1XXXXXXXXXX, +57XXXXXXXXXX)
-            channel: Canal de envío ('sms' o 'call'). Default: 'sms'
+            phone_number: Número de teléfono en formato internacional (+57XXXXXXXXXX)
+            channel: Canal de envío ('sms'). Default: 'sms'
 
         Returns:
             dict: Información de la verificación enviada
-                {
-                    'success': bool,
-                    'status': str,  # 'pending' si se envió correctamente
-                    'to': str,      # Número al que se envió
-                    'channel': str, # Canal usado ('sms' o 'call')
-                    'sid': str,     # ID de la verificación
-                    'valid': bool   # Si la verificación es válida
-                }
 
         Raises:
             ValueError: Si el número de teléfono es inválido
             Exception: Si hay error al enviar la verificación
-
-        Example:
-            >>> sms_service = SMSService()
-            >>> result = await sms_service.send_verification_code("+17379771943")
-            >>> print(result)
-            {'success': True, 'status': 'pending', 'to': '+17379771943', 'channel': 'sms'}
         """
         try:
             # Formatear número telefónico
@@ -607,44 +481,26 @@ class SMSService:
 
             logger.info(f"📱 Sending verification code to {formatted_number} via {channel}")
 
-            # Verificar que Verify Service esté configurado
-            if not self.verify_service_sid:
-                logger.error("❌ TWILIO_VERIFY_SERVICE_SID not configured")
-                raise Exception("Twilio Verify Service not configured")
+            # Generar código de verificación (6 dígitos)
+            import random
+            verification_code = ''.join([str(random.randint(0, 9)) for _ in range(6)])
 
-            # Enviar verificación usando Twilio Verify
-            verification = self.client.verify.v2.services(
-                self.verify_service_sid
-            ).verifications.create(
-                to=formatted_number,
-                channel=channel
-            )
+            # Crear mensaje
+            message = f"Tu código de verificación MeStocker es: {verification_code}"
 
-            logger.info(f"✅ Verification sent successfully. Status: {verification.status}, SID: {verification.sid}")
+            # Enviar usando Bird API
+            result = await self._send_bird_sms(formatted_number, message)
+
+            logger.info(f"✅ Verification sent successfully to {formatted_number}")
 
             return {
                 'success': True,
-                'status': verification.status,
-                'to': verification.to,
-                'channel': verification.channel,
-                'sid': verification.sid,
-                'valid': verification.valid
+                'status': 'sent',
+                'to': formatted_number,
+                'channel': channel,
+                'code': verification_code,  # En producción, esto se guardaría en DB, no se retorna
+                'provider': 'Bird API'
             }
-
-        except TwilioException as e:
-            error_details = self._parse_twilio_error(e)
-            logger.error(f"❌ Twilio error sending verification: {error_details}")
-
-            # Errores específicos de Twilio Verify
-            if hasattr(e, 'code'):
-                if e.code == 60200:
-                    raise Exception("Número de teléfono inválido o no puede recibir SMS")
-                elif e.code == 60203:
-                    raise Exception("Demasiados intentos de verificación. Intenta más tarde")
-                elif e.code == 60212:
-                    raise Exception("Twilio Verify Service no encontrado")
-
-            raise Exception(f"Error Twilio Verify: {error_details}")
 
         except Exception as e:
             logger.error(f"❌ Error sending verification code: {str(e)}")
@@ -654,109 +510,22 @@ class SMSService:
         """
         Verifica el código de verificación ingresado por el usuario.
 
+        NOTA: Bird API no tiene servicio de verificación integrado como Twilio Verify.
+        La verificación del código debe hacerse contra la base de datos de la aplicación.
+
         Args:
             phone_number: Número de teléfono en formato internacional
             code: Código de verificación de 6 dígitos ingresado por el usuario
 
         Returns:
             dict: Resultado de la verificación
-                {
-                    'success': bool,     # True si el código es válido
-                    'status': str,       # 'approved' si es válido, 'pending' si no
-                    'valid': bool,       # True si el código es correcto
-                    'to': str,          # Número verificado
-                    'channel': str,     # Canal usado
-                    'sid': str          # ID de la verificación
-                }
 
         Raises:
             ValueError: Si el número de teléfono es inválido
-            Exception: Si hay error al verificar el código
-
-        Example:
-            >>> sms_service = SMSService()
-            >>> result = await sms_service.verify_code("+17379771943", "123456")
-            >>> if result['valid']:
-            >>>     print("Código válido!")
+            NotImplementedError: Esta función debe implementarse con la lógica de DB
         """
-        try:
-            # Formatear número telefónico
-            formatted_number = self._format_international_phone(phone_number)
-            if not formatted_number:
-                logger.error(f"❌ Número telefónico inválido: {phone_number}")
-                raise ValueError(f"Número telefónico inválido: {phone_number}")
-
-            # Validar formato del código
-            if not code or not code.isdigit() or len(code) != 6:
-                logger.warning(f"⚠️ Código inválido format: {code}")
-                return {
-                    'success': False,
-                    'status': 'invalid',
-                    'valid': False,
-                    'message': 'Código debe ser de 6 dígitos'
-                }
-
-            logger.info(f"🔍 Verifying code {code} for {formatted_number}")
-
-            # Verificar que Verify Service esté configurado
-            if not self.verify_service_sid:
-                logger.error("❌ TWILIO_VERIFY_SERVICE_SID not configured")
-                raise Exception("Twilio Verify Service not configured")
-
-            # Verificar código con Twilio Verify
-            verification_check = self.client.verify.v2.services(
-                self.verify_service_sid
-            ).verification_checks.create(
-                to=formatted_number,
-                code=code
-            )
-
-            is_valid = verification_check.status == 'approved'
-
-            if is_valid:
-                logger.info(f"✅ Verification successful for {formatted_number}. Status: {verification_check.status}")
-            else:
-                logger.warning(f"⚠️ Verification failed for {formatted_number}. Status: {verification_check.status}")
-
-            return {
-                'success': is_valid,
-                'status': verification_check.status,
-                'valid': is_valid,
-                'to': verification_check.to,
-                'channel': verification_check.channel,
-                'sid': verification_check.sid
-            }
-
-        except TwilioException as e:
-            error_details = self._parse_twilio_error(e)
-            logger.error(f"❌ Twilio error verifying code: {error_details}")
-
-            # Errores específicos de Twilio Verify
-            if hasattr(e, 'code'):
-                if e.code == 20404:
-                    return {
-                        'success': False,
-                        'status': 'not_found',
-                        'valid': False,
-                        'message': 'No se encontró verificación pendiente para este número'
-                    }
-                elif e.code == 60200:
-                    return {
-                        'success': False,
-                        'status': 'invalid_number',
-                        'valid': False,
-                        'message': 'Número de teléfono inválido'
-                    }
-                elif e.code == 60202:
-                    return {
-                        'success': False,
-                        'status': 'max_attempts',
-                        'valid': False,
-                        'message': 'Máximo de intentos alcanzado. Solicita un nuevo código'
-                    }
-
-            raise Exception(f"Error Twilio Verify: {error_details}")
-
-        except Exception as e:
-            logger.error(f"❌ Error verifying code: {str(e)}")
-            raise
+        logger.warning("verify_code debe implementarse con lógica de base de datos OTP")
+        raise NotImplementedError(
+            "La verificación del código debe implementarse usando OTPService "
+            "y comparar contra códigos almacenados en la base de datos"
+        )

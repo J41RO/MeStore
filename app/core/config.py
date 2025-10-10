@@ -109,18 +109,18 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 días
 
-    # Twilio/SMS Configuration - Tarea 1.3.1.5
-    TWILIO_ACCOUNT_SID: str = Field(
-        default="", description="Twilio Account SID for SMS services"
+    # Bird SMS API Configuration - Tarea 1.3.1.5
+    BIRD_API_KEY: str = Field(
+        default="qWiPCuRcKTQ01fjbGfOMovXZJz6kGWJnI5u4",
+        description="Bird API Access Key for SMS services"
     )
-    TWILIO_AUTH_TOKEN: str = Field(
-        default="", description="Twilio Authentication Token"
+    BIRD_BASE_URL: str = Field(
+        default="https://api.bird.com/v1",
+        description="Bird API base URL"
     )
-    TWILIO_FROM_NUMBER: str = Field(
-        default="", description="Twilio phone number for sending SMS"
-    )
-    TWILIO_VERIFY_SERVICE_SID: str = Field(
-        default="", description="Twilio Verify Service SID for OTP verification"
+    BIRD_TIMEOUT: float = Field(
+        default=30.0,
+        description="Bird API request timeout in seconds"
     )
 
     # OTP Configuration - Tarea 1.3.1.5
