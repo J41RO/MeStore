@@ -68,11 +68,15 @@ const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const PublicForgotPassword = lazy(() => import('./pages/PublicForgotPassword'));
 const PublicResetPassword = lazy(() => import('./pages/PublicResetPassword'));
+const EmailVerified = lazy(() => import('./pages/EmailVerified'));
 const AdminPortal = lazy(() => import('./pages/AdminPortal'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const RegisterVendor = lazy(() => import('./pages/RegisterVendor'));
 const VendorRegistration = lazy(() => import('./pages/VendorRegistration'));
 const OTPVerification = lazy(() => import('./components/OTPVerification'));
+const UserTypeSelector = lazy(() => import('./pages/UserTypeSelector'));
+const RegisterMultiType = lazy(() => import('./pages/RegisterMultiType'));
+const EmailVerificationHandler = lazy(() => import('./pages/EmailVerificationHandler'));
 
 // Componentes de auth con lazy loading
 const OTPDemo = lazy(() => import('./components/OTPDemo'));
@@ -431,8 +435,27 @@ function App() {
             </Suspense>
           }
         />
+        {/* Multi-Type Registration Flow - NEW */}
+        <Route
+          path='/user-type-selector'
+          element={
+            <Suspense fallback={<PageLoader />}>
+              <UserTypeSelector />
+            </Suspense>
+          }
+        />
         <Route
           path='/register'
+          element={
+            <Suspense fallback={<PageLoader />}>
+              <RegisterMultiType />
+            </Suspense>
+          }
+        />
+
+        {/* Legacy registration routes */}
+        <Route
+          path='/register-vendor'
           element={
             <Suspense fallback={<PageLoader />}>
               <RegisterVendor />
@@ -516,6 +539,26 @@ function App() {
           element={
             <Suspense fallback={<PageLoader />}>
               <PublicResetPassword />
+            </Suspense>
+          }
+        />
+
+        {/* Email verification by token (link from email) - NEW HANDLER */}
+        <Route
+          path="/verify-email"
+          element={
+            <Suspense fallback={<PageLoader />}>
+              <EmailVerificationHandler />
+            </Suspense>
+          }
+        />
+
+        {/* Legacy email verification route */}
+        <Route
+          path="/verify-email-old"
+          element={
+            <Suspense fallback={<PageLoader />}>
+              <EmailVerified />
             </Suspense>
           }
         />

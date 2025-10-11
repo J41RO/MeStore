@@ -217,7 +217,7 @@ const LandingPage: React.FC = () => {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
             <button
-              onClick={() => navigate('/register')}
+              onClick={() => navigate('/user-type-selector')}
               className="mx-auto block text-center w-fit bg-white text-blue-600 hover:bg-gray-100 px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-xl"
             >
               Comenzar Gratis
