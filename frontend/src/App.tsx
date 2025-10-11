@@ -479,6 +479,14 @@ function App() {
           }
         />
         <Route
+          path='/verify-sms'
+          element={
+            <Suspense fallback={<PageLoader />}>
+              <OTPVerification />
+            </Suspense>
+          }
+        />
+        <Route
           path='/auth/otp'
           element={
             <Suspense fallback={<PageLoader />}>

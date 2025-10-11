@@ -114,6 +114,9 @@ const RegisterMultiType: React.FC = () => {
       // Remove confirmPassword before sending
       const { confirmPassword, ...submitData } = data;
 
+      // Extract phone number based on user type (telefono for buyer/natural, telefono_empresa for juridica)
+      const telefono = data.telefono || data.telefono_empresa;
+
       const response = await axios.post<RegisterResponse>(
         `${import.meta.env.VITE_API_URL}/api/v1/auth/register-multi-type`,
         submitData,
@@ -134,7 +137,8 @@ const RegisterMultiType: React.FC = () => {
             state: {
               email: response.data.email,
               userId: response.data.user_id,
-              userType: response.data.user_type
+              userType: response.data.user_type,
+              telefono: telefono  // ✅ PASS PHONE NUMBER FOR VERIFICATION
             }
           });
         }, 3000);
