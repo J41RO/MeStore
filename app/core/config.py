@@ -524,6 +524,10 @@ class Settings(BaseSettings):
 
     # Frontend Configuration
     DEV_FRONTEND_URL: Optional[str] = Field(default=None, description="Development frontend URL")
+    FRONTEND_URL: str = Field(
+        default="http://localhost:5173",
+        description="Frontend URL for email verification links and redirects"
+    )
 
     # Configuración de uploads
     UPLOAD_DIR: str = "uploads"
