@@ -459,6 +459,7 @@ class UserProfileUpdateRequest(BaseModel):
     direccion: Optional[str] = Field(None, min_length=10, description="Dirección de entrega")
     ciudad: Optional[str] = Field(None, min_length=3, description="Ciudad")
     departamento: Optional[str] = Field(None, min_length=3, description="Departamento")
+    codigo_postal: Optional[str] = Field(None, max_length=10, description="Código postal colombiano")
 
     # Campos de vendedor
     direccion_fiscal: Optional[str] = Field(None, min_length=10, description="Dirección fiscal (vendedores)")
@@ -491,3 +492,197 @@ class UserProfileUpdateResponse(BaseModel):
     success: bool = Field(..., description="Indica si la actualización fue exitosa")
     message: str = Field(..., description="Mensaje descriptivo")
     user: Dict[str, Any] = Field(..., description="Datos actualizados del usuario")
+
+
+# === REGISTRO MULTI-TIPO: BUYER, VENDOR NATURAL, VENDOR JURÍDICA ===
+
+class BuyerRegistrationData(BaseModel):
+    """Datos específicos para registro de BUYER (Comprador)."""
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "email": "comprador@ejemplo.com",
+                "password": "Comprador123!",
+                "nombre": "Carlos",
+                "apellido": "Rodríguez",
+                "telefono": "+573001234567",
+                "cedula": "1098765432",
+                "direccion": "Calle 45 #12-34",
+                "ciudad": "Bogotá",
+                "departamento": "Cundinamarca",
+                "codigo_postal": "110111"
+            }
+        }
+    )
+
+    email: EmailStr = Field(..., description="Email del usuario")
+    password: str = Field(..., min_length=8, max_length=128, description="Contraseña (mínimo 8 caracteres)")
+    nombre: str = Field(..., min_length=2, max_length=100, description="Nombre(s)")
+    apellido: Optional[str] = Field(None, min_length=2, max_length=100, description="Apellido(s)")
+    telefono: str = Field(..., pattern=r'^\+[1-9]\d{1,14}$', description="Teléfono en formato E.164 (+573001234567)")
+    cedula: Optional[str] = Field(None, min_length=8, max_length=10, description="Cédula de ciudadanía")
+    direccion: Optional[str] = Field(None, min_length=10, description="Dirección de entrega")
+    ciudad: Optional[str] = Field(None, min_length=3, description="Ciudad")
+    departamento: Optional[str] = Field(None, min_length=3, description="Departamento")
+    codigo_postal: Optional[str] = Field(None, max_length=10, description="Código postal")
+
+    @field_validator('password')
+    @classmethod
+    def password_strength(cls, v: str) -> str:
+        """Valida la fortaleza de la contraseña."""
+        import re
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('La contraseña debe contener al menos una letra mayúscula')
+        if not re.search(r'[a-z]', v):
+            raise ValueError('La contraseña debe contener al menos una letra minúscula')
+        if not re.search(r'\d', v):
+            raise ValueError('La contraseña debe contener al menos un número')
+        return v
+
+
+class VendorNaturalRegistrationData(BaseModel):
+    """Datos específicos para registro de VENDOR Persona Natural."""
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "email": "vendedor@ejemplo.com",
+                "password": "Vendedor123!",
+                "nombre": "María",
+                "apellido": "González",
+                "telefono": "+573001234567",
+                "cedula": "52123456",
+                "direccion": "Carrera 15 #23-45",
+                "ciudad": "Medellín",
+                "departamento": "Antioquia",
+                "codigo_postal": "050001",
+                "direccion_fiscal": "Carrera 15 #23-45",
+                "ciudad_fiscal": "Medellín",
+                "departamento_fiscal": "Antioquia"
+            }
+        }
+    )
+
+    # Campos básicos obligatorios
+    email: EmailStr = Field(..., description="Email del usuario")
+    password: str = Field(..., min_length=8, max_length=128, description="Contraseña (mínimo 8 caracteres)")
+    nombre: str = Field(..., min_length=2, max_length=100, description="Nombre(s)")
+    apellido: str = Field(..., min_length=2, max_length=100, description="Apellido(s)")
+    telefono: str = Field(..., pattern=r'^\+[1-9]\d{1,14}$', description="Teléfono en formato E.164")
+    cedula: str = Field(..., min_length=8, max_length=10, description="Cédula de ciudadanía (obligatorio para vendedor)")
+
+    # Dirección personal
+    direccion: str = Field(..., min_length=10, description="Dirección de residencia")
+    ciudad: str = Field(..., min_length=3, description="Ciudad de residencia")
+    departamento: str = Field(..., min_length=3, description="Departamento de residencia")
+    codigo_postal: Optional[str] = Field(None, max_length=10, description="Código postal")
+
+    # Dirección fiscal (puede ser la misma que la personal)
+    direccion_fiscal: str = Field(..., min_length=10, description="Dirección fiscal")
+    ciudad_fiscal: str = Field(..., min_length=3, description="Ciudad fiscal")
+    departamento_fiscal: str = Field(..., min_length=3, description="Departamento fiscal")
+
+    @field_validator('password')
+    @classmethod
+    def password_strength(cls, v: str) -> str:
+        """Valida la fortaleza de la contraseña."""
+        import re
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('La contraseña debe contener al menos una letra mayúscula')
+        if not re.search(r'[a-z]', v):
+            raise ValueError('La contraseña debe contener al menos una letra minúscula')
+        if not re.search(r'\d', v):
+            raise ValueError('La contraseña debe contener al menos un número')
+        return v
+
+
+class VendorJuridicaRegistrationData(BaseModel):
+    """Datos específicos para registro de VENDOR Persona Jurídica."""
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "email": "empresa@ejemplo.com",
+                "password": "Empresa123!",
+                "razon_social": "Distribuidora XYZ S.A.S.",
+                "nombre_comercial": "XYZ Store",
+                "nit": "890123456-7",
+                "representante_legal": "Juan Carlos Pérez",
+                "cedula_representante": "79123456",
+                "email_representante": "jperez@ejemplo.com",
+                "telefono_empresa": "+573101234567",
+                "direccion_fiscal": "Carrera 50 #12-34 Oficina 501",
+                "ciudad_fiscal": "Cali",
+                "departamento_fiscal": "Valle del Cauca",
+                "codigo_postal": "760001"
+            }
+        }
+    )
+
+    # Autenticación
+    email: EmailStr = Field(..., description="Email corporativo de la empresa")
+    password: str = Field(..., min_length=8, max_length=128, description="Contraseña (mínimo 8 caracteres)")
+
+    # Datos de la empresa
+    razon_social: str = Field(..., min_length=3, max_length=200, description="Razón social de la empresa")
+    nombre_comercial: str = Field(..., min_length=3, max_length=200, description="Nombre comercial del negocio")
+    nit: str = Field(..., pattern=r'^\d{9}-\d$', description="NIT de la empresa (formato: 890123456-7)")
+
+    # Datos del representante legal
+    representante_legal: str = Field(..., min_length=5, max_length=100, description="Nombre completo del representante legal")
+    cedula_representante: str = Field(..., min_length=8, max_length=10, description="Cédula del representante legal")
+    email_representante: EmailStr = Field(..., description="Email del representante legal")
+
+    # Contacto empresarial
+    telefono_empresa: str = Field(..., pattern=r'^\+[1-9]\d{1,14}$', description="Teléfono corporativo en formato E.164")
+
+    # Dirección fiscal de la empresa
+    direccion_fiscal: str = Field(..., min_length=10, description="Dirección fiscal de la empresa")
+    ciudad_fiscal: str = Field(..., min_length=3, description="Ciudad fiscal")
+    departamento_fiscal: str = Field(..., min_length=3, description="Departamento fiscal")
+    codigo_postal: Optional[str] = Field(None, max_length=10, description="Código postal")
+
+    @field_validator('password')
+    @classmethod
+    def password_strength(cls, v: str) -> str:
+        """Valida la fortaleza de la contraseña."""
+        import re
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('La contraseña debe contener al menos una letra mayúscula')
+        if not re.search(r'[a-z]', v):
+            raise ValueError('La contraseña debe contener al menos una letra minúscula')
+        if not re.search(r'\d', v):
+            raise ValueError('La contraseña debe contener al menos un número')
+        return v
+
+
+class MultiTypeRegistrationResponse(BaseModel):
+    """Respuesta unificada para registro de cualquier tipo de usuario."""
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "success": True,
+                "message": "Registro exitoso. Por favor verifica tu email.",
+                "user_id": "uuid-here",
+                "email": "usuario@ejemplo.com",
+                "user_type": "VENDOR",
+                "vendor_type": "persona_natural",
+                "account_status": "pending",
+                "requires_approval": True,
+                "next_steps": [
+                    "Verifica tu email mediante el enlace enviado",
+                    "Completa la verificación SMS",
+                    "Espera la aprobación del administrador"
+                ]
+            }
+        }
+    )
+
+    success: bool = Field(..., description="Indica si el registro fue exitoso")
+    message: str = Field(..., description="Mensaje descriptivo del resultado")
+    user_id: str = Field(..., description="ID del usuario creado")
+    email: str = Field(..., description="Email registrado")
+    user_type: str = Field(..., description="Tipo de usuario: BUYER o VENDOR")
+    vendor_type: Optional[str] = Field(None, description="Subtipo de vendor: persona_natural o persona_juridica")
+    account_status: str = Field(..., description="Estado de la cuenta: pending, active, draft")
+    vendor_status: Optional[str] = Field(None, description="Estado del vendor: draft, pending_documents, etc.")
+    requires_approval: bool = Field(..., description="Si requiere aprobación administrativa")
+    next_steps: list[str] = Field(..., description="Pasos siguientes para activar la cuenta")

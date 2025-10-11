@@ -429,6 +429,21 @@ class User(BaseModel):
         comment='Fecha y hora del último envío de OTP'
     )
 
+    # === CAMPOS PARA VERIFICACIÓN EMAIL POR LINK ===
+    email_verification_token = Column(
+        String(100),
+        nullable=True,
+        index=True,
+        comment='Token único para verificación de email por link'
+    )
+
+    email_verification_expires = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
+        comment='Fecha y hora de expiración del token de verificación de email'
+    )
+
     # === CAMPOS ADMINISTRATIVOS ===
     security_clearance_level = Column(
         Integer,
@@ -569,9 +584,90 @@ class User(BaseModel):
     )
     
     account_number = Column(
-        String(50), 
-        nullable=True, 
+        String(50),
+        nullable=True,
         comment="Número de cuenta"
+    )
+
+    # === CAMPOS ESPECÍFICOS PARA PERSONA JURÍDICA ===
+    razon_social = Column(
+        String(200),
+        nullable=True,
+        comment="Razón social de la empresa (Persona Jurídica)"
+    )
+
+    nombre_comercial = Column(
+        String(200),
+        nullable=True,
+        comment="Nombre comercial del negocio (puede diferir de razón social)"
+    )
+
+    nit = Column(
+        String(20),
+        nullable=True,
+        unique=True,
+        index=True,
+        comment="NIT de la empresa (formato: 123456789-0)"
+    )
+
+    representante_legal = Column(
+        String(100),
+        nullable=True,
+        comment="Nombre completo del representante legal"
+    )
+
+    cedula_representante = Column(
+        String(20),
+        nullable=True,
+        comment="Cédula del representante legal"
+    )
+
+    email_representante = Column(
+        String(255),
+        nullable=True,
+        comment="Email del representante legal (puede diferir del email principal)"
+    )
+
+    telefono_empresa = Column(
+        String(20),
+        nullable=True,
+        comment="Teléfono de la empresa (puede diferir del personal)"
+    )
+
+    direccion_fiscal = Column(
+        String(300),
+        nullable=True,
+        comment="Dirección fiscal del vendedor (Natural o Jurídica)"
+    )
+
+    ciudad_fiscal = Column(
+        String(100),
+        nullable=True,
+        comment="Ciudad fiscal"
+    )
+
+    departamento_fiscal = Column(
+        String(100),
+        nullable=True,
+        comment="Departamento fiscal"
+    )
+
+    departamento = Column(
+        String(100),
+        nullable=True,
+        comment="Departamento de residencia"
+    )
+
+    codigo_postal = Column(
+        String(10),
+        nullable=True,
+        comment="Código postal colombiano"
+    )
+
+    tipo_vendedor = Column(
+        String(20),
+        nullable=True,
+        comment="Tipo de vendedor: persona_natural o persona_juridica"
     )
 
     # === RELATIONSHIPS ===
