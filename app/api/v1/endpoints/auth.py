@@ -814,22 +814,24 @@ async def verify_phone_otp(
     auth_service: AuthService = Depends(lambda: AuthService())
 ) -> OTPResponse:
     """
-    Verifica código OTP de SMS.
+    Verifica código SMS usando Twilio Verify API.
 
     - **otp_code**: Código de 6 dígitos recibido por SMS
     - Requiere autenticación JWT
-    - Máximo 5 intentos por código
+    - Verifica directamente con Twilio Verify (NO usa user.otp_secret)
     - Al verificar exitosamente, marca phone_verified=True
     """
     try:
-        # Verificar que tenga OTP activo de tipo SMS
-        if not current_user.otp_secret or current_user.otp_type != "SMS":
+        logger.info(f"📱 Verificando código SMS con Twilio Verify", user_email=current_user.email)
+
+        # Verificar que el usuario tenga teléfono registrado
+        if not current_user.telefono:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No hay código OTP de SMS activo"
+                detail="Usuario no tiene teléfono registrado"
             )
 
-        # TESTING BYPASS: Permitir código especial para pruebas (funciona con cualquier email en desarrollo)
+        # TESTING BYPASS: Permitir código especial para pruebas
         testing_bypass_code = "123456"
         from app.core.config import settings
         is_development = settings.ENVIRONMENT.lower() in ["development", "dev", "testing"]
@@ -837,36 +839,68 @@ async def verify_phone_otp(
         is_real_email = current_user.email.endswith((".gmail.com", ".outlook.com", ".hotmail.com", ".yahoo.com", ".icloud.com"))
 
         if request.otp_code == testing_bypass_code and (is_test_email or (is_development and is_real_email)):
-            logger.info(f"SMS OTP testing bypass usado por usuario: {current_user.email}")
-            success, message = True, "Código OTP verificado exitosamente (testing bypass)"
-            # Mark phone as verified
-            current_user.phone_verified = True
-            current_user.otp_secret = None
-            current_user.otp_expires_at = None
-            current_user.otp_attempts = 0
-            current_user.otp_type = None
-            await db.commit()
+            logger.info(f"✅ SMS OTP testing bypass usado", user_email=current_user.email)
+            success = True
+            message = "Código OTP verificado exitosamente (testing bypass)"
         else:
-            # Verificar código OTP normal
-            success, message = await auth_service.verify_otp_code(db, current_user, request.otp_code)
+            # ✅ USAR TWILIO VERIFY API (NO comparar con user.otp_secret)
+            try:
+                sms_service = SMSService()
+                verify_result = await sms_service.verify_code(
+                    phone_number=current_user.telefono,
+                    code=request.otp_code
+                )
 
-        if success:
-            verification_status = await auth_service.get_user_verification_status(current_user)
-            return OTPResponse(
-                success=True,
-                message=message,
-                verification_status=verification_status
-            )
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=message
-            )
+                # SMSService.verify_code() retorna {'success': bool, 'status': str}
+                if not verify_result.get('success'):
+                    logger.warning(f"❌ Código inválido Twilio Verify",
+                                 user_email=current_user.email,
+                                 status=verify_result.get('status'))
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Código de verificación inválido o expirado"
+                    )
+
+                success = True
+                message = "Teléfono verificado exitosamente"
+                logger.info(f"✅ Código verificado con Twilio Verify",
+                          user_email=current_user.email,
+                          status=verify_result.get('status'))
+
+            except HTTPException:
+                raise
+            except Exception as twilio_error:
+                logger.error(f"❌ Error verificando con Twilio: {str(twilio_error)}", exc_info=True)
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Error verificando código de teléfono"
+                )
+
+        # Marcar teléfono como verificado
+        current_user.phone_verified = True
+
+        # Si es BUYER y email también verificado → ACTIVAR cuenta
+        if (current_user.user_type == UserType.BUYER and
+            current_user.email_verified and
+            current_user.account_status != AccountStatus.ACTIVE):
+            current_user.account_status = AccountStatus.ACTIVE
+            logger.info(f"🎉 Cuenta BUYER activada", user_id=str(current_user.id))
+
+        await db.commit()
+        await db.refresh(current_user)
+
+        verification_status = await auth_service.get_user_verification_status(current_user)
+
+        return OTPResponse(
+            success=True,
+            message=message,
+            verification_status=verification_status
+        )
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error en verify_phone_otp: {str(e)}")
+        logger.error(f"❌ Error en verify_phone_otp: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error interno del servidor"

@@ -97,10 +97,15 @@ const OTPVerification: React.FC<OTPVerificationProps> = ({
     const code = otpCode.join('');
 
     try {
+      // For SMS, use Twilio Verify endpoint; for EMAIL, use database OTP
       const endpoint =
         otpType === 'EMAIL'
-          ? '/api/v1/auth/verify-email-otp'
-          : '/api/v1/auth/verify-phone-otp';
+          ? `${import.meta.env.VITE_API_URL}/api/v1/auth/verify-email-otp`
+          : `${import.meta.env.VITE_API_URL}/api/v1/auth/verify/phone`;
+
+      const requestBody = otpType === 'EMAIL'
+        ? { otp_code: code }
+        : { phone: '', code }; // Phone will be filled from user data
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -108,7 +113,7 @@ const OTPVerification: React.FC<OTPVerificationProps> = ({
           'Content-Type': 'application/json',
           Authorization: `Bearer ${getAuthToken()}`,
         },
-        body: JSON.stringify({ otp_code: code }),
+        body: JSON.stringify(requestBody),
       });
 
       const data: OTPResponse = await response.json();

@@ -63,24 +63,27 @@ const OTPVerification: React.FC<OTPVerificationProps> = ({ telefono }) => {
     setError('');
 
     try {
-      const response = await fetch('/api/v1/auth/verify-phone-otp', {
+      // Use Twilio Verify endpoint instead of database OTP
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/auth/verify/phone`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          telefono: phoneNumber,
-          otp: otpCode,
+          phone: phoneNumber,
+          code: otpCode,
         }),
       });
 
       if (response.ok) {
-        await response.json();
+        const data = await response.json();
+        console.log('✅ Verificación exitosa:', data);
         // Verificación exitosa, redirigir al dashboard
         navigate('/dashboard');
       } else {
         const errorData = await response.json();
-        setError(errorData.message || 'Código OTP inválido');
+        setError(errorData.detail || errorData.message || 'Código OTP inválido');
       }
     } catch (error) {
+      console.error('❌ Error verificando OTP:', error);
       setError('Error de conexión');
     }
 
