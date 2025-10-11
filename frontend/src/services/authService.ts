@@ -256,7 +256,7 @@ class AuthService {
   /**
    * Register new user
    */
-  async register(userData: LoginRequest): Promise<{ success: boolean; data?: TokenResponse; error?: string }> {
+  async register(userData: RegisterRequest): Promise<{ success: boolean; data?: TokenResponse; error?: string }> {
     try {
       const response = await authClient.post<TokenResponse>(
         this.endpoints.REGISTER,

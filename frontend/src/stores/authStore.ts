@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { authService } from '../services/authService';
 import type { UserInfo } from '../services/authService';
-import { UserType } from '../types/auth.types';
+import { UserType, type RegisterRequest } from '../types/auth.types';
 
 // Re-export UserType from types for consistency
 export { UserType } from '../types/auth.types';
@@ -37,7 +37,7 @@ interface AuthState {
   login: (email: string, password: string) => Promise<boolean>;
   adminLogin: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
-  register: (email: string, password: string) => Promise<boolean>;
+  register: (userData: RegisterRequest) => Promise<boolean>;
 
   // Métodos de verificación
   checkAuth: () => Promise<boolean>;
@@ -280,11 +280,11 @@ export const useAuthStore = create<AuthState>()(
       },
 
       // Registro de nuevos usuarios
-      register: async (email: string, password: string): Promise<boolean> => {
+      register: async (userData: RegisterRequest): Promise<boolean> => {
         set({ isLoading: true, error: null });
 
         try {
-          const result = await authService.register({ email, password });
+          const result = await authService.register(userData);
 
           if (result.success && result.data) {
             const userResult = await authService.getCurrentUser();

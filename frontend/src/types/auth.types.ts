@@ -47,10 +47,10 @@ export interface RegisterRequest {
   email: string;
   password: string;
   nombre: string;
+  telefono: string; // REQUIRED - Backend expects E.164 format (+57XXXXXXXXXX)
   apellido?: string;
-  telefono?: string;
   cedula?: string;
-  user_type: UserType;
+  user_type?: UserType; // Optional, defaults to BUYER
 }
 
 // Token response matching backend TokenResponse schema

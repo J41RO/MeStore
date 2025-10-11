@@ -33,7 +33,7 @@ const registerSchema = yup.object({
   apellido: yup.string().optional(),
   telefono: yup
     .string()
-    .optional()
+    .required('Teléfono es requerido')
     .matches(/^\d{3}\s\d{3}\s\d{4}$/, 'Formato: 300 123 4567'),
   cedula: yup
     .string()
@@ -164,15 +164,15 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
         email: data.email.trim(),
         password: data.password,
         nombre: data.nombre.trim(),
+        telefono: `+57${data.telefono.replace(/\s/g, '')}`, // Formato E.164 para Colombia
         user_type: userType,
         // Campos opcionales
         ...(data.apellido && { apellido: data.apellido.trim() }),
-        ...(data.telefono && { telefono: data.telefono }),
         ...(data.cedula && { cedula: data.cedula }),
       };
 
       // Usar el store de Zustand para registro
-      const success = await registerUser(registerData.email, registerData.password);
+      const success = await registerUser(registerData);
 
       if (success) {
         setMessage('¡Registro exitoso! Bienvenido a MeStore');
