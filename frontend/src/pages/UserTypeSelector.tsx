@@ -45,6 +45,7 @@ const UserTypeSelector: React.FC = () => {
     if (!selectedUserType) return;
 
     if (selectedUserType === 'BUYER') {
+      // BUYER → RegisterMultiType with BUYER state
       navigate('/register', {
         state: {
           userType: 'BUYER',
@@ -52,7 +53,8 @@ const UserTypeSelector: React.FC = () => {
         }
       });
     } else if (selectedUserType === 'VENDOR' && selectedVendorType) {
-      navigate('/register', {
+      // VENDOR → RegisterVendor with vendor type in state
+      navigate('/register-vendor', {
         state: {
           userType: 'VENDOR',
           vendorType: selectedVendorType
