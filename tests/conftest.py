@@ -724,3 +724,67 @@ def mock_sms_service_success(monkeypatch):
         "send_verification_code",
         mock_send_verification
     )
+
+
+@pytest.fixture
+async def redis_service_with_storage(monkeypatch):
+    """
+    Mock RedisService with persistent in-memory storage for SMS rate limiting tests.
+    Overrides the autouse mock_redis_for_testing fixture.
+    """
+    from app.core.redis import RedisService
+
+    # Storage dict that persists across calls
+    storage = {}
+
+    # Create mock RedisService instance
+    mock_redis_service = AsyncMock(spec=RedisService)
+
+    async def mock_cache_get(key: str):
+        return storage.get(key)
+
+    async def mock_cache_set(key: str, value: str, expire: int = 600):
+        storage[key] = value
+        return True
+
+    async def mock_cache_delete(key: str):
+        if key in storage:
+            del storage[key]
+        return True
+
+    # Mock redis client for incr operation
+    mock_redis_client = AsyncMock()
+
+    async def mock_incr(key: str):
+        current = int(storage.get(key, "0"))
+        storage[key] = str(current + 1)
+        return current + 1
+
+    async def mock_setex(key: str, expire: int, value: str):
+        storage[key] = value
+        return True
+
+    mock_redis_client.incr = mock_incr
+    mock_redis_client.setex = mock_setex
+
+    # Assign mock methods to service
+    mock_redis_service.cache_get = mock_cache_get
+    mock_redis_service.cache_set = mock_cache_set
+    mock_redis_service.cache_delete = mock_cache_delete
+    mock_redis_service.redis = mock_redis_client
+
+    # Override the get_redis_service dependency in FastAPI app
+    from app.main import app
+    from app.core.redis.dependencies import get_redis_service as get_redis_service_dep
+
+    def get_test_redis_service():
+        return mock_redis_service
+
+    # Override FastAPI dependency
+    app.dependency_overrides[get_redis_service_dep] = get_test_redis_service
+
+    yield mock_redis_service
+
+    # Cleanup - remove override after test
+    if get_redis_service_dep in app.dependency_overrides:
+        del app.dependency_overrides[get_redis_service_dep]
