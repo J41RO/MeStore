@@ -236,6 +236,58 @@ Responsable: agente-que-aprobó (si aplica)
 - **Agentes responsables**: `.workspace/RESPONSIBLE_AGENTS.md`
 - **Tu oficina**: `.workspace/departments/[departamento]/[tu-agente]/`
 
+### 📁 ESTRUCTURA ORGANIZADA DEL PROYECTO (Actualizado 2025-10-12)
+
+#### 📚 Documentación Técnica - `docs/`
+Toda la documentación del proyecto está organizada en `/docs/` con estructura profesional:
+
+**Ubicaciones Estándar:**
+- **`docs/architecture/`** - Diseño de sistemas, diagramas, decisiones arquitectónicas
+- **`docs/guides/`** - Guías de configuración, features e integración
+  - `docs/guides/setup/` - Setup de servicios (DB, SMS, Twilio)
+  - `docs/guides/features/` - Implementación de features
+  - `docs/guides/integration/` - Integraciones externas (Wompi, PayU)
+- **`docs/reports/`** - Reportes organizados por trimestre
+  - `docs/reports/testing/2025-Q4/` - Reportes de testing
+  - `docs/reports/implementation/2025-Q4/` - Reportes de implementación
+  - `docs/reports/bugs/2025-Q4/` - Fixes de bugs
+  - `docs/reports/audits/2025-Q4/` - Auditorías y análisis
+  - `docs/reports/performance/2025-Q4/` - Performance testing
+- **`docs/executive/`** - Resúmenes ejecutivos, MVP, roadmaps
+- **`docs/api/`** - Documentación de API
+
+**Índice Maestro:** Ver `docs/README.md` para navegación completa
+
+#### 🔧 Scripts Organizados - `scripts/`
+Todos los scripts están categorizados en `/scripts/`:
+
+- **`scripts/analysis/`** - Análisis de código y cobertura
+- **`scripts/testing/`** - Ejecución de tests y validación
+- **`scripts/validation/`** - Validación de componentes y datos
+- **`scripts/debug/`** - Herramientas de debugging
+- **`scripts/database/`** - Operaciones de DB
+- **`scripts/deployment/`** - Scripts de despliegue
+- **`scripts/maintenance/`** - Mantenimiento y limpieza
+- **`scripts/services/`** - Gestión de servicios
+- **`scripts/user_management/`** - Gestión de usuarios
+- **`scripts/backup/`** - Backups
+
+**Guía de Scripts:** Ver `scripts/README.md` para detalles de uso
+
+#### 📊 Datos y Reportes - `data/`
+- **`data/reports/`** - Archivos JSON de análisis y reportes
+
+#### 🗄️ Archivo Histórico - `.archive/`
+Documentos obsoletos o históricos organizados por año:
+- `.archive/2024/` - Documentos de 2024
+- `.archive/2025/` - Documentos históricos de 2025
+
+**⚠️ IMPORTANTE PARA AGENTES:**
+- Al crear nueva documentación, usar estructura `docs/[categoria]/`
+- Al crear scripts, colocarlos en `scripts/[categoria]/`
+- NO crear archivos `.md` en el directorio raíz (excepto README, CLAUDE, CONTRIBUTING, CHANGELOG)
+- NO crear scripts `.py`/`.sh` en el directorio raíz (excepto setup.py)
+
 ## Project Overview
 
 MeStore is a complete marketplace/e-commerce system built with FastAPI (backend) and React+TypeScript (frontend). The project follows enterprise patterns with comprehensive testing, Docker deployment, and sophisticated database migrations.
