@@ -1,0 +1,11 @@
+{
+  "total_endpoints": 0,
+  "covered_endpoints": 0,
+  "coverage_percentage": 0,
+  "gap_to_85_percent": 85,
+  "coverage_map": {},
+  "high_priority_gaps": [],
+  "medium_priority_gaps": [],
+  "low_priority_gaps": [],
+  "endpoints_needed_for_85_percent": 0
+}

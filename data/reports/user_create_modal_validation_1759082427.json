@@ -1,0 +1,158 @@
+{
+  "validation_timestamp": "2025-09-28T13:00:27.041837",
+  "early_exit": false,
+  "summary": {
+    "total_tests": 15,
+    "passed": 9,
+    "failed": 1,
+    "info": 5,
+    "success_rate": "60.0%"
+  },
+  "test_results": [
+    {
+      "test_name": "Admin Authentication",
+      "status": "PASS",
+      "details": "Successfully authenticated admin user",
+      "timestamp": "2025-09-28T13:00:26.920972",
+      "data": {
+        "user_type": "SUPERUSER",
+        "user_id": "4f542b8a-ee9c-4e12-8c18-d5ae13d03094"
+      }
+    },
+    {
+      "test_name": "CSRF Token Retrieval",
+      "status": "INFO",
+      "details": "CSRF handling will be tested during user creation",
+      "timestamp": "2025-09-28T13:00:26.925311",
+      "data": null
+    },
+    {
+      "test_name": "User List Endpoint",
+      "status": "PASS",
+      "details": "Retrieved 129 users successfully",
+      "timestamp": "2025-09-28T13:00:27.009121",
+      "data": {
+        "total_users": 129,
+        "current_page": 1
+      }
+    },
+    {
+      "test_name": "Form Field Requirements Analysis",
+      "status": "PASS",
+      "details": "Validated 6 required and 6 optional fields",
+      "timestamp": "2025-09-28T13:00:27.009374",
+      "data": {
+        "required_fields": [
+          "email",
+          "password",
+          "nombre",
+          "apellido",
+          "user_type",
+          "security_clearance_level"
+        ],
+        "optional_fields": [
+          "telefono",
+          "documento",
+          "cedula",
+          "ciudad",
+          "empresa",
+          "direccion"
+        ]
+      }
+    },
+    {
+      "test_name": "Email Validation Rules",
+      "status": "PASS",
+      "details": "Tested 6 email formats",
+      "timestamp": "2025-09-28T13:00:27.009752",
+      "data": [
+        {
+          "email": "",
+          "reason": "Empty email",
+          "expected_valid": false,
+          "actual_valid": false,
+          "test_passed": true
+        },
+        {
+          "email": "invalid",
+          "reason": "No @ symbol",
+          "expected_valid": false,
+          "actual_valid": false,
+          "test_passed": true
+        },
+        {
+          "email": "invalid@",
+          "reason": "No domain",
+          "expected_valid": false,
+          "actual_valid": false,
+          "test_passed": true
+        },
+        {
+          "email": "invalid@domain",
+          "reason": "No TLD",
+          "expected_valid": false,
+          "actual_valid": false,
+          "test_passed": true
+        },
+        {
+          "email": "test@domain.com",
+          "reason": "Valid email",
+          "expected_valid": true,
+          "actual_valid": true,
+          "test_passed": true
+        },
+        {
+          "email": "user.name+tag@example.co.uk",
+          "reason": "Complex valid email",
+          "expected_valid": true,
+          "actual_valid": true,
+          "test_passed": true
+        }
+      ]
+    },
+    {
+      "test_name": "Password Validation Rules",
+      "status": "FAIL",
+      "details": "Tested 7 password formats",
+      "timestamp": "2025-09-28T13:00:27.010195",
+      "data": [
+        {
+          "password": "",
+          "reason": "Empty password",
+          "expected_valid": false,
+          "actual_valid": false,
+          "test_passed": true
+        },
+        {
+          "password": "short",
+          "reason": "Too short (< 8 chars)",
+          "expected_valid": false,
+          "actual_valid": false,
+          "test_passed": true
+        },
+        {
+          "password": "lowercase",
+          "reason": "No uppercase/numbers",
+          "expected_valid": false,
+          "actual_valid": null,
+          "test_passed": false
+        },
+        {
+          "password": "UPPERCASE",
+          "reason": "No lowercase/numbers",
+          "expected_valid": false,
+          "actual_valid": null,
+          "test_passed": false
+        },
+        {
+          "password": "12345678",
+          "reason": "No letters",
+          "expected_valid": false,
+          "actual_valid": null,
+          "test_passed": false
+        },
+        {
+          "password": "Password1",
+          "reason": "Valid password",
+          "expected_valid": true,
+          "actual_valid": 

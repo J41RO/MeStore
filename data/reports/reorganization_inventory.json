@@ -1,0 +1,529 @@
+{
+  "metadata": {
+    "total_files": 122,
+    "analysis_date": "2025-10-12",
+    "analyst": "technical-debt-manager",
+    "project": "MeStore",
+    "purpose": "Documentation reorganization - Phase 1"
+  },
+  "summary": {
+    "guides": 33,
+    "reports": 69,
+    "executive": 9,
+    "architecture": 6,
+    "protected": 2,
+    "uncategorized": 3,
+    "duplicate_groups": 13,
+    "high_priority_duplicates": 10
+  },
+  "classification": {
+    "guides": {
+      "count": 33,
+      "description": "Setup guides, implementation guides, quick starts, validation guides",
+      "files": [
+        "ADMIN_ORDERS_IMPLEMENTATION_SUMMARY.md",
+        "BACKEND_API_QUICK_SUMMARY.md",
+        "CHECKOUT_OVERLAY_FIX_GUIDE.md",
+        "CHECKOUT_VALIDATION_GUIDE.md",
+        "CODE_QUALITY_QUICK_REFERENCE.md",
+        "DATABASE_CONSTRAINTS_IMPLEMENTATION_PLAN.md",
+        "DATABASE_RESET_QUICK_START.md",
+        "DATABASE_SETUP.md",
+        "ENDPOINT_VALIDATION_REPORT.md",
+        "MVP_IMPLEMENTATION_CHECKLIST.md",
+        "PAYMENT_INTEGRATION_COMPLETE_GUIDE.md",
+        "PRODUCTCARD_CONSOLIDATION_IMPLEMENTATION.md",
+        "PRODUCT_DETAIL_IMPLEMENTATION.md",
+        "PRODUCT_DETAIL_TESTING_GUIDE.md",
+        "SHIPPING_FORM_VALIDATION_FIX.md",
+        "SHIPPING_SYSTEM_IMPLEMENTATION.md",
+        "SHOPPING_CART_IMPLEMENTATION_REPORT.md",
+        "SMS_GATEWAY_IMPLEMENTATION_SUMMARY.md",
+        "SMS_GATEWAY_SETUP_GUIDE.md",
+        "STOCK_FIX_VALIDATION_PLAN.md",
+        "SUPERUSER_ADMIN_IMPLEMENTATION.md",
+        "TODO_MVP_VENDOR_FLOW.md",
+        "TWILIO_SETUP_GUIDE.md",
+        "USER_CREATE_MODAL_VALIDATION_REPORT.md",
+        "VALIDATION_RULES_REFERENCE.md",
+        "VENDOR_ORDERS_API_IMPLEMENTATION.md",
+        "VENDOR_ORDERS_FRONTEND_IMPLEMENTATION.md",
+        "VENDOR_ORDERS_QUICK_SUMMARY.md",
+        "VENDOR_ORDERS_TESTING_GUIDE.md",
+        "VENDOR_ORDER_IMPLEMENTATION_CHECKLIST.md",
+        "VENDOR_ORDER_MANAGEMENT_IMPLEMENTATION_PLAN.md",
+        "VENDOR_REGISTRATION_GUIDE.md",
+        "WOMPI_QUICK_REFERENCE.md"
+      ]
+    },
+    "reports": {
+      "count": 69,
+      "description": "Bug reports, audit reports, analysis reports, fix summaries, test reports",
+      "subcategories": {
+        "testing": [
+          "E2E_TESTING_COMPLETE_SUMMARY.md",
+          "E2E_TESTING_SUMMARY.md",
+          "FASE_4_E2E_TESTING_COMPLETE.md",
+          "FASE_4_TESTING_CONSOLIDATED_REPORT.md",
+          "INTEGRATION_TESTING_REPORT.md",
+          "PAYMENT_API_TESTING_EXECUTIVE_SUMMARY.md",
+          "PERFORMANCE_TESTING_COVERAGE_ACCELERATION_REPORT.md",
+          "PRODUCT_DETAIL_TESTING_GUIDE.md",
+          "TDD_CORE_MODULES_FINAL_REPORT.md",
+          "TDD_MODEL_COVERAGE_MISSION_REPORT.md",
+          "TDD_RED_PHASE_FIXES_SUMMARY.md",
+          "TDD_SECURITY_ANALYSIS_REPORT.md",
+          "VENDOR_ORDERS_TESTING_GUIDE.md"
+        ],
+        "bugs": [
+          "CHECKOUT_AUTH_FIX_SUMMARY.md",
+          "CHECKOUT_DEBUG_OVERLAY_INVESTIGATION.md",
+          "CHECKOUT_PSE_FIX_SUMMARY.md",
+          "DECIMAL_TYPE_FIX_SUMMARY.md",
+          "ERROR_400_FRONTEND_DISCOVERY.md",
+          "ERROR_400_ORDER_CREATION_ANALYSIS.md",
+          "ORDER_403_ERROR_FIX_VERIFICATION.md",
+          "PAYMENT_BUG_FIX_GUIDE.md",
+          "PSE_LOOP_INFINITO_FIX_VERIFICATION.md",
+          "RATING_NULL_SAFETY_FIX.md",
+          "REGISTRATION_FLOW_FIX.md",
+          "SHIPPING_FORM_VALIDATION_FIX.md",
+          "TWILIO_FIX_README.md",
+          "VALIDATION_ERROR_REPORT_422.md"
+        ],
+        "audits": [
+          "API_DUPLICATIONS_ANALYSIS.md",
+          "BACKEND_API_MVP_AUDIT_REPORT.md",
+          "BACKEND_STRUCTURE_ANALYSIS.md",
+          "CATALOG_FIXES_COMPLETE_REPORT.md",
+          "CODE_QUALITY_ANALYSIS_REPORT.md",
+          "PRODUCT_API_AUDIT_REPORT.md",
+          "PUBLIC_CATALOG_AUDIT.md",
+          "UX_UI_MVP_AUDIT_REPORT.md"
+        ],
+        "implementations": [
+          "BUYER_DASHBOARD_COMPLETION_SUMMARY.md",
+          "BUYER_DASHBOARD_INTEGRATION_SUMMARY.md",
+          "FEATURES_IMPLEMENTATION_COMPLETE_SUMMARY.md",
+          "MIGRATION_COMPLETE_REPORT.md",
+          "PAYU_EFECTY_INTEGRATION_REPORT.md",
+          "PRODUCT_API_FIXES_SUMMARY.md",
+          "SHIPPING_UI_INTEGRATION_SUMMARY.md",
+          "STOCK_INVENTORY_SOLUTION_SUMMARY.md",
+          "WOMPI_CHECKOUT_INTEGRATION_SUMMARY.md",
+          "WOMPI_INTEGRATION_COMPLETE.md"
+        ],
+        "quality": [
+          "CODE_QUALITY_ANALYSIS_REPORT.md",
+          "CODE_QUALITY_EXECUTIVE_SUMMARY.md",
+          "INTEGRATION_QUALITY_ASSESSMENT_REPORT.md",
+          "PRODUCTION_READINESS_REPORT.md",
+          "QA_FIXES_EXECUTIVE_SUMMARY.md"
+        ]
+      }
+    },
+    "executive": {
+      "count": 9,
+      "description": "Executive summaries, roadmaps, strategic documents, MVP reports",
+      "files": [
+        "API_ROADMAP_POST_MVP.md",
+        "EVALUACION_PRE_PRODUCCION.md",
+        "MAINTENANCE_STRATEGY_RECOMMENDATIONS.md",
+        "MVP_CONSOLIDATED_REPORT.md",
+        "MVP_EXECUTIVE_SUMMARY.md",
+        "ROADMAP_STATUS_UPDATE_2025-10-02.md",
+        "ROADMAP_STRATEGIC_COMPLETION.md",
+        "SAFE_API_MIGRATION_STRATEGY.md",
+        "SHIPPING_MVP_EXECUTIVE_SUMMARY.md"
+      ]
+    },
+    "architecture": {
+      "count": 6,
+      "description": "Architecture diagrams, flow diagrams, structure documentation",
+      "files": [
+        "API_ARCHITECTURE_DIAGRAM.md",
+        "DATABASE_CONFIG.md",
+        "E2E_TESTING_ARCHITECTURE.md",
+        "FLOAT_DECIMAL_VISUAL_DIAGRAM.md",
+        "VENDOR_ORDER_UI_MOCKUPS_AND_FLOWS.md",
+        "WOMPI_INTEGRATION_FLOW_DIAGRAM.md"
+      ]
+    },
+    "protected": {
+      "count": 2,
+      "description": "Critical files referenced in code and workspace",
+      "files": [
+        "CLAUDE.md",
+        "README.md"
+      ],
+      "references": {
+        "CLAUDE.md": [
+          ".workspace/SYSTEM_RULES.md references this as main project guide",
+          "All agents required to read before any work"
+        ],
+        "README.md": [
+          "Standard project documentation",
+          "Git repository default view"
+        ],
+        "SAFE_API_MIGRATION_STRATEGY.md": [
+          "app/api/v1/endpoints/vendedores.py:# Migration guide: See SAFE_API_MIGRATION_STRATEGY.md",
+          "app/api/v1/endpoints/comisiones.py:# Migration guide: See SAFE_API_MIGRATION_STRATEGY.md",
+          "app/api/v1/endpoints/pagos.py:Migration guide: See SAFE_API_MIGRATION_STRATEGY.md",
+          "app/api/v1/endpoints/productos.py:# Migration guide: See SAFE_API_MIGRATION_STRATEGY.md"
+        ]
+      }
+    },
+    "uncategorized": {
+      "count": 3,
+      "description": "Files that don't fit clear categories",
+      "files": [
+        "BEFORE_AFTER_COMPARISON.md",
+        "NEXT_STEPS_VENDOR_ORDER_MANAGEMENT.md",
+        "VENDOR_ORDERS_READY.md"
+      ]
+    }
+  },
+  "duplicate_analysis": {
+    "high_priority_duplicates": [
+      {
+        "similarity": "87.27%",
+        "group": "checkout_fixes",
+        "files": [
+          "CHECKOUT_PSE_FIX_SUMMARY.md",
+          "CHECKOUT_AUTH_FIX_SUMMARY.md"
+        ],
+        "recommendation": "Review and consolidate into CHECKOUT_FIXES_CONSOLIDATED.md"
+      },
+      {
+        "similarity": "85.33%",
+        "group": "vendor_orders_implementation",
+        "files": [
+          "VENDOR_ORDERS_API_IMPLEMENTATION.md",
+          "VENDOR_ORDERS_FRONTEND_IMPLEMENTATION.md"
+        ],
+        "recommendation": "Keep separate (backend vs frontend) but consolidate summaries"
+      },
+      {
+        "similarity": "85.33%",
+        "group": "buyer_dashboard",
+        "files": [
+          "BUYER_DASHBOARD_COMPLETION_SUMMARY.md",
+          "BUYER_DASHBOARD_INTEGRATION_SUMMARY.md"
+        ],
+        "recommendation": "Consolidate into single BUYER_DASHBOARD_SUMMARY.md"
+      },
+      {
+        "similarity": "84.75%",
+        "group": "executive_summaries",
+        "files": [
+          "QA_FIXES_EXECUTIVE_SUMMARY.md",
+          "STOCK_FIX_EXECUTIVE_SUMMARY.md"
+        ],
+        "recommendation": "Keep separate (different topics) but standardize format"
+      },
+      {
+        "similarity": "84.21%",
+        "group": "mvp_summaries",
+        "files": [
+          "SHIPPING_MVP_EXECUTIVE_SUMMARY.md",
+          "MVP_EXECUTIVE_SUMMARY.md"
+        ],
+        "recommendation": "Keep separate but reference main MVP from feature MVPs"
+      },
+      {
+        "similarity": "83.02%",
+        "group": "e2e_testing",
+        "files": [
+          "E2E_TESTING_SUMMARY.md",
+          "E2E_TESTING_COMPLETE_SUMMARY.md"
+        ],
+        "recommendation": "Archive older, keep COMPLETE version"
+      },
+      {
+        "similarity": "82.86%",
+        "group": "float_decimal",
+        "files": [
+          "FLOAT_TO_DECIMAL_FINAL_SUMMARY.md",
+          "FLOAT_TO_DECIMAL_EXECUTIVE_SUMMARY.md"
+        ],
+        "recommendation": "Archive EXECUTIVE, keep FINAL as definitive"
+      }
+    ],
+    "topic_groups": {
+      "payment_integration": {
+        "count": 15,
+        "total_size_kb": 197.4,
+        "files": [
+          "CHECKOUT_PSE_FIX_SUMMARY.md",
+          "COMPREHENSIVE_PAYMENT_API_TEST_REPORT.md",
+          "FASE_4_PAYMENT_INTEGRATION_SUMMARY.md",
+          "PAYMENT_API_TESTING_EXECUTIVE_SUMMARY.md",
+          "PAYMENT_API_TEST_REPORT.md",
+          "PAYMENT_BUG_FIX_GUIDE.md",
+          "PAYMENT_INTEGRATION_COMPLETE_GUIDE.md",
+          "PAYMENT_INTEGRATION_TEST_REPORT.md",
+          "PAYMENT_SYSTEMS_PROGRESS_REPORT.md",
+          "PAYU_EFECTY_INTEGRATION_REPORT.md",
+          "PSE_LOOP_INFINITO_FIX_VERIFICATION.md",
+          "WOMPI_CHECKOUT_INTEGRATION_SUMMARY.md",
+          "WOMPI_INTEGRATION_COMPLETE.md",
+          "WOMPI_INTEGRATION_FLOW_DIAGRAM.md",
+          "WOMPI_QUICK_REFERENCE.md"
+        ],
+        "recommendation": "Consolidate into docs/guides/payment-integration/ with clear hierarchy"
+      },
+      "vendor_orders": {
+        "count": 11,
+        "total_size_kb": 177.9,
+        "files": [
+          "NEXT_STEPS_VENDOR_ORDER_MANAGEMENT.md",
+          "VENDOR_ORDERS_API_IMPLEMENTATION.md",
+          "VENDOR_ORDERS_FRONTEND_IMPLEMENTATION.md",
+          "VENDOR_ORDERS_FRONTEND_SUMMARY.md",
+          "VENDOR_ORDERS_QUICK_SUMMARY.md",
+          "VENDOR_ORDERS_READY.md",
+          "VENDOR_ORDERS_TESTING_GUIDE.md",
+          "VENDOR_ORDER_IMPLEMENTATION_CHECKLIST.md",
+          "VENDOR_ORDER_MANAGEMENT_EXECUTIVE_SUMMARY.md",
+          "VENDOR_ORDER_MANAGEMENT_IMPLEMENTATION_PLAN.md",
+          "VENDOR_ORDER_UI_MOCKUPS_AND_FLOWS.md"
+        ],
+        "recommendation": "Consolidate into docs/features/vendor-orders/"
+      },
+      "testing": {
+        "count": 14,
+        "total_size_kb": 151.3,
+        "files": [
+          "E2E_TESTING_ARCHITECTURE.md",
+          "E2E_TESTING_COMPLETE_SUMMARY.md",
+          "E2E_TESTING_SUMMARY.md",
+          "FASE_4_E2E_TESTING_COMPLETE.md",
+          "FASE_4_TESTING_CONSOLIDATED_REPORT.md",
+          "INTEGRATION_TESTING_REPORT.md",
+          "PAYMENT_API_TESTING_EXECUTIVE_SUMMARY.md",
+          "PERFORMANCE_TESTING_COVERAGE_ACCELERATION_REPORT.md",
+          "PRODUCT_DETAIL_TESTING_GUIDE.md",
+          "TDD_CORE_MODULES_FINAL_REPORT.md",
+          "TDD_MODEL_COVERAGE_MISSION_REPORT.md",
+          "TDD_RED_PHASE_FIXES_SUMMARY.md",
+          "TDD_SECURITY_ANALYSIS_REPORT.md",
+          "VENDOR_ORDERS_TESTING_GUIDE.md"
+        ],
+        "recommendation": "Consolidate into docs/reports/testing/"
+      },
+      "stock_management": {
+        "count": 5,
+        "total_size_kb": 41.5,
+        "files": [
+          "STOCK_FIX_EXECUTIVE_SUMMARY.md",
+          "STOCK_FIX_VALIDATION_PLAN.md",
+          "STOCK_INVENTORY_SOLUTION_SUMMARY.md",
+          "STOCK_PROBLEM_ANALYSIS_REPORT.md",
+          "STOCK_SOLUTION_SUCCESS_REPORT.md"
+        ],
+        "recommendation": "Consolidate into docs/reports/bugs/stock-management/"
+      },
+      "database": {
+        "count": 9,
+        "total_size_kb": 101.6,
+        "files": [
+          "DATABASE_CONFIG.md",
+          "DATABASE_CONSTRAINTS_IMPLEMENTATION_PLAN.md",
+          "DATABASE_RESET_QUICK_START.md",
+          "DATABASE_SETUP.md",
+          "DECIMAL_TYPE_FIX_SUMMARY.md",
+          "FLOAT_DECIMAL_VISUAL_DIAGRAM.md",
+          "FLOAT_TO_DECIMAL_EXECUTIVE_SUMMARY.md",
+          "FLOAT_TO_DECIMAL_FINAL_SUMMARY.md",
+          "FLOAT_TO_DECIMAL_MIGRATION_ANALYSIS.md"
+        ],
+        "recommendation": "Consolidate into docs/architecture/database/ and docs/guides/setup/"
+      }
+    }
+  },
+  "recommendations": {
+    "keep_in_root": [
+      "CLAUDE.md",
+      "README.md"
+    ],
+    "move_to_docs": 105,
+    "archive_as_obsolete": 15,
+    "consolidate_groups": 13,
+    "actions": {
+      "immediate": [
+        "Create docs/ folder structure",
+        "Move protected files references to docs/",
+        "Archive duplicate E2E testing reports (keep latest)",
+        "Archive duplicate float/decimal reports (keep FINAL)",
+        "Consolidate buyer dashboard summaries"
+      ],
+      "short_term": [
+        "Consolidate payment integration docs (15 files -> 5-6 organized files)",
+        "Consolidate vendor orders docs (11 files -> 4-5 organized files)",
+        "Standardize executive summary format across all topics",
+        "Create index files for each major topic area",
+        "Archive Spanish language reports or translate to English"
+      ],
+      "maintenance": [
+        "Implement naming convention for new docs",
+        "Create docs/README.md with navigation guide",
+        "Set up automated duplicate detection",
+        "Quarterly review and archival process"
+      ]
+    }
+  },
+  "proposed_structure": {
+    "docs": {
+      "architecture": [
+        "API_ARCHITECTURE_DIAGRAM.md",
+        "DATABASE_CONFIG.md",
+        "E2E_TESTING_ARCHITECTURE.md",
+        "FLOAT_DECIMAL_VISUAL_DIAGRAM.md",
+        "VENDOR_ORDER_UI_MOCKUPS_AND_FLOWS.md",
+        "WOMPI_INTEGRATION_FLOW_DIAGRAM.md"
+      ],
+      "guides": {
+        "setup": [
+          "DATABASE_SETUP.md",
+          "DATABASE_RESET_QUICK_START.md",
+          "SMS_GATEWAY_SETUP_GUIDE.md",
+          "TWILIO_SETUP_GUIDE.md"
+        ],
+        "features": [
+          "ADMIN_ORDERS_IMPLEMENTATION_SUMMARY.md",
+          "PAYMENT_INTEGRATION_COMPLETE_GUIDE.md",
+          "PRODUCT_DETAIL_IMPLEMENTATION.md",
+          "SHIPPING_SYSTEM_IMPLEMENTATION.md",
+          "SHOPPING_CART_IMPLEMENTATION_REPORT.md",
+          "SUPERUSER_ADMIN_IMPLEMENTATION.md",
+          "VENDOR_REGISTRATION_GUIDE.md"
+        ],
+        "integration": [
+          "PAYU_EFECTY_INTEGRATION_REPORT.md",
+          "WOMPI_INTEGRATION_COMPLETE.md",
+          "WOMPI_QUICK_REFERENCE.md"
+        ],
+        "validation": [
+          "CHECKOUT_VALIDATION_GUIDE.md",
+          "VALIDATION_RULES_REFERENCE.md"
+        ]
+      },
+      "reports": {
+        "testing": [
+          "E2E_TESTING_COMPLETE_SUMMARY.md",
+          "FASE_4_TESTING_CONSOLIDATED_REPORT.md",
+          "TDD_CORE_MODULES_FINAL_REPORT.md",
+          "TDD_SECURITY_ANALYSIS_REPORT.md"
+        ],
+        "implementation": [
+          "BUYER_DASHBOARD_IMPLEMENTATION_SUMMARY.md",
+          "FEATURES_IMPLEMENTATION_COMPLETE_SUMMARY.md",
+          "MIGRATION_COMPLETE_REPORT.md"
+        ],
+        "bugs": [
+          "CHECKOUT_FIXES_CONSOLIDATED.md",
+          "ERROR_REPORTS_CONSOLIDATED.md",
+          "STOCK_MANAGEMENT_CONSOLIDATED.md"
+        ],
+        "audits": [
+          "BACKEND_API_MVP_AUDIT_REPORT.md",
+          "CODE_QUALITY_ANALYSIS_REPORT.md",
+          "PRODUCT_API_AUDIT_REPORT.md",
+          "PUBLIC_CATALOG_AUDIT.md",
+          "UX_UI_MVP_AUDIT_REPORT.md"
+        ]
+      },
+      "executive": [
+        "API_ROADMAP_POST_MVP.md",
+        "MVP_CONSOLIDATED_REPORT.md",
+        "MVP_EXECUTIVE_SUMMARY.md",
+        "PRODUCTION_READINESS_REPORT.md",
+        "ROADMAP_STATUS_UPDATE_2025-10-02.md",
+        "SAFE_API_MIGRATION_STRATEGY.md"
+      ],
+      "api": [
+        "BACKEND_API_QUICK_SUMMARY.md",
+        "CODE_QUALITY_QUICK_REFERENCE.md",
+        "WOMPI_QUICK_REFERENCE.md"
+      ]
+    },
+    "archive": {
+      "2024": [],
+      "2025": [
+        "E2E_TESTING_SUMMARY.md",
+        "FLOAT_TO_DECIMAL_EXECUTIVE_SUMMARY.md",
+        "BUYER_DASHBOARD_COMPLETION_SUMMARY.md",
+        "BEFORE_AFTER_COMPARISON.md",
+        "DIAGNOSTICO_PROBLEMAS_REGISTRO.md",
+        "ESTADO_ACTUAL_REGISTRO_SMS.md",
+        "EVALUACION_PRE_PRODUCCION.md",
+        "TWILIO_FIX_README.md",
+        "PAYMENT_API_TEST_REPORT.md",
+        "CHECKOUT_DEBUG_OVERLAY_INVESTIGATION.md",
+        "SOLUTION_SUMMARY.md",
+        "INTEGRATION_FIXES_SUMMARY.md",
+        "QUICK_WINS_COMPLETED_REPORT.md",
+        "NEXT_STEPS_VENDOR_ORDER_MANAGEMENT.md",
+        "VENDOR_ORDERS_READY.md"
+      ]
+    }
+  },
+  "size_analysis": {
+    "largest_files": [
+      {
+        "name": "BACKEND_STRUCTURE_ANALYSIS.md",
+        "size": "177KB",
+        "recommendation": "Archive - very large analysis document"
+      },
+      {
+        "name": "TODO_MVP_VENDOR_FLOW.md",
+        "size": "64KB",
+        "recommendation": "Move to docs/guides/features/ - still relevant"
+      },
+      {
+        "name": "WOMPI_INTEGRATION_FLOW_DIAGRAM.md",
+        "size": "40KB",
+        "recommendation": "Move to docs/architecture/"
+      },
+      {
+        "name": "UX_UI_MVP_AUDIT_REPORT.md",
+        "size": "38KB",
+        "recommendation": "Move to docs/reports/audits/"
+      },
+      {
+        "name": "VENDOR_ORDER_UI_MOCKUPS_AND_FLOWS.md",
+        "size": "38KB",
+        "recommendation": "Move to docs/architecture/"
+      }
+    ],
+    "total_documentation_size": "2.1MB",
+    "average_file_size": "17.6KB",
+    "median_file_size": "11KB"
+  },
+  "code_references": {
+    "safe_api_migration_strategy": {
+      "referenced_in": [
+        "app/api/v1/endpoints/vendedores.py",
+        "app/api/v1/endpoints/comisiones.py",
+        "app/api/v1/endpoints/pagos.py",
+        "app/api/v1/endpoints/productos.py"
+      ],
+      "status": "CRITICAL - referenced in 4 deprecated API endpoints",
+      "action": "MUST keep in root or update all references"
+    },
+    "migration_to_subdomain": {
+      "referenced_in": [
+        "frontend/src/App.tsx"
+      ],
+      "status": "INFO - comment only",
+      "action": "Can be moved to docs/architecture/"
+    }
+  },
+  "quality_metrics": {
+    "naming_consistency": "MEDIUM",
+    "duplication_level": "HIGH",
+    "organization_score": "LOW",
+    "documentation_coverage": "EXCELLENT",
+    "technical_debt_documentation": "VERY_HIGH"
+  }
+}
