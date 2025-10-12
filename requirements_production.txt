@@ -69,6 +69,8 @@ jinja2>=3.1.0
 # QR Code Generation
 qrcode[pil]>=7.4.0
 
+phonenumbers>=8.13.0
+
 # ============================================================================
 # Total: 24 packages (vs ~50+ en requirements.txt completo)
 # Tamaño estimado: ~80MB (lightweight deployment)
