@@ -2403,11 +2403,11 @@ async def reject_seller(
                 detail="No puedes rechazar tu propia cuenta de vendedor."
             )
 
-        # Cambiar estado y guardar razón
+        # Cambiar estado y guardar razón (P0 Security Audit Fix)
         seller.vendor_status = VendorStatus.REJECTED
-        # Si el modelo tiene campo rejection_reason (verificar en user.py)
-        if hasattr(seller, 'rejection_reason'):
-            seller.rejection_reason = reason
+        seller.rejection_reason = reason
+        seller.rejected_at = datetime.utcnow()
+        seller.rejected_by_id = current_user.id
 
         await db.commit()
         await db.refresh(seller)

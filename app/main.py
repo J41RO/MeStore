@@ -6,10 +6,12 @@
 # ---------------------------------------------------------------------------------------------
 
 from contextlib import asynccontextmanager
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
+from slowapi.errors import RateLimitExceeded
 
 import logging as stdlib_logging
 import os
@@ -160,6 +162,21 @@ logger_early.info("DEBUG: Application middleware setup completed")
 logger_early.info("DEBUG: Including API router...")
 app.include_router(api_router, prefix="/api/v1")
 logger_early.info("DEBUG: API router included - main.py initialization complete")
+
+
+# Exception handler for rate limiting
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    """Handler for rate limit exceeded errors."""
+    return JSONResponse(
+        status_code=429,
+        content={
+            "success": False,
+            "error_code": "RATE_LIMIT_EXCEEDED",
+            "error_message": "Demasiadas solicitudes. Por favor intenta de nuevo más tarde.",
+            "retry_after": exc.detail
+        }
+    )
 
 
 # Exception handler global para logging de errores
