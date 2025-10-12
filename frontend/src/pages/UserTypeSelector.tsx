@@ -44,8 +44,9 @@ const UserTypeSelector: React.FC = () => {
   const handleContinue = () => {
     if (!selectedUserType) return;
 
+    // ✅ NUEVO FLUJO: Todos usan RegistrationWizard (no DB registration hasta el final)
     if (selectedUserType === 'BUYER') {
-      // BUYER → RegisterMultiType with BUYER state
+      // BUYER → RegistrationWizard with BUYER state
       navigate('/register', {
         state: {
           userType: 'BUYER',
@@ -53,8 +54,8 @@ const UserTypeSelector: React.FC = () => {
         }
       });
     } else if (selectedUserType === 'VENDOR' && selectedVendorType) {
-      // VENDOR → RegisterVendor with vendor type in state
-      navigate('/register-vendor', {
+      // VENDOR → RegistrationWizard with vendor type in state
+      navigate('/register', {
         state: {
           userType: 'VENDOR',
           vendorType: selectedVendorType

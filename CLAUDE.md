@@ -288,6 +288,181 @@ Documentos obsoletos o históricos organizados por año:
 - NO crear archivos `.md` en el directorio raíz (excepto README, CLAUDE, CONTRIBUTING, CHANGELOG)
 - NO crear scripts `.py`/`.sh` en el directorio raíz (excepto setup.py)
 
+---
+
+## 🚨 REGLAS ESTRICTAS: CERO DESORDEN EN RAÍZ (OBLIGATORIO)
+
+### ❌ PROHIBIDO ABSOLUTAMENTE CREAR EN RAÍZ:
+
+**Documentación:**
+- ❌ **NUNCA** crear archivos `.md` en raíz
+- ✅ **SIEMPRE** usar `docs/[categoria]/nombre.md`
+- ✅ Ejemplo correcto: `docs/reports/testing/2025-Q4/MI_REPORTE.md`
+- ❌ Ejemplo incorrecto: `MI_REPORTE.md` (en raíz)
+
+**Scripts:**
+- ❌ **NUNCA** crear scripts `.py` o `.sh` en raíz
+- ✅ **SIEMPRE** usar `scripts/[categoria]/nombre.py`
+- ✅ Ejemplo correcto: `scripts/testing/test_feature.py`
+- ❌ Ejemplo incorrecto: `test_feature.py` (en raíz)
+
+**Tests:**
+- ❌ **NUNCA** crear archivos de test en raíz
+- ✅ **SIEMPRE** usar `tests/` o `frontend/tests/`
+- ✅ Ejemplo correcto: `tests/test_api.py`
+- ❌ Ejemplo incorrecto: `test_api.py` (en raíz)
+
+**Archivos de Log:**
+- ❌ **NUNCA** crear archivos `.log` en raíz
+- ✅ **SIEMPRE** usar `logs/` directory
+- ✅ Logs automáticamente van a `logs/`
+
+**Bases de Datos:**
+- ❌ **NUNCA** crear archivos `.db` o `.sqlite` en raíz
+- ✅ **SIEMPRE** configurar DB en subdirectorio apropiado
+- ✅ Desarrollo: Usar `.gitignore` para excluir DBs
+
+**Archivos Temporales:**
+- ❌ **NUNCA** crear archivos temporales en raíz
+- ✅ **SIEMPRE** usar `temp/` directory
+- ✅ Limpiar regularmente archivos temporales
+
+**Configuración:**
+- ✅ **Archivos .env permitidos** (son configuración esencial)
+- ✅ **Archivos de build** (package.json, requirements.txt, etc.)
+- ❌ **NO** crear múltiples versiones de configs (usar .example)
+
+### ✅ ARCHIVOS PERMITIDOS EN RAÍZ:
+
+**Esenciales (Máximo 20 archivos):**
+1. `README.md` - Documentación principal
+2. `CLAUDE.md` - Este archivo
+3. `CONTRIBUTING.md` - Guía de contribución (opcional)
+4. `CHANGELOG.md` - Historial de cambios (opcional)
+5. `LICENSE` - Licencia del proyecto
+6. `setup.py` - Script de setup Python
+7. `.gitignore` - Git ignore rules
+8. `.env*` - Variables de entorno (múltiples variantes OK)
+9. `requirements.txt` - Dependencias Python
+10. `package.json` - Dependencias Node (si aplica)
+11. `docker-compose*.yml` - Docker configs
+12. `Dockerfile*` - Dockerfiles
+13. `Makefile` - Make commands
+14. `alembic.ini` - Alembic config
+15. `pytest.ini` - Pytest config
+16. `.coveragerc` - Coverage config
+17. `render.yaml` / `Procfile` - Deployment configs
+18. `vite.config.ts` - Vite config (si no está en frontend/)
+19. `jest.config.*` - Jest config
+20. `nixpacks.toml` - Nixpacks config
+
+**Directorios Permitidos:**
+- `app/` - Backend application
+- `frontend/` - Frontend application
+- `tests/` - Testing suite
+- `scripts/` - Scripts organizados
+- `docs/` - Documentación organizada
+- `data/` - Datos y reportes
+- `logs/` - Archivos de log
+- `temp/` - Archivos temporales
+- `.archive/` - Archivos históricos
+- `.workspace/` - Workspace de agentes
+- `.git/` - Git repository
+- `.github/` - GitHub configs
+- `alembic/` - Migraciones Alembic
+- `migrations_sql/` - SQL migrations (si aplica)
+- `node_modules/` - Dependencias Node
+- `.venv/` - Virtual environment Python
+- `htmlcov/` - Coverage reports
+- `.pytest_cache/` - Pytest cache
+- `uploads/` - User uploads
+- `monitoring/` - Monitoring configs
+- `postgres/` - PostgreSQL data (local)
+- `redis/` - Redis data (local)
+
+### 🔧 PROTOCOLO ANTES DE CREAR ARCHIVOS:
+
+#### Para Documentación (.md):
+```bash
+# 1. Verificar categoría apropiada
+ls -la docs/
+
+# 2. Crear en ubicación correcta
+# Guías:
+touch docs/guides/setup/MI_GUIA.md
+
+# Reportes de testing:
+touch docs/reports/testing/2025-Q4/MI_REPORTE.md
+
+# Reportes ejecutivos:
+touch docs/executive/MI_EXECUTIVE_SUMMARY.md
+
+# 3. NUNCA hacer:
+touch MI_DOCUMENTO.md  # ❌ EN RAÍZ
+```
+
+#### Para Scripts (.py, .sh):
+```bash
+# 1. Verificar categoría apropiada
+ls -la scripts/
+
+# 2. Crear en ubicación correcta
+# Scripts de testing:
+touch scripts/testing/test_mi_feature.py
+
+# Scripts de análisis:
+touch scripts/analysis/analyze_data.py
+
+# Scripts de deployment:
+touch scripts/deployment/deploy_prod.sh
+
+# 3. NUNCA hacer:
+touch mi_script.py  # ❌ EN RAÍZ
+```
+
+#### Para Tests:
+```bash
+# Backend tests:
+touch tests/test_my_feature.py
+
+# Frontend tests:
+touch frontend/tests/MyComponent.test.tsx
+
+# NUNCA hacer:
+touch test_something.py  # ❌ EN RAÍZ
+```
+
+### 🚨 VALIDACIÓN AUTOMÁTICA:
+
+**Pre-Commit Hook** (sugerido):
+```bash
+# Rechazar archivos .md en raíz (excepto permitidos)
+# Rechazar archivos .py/.sh en raíz (excepto setup.py)
+# Rechazar archivos .log en raíz
+# Rechazar archivos .db en raíz
+```
+
+### ⚡ AGENTES: CHECKLIST OBLIGATORIO ANTES DE CREAR ARCHIVOS:
+
+1. ✅ ¿Es un archivo .md? → `docs/[categoria]/`
+2. ✅ ¿Es un script .py/.sh? → `scripts/[categoria]/`
+3. ✅ ¿Es un test? → `tests/` o `frontend/tests/`
+4. ✅ ¿Es un log? → `logs/`
+5. ✅ ¿Es temporal? → `temp/`
+6. ✅ ¿Es una base de datos? → Configurar ruta apropiada
+7. ✅ ¿Es configuración? → Verificar si ya existe versión
+
+### 🎯 OBJETIVO:
+
+**RAÍZ LIMPIA = PROYECTO PROFESIONAL**
+
+- Máximo 20-25 archivos en raíz
+- Solo configuración y archivos esenciales
+- TODO lo demás en subdirectorios organizados
+- Cero archivos temporales o de desarrollo en raíz
+
+---
+
 ## Project Overview
 
 MeStore is a complete marketplace/e-commerce system built with FastAPI (backend) and React+TypeScript (frontend). The project follows enterprise patterns with comprehensive testing, Docker deployment, and sophisticated database migrations.

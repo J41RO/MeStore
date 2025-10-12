@@ -1,0 +1,19 @@
+{
+  "request_id": "REQ_20251012_015324_7716",
+  "timestamp": "2025-10-12T01:53:24.423307",
+  "requesting_agent": "unit-testing-ai",
+  "responsible_agent": "tdd-specialist",
+  "backup_agent": "unit-testing-ai",
+  "target_file": "tests/conftest.py",
+  "user_instruction": "Modificaci\u00f3n solicitada",
+  "status": "AGENT_ACTIVATED",
+  "priority": "ALTA",
+  "escalation_timeout": "2025-10-12T02:08:24.423314",
+  "delegation_chain": [
+    "unit-testing-ai",
+    "tdd-specialist"
+  ],
+  "auto_activation": true,
+  "activation_file": ".workspace/requests/activation_tdd-specialist_REQ_20251012_015324_7716.md",
+  "activation_time": "2025-10-12T01:53:24.423685"
+}

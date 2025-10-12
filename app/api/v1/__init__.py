@@ -27,6 +27,10 @@ from app.api.v1.endpoints.debug import router as debug_router
 # TEST ENDPOINTS (Temporary SMS testing):
 from app.api.v1.endpoints.test import router as test_router
 
+# MONITORING ENDPOINTS (Prometheus metrics):
+# TEMPORARILY DISABLED: Missing prometheus_client dependency
+# from app.api.v1.endpoints.metrics import router as metrics_router
+
 # STILL DISABLED - Will re-enable in next steps:
 # from app.api.v1.endpoints.agents import router as agents_router
 # from app.api.v1.endpoints.alerts import router as alerts_router
@@ -152,6 +156,10 @@ api_router.include_router(debug_router, prefix="/admin/debug", tags=["debug"])
 
 # Test endpoints (SMS testing - temporary)
 api_router.include_router(test_router, prefix="/test", tags=["test"])
+
+# Monitoring endpoints (Prometheus metrics)
+# TEMPORARILY DISABLED: Missing prometheus_client dependency
+# api_router.include_router(metrics_router, tags=["monitoring"])
 
 # # System configuration
 # api_router.include_router(system_config_router, prefix="/system", tags=["system"])

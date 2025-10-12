@@ -25,20 +25,21 @@ def generate_verification_code() -> str:
     return ''.join([str(random.randint(0, 9)) for _ in range(6)])
 
 
-async def send_verification_email(email: str, code: str, name: Optional[str] = None) -> bool:
+async def send_verification_email(email: str, token: str, name: Optional[str] = None, verification_link: Optional[str] = None) -> bool:
     """
-    Envía email con código de verificación.
+    Envía email con link de verificación.
 
     Args:
         email: Email del destinatario
-        code: Código de verificación de 6 dígitos
+        token: Token de verificación único
         name: Nombre del usuario (opcional)
+        verification_link: Link completo de verificación (opcional)
 
     Returns:
         bool: True si se envió exitosamente
 
     Example:
-        >>> await send_verification_email("user@example.com", "123456", "Juan")
+        >>> await send_verification_email("user@example.com", "token123", "Juan", "https://example.com/verify?token=...")
     """
     try:
         email_service = EmailService()
@@ -72,20 +73,30 @@ async def send_verification_email(email: str, code: str, name: Optional[str] = N
                     padding: 30px;
                     border-radius: 0 0 10px 10px;
                 }}
-                .code-box {{
-                    background: white;
-                    border: 2px dashed #667eea;
-                    border-radius: 8px;
-                    padding: 20px;
+                .button-box {{
                     text-align: center;
-                    margin: 20px 0;
+                    margin: 30px 0;
                 }}
-                .code {{
-                    font-size: 32px;
+                .verify-button {{
+                    display: inline-block;
+                    padding: 16px 40px;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 8px;
                     font-weight: bold;
-                    color: #667eea;
-                    letter-spacing: 8px;
-                    font-family: 'Courier New', monospace;
+                    font-size: 18px;
+                    box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);
+                }}
+                .link-box {{
+                    background: white;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 8px;
+                    padding: 15px;
+                    margin: 20px 0;
+                    word-break: break-all;
+                    font-size: 12px;
+                    color: #718096;
                 }}
                 .footer {{
                     text-align: center;
@@ -102,15 +113,22 @@ async def send_verification_email(email: str, code: str, name: Optional[str] = N
             <div class="content">
                 <p>Hola {name or 'Usuario'},</p>
 
-                <p>Gracias por registrarte en <strong>MeStocker</strong>. Para completar tu registro, por favor verifica tu correo electrónico usando el siguiente código:</p>
+                <p>Gracias por registrarte en <strong>MeStocker</strong>. Para completar tu registro y verificar tu correo electrónico, por favor haz clic en el siguiente botón:</p>
 
-                <div class="code-box">
-                    <p style="margin: 0; color: #718096; font-size: 14px;">Tu código de verificación es:</p>
-                    <div class="code">{code}</div>
-                    <p style="margin: 10px 0 0 0; color: #718096; font-size: 12px;">Este código expira en 10 minutos</p>
+                <div class="button-box">
+                    <a href="{verification_link}" class="verify-button">✅ Verificar Email</a>
                 </div>
 
-                <p><strong>¿No solicitaste este código?</strong><br>
+                <p style="text-align: center; color: #718096; font-size: 14px;">
+                    Este enlace es válido por <strong>24 horas</strong>
+                </p>
+
+                <p>Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
+                <div class="link-box">
+                    {verification_link}
+                </div>
+
+                <p><strong>¿No solicitaste esta verificación?</strong><br>
                 Si no creaste una cuenta en MeStocker, puedes ignorar este correo de forma segura.</p>
 
                 <p>Saludos,<br>
@@ -124,15 +142,15 @@ async def send_verification_email(email: str, code: str, name: Optional[str] = N
         </html>
         """
 
-        # Usar send_otp_email que es el método correcto en EmailService
-        result = await email_service.send_otp_email(
-            email=email,
-            otp_code=code,
-            user_name=name
+        # Enviar email usando el servicio de email
+        result = await email_service.send_email(
+            to_email=email,
+            subject=subject,
+            html_content=html_content
         )
 
         if result:
-            logger.info(f"✅ Verification email sent to {email}")
+            logger.info(f"✅ Verification email with link sent to {email}")
         return result
 
     except Exception as e:

@@ -1,0 +1,467 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "sms-verification-monitoring",
+    "title": "SMS Verification Monitoring",
+    "tags": ["sms", "twilio", "security", "registration"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "30s",
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": ["10s", "30s", "1m", "5m", "15m", "30m", "1h"]
+    },
+    "annotations": {
+      "list": [
+        {
+          "datasource": "Prometheus",
+          "enable": true,
+          "expr": "ALERTS{alertname=~\"SMS.*|Twilio.*\"}",
+          "iconColor": "red",
+          "name": "SMS Alerts",
+          "step": "60s",
+          "tagKeys": "alertname,severity",
+          "textFormat": "{{ $labels.alertname }}: {{ $labels.summary }}",
+          "titleFormat": "Alert"
+        }
+      ]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "SMS Send Success Rate (Target: >95%)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(rate(sms_send_requests_total{status=\"success\"}[5m])) / sum(rate(sms_send_requests_total[5m])) * 100",
+            "legendFormat": "Success Rate (%)",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "percent",
+            "label": "Success Rate",
+            "min": 0,
+            "max": 100
+          }
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [95], "type": "lt"},
+              "operator": {"type": "and"},
+              "query": {"params": ["A", "5m", "now"]},
+              "reducer": {"params": [], "type": "avg"},
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "60s",
+          "handler": 1,
+          "name": "SMS Send Success Rate",
+          "noDataState": "no_data",
+          "notifications": []
+        },
+        "thresholds": [
+          {
+            "colorMode": "critical",
+            "fill": true,
+            "line": true,
+            "op": "lt",
+            "value": 95
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "SMS Send Volume (requests/sec)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(rate(sms_send_requests_total[5m]))",
+            "legendFormat": "Total Requests/sec",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(rate(sms_send_requests_total{status=\"success\"}[5m]))",
+            "legendFormat": "Successful",
+            "refId": "B"
+          },
+          {
+            "expr": "sum(rate(sms_send_requests_total{status=\"error\"}[5m]))",
+            "legendFormat": "Errors",
+            "refId": "C"
+          },
+          {
+            "expr": "sum(rate(sms_send_requests_total{status=\"rate_limited\"}[5m]))",
+            "legendFormat": "Rate Limited",
+            "refId": "D"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Rate Limit Hits (by type)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(sms_rate_limit_hits_total{limit_type=\"phone\"}[5m]))",
+            "legendFormat": "Phone Rate Limit",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(rate(sms_rate_limit_hits_total{limit_type=\"ip\"}[5m]))",
+            "legendFormat": "IP Rate Limit",
+            "refId": "B"
+          }
+        ],
+        "thresholds": [
+          {
+            "colorMode": "critical",
+            "fill": true,
+            "line": true,
+            "op": "gt",
+            "value": 10
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "SMS Verification Success Rate (Target: >90%)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(sms_verification_attempts_total{status=\"success\"}[5m])) / sum(rate(sms_verification_attempts_total[5m])) * 100",
+            "legendFormat": "Verification Success (%)",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "percent",
+            "label": "Success Rate",
+            "min": 0,
+            "max": 100
+          }
+        ],
+        "thresholds": [
+          {
+            "colorMode": "critical",
+            "fill": true,
+            "line": true,
+            "op": "lt",
+            "value": 90
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Twilio API Latency (p50, p95, p99)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(twilio_api_latency_seconds_bucket[5m]))",
+            "legendFormat": "p50",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(twilio_api_latency_seconds_bucket[5m]))",
+            "legendFormat": "p95",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(twilio_api_latency_seconds_bucket[5m]))",
+            "legendFormat": "p99",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "s",
+            "label": "Latency"
+          }
+        ],
+        "thresholds": [
+          {
+            "colorMode": "critical",
+            "fill": false,
+            "line": true,
+            "op": "gt",
+            "value": 5
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Twilio Cumulative Cost (USD)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "targets": [
+          {
+            "expr": "increase(twilio_cost_usd_total[1h])",
+            "legendFormat": "Hourly Cost",
+            "refId": "A"
+          },
+          {
+            "expr": "increase(twilio_cost_usd_total[24h])",
+            "legendFormat": "Daily Cost",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "currencyUSD",
+            "label": "Cost"
+          }
+        ],
+        "thresholds": [
+          {
+            "colorMode": "critical",
+            "fill": false,
+            "line": true,
+            "op": "gt",
+            "value": 10
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Registration Flow Funnel",
+        "type": "bargauge",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+        "targets": [
+          {
+            "expr": "sum(increase(registration_flow_events_total{event=\"started\"}[1h]))",
+            "legendFormat": "Started",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(increase(registration_flow_events_total{event=\"email_sent\"}[1h]))",
+            "legendFormat": "Email Sent",
+            "refId": "B"
+          },
+          {
+            "expr": "sum(increase(registration_flow_events_total{event=\"sms_sent\"}[1h]))",
+            "legendFormat": "SMS Sent",
+            "refId": "C"
+          },
+          {
+            "expr": "sum(increase(registration_flow_events_total{event=\"email_verified\"}[1h]))",
+            "legendFormat": "Email Verified",
+            "refId": "D"
+          },
+          {
+            "expr": "sum(increase(registration_flow_events_total{event=\"phone_verified\"}[1h]))",
+            "legendFormat": "Phone Verified",
+            "refId": "E"
+          },
+          {
+            "expr": "sum(increase(registration_flow_events_total{event=\"completed\"}[1h]))",
+            "legendFormat": "Completed",
+            "refId": "F"
+          }
+        ],
+        "options": {
+          "orientation": "horizontal",
+          "displayMode": "gradient",
+          "showUnfilled": true
+        }
+      },
+      {
+        "id": 8,
+        "title": "Redis Performance (p95 latency)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(redis_response_time_seconds_bucket[5m]))",
+            "legendFormat": "{{ operation }}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "s",
+            "label": "Latency"
+          }
+        ],
+        "thresholds": [
+          {
+            "colorMode": "critical",
+            "fill": false,
+            "line": true,
+            "op": "gt",
+            "value": 0.1
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "SMS Errors by Country Code",
+        "type": "table",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32},
+        "targets": [
+          {
+            "expr": "sum(rate(sms_send_requests_total{status!=\"success\"}[1h])) by (country_code, status)",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "showHeader": true,
+          "sortBy": [
+            {
+              "desc": true,
+              "displayName": "Value"
+            }
+          ]
+        },
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Time": true
+              },
+              "indexByName": {
+                "country_code": 0,
+                "status": 1,
+                "Value": 2
+              },
+              "renameByName": {
+                "country_code": "Country Code",
+                "status": "Error Type",
+                "Value": "Rate (req/s)"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Current Alerts",
+        "type": "alertlist",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32},
+        "options": {
+          "showOptions": "current",
+          "maxItems": 20,
+          "sortOrder": 1,
+          "dashboardAlerts": false,
+          "alertName": "",
+          "dashboardTitle": "",
+          "tags": ["sms", "twilio"],
+          "stateFilter": {
+            "ok": false,
+            "paused": false,
+            "no_data": false,
+            "execution_error": false,
+            "alerting": true,
+            "pending": true
+          }
+        }
+      },
+      {
+        "id": 11,
+        "title": "SMS Send Duration (p50, p95, p99)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 40},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(sms_send_duration_seconds_bucket[5m]))",
+            "legendFormat": "p50",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(sms_send_duration_seconds_bucket[5m]))",
+            "legendFormat": "p95",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(sms_send_duration_seconds_bucket[5m]))",
+            "legendFormat": "p99",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "s",
+            "label": "Duration"
+          }
+        ],
+        "thresholds": [
+          {
+            "colorMode": "critical",
+            "fill": false,
+            "line": true,
+            "op": "gt",
+            "value": 3
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "title": "Registration Duration by User Type (p90)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 40},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.90, rate(registration_duration_seconds_bucket[10m])) by (user_type)",
+            "legendFormat": "{{ user_type }}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "s",
+            "label": "Duration"
+          }
+        ],
+        "thresholds": [
+          {
+            "colorMode": "critical",
+            "fill": false,
+            "line": true,
+            "op": "gt",
+            "value": 600
+          }
+        ]
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "type": "interval",
+          "name": "interval",
+          "label": "Interval",
+          "auto": true,
+          "auto_count": 30,
+          "auto_min": "10s",
+          "current": {
+            "text": "auto",
+            "value": "$__auto_interval_interval"
+          },
+          "options": [
+            {"selected": true, "text": "auto", "value": "$__auto_interval_interval"},
+            {"selected": false, "text": "30s", "value": "30s"},
+            {"selected": false, "text": "1m", "value": "1m"},
+            {"selected": false, "text": "5m", "value": "5m"}
+          ]
+        }
+      ]
+    }
+  },
+  "overwrite": true,
+  "folderId": 0,
+  "message": "SMS Verification Monitoring Dashboard - Production Ready"
+}

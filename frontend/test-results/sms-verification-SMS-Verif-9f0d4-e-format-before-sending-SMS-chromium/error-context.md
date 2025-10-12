@@ -1,0 +1,43 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - alert [ref=e3]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]: 🚧
+        - generic [ref=e8]:
+          - paragraph [ref=e9]: Sitio en Construcción - Funcionalidad Limitada
+          - paragraph [ref=e10]:
+            - text: Puedes registrarte ahora. Te notificaremos cuando estemos 100% operativos.
+            - button "Ver más" [ref=e11] [cursor=pointer]:
+              - text: Ver más
+              - generic [ref=e12] [cursor=pointer]: ▼
+      - button "Cerrar aviso de construcción" [ref=e13] [cursor=pointer]:
+        - img [ref=e14] [cursor=pointer]
+  - generic [ref=e17]:
+    - generic [ref=e18]:
+      - heading "Únete a MeStocker" [level=1] [ref=e19]
+      - paragraph [ref=e20]: ¿Cómo quieres usar nuestra plataforma?
+    - generic [ref=e21]:
+      - button "Popular Quiero Comprar Accede a productos y servicios de vendedores verificados" [active] [ref=e22] [cursor=pointer]:
+        - generic [ref=e23] [cursor=pointer]: Popular
+        - img [ref=e26] [cursor=pointer]
+        - generic [ref=e28] [cursor=pointer]:
+          - img [ref=e30] [cursor=pointer]
+          - generic [ref=e33] [cursor=pointer]:
+            - heading "Quiero Comprar" [level=3] [ref=e34] [cursor=pointer]
+            - paragraph [ref=e35] [cursor=pointer]: Accede a productos y servicios de vendedores verificados
+      - button "Quiero Vender Ofrece tus productos y servicios en nuestra plataforma" [ref=e36] [cursor=pointer]:
+        - generic [ref=e37] [cursor=pointer]:
+          - img [ref=e39] [cursor=pointer]
+          - generic [ref=e43] [cursor=pointer]:
+            - heading "Quiero Vender" [level=3] [ref=e44] [cursor=pointer]
+            - paragraph [ref=e45] [cursor=pointer]: Ofrece tus productos y servicios en nuestra plataforma
+    - button "Continuar" [ref=e47] [cursor=pointer]:
+      - generic [ref=e48] [cursor=pointer]: Continuar
+      - img [ref=e49] [cursor=pointer]
+    - paragraph [ref=e52]:
+      - text: ¿Ya tienes cuenta?
+      - button "Inicia sesión" [ref=e53] [cursor=pointer]
+```

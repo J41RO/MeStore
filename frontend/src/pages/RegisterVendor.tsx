@@ -566,8 +566,12 @@ ALTERNATIVA INMEDIATA: Usa localhost:5173 en lugar de 192.168.1.137:5173`;
         setOtpVerified(true);
 
         // Advance to next step after showing success feedback
+        console.log('⏳ Esperando 1.5 segundos antes de avanzar...');
         setTimeout(() => {
+          console.log('🚀 Avanzando al paso 4');
+          console.log('📊 Estado actual antes del cambio - currentStep:', currentStep);
           setCurrentStep(4);  // Direct state change instead of nextStep()
+          console.log('✅ setCurrentStep(4) ejecutado');
         }, 1500);
       } else {
         const errorData = await response.json();

@@ -1,0 +1,397 @@
+"""
+Prometheus AlertManager Rules for SMS Verification System
+==========================================================
+
+This file defines alerting rules for the SMS verification monitoring system.
+Alerts are categorized by severity and component.
+
+Severity Levels:
+- critical: Immediate action required (PagerDuty, SMS alerts)
+- warning: Should be addressed soon (Slack, Email)
+- info: Informational only (Slack)
+
+Components:
+- sms_verification: SMS send and verification flow
+- twilio_integration: Twilio API health
+- sms_security: Rate limiting and security
+- cost_control: Budget and cost monitoring
+- redis_cache: Redis health for rate limiting
+- registration_flow: User registration completion
+"""
+
+groups:
+  # ========================================================================
+  # SMS VERIFICATION HEALTH
+  # ========================================================================
+  - name: sms_verification_alerts
+    interval: 30s
+    rules:
+      # CRITICAL: SMS send success rate dropped below 95%
+      - alert: SMSSendSuccessRateLow
+        expr: |
+          (
+            sum(rate(sms_send_requests_total{status="success"}[5m]))
+            /
+            sum(rate(sms_send_requests_total[5m]))
+          ) < 0.95
+        for: 5m
+        labels:
+          severity: critical
+          component: sms_verification
+          team: backend
+        annotations:
+          summary: "SMS send success rate below 95%"
+          description: |
+            Current SMS send success rate: {{ $value | humanizePercentage }}
+            This indicates issues with Twilio integration or phone number validation.
+
+            Troubleshooting steps:
+            1. Check Twilio dashboard for API errors
+            2. Review invalid phone number patterns in logs
+            3. Verify Twilio credentials are valid
+            4. Check network connectivity to Twilio API
+          runbook_url: "https://wiki.company.com/sms-send-failures"
+          dashboard_url: "https://grafana.company.com/d/sms-monitoring"
+
+      # WARNING: SMS send rate approaching limits
+      - alert: SMSSendRateHigh
+        expr: rate(sms_send_requests_total[5m]) > 10
+        for: 10m
+        labels:
+          severity: warning
+          component: sms_verification
+          team: backend
+        annotations:
+          summary: "High SMS send rate detected"
+          description: |
+            SMS send rate: {{ $value | humanize }} requests/second
+            This may indicate a surge in registration or potential abuse.
+
+            Actions:
+            1. Review registration patterns
+            2. Check for abnormal IP activity
+            3. Consider temporary rate limit adjustments
+
+      # CRITICAL: SMS verification success rate low
+      - alert: SMSVerificationSuccessRateLow
+        expr: |
+          (
+            sum(rate(sms_verification_attempts_total{status="success"}[5m]))
+            /
+            sum(rate(sms_verification_attempts_total[5m]))
+          ) < 0.90
+        for: 10m
+        labels:
+          severity: warning
+          component: sms_verification
+          team: backend
+        annotations:
+          summary: "SMS verification success rate below 90%"
+          description: |
+            Users are struggling to verify their phone numbers.
+            Current rate: {{ $value | humanizePercentage }}
+
+            Possible causes:
+            1. Codes expiring too quickly
+            2. User confusion about verification flow
+            3. SMS delivery delays
+            4. Twilio Verify API issues
+
+      # WARNING: High invalid code attempts (possible brute force)
+      - alert: SMSInvalidCodeAttemptsHigh
+        expr: rate(sms_verification_attempts_total{status="invalid_code"}[5m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: sms_security
+          team: security
+        annotations:
+          summary: "High rate of invalid SMS verification attempts"
+          description: |
+            Invalid code attempts: {{ $value }} per second
+            This may indicate brute force attacks on verification codes.
+
+            Security actions:
+            1. Review IP addresses making failed attempts
+            2. Check for patterns in phone numbers
+            3. Consider implementing CAPTCHA
+            4. Temporarily increase rate limits
+
+  # ========================================================================
+  # TWILIO INTEGRATION HEALTH
+  # ========================================================================
+  - name: twilio_integration_alerts
+    interval: 30s
+    rules:
+      # CRITICAL: Twilio API errors
+      - alert: TwilioAPIErrors
+        expr: rate(twilio_api_errors_total[5m]) > 1
+        for: 5m
+        labels:
+          severity: critical
+          component: twilio_integration
+          team: backend
+        annotations:
+          summary: "Twilio API experiencing errors"
+          description: |
+            Twilio API error rate: {{ $value }} errors/second
+            Error code: {{ $labels.error_code }}
+
+            Immediate actions:
+            1. Check Twilio status page: https://status.twilio.com
+            2. Verify API credentials in environment
+            3. Review error code documentation
+            4. Check account balance and limits
+
+      # WARNING: Twilio API latency high
+      - alert: TwilioAPILatencyHigh
+        expr: |
+          histogram_quantile(0.95,
+            rate(twilio_api_latency_seconds_bucket[5m])
+          ) > 5
+        for: 10m
+        labels:
+          severity: warning
+          component: twilio_integration
+          team: backend
+        annotations:
+          summary: "Twilio API latency is high"
+          description: |
+            P95 latency: {{ $value | humanizeDuration }}
+            Method: {{ $labels.method }}
+
+            This may impact user experience during registration.
+            Check Twilio API status and network connectivity.
+
+      # CRITICAL: Twilio costs exceeding hourly budget
+      - alert: TwilioCostHigh
+        expr: increase(twilio_cost_usd_total[1h]) > 10
+        labels:
+          severity: warning
+          component: cost_control
+          team: finance
+        annotations:
+          summary: "Twilio costs exceeding $10/hour"
+          description: |
+            Current hourly cost: ${{ $value | humanize }}
+            This exceeds the expected budget of $10/hour.
+
+            Cost control actions:
+            1. Review SMS send patterns
+            2. Check for abuse or unusual activity
+            3. Consider implementing stricter rate limits
+            4. Alert finance team for budget adjustment
+
+      # WARNING: Twilio daily costs approaching monthly budget
+      - alert: TwilioDailyCostHigh
+        expr: increase(twilio_cost_usd_total[24h]) > 100
+        labels:
+          severity: warning
+          component: cost_control
+          team: finance
+        annotations:
+          summary: "Daily Twilio costs exceeding $100"
+          description: |
+            24-hour cost: ${{ $value | humanize }}
+            Monthly projection: ${{ $value | humanize }}00 (x30 days)
+
+            Budget review required.
+
+  # ========================================================================
+  # SMS SECURITY & RATE LIMITING
+  # ========================================================================
+  - name: sms_security_alerts
+    interval: 30s
+    rules:
+      # CRITICAL: Spike in rate limit hits (possible attack)
+      - alert: SMSRateLimitSpike
+        expr: rate(sms_rate_limit_hits_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: critical
+          component: sms_security
+          team: security
+        annotations:
+          summary: "Spike in SMS rate limit hits"
+          description: |
+            Rate limit hits: {{ $value }} per second
+            Type: {{ $labels.limit_type }}
+
+            This indicates potential abuse or attack.
+
+            Security response:
+            1. Review IPs hitting rate limits
+            2. Check for distributed patterns
+            3. Implement temporary IP blocks
+            4. Alert security team for investigation
+            5. Consider enabling CAPTCHA on registration
+
+      # WARNING: High invalid phone number submissions
+      - alert: SMSInvalidPhoneHigh
+        expr: rate(sms_invalid_phone_total[5m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: sms_security
+          team: backend
+        annotations:
+          summary: "High rate of invalid phone number submissions"
+          description: |
+            Invalid phone submissions: {{ $value }} per second
+            Reason: {{ $labels.reason }}
+
+            Possible causes:
+            1. User confusion about phone format
+            2. Frontend validation issues
+            3. Automated bot submissions
+
+            Actions:
+            1. Review frontend phone input validation
+            2. Improve user guidance on phone format
+            3. Check for bot/scraper activity
+
+  # ========================================================================
+  # REDIS CACHE HEALTH
+  # ========================================================================
+  - name: redis_cache_alerts
+    interval: 30s
+    rules:
+      # CRITICAL: Redis connection errors
+      - alert: RedisConnectionErrors
+        expr: rate(redis_errors_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+          component: redis_cache
+          team: infrastructure
+        annotations:
+          summary: "Redis experiencing connection errors"
+          description: |
+            Redis error rate: {{ $value }} errors/second
+            Operation: {{ $labels.operation }}
+
+            Impact: Rate limiting may fall back to "allow" mode.
+
+            Troubleshooting:
+            1. Check Redis service status
+            2. Verify network connectivity
+            3. Review Redis logs for errors
+            4. Check memory usage on Redis host
+
+      # WARNING: Redis response time degraded
+      - alert: RedisResponseTimeSlow
+        expr: |
+          histogram_quantile(0.95,
+            rate(redis_response_time_seconds_bucket[5m])
+          ) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: redis_cache
+          team: infrastructure
+        annotations:
+          summary: "Redis response time degraded"
+          description: |
+            P95 response time: {{ $value | humanizeDuration }}
+            This may impact rate limiting accuracy.
+
+            Check Redis performance and consider scaling.
+
+      # WARNING: Redis failover events occurring
+      - alert: RedisFailoverEvents
+        expr: increase(redis_failover_events_total[10m]) > 5
+        labels:
+          severity: warning
+          component: redis_cache
+          team: infrastructure
+        annotations:
+          summary: "Multiple Redis failover events detected"
+          description: |
+            Failover count: {{ $value }}
+            Rate limiting is falling back to "allow" mode.
+
+            This indicates Redis instability.
+            Investigation required immediately.
+
+  # ========================================================================
+  # REGISTRATION FLOW MONITORING
+  # ========================================================================
+  - name: registration_flow_alerts
+    interval: 1m
+    rules:
+      # WARNING: High registration abandonment rate
+      - alert: RegistrationAbandonmentHigh
+        expr: |
+          (
+            sum(rate(registration_flow_events_total{event=~"abandoned.*"}[10m]))
+            /
+            sum(rate(registration_flow_events_total{event="started"}[10m]))
+          ) > 0.5
+        for: 15m
+        labels:
+          severity: warning
+          component: registration_flow
+          team: product
+        annotations:
+          summary: "High registration abandonment rate"
+          description: |
+            Abandonment rate: {{ $value | humanizePercentage }}
+            User type: {{ $labels.user_type }}
+
+            Users are dropping off during registration.
+
+            Product review needed:
+            1. Identify abandonment step (email vs phone verification)
+            2. Review UX friction points
+            3. Check SMS/email delivery times
+            4. A/B test simplified flows
+
+      # INFO: Registration completion time increasing
+      - alert: RegistrationDurationHigh
+        expr: |
+          histogram_quantile(0.90,
+            rate(registration_duration_seconds_bucket[10m])
+          ) > 600
+        for: 15m
+        labels:
+          severity: info
+          component: registration_flow
+          team: product
+        annotations:
+          summary: "Registration taking longer than expected"
+          description: |
+            P90 registration time: {{ $value | humanizeDuration }}
+            User type: {{ $labels.user_type }}
+
+            Expected: < 10 minutes
+
+            Review flow for bottlenecks.
+
+  # ========================================================================
+  # ENDPOINT PERFORMANCE
+  # ========================================================================
+  - name: endpoint_performance_alerts
+    interval: 30s
+    rules:
+      # CRITICAL: SMS endpoint response time high
+      - alert: SMSEndpointSlowResponse
+        expr: |
+          histogram_quantile(0.95,
+            rate(endpoint_response_time_seconds_bucket{
+              endpoint=~"/api/v1/auth/(send-sms-public|verify/phone)"
+            }[5m])
+          ) > 3
+        for: 5m
+        labels:
+          severity: warning
+          component: sms_verification
+          team: backend
+        annotations:
+          summary: "SMS endpoints responding slowly"
+          description: |
+            P95 response time: {{ $value | humanizeDuration }}
+            Endpoint: {{ $labels.endpoint }}
+
+            Target: < 2 seconds
+
+            Performance optimization needed.
