@@ -518,8 +518,8 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({
               'Dashboard configurado con endpoints de tu API backend'
             )}
           </p>
-          <button 
-            onClick={() => navigate('/register')}
+          <button
+            onClick={() => navigate('/user-type-selector')}
             className='bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-xl'
           >
             {dashboardMetrics?.activeVendors && dashboardMetrics.activeVendors > 0 ? 'Acceder a Dashboard Real' : 'Comenzar Ahora'

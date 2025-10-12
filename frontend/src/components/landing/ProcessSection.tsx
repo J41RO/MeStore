@@ -301,7 +301,7 @@ const ProcessSection: React.FC<ProcessSectionProps> = ({ className = '' }) => {
 
         <div className="text-center mt-12">
           <button
-            onClick={() => isAuthenticated ? navigate('/dashboard') : navigate('/register')}
+            onClick={() => isAuthenticated ? navigate('/dashboard') : navigate('/user-type-selector')}
             className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl font-semibold hover:shadow-lg transform hover:scale-105 transition-all duration-300"
           >
             {isAuthenticated ? 'Ir a Dashboard' : 'Empezar Ahora'}

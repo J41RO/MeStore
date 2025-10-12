@@ -81,7 +81,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ className = '' }) => {
     const destination = isAuthenticated
       ? (user?.user_type === 'ADMIN' ? '/admin' :
          user?.user_type === 'VENDEDOR' ? '/dashboard/vendedor' : '/dashboard')
-      : '/register';
+      : '/user-type-selector';
 
     // Track CTA button click
     trackButtonClick(
@@ -103,7 +103,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ className = '' }) => {
         navigate('/dashboard');
       }
     } else {
-      navigate('/register');
+      navigate('/user-type-selector');
     }
   };
 
