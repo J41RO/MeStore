@@ -18,6 +18,7 @@ Este módulo maneja el envío de emails:
 import os
 from typing import Optional
 import logging
+import html  # Python stdlib for HTML escaping to prevent XSS
 
 logger = logging.getLogger(__name__)
 
@@ -266,6 +267,109 @@ class EmailService:
 
         except Exception as e:
             logger.error(f"Error enviando email de bienvenida: {str(e)}")
+            return False
+
+    async def send_approval_email(
+        self,
+        to_email: str,
+        user_name: str
+    ) -> bool:
+        """
+        Envía email de aprobación de cuenta de vendedor.
+
+        Args:
+            to_email: Email del vendedor
+            user_name: Nombre del vendedor
+
+        Returns:
+            bool: True si se envió exitosamente
+
+        Security:
+            user_name is HTML-escaped to prevent XSS attacks in email clients.
+        """
+        try:
+            subject = "¡Tu cuenta de vendedor ha sido aprobada! - MeStocker"
+
+            # 🔒 SECURITY: Sanitize user name to prevent XSS in email HTML
+            safe_user_name = html.escape(user_name)
+
+            html_content = self._create_approval_html_template(safe_user_name)
+
+            if self.simulation_mode:
+                logger.info(f"SIMULACIÓN EMAIL APROBACIÓN - Para: {to_email}")
+                print(f"📧 SIMULACIÓN EMAIL APROBACIÓN:")
+                print(f"   Para: {to_email}")
+                print(f"   Usuario: {user_name}")
+                return True
+
+            # Enviar con Resend
+            params = {
+                "from": f"{self.from_name} <{self.from_email}>",
+                "to": [to_email],
+                "subject": subject,
+                "html": html_content
+            }
+
+            response = resend.Emails.send(params)
+            logger.info(f"Email de aprobación enviado. ID: {response.get('id')}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Error enviando email de aprobación: {str(e)}")
+            return False
+
+    async def send_rejection_email(
+        self,
+        to_email: str,
+        user_name: str,
+        rejection_reason: str
+    ) -> bool:
+        """
+        Envía email de rechazo de cuenta de vendedor con razón.
+
+        Args:
+            to_email: Email del vendedor
+            user_name: Nombre del vendedor
+            rejection_reason: Razón del rechazo
+
+        Returns:
+            bool: True si se envió exitosamente
+
+        Security:
+            Both user_name and rejection_reason are HTML-escaped to prevent XSS
+            attacks in email clients.
+        """
+        try:
+            subject = "Actualización de tu solicitud de vendedor - MeStocker"
+
+            # 🔒 SECURITY: Sanitize user inputs to prevent XSS in email HTML
+            safe_user_name = html.escape(user_name)
+            safe_rejection_reason = html.escape(rejection_reason)
+
+            html_content = self._create_rejection_html_template(safe_user_name, safe_rejection_reason)
+
+            if self.simulation_mode:
+                logger.info(f"SIMULACIÓN EMAIL RECHAZO - Para: {to_email}")
+                print(f"📧 SIMULACIÓN EMAIL RECHAZO:")
+                print(f"   Para: {to_email}")
+                print(f"   Usuario: {user_name}")
+                print(f"   Razón: {rejection_reason}")
+                return True
+
+            # Enviar con Resend
+            params = {
+                "from": f"{self.from_name} <{self.from_email}>",
+                "to": [to_email],
+                "subject": subject,
+                "html": html_content
+            }
+
+            response = resend.Emails.send(params)
+            logger.info(f"Email de rechazo enviado. ID: {response.get('id')}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Error enviando email de rechazo: {str(e)}")
             return False
 
     # ============================================================================
@@ -584,6 +688,168 @@ class EmailService:
                             </p>
                             <p style="margin: 10px 0 0; font-size: 12px; color: #9ca3af;">
                                 Bucaramanga, Colombia
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>"""
+
+    def _create_approval_html_template(self, user_name: str) -> str:
+        """
+        Template HTML para email de aprobación de vendedor.
+
+        Args:
+            user_name: Name of the approved vendor (MUST BE HTML-ESCAPED before calling)
+
+        Returns:
+            Professional HTML email with approval notification
+
+        Security:
+            user_name should be pre-sanitized with html.escape()
+            to prevent XSS attacks in email clients.
+        """
+        return f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cuenta Aprobada - MeStocker</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f5f7fa;">
+        <tr>
+            <td style="padding: 40px 20px;">
+                <table role="presentation" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 40px; text-align: center; border-radius: 12px 12px 0 0;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 36px; font-weight: 700;">¡Felicidades! 🎉</h1>
+                            <p style="margin: 10px 0 0; color: #d1fae5; font-size: 18px;">Tu cuenta ha sido aprobada</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 40px;">
+                            <p style="margin: 0 0 20px; font-size: 16px; color: #374151;">Hola <strong>{user_name}</strong>,</p>
+                            <p style="margin: 0 0 30px; font-size: 16px; color: #374151; line-height: 1.6;">
+                                ¡Excelentes noticias! Tu solicitud para vender en MeStocker ha sido aprobada.
+                            </p>
+                            <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 30px 0;">
+                                <tr>
+                                    <td style="background-color: #d1fae5; border-left: 4px solid #10b981; padding: 16px; border-radius: 8px;">
+                                        <p style="margin: 0; font-size: 14px; color: #065f46;">
+                                            <strong>✅ Ya puedes:</strong>
+                                        </p>
+                                        <ul style="margin: 10px 0 0; padding-left: 20px; color: #065f46;">
+                                            <li>Publicar tus productos</li>
+                                            <li>Gestionar tu inventario</li>
+                                            <li>Recibir pedidos</li>
+                                            <li>Acceder a tu dashboard de vendedor</li>
+                                        </ul>
+                                    </td>
+                                </tr>
+                            </table>
+                            <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                                <tr>
+                                    <td style="text-align: center; padding: 20px 0;">
+                                        <a href="{self.config.FRONTEND_URL}/seller/dashboard"
+                                           style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                                                  color: #ffffff; padding: 16px 40px; text-decoration: none;
+                                                  border-radius: 8px; font-weight: 600; font-size: 16px;">
+                                            Ir a Mi Dashboard
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background-color: #f9fafb; padding: 30px; text-align: center; border-radius: 0 0 12px 12px;">
+                            <p style="margin: 0; font-size: 12px; color: #9ca3af;">
+                                © 2025 MeStocker - Tu plataforma de ventas
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>"""
+
+    def _create_rejection_html_template(self, user_name: str, rejection_reason: str) -> str:
+        """
+        Template HTML para email de rechazo de vendedor.
+
+        Args:
+            user_name: Name of the rejected vendor (MUST BE HTML-ESCAPED before calling)
+            rejection_reason: Reason for rejection (MUST BE HTML-ESCAPED before calling)
+
+        Returns:
+            Professional HTML email with rejection details
+
+        Security:
+            Both user_name and rejection_reason should be pre-sanitized with html.escape()
+            to prevent XSS attacks in email clients.
+        """
+        return f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Actualización de Solicitud - MeStocker</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f5f7fa;">
+        <tr>
+            <td style="padding: 40px 20px;">
+                <table role="presentation" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 40px; text-align: center; border-radius: 12px 12px 0 0;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 32px; font-weight: 700;">Actualización de tu Solicitud</h1>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 40px;">
+                            <p style="margin: 0 0 20px; font-size: 16px; color: #374151;">Hola <strong>{user_name}</strong>,</p>
+                            <p style="margin: 0 0 30px; font-size: 16px; color: #374151; line-height: 1.6;">
+                                Gracias por tu interés en vender en MeStocker. Lamentablemente, no hemos podido aprobar tu solicitud en este momento.
+                            </p>
+                            <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 30px 0;">
+                                <tr>
+                                    <td style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 8px;">
+                                        <p style="margin: 0; font-size: 14px; color: #92400e;">
+                                            <strong>📋 Razón:</strong>
+                                        </p>
+                                        <p style="margin: 10px 0 0; font-size: 14px; color: #92400e; line-height: 1.6;">
+                                            {rejection_reason}
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                            <p style="margin: 20px 0; font-size: 16px; color: #374151; line-height: 1.6;">
+                                Puedes corregir la información y volver a aplicar cuando estés listo.
+                            </p>
+                            <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                                <tr>
+                                    <td style="text-align: center; padding: 20px 0;">
+                                        <a href="{self.config.FRONTEND_URL}/register"
+                                           style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                                  color: #ffffff; padding: 16px 40px; text-decoration: none;
+                                                  border-radius: 8px; font-weight: 600; font-size: 16px;">
+                                            Intentar de Nuevo
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background-color: #f9fafb; padding: 30px; text-align: center; border-radius: 0 0 12px 12px;">
+                            <p style="margin: 0; font-size: 12px; color: #9ca3af;">
+                                © 2025 MeStocker
                             </p>
                         </td>
                     </tr>

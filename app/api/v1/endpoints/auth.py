@@ -5,9 +5,11 @@ Versión corregida sin conflictos entre AuthService.
 """
 
 from typing import Any, Dict
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
 from fastapi import Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 # IMPORTS INTEGRADOS - Usando IntegratedAuthService para seguridad mejorada
 from app.core.integrated_auth import integrated_auth_service
@@ -69,6 +71,9 @@ from typing import Union
 router = APIRouter()
 logger = get_logger(__name__)
 security = HTTPBearer()
+
+# Rate limiter for admin endpoints
+limiter = Limiter(key_func=get_remote_address)
 
 
 # Función auxiliar para get_current_user sin conflictos
@@ -2086,4 +2091,355 @@ async def register_multi_type(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error procesando registro: {type(e).__name__} - {str(e)}"
+        )
+
+
+# ============================================================================
+# ADMIN VENDOR MANAGEMENT ENDPOINTS
+# ============================================================================
+
+@router.get("/admin/pending-sellers", response_model=dict, status_code=status.HTTP_200_OK)
+@limiter.limit("30/minute")  # 30 requests per minute per IP
+async def get_pending_sellers(
+    request: Request,
+    current_user: User = Depends(get_current_user_clean),
+    db: AsyncSession = Depends(get_db)
+) -> dict:
+    """
+    Obtiene lista de vendedores pendientes de aprobación.
+
+    Requiere permisos administrativos (ADMIN, SUPERUSER, OWNER).
+
+    Filtra vendedores con:
+    - user_type = VENDOR
+    - vendor_status IN ['DRAFT', 'PENDING_DOCUMENTS', 'PENDING_APPROVAL']
+
+    Returns:
+        dict con lista de vendedores pendientes y sus datos completos
+    """
+    try:
+        # Security logging
+        logger.info(
+            f"🔐 Admin endpoint accessed",
+            endpoint=request.url.path,
+            admin_id=str(current_user.id),
+            admin_email=current_user.email,
+            ip_address=request.client.host if request.client else "unknown"
+        )
+        logger.info(f"📋 Admin solicitando vendedores pendientes", admin_id=str(current_user.id))
+
+        # Verificar permisos administrativos
+        allowed_roles = [UserType.OWNER, UserType.SUPERUSER, UserType.ADMIN,
+                        UserType.ADMIN_SALES, UserType.ADMIN_SUPPORT]
+        if current_user.user_type not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Privilegios administrativos requeridos"
+            )
+
+        # Obtener vendedores pendientes
+        result = await db.execute(
+            select(User).where(
+                User.user_type == UserType.VENDOR,
+                User.vendor_status.in_([
+                    VendorStatus.DRAFT,
+                    VendorStatus.PENDING_DOCUMENTS,
+                    VendorStatus.PENDING_APPROVAL
+                ])
+            ).order_by(User.created_at.desc())
+        )
+        pending_sellers = result.scalars().all()
+
+        # Serializar vendedores
+        sellers_data = []
+        for seller in pending_sellers:
+            seller_info = {
+                "id": str(seller.id),
+                "email": seller.email,
+                "user_type": seller.user_type.value,
+                "vendor_status": seller.vendor_status.value if seller.vendor_status else None,
+                "tipo_vendedor": seller.tipo_vendedor,
+                "created_at": seller.created_at.isoformat() if seller.created_at else None,
+
+                # Datos según tipo
+                "nombre_display": None,
+                "identificacion": None,
+                "telefono": seller.telefono,
+                "direccion_fiscal": seller.direccion_fiscal,
+                "ciudad_fiscal": seller.ciudad_fiscal,
+                "departamento_fiscal": seller.departamento_fiscal,
+            }
+
+            # Persona Natural
+            if seller.tipo_vendedor == "persona_natural":
+                seller_info["nombre_display"] = f"{seller.nombre} {seller.apellido}"
+                seller_info["identificacion"] = seller.cedula
+            # Persona Jurídica
+            elif seller.tipo_vendedor == "persona_juridica":
+                seller_info["nombre_display"] = seller.razon_social
+                seller_info["identificacion"] = seller.nit
+                seller_info["representante_legal"] = seller.representante_legal
+                seller_info["email_representante"] = seller.email_representante
+
+            sellers_data.append(seller_info)
+
+        logger.info(f"✅ Vendedores pendientes obtenidos", count=len(sellers_data))
+
+        return {
+            "success": True,
+            "count": len(sellers_data),
+            "sellers": sellers_data
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error obteniendo vendedores pendientes: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error obteniendo vendedores pendientes"
+        )
+
+
+@router.post("/admin/approve-seller/{user_id}", response_model=dict, status_code=status.HTTP_200_OK)
+@limiter.limit("10/minute")  # 10 approvals per minute (more restrictive)
+async def approve_seller(
+    user_id: str,
+    request: Request,
+    current_user: User = Depends(get_current_user_clean),
+    db: AsyncSession = Depends(get_db),
+    background_tasks: BackgroundTasks = None
+) -> dict:
+    """
+    Aprueba un vendedor pendiente.
+
+    Acciones:
+    - Cambia vendor_status a APPROVED
+    - Envía email de notificación al vendedor
+    - Registra acción en logs de auditoría
+
+    Requiere permisos administrativos.
+    """
+    try:
+        # Security logging
+        logger.info(
+            f"🔐 Admin endpoint accessed",
+            endpoint=request.url.path,
+            admin_id=str(current_user.id),
+            admin_email=current_user.email,
+            ip_address=request.client.host if request.client else "unknown"
+        )
+        logger.info(f"✅ Admin aprobando vendedor", admin_id=str(current_user.id), seller_id=user_id)
+
+        # Verificar permisos
+        allowed_roles = [UserType.OWNER, UserType.SUPERUSER, UserType.ADMIN, UserType.ADMIN_SALES]
+        if current_user.user_type not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Privilegios administrativos requeridos"
+            )
+
+        # Buscar vendedor
+        result = await db.execute(
+            select(User).where(User.id == user_id)
+        )
+        seller = result.scalar_one_or_none()
+
+        if not seller:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Vendedor no encontrado"
+            )
+
+        if seller.user_type != UserType.VENDOR:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El usuario no es un vendedor"
+            )
+
+        # 🔒 SECURITY: Prevent self-approval
+        if seller.id == current_user.id:
+            logger.warning(
+                f"⚠️ Self-approval attempt blocked",
+                admin_id=str(current_user.id),
+                seller_id=user_id
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No puedes aprobar tu propia cuenta de vendedor. Solicita la aprobación de otro administrador."
+            )
+
+        # Cambiar estado
+        seller.vendor_status = VendorStatus.APPROVED
+        seller.account_status = AccountStatus.ACTIVE  # Activar cuenta
+        await db.commit()
+        await db.refresh(seller)
+
+        logger.info(f"✅ Vendedor aprobado", seller_id=user_id, seller_email=seller.email)
+
+        # Enviar email de aprobación (background)
+        if background_tasks:
+            email_service = EmailService()
+            seller_name = seller.nombre or seller.razon_social or "Vendedor"
+            background_tasks.add_task(
+                email_service.send_approval_email,
+                seller.email,
+                seller_name
+            )
+            logger.info(f"📧 Email de aprobación programado")
+
+        return {
+            "success": True,
+            "message": f"Vendedor {seller.email} aprobado exitosamente",
+            "seller_id": str(seller.id),
+            "vendor_status": seller.vendor_status.value
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error aprobando vendedor: {str(e)}", exc_info=True)
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error aprobando vendedor"
+        )
+
+
+@router.post("/admin/reject-seller/{user_id}", response_model=dict, status_code=status.HTTP_200_OK)
+@limiter.limit("10/minute")  # 10 rejections per minute
+async def reject_seller(
+    user_id: str,
+    rejection_data: dict,
+    request: Request,
+    current_user: User = Depends(get_current_user_clean),
+    db: AsyncSession = Depends(get_db),
+    background_tasks: BackgroundTasks = None
+) -> dict:
+    """
+    Rechaza un vendedor pendiente.
+
+    Body:
+        {"reason": "Razón del rechazo (mínimo 20 caracteres)"}
+
+    Acciones:
+    - Cambia vendor_status a REJECTED
+    - Guarda rejection_reason
+    - Envía email con razón del rechazo
+    - Registra acción en logs
+    """
+    try:
+        reason = rejection_data.get("reason", "").strip()
+
+        if not reason or len(reason) < 20:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="La razón del rechazo debe tener al menos 20 caracteres"
+            )
+
+        # 🔒 SECURITY: Validate against dangerous patterns to prevent XSS
+        dangerous_patterns = ['<script', 'javascript:', 'onerror=', 'onload=', 'onclick=', '<iframe']
+        reason_lower = reason.lower()
+        for pattern in dangerous_patterns:
+            if pattern in reason_lower:
+                logger.warning(
+                    f"⚠️ Potentially malicious rejection reason blocked",
+                    extra={
+                        "admin_id": str(current_user.id),
+                        "seller_id": user_id,
+                        "pattern": pattern
+                    }
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="La razón contiene caracteres no permitidos. Por favor reformula tu mensaje."
+                )
+
+        # Security logging
+        logger.info(
+            f"🔐 Admin endpoint accessed",
+            endpoint=request.url.path,
+            admin_id=str(current_user.id),
+            admin_email=current_user.email,
+            ip_address=request.client.host if request.client else "unknown"
+        )
+        logger.info(f"❌ Admin rechazando vendedor", admin_id=str(current_user.id), seller_id=user_id)
+
+        # Verificar permisos
+        allowed_roles = [UserType.OWNER, UserType.SUPERUSER, UserType.ADMIN, UserType.ADMIN_SALES]
+        if current_user.user_type not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Privilegios administrativos requeridos"
+            )
+
+        # Buscar vendedor
+        result = await db.execute(
+            select(User).where(User.id == user_id)
+        )
+        seller = result.scalar_one_or_none()
+
+        if not seller:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Vendedor no encontrado"
+            )
+
+        if seller.user_type != UserType.VENDOR:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El usuario no es un vendedor"
+            )
+
+        # 🔒 SECURITY: Prevent self-rejection (edge case)
+        if seller.id == current_user.id:
+            logger.warning(
+                f"⚠️ Self-rejection attempt blocked",
+                admin_id=str(current_user.id),
+                seller_id=user_id
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No puedes rechazar tu propia cuenta de vendedor."
+            )
+
+        # Cambiar estado y guardar razón
+        seller.vendor_status = VendorStatus.REJECTED
+        # Si el modelo tiene campo rejection_reason (verificar en user.py)
+        if hasattr(seller, 'rejection_reason'):
+            seller.rejection_reason = reason
+
+        await db.commit()
+        await db.refresh(seller)
+
+        logger.info(f"❌ Vendedor rechazado", seller_id=user_id, reason=reason[:50])
+
+        # Enviar email de rechazo (background)
+        if background_tasks:
+            email_service = EmailService()
+            seller_name = seller.nombre or seller.razon_social or "Vendedor"
+            background_tasks.add_task(
+                email_service.send_rejection_email,
+                seller.email,
+                seller_name,
+                reason
+            )
+            logger.info(f"📧 Email de rechazo programado")
+
+        return {
+            "success": True,
+            "message": f"Vendedor {seller.email} rechazado",
+            "seller_id": str(seller.id),
+            "vendor_status": seller.vendor_status.value,
+            "rejection_reason": reason
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error rechazando vendedor: {str(e)}", exc_info=True)
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error rechazando vendedor"
         )
