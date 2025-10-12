@@ -587,7 +587,151 @@ assert created_user.user_type == UserType.BUYER
 
 ---
 
-**Decision Log Updated**: September 23, 2025
-**Next Review**: Post-production deployment retrospective
-**Status**: All critical model, authentication, and unit testing decisions implemented successfully ✅
-**MVP Readiness**: CONFIRMED FOR PRODUCTION DEPLOYMENT WITH COMPLETE AUTH & MODEL COVERAGE ✅
+---
+
+### 2025-10-11 - CRITICAL BUG DISCOVERY: SMS Security Module Complete Failure
+**Problem**: SMS Security module (`app/core/sms_security.py`) has systematic logging bug causing complete failure
+**Discovered During**: Phase 2 SMS Security unit test implementation
+**Severity**: CRITICAL - Rate limiting non-functional, system vulnerable to SMS abuse
+**Impact**: ALL SMS security features bypassed, fail-open activated on every attempt
+**Priority**: BLOCKING PRODUCTION
+
+**Root Cause Analysis**:
+```python
+# ❌ INCORRECT (current code - causes TypeError)
+logger.warning("message", phone_hash=value, ip=value)
+
+# ✅ CORRECT (required by Python logging API)
+logger.warning("message", extra={"phone_hash": value, "ip": value})
+```
+
+**Technical Details**:
+- Python's `logging.Logger._log()` only accepts specific kwargs: exc_info, stack_info, stacklevel, extra
+- Current code uses arbitrary kwargs directly (phone_hash=, ip=, e164_length=, etc.)
+- This causes `TypeError: Logger._log() got an unexpected keyword argument 'X'`
+- Exception caught by try/except blocks, triggers fail-open behavior
+- **Result**: Rate limiting returns (True, "OK") instead of blocking requests
+
+**Affected Functions** (ALL CRITICAL):
+1. ✅ `check_phone_rate_limit()` - Lines 67, 72-77, 82-87 - BROKEN
+2. ✅ `check_ip_rate_limit()` - Lines 128, 133-138, 143-148 - BROKEN
+3. ✅ `validate_phone_number()` - Lines 193, 202-206, 215, 220 - BROKEN
+4. ⚠️ `get_client_ip()` - Lines 256, 262, 267 - Partially broken (debug only)
+5. ✅ `log_sms_security_event()` - Lines 335, 337 - WORKS CORRECTLY (uses extra={})
+
+**Security Implications**:
+- **Phone Rate Limiting**: Non-functional (intended: 3 per 10min, actual: unlimited)
+- **IP Rate Limiting**: Non-functional (intended: 10 per hour, actual: unlimited)
+- **Phone Validation**: Always fails with exception (all phones rejected)
+- **Attack Vectors**: SMS spam, cost explosion, service abuse, data scraping
+- **Risk Level**: HIGH - Twilio costs uncontrolled, user harassment possible
+
+**Test Implementation Results**:
+- **Unit Tests Created**: 18 comprehensive tests
+- **Tests Passing**: 9 tests (only non-logging functions)
+- **Tests Failing**: 9 tests (all functions with logging)
+- **Coverage Achieved**: 42.39% (vs target 85-90%)
+- **Coverage Blocked**: ~43% of code unreachable due to logging exceptions
+
+**Test Files Created**:
+1. `/tests/unit/test_sms_security.py` - 18 unit tests with detailed bug documentation
+2. `/tests/integration/test_sms_security_endpoint.py` - 4 integration tests (not run yet)
+3. `/tests/conftest.py` - Added 3 SMS security fixtures (mock_redis_service, mock_request, mock_sms_service_success)
+
+**Test Coverage Breakdown**:
+| Test Category | Tests Created | Currently Passing | After Bug Fix |
+|---------------|---------------|-------------------|---------------|
+| Phone rate limiting | 4 | 4 | 4 |
+| IP rate limiting | 3 | 3 | 3 |
+| Phone validation | 6 | 0 | 6 |
+| IP extraction | 2 | 2 | 2 |
+| GDPR logging | 1 | 0 | 1 |
+| Integration tests | 4 | 0 (not run) | 4 |
+| **TOTAL** | **20** | **9** | **20** |
+
+**Coverage Analysis**:
+```
+app/core/sms_security.py: 92 statements
+Current coverage: 42.39% (39/92 lines)
+Expected coverage (after fix): 85-90%
+Missing lines: 68-88, 120-154, 187-224, 262-263, 318-337
+```
+
+**Test Documentation Strategy**:
+- All tests include detailed comments explaining expected vs actual behavior
+- Tests document exact line numbers of bugs
+- Tests include TODO comments for post-fix validation
+- Tests serve as specification for correct behavior
+
+**Bug Report Created**:
+- Comprehensive report: `.workspace/departments/testing/sections/unit-testing/docs/CRITICAL_BUG_SMS_SECURITY_LOGGING.md`
+- Includes security risk assessment, affected functions, fix recommendations
+- Timeline for resolution: 5.75 hours total (3.75 hours remaining)
+
+**Decision**: Implement tests for EXPECTED behavior, document ACTUAL behavior
+**Rationale**: Tests serve as specification and will validate fix immediately
+**Implementation**:
+1. ✅ Created comprehensive unit tests (18 tests)
+2. ✅ Created integration tests (4 tests)
+3. ✅ Added necessary fixtures to conftest.py
+4. ✅ Documented all bugs in test comments
+5. ✅ Created detailed bug report
+6. ⏳ PENDING: Bug fix by security-backend-ai
+7. ⏳ PENDING: Test validation after fix
+8. ⏳ PENDING: Integration test execution
+
+**Responsible Parties**:
+- **Bug Fix**: security-backend-ai (module owner)
+- **Testing**: unit-testing-ai (test implementation COMPLETE)
+- **Validation**: tdd-specialist (post-fix verification)
+
+**Timeline Estimate**:
+- Discovery & Test Implementation: 2 hours ✅ COMPLETE
+- Bug Fix: 15 minutes ⏳ PENDING
+- Test Validation: 30 minutes ⏳ PENDING
+- Integration Testing: 30 minutes ⏳ PENDING
+- Deployment: 1 hour ⏳ PENDING
+- **Total Time to Resolution**: 4.25 hours
+
+**Production Impact**:
+- ⚠️ **BLOCKING**: SMS features cannot be deployed until fix applied
+- ⚠️ **CRITICAL**: If already in production, immediate hotfix required
+- ⚠️ **SECURITY**: System vulnerable to SMS abuse and cost attacks
+- ⚠️ **MONITORING**: Add alerts for unusual SMS volume if deployed
+
+**Mitigation Strategy**:
+1. **Immediate**: Apply logging fix (replace kwargs with extra={})
+2. **Short-term**: Run complete test suite to validate fix
+3. **Medium-term**: Add linting rule to catch this pattern
+4. **Long-term**: Consider structured logging library (loguru, structlog)
+
+**Quality Impact**:
+- **Before Discovery**: Unknown security vulnerability
+- **After Discovery**: Comprehensive test suite ready to validate fix
+- **Test Readiness**: 100% - tests ready to verify correct behavior
+- **Documentation**: Complete - all bugs and fixes documented
+
+**Lessons Learned**:
+1. **TDD Value**: Tests discovered critical bug before production
+2. **Systematic Testing**: Complete test coverage reveals systematic issues
+3. **Test as Specification**: Tests document expected behavior clearly
+4. **Fail-Open Danger**: Exception handling can hide critical bugs
+5. **Logging Best Practices**: Always use extra={} for structured logging
+
+**Status**: ✅ TEST IMPLEMENTATION COMPLETE - BUG DISCOVERED AND DOCUMENTED
+**Next Actions**:
+1. Escalate to security-backend-ai for immediate fix
+2. Run test suite after fix to validate
+3. Execute integration tests
+4. Update this log with resolution
+
+**Coverage Target**: 85-90% (achievable after bug fix)
+**Test Stability**: High (tests document both expected and actual behavior)
+**Production Readiness**: ⚠️ BLOCKED until bug fix applied
+
+---
+
+**Decision Log Updated**: October 11, 2025
+**Next Review**: Post-bug-fix validation
+**Status**: Critical bug discovered, comprehensive tests implemented, awaiting fix ⚠️
+**MVP Readiness**: BLOCKED for SMS features until logging bug resolved

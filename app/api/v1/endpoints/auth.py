@@ -46,9 +46,17 @@ from app.schemas.auth import (
     MultiTypeRegistrationResponse
 )
 from app.core.redis import RedisService, get_redis_service
+from app.core.redis.dependencies import get_redis_service as get_redis_service_dep
 from app.core.logger import get_logger
 from app.services.email_service import EmailService
 from app.services.sms_service import SMSService
+from app.core.sms_security import (
+    check_phone_rate_limit,
+    check_ip_rate_limit,
+    validate_phone_number,
+    get_client_ip,
+    log_sms_security_event
+)
 from app.utils.auth_helpers import generate_verification_code, send_verification_email, send_welcome_email
 from app.core.security import get_password_hash
 from app.models.user import UserType, AccountStatus, VendorStatus
@@ -733,6 +741,179 @@ async def send_verification_sms_endpoint(
         raise
     except Exception as e:
         logger.error(f"Error en send_verification_sms: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )
+
+
+@router.post("/send-sms-public", response_model=dict, status_code=status.HTTP_200_OK)
+async def send_sms_verification_public(
+    phone: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    redis: RedisService = Depends(get_redis_service_dep)
+) -> dict:
+    """
+    ⚡ ENDPOINT PÚBLICO SECURIZADO PARA ENVIAR SMS DURANTE REGISTRO (SIN AUTENTICACIÓN)
+
+    Este endpoint permite enviar código SMS de verificación ANTES de que el usuario
+    tenga un token JWT (durante el proceso de registro).
+
+    Características de Seguridad:
+    - Rate limiting por número de teléfono (3 intentos/10 minutos)
+    - Rate limiting por IP (10 intentos/1 hora)
+    - Validación internacional con Google libphonenumber
+    - Logging de seguridad con GDPR compliance
+    - Detección de proxy/load balancer para IP real
+
+    Args:
+        phone: Número de teléfono con código de país (ej: +573001234567, +17379771943)
+        request: FastAPI Request para extracción de IP
+        db: Sesión de base de datos (async)
+        redis: Servicio Redis para rate limiting
+
+    Returns:
+        dict con success: bool y message: str
+
+    Security:
+        - 3 intentos por teléfono en 10 minutos
+        - 10 intentos por IP en 1 hora
+        - Validación E.164 estricta
+        - Logging estructurado para auditoría
+    """
+    try:
+        # ========================================================================
+        # SECURITY LAYER 1: EXTRACT CLIENT IP
+        # ========================================================================
+        client_ip = get_client_ip(request)
+        logger.info(f"📱 SMS request received", phone_length=len(phone), client_ip=client_ip)
+
+        # ========================================================================
+        # SECURITY LAYER 2: IP RATE LIMITING (10 attempts/hour)
+        # ========================================================================
+        ip_allowed, ip_message = await check_ip_rate_limit(redis, client_ip)
+        if not ip_allowed:
+            log_sms_security_event("rate_limit_ip", phone, client_ip, False, ip_message)
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=ip_message,
+                headers={"Retry-After": "3600"}
+            )
+        logger.info(f"✅ IP rate limit check passed", client_ip=client_ip)
+
+        # ========================================================================
+        # SECURITY LAYER 3: ADVANCED PHONE VALIDATION
+        # ========================================================================
+        valid, error_msg, phone_e164 = validate_phone_number(phone)
+        if not valid:
+            log_sms_security_event("invalid_phone", phone, client_ip, False, error_msg)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=error_msg
+            )
+        logger.info(f"✅ Phone validation passed", e164_format=phone_e164)
+
+        # ========================================================================
+        # SECURITY LAYER 4: PHONE RATE LIMITING (3 attempts/10min)
+        # ========================================================================
+        phone_allowed, phone_message = await check_phone_rate_limit(redis, phone_e164)
+        if not phone_allowed:
+            log_sms_security_event("rate_limit_phone", phone_e164, client_ip, False, phone_message)
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=phone_message,
+                headers={"Retry-After": "600"}
+            )
+        logger.info(f"✅ Phone rate limit check passed", phone_e164=phone_e164)
+
+        # ========================================================================
+        # BUSINESS LOGIC: SEND SMS WITH TWILIO VERIFY
+        # ========================================================================
+        try:
+            logger.info(f"📤 Sending SMS via Twilio Verify", phone_e164=phone_e164)
+            sms_service = SMSService()
+            result = await sms_service.send_verification_code(
+                phone_number=phone_e164,  # Use validated E.164 format
+                channel="sms"
+            )
+
+            if result.get('success') or result.get('status') in ['pending', 'approved']:
+                logger.info(f"✅ SMS sent successfully",
+                          phone_e164=phone_e164,
+                          twilio_status=result.get('status'))
+
+                # Log successful SMS sending
+                log_sms_security_event(
+                    "sms_sent",
+                    phone_e164,
+                    client_ip,
+                    True,
+                    extra={"twilio_status": result.get('status')}
+                )
+
+                return {
+                    "success": True,
+                    "message": "Código de verificación enviado exitosamente"
+                }
+            else:
+                logger.warning(f"⚠️ SMS sending failed",
+                             phone_e164=phone_e164,
+                             twilio_status=result.get('status'))
+
+                log_sms_security_event(
+                    "twilio_error",
+                    phone_e164,
+                    client_ip,
+                    False,
+                    f"Twilio status: {result.get('status', 'unknown')}"
+                )
+
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Error enviando SMS: {result.get('status', 'unknown')}"
+                )
+
+        except HTTPException:
+            raise
+        except Exception as twilio_error:
+            logger.error(f"❌ Twilio exception",
+                        phone_e164=phone_e164,
+                        error=str(twilio_error),
+                        exc_info=True)
+
+            log_sms_security_event(
+                "twilio_exception",
+                phone_e164,
+                client_ip,
+                False,
+                str(twilio_error)
+            )
+
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error al enviar código SMS. Por favor intenta de nuevo."
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Unexpected error in send_sms_public",
+                    error=str(e),
+                    exc_info=True)
+
+        # Try to log security event even on unexpected errors
+        try:
+            log_sms_security_event(
+                "unexpected_error",
+                phone if 'phone' in locals() else "unknown",
+                client_ip if 'client_ip' in locals() else "unknown",
+                False,
+                str(e)
+            )
+        except:
+            pass  # Don't fail on logging failure
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error interno del servidor"

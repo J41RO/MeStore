@@ -645,6 +645,7 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "transaction: Transaction processing tests")
     config.addinivalue_line("markers", "critical: Critical functionality tests")
     config.addinivalue_line("markers", "smoke: Smoke tests for basic functionality")
+    config.addinivalue_line("markers", "sms_security: SMS security and rate limiting tests")
 
 
 
@@ -653,3 +654,73 @@ def pytest_configure(config):
 # =============================================================================
 # Alias para compatibilidad con tests E2E existentes
 async_session_maker = AsyncTestingSessionLocal
+
+
+# =============================================================================
+# SMS SECURITY TEST FIXTURES
+# =============================================================================
+
+@pytest.fixture
+def mock_redis_service():
+    """Mock de RedisService para testing SMS security"""
+    mock = AsyncMock()
+
+    # Storage in-memory para simular Redis
+    mock._storage = {}
+
+    async def cache_get(key: str):
+        return mock._storage.get(key)
+
+    async def cache_set(key: str, value: str, expire: int):
+        mock._storage[key] = value
+        return True
+
+    async def cache_delete(key: str):
+        if key in mock._storage:
+            del mock._storage[key]
+        return True
+
+    # Mock redis.incr
+    mock.redis = AsyncMock()
+    async def incr(key: str):
+        current = int(mock._storage.get(key, "0"))
+        mock._storage[key] = str(current + 1)
+        return current + 1
+    mock.redis.incr = incr
+
+    mock.cache_get = cache_get
+    mock.cache_set = cache_set
+    mock.cache_delete = cache_delete
+
+    return mock
+
+
+@pytest.fixture
+def mock_request():
+    """Mock de FastAPI Request para testing IP extraction"""
+    from unittest.mock import Mock
+    from fastapi import Request
+
+    request = Mock(spec=Request)
+    request.client = Mock()
+    request.client.host = "203.0.113.1"
+    request.headers = {}
+    return request
+
+
+@pytest.fixture
+def mock_sms_service_success(monkeypatch):
+    """Mock SMSService que simula éxito de Twilio"""
+    async def mock_send_verification(*args, **kwargs):
+        return {
+            "success": True,
+            "status": "pending",
+            "sid": "SM1234567890"
+        }
+
+    from app.services import sms_service
+    monkeypatch.setattr(
+        sms_service.SMSService,
+        "send_verification_code",
+        mock_send_verification
+    )
