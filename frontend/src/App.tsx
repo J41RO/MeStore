@@ -76,6 +76,8 @@ const VendorRegistration = lazy(() => import('./pages/VendorRegistration'));
 const OTPVerification = lazy(() => import('./components/OTPVerification'));
 const UserTypeSelector = lazy(() => import('./pages/UserTypeSelector'));
 const RegisterMultiType = lazy(() => import('./pages/RegisterMultiType'));
+const RegistrationWizard = lazy(() => import('./pages/RegistrationWizard'));
+const RegistrationPending = lazy(() => import('./pages/RegistrationPending'));
 const EmailVerificationHandler = lazy(() => import('./pages/EmailVerificationHandler'));
 
 // Componentes de auth con lazy loading
@@ -435,7 +437,7 @@ function App() {
             </Suspense>
           }
         />
-        {/* Multi-Type Registration Flow - NEW */}
+        {/* Multi-Type Registration Flow - NEW WIZARD */}
         <Route
           path='/user-type-selector'
           element={
@@ -448,52 +450,31 @@ function App() {
           path='/register'
           element={
             <Suspense fallback={<PageLoader />}>
-              <RegisterMultiType />
+              <RegistrationWizard />
             </Suspense>
           }
         />
 
-        {/* Legacy registration routes */}
+        {/* Registration Pending Page - Vendor approval needed */}
         <Route
-          path='/register-vendor'
+          path='/registration-pending'
           element={
             <Suspense fallback={<PageLoader />}>
-              <RegisterVendor />
+              <RegistrationPending />
             </Suspense>
           }
         />
-        <Route
-          path='/vendor/register'
-          element={
-            <Suspense fallback={<PageLoader />}>
-              <VendorRegistration />
-            </Suspense>
-          }
-        />
-        <Route
-          path='/verify-otp'
-          element={
-            <Suspense fallback={<PageLoader />}>
-              <OTPVerification />
-            </Suspense>
-          }
-        />
-        <Route
-          path='/verify-sms'
-          element={
-            <Suspense fallback={<PageLoader />}>
-              <OTPVerification />
-            </Suspense>
-          }
-        />
-        <Route
-          path='/auth/otp'
-          element={
-            <Suspense fallback={<PageLoader />}>
-              <OTPDemo />
-            </Suspense>
-          }
-        />
+
+        {/*
+          LEGACY ROUTES REMOVED (2025-10-12):
+          - /register-old → RegisterMultiType (replaced by /register with RegistrationWizard)
+          - /register-vendor → RegisterVendor (replaced by /user-type-selector → /register flow)
+          - /vendor/register → VendorRegistration (replaced by unified flow)
+          - /verify-otp, /verify-sms, /auth/otp → OTPVerification/OTPDemo (SMS now handled in RegistrationWizard Step 2)
+
+          ÚNICO FLUJO VÁLIDO:
+          /user-type-selector → /register (RegistrationWizard con SMS verification)
+        */
 
         {/* Admin original - INTELLIGENT REDIRECT FOR AUTHORIZED USERS */}
         <Route
