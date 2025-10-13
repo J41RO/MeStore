@@ -27,7 +27,8 @@ import {
   Database,
   Bell,
   Globe,
-  CheckCircle
+  CheckCircle,
+  Clock
 } from 'lucide-react';
 
 import type { NavigationCategory, CategoryTheme } from './NavigationTypes';
@@ -173,6 +174,19 @@ const vendorsCategory: NavigationCategory = {
       }
     },
     {
+      id: 'pending-sellers',
+      title: 'Pending Sellers',
+      path: '/admin-secure-portal/pending-sellers',
+      icon: Clock,
+      description: 'Review and approve pending seller registration requests',
+      requiredRole: UserRole.ADMIN,
+      metadata: {
+        keywords: ['pending', 'sellers', 'approval', 'waiting'],
+        analyticsId: 'nav_pending_sellers',
+        priority: 3
+      }
+    },
+    {
       id: 'product-approval',
       title: 'Product Approval',
       path: '/admin-secure-portal/product-approval',
@@ -182,7 +196,7 @@ const vendorsCategory: NavigationCategory = {
       metadata: {
         keywords: ['products', 'approval', 'pending', 'review'],
         analyticsId: 'nav_product_approval',
-        priority: 3
+        priority: 4
       }
     },
     {

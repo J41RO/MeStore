@@ -130,5 +130,8 @@ try:
 except ImportError:
     pass
 
+# VendorAuditLog ya está importado más arriba (líneas 93-97)
+# No se necesita duplicar el import
+
 # Agregar a __all__
 "StorageType"

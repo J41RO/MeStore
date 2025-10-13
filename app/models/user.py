@@ -35,7 +35,7 @@ Este módulo contiene el modelo principal para gestión de usuarios:
 
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text, JSON
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text, JSON, ForeignKey
 from sqlalchemy import Index
 from app.core.types import UUID, generate_uuid
 from sqlalchemy.sql import func
@@ -325,6 +325,26 @@ class User(BaseModel):
         nullable=True,
         default=VendorStatus.DRAFT,
         comment="Estado específico del proceso de onboarding de vendor"
+    )
+
+    # === CAMPOS DE RECHAZO DE VENDOR (P0 - Security Audit Fix) ===
+    rejection_reason = Column(
+        Text,
+        nullable=True,
+        comment="Detailed reason for vendor rejection by admin"
+    )
+
+    rejected_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Timestamp when vendor was rejected"
+    )
+
+    rejected_by_id = Column(
+        String(36),
+        ForeignKey('users.id', ondelete='SET NULL'),
+        nullable=True,
+        comment="Admin user ID who rejected this vendor"
     )
 
     account_status = Column(
@@ -775,6 +795,16 @@ class User(BaseModel):
         "VendorDocument",
         foreign_keys="VendorDocument.vendor_id",
         back_populates="vendor"
+    )
+
+    # === RELATIONSHIP PARA RECHAZO DE VENDOR (P0 - Security Audit Fix) ===
+    # Relación con el admin que rechazó este vendor
+    rejected_by = relationship(
+        "User",
+        foreign_keys=[rejected_by_id],
+        remote_side=[id],
+        uselist=False,
+        doc="Admin user who rejected this vendor application"
     )
 
     # === ÍNDICES OPTIMIZADOS ===

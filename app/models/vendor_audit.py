@@ -121,6 +121,43 @@ class VendorAuditLog(BaseModel):
         nullable=True,
         comment="Descripción adicional de la acción"
     )
+
+    # === CAMPOS ADICIONALES P1 (Security Audit Compliance) ===
+    reason = Column(
+        Text,
+        nullable=True,
+        comment="Detailed reason for the action (required for rejections)"
+    )
+
+    notes = Column(
+        Text,
+        nullable=True,
+        comment="Additional notes or context"
+    )
+
+    previous_status = Column(
+        String(50),
+        nullable=True,
+        comment="Vendor status before action"
+    )
+
+    new_status = Column(
+        String(50),
+        nullable=True,
+        comment="Vendor status after action"
+    )
+
+    ip_address = Column(
+        String(45),
+        nullable=True,
+        comment="IP address of admin performing action"
+    )
+
+    user_agent = Column(
+        String(255),
+        nullable=True,
+        comment="Browser/client user agent"
+    )
     
     # === RELATIONSHIPS ===
     vendor = relationship(
@@ -154,6 +191,12 @@ class VendorAuditLog(BaseModel):
             'old_values': self.old_values,
             'new_values': self.new_values,
             'description': self.description,
+            'reason': self.reason,
+            'notes': self.notes,
+            'previous_status': self.previous_status,
+            'new_status': self.new_status,
+            'ip_address': self.ip_address,
+            'user_agent': self.user_agent,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'vendor_name': f"{self.vendor.nombre} {self.vendor.apellido}" if self.vendor else None,
             'admin_name': f"{self.admin.nombre} {self.admin.apellido}" if self.admin else None,
