@@ -142,7 +142,7 @@ class Settings(BaseSettings):
 
     # CORS Configuration - SECURITY FIX: No wildcard origins (except Vercel subdomains)
     CORS_ORIGINS: str = Field(
-        default="http://localhost:5173,http://localhost:3000,http://192.168.1.137:5173,http://192.168.1.137:5175,http://192.168.1.137:5176,https://me-store-alpha.vercel.app,https://me-store-4rch67v8-jairos-projects-6e49f915.vercel.app,https://*.vercel.app",
+        default="http://localhost:5173,http://localhost:3000,http://192.168.1.137:5173,http://192.168.1.137:5175,http://192.168.1.137:5176,https://mestocker.com,https://www.mestocker.com,https://me-store-alpha.vercel.app,https://me-store-4rch67v8-jairos-projects-6e49f915.vercel.app,https://*.vercel.app",
         description="Comma-separated list of allowed CORS origins (Vercel wildcard permitted)"
     )
     CORS_ALLOW_CREDENTIALS: bool = True
