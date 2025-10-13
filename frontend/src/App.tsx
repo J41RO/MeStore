@@ -43,6 +43,7 @@ const VendorOrdersPage = lazy(() => import('./pages/admin/vendors/VendorOrdersPa
 const VendorCommissionsPage = lazy(() => import('./pages/admin/vendors/VendorCommissionsPage'));
 const ProductApprovalPage = lazy(() => import('./pages/admin/ProductApprovalPage'));
 const AdminPendingSellers = lazy(() => import('./components/admin/vendors/AdminPendingSellers'));
+const VendorManagement = lazy(() => import('./pages/admin/VendorManagement'));
 
 // Enterprise Navigation Pages - Analytics Category
 const AnalyticsDashboard = lazy(() => import('./pages/admin/analytics/AnalyticsDashboard'));
@@ -625,6 +626,11 @@ function App() {
                     <Route path='vendor-commissions' element={
                       <RoleGuard roles={[UserType.OWNER, UserType.SUPERUSER, UserType.ADMIN]} strategy="any">
                         <VendorCommissionsPage />
+                      </RoleGuard>
+                    } />
+                    <Route path='vendor-management' element={
+                      <RoleGuard roles={[UserType.OWNER, UserType.SUPERUSER, UserType.ADMIN]} strategy="any">
+                        <VendorManagement />
                       </RoleGuard>
                     } />
 
