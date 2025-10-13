@@ -747,17 +747,18 @@ Cualquier modificación a estos archivos DEBE ser seguida por verificación manu
 
 ### 🌐 URLs de Producción
 
-#### Backend API (Render)
-- **Base URL**: https://mestore.onrender.com
-- **API Documentation**: https://mestore.onrender.com/docs
-- **Health Check**: https://mestore.onrender.com/health
-- **OpenAPI JSON**: https://mestore.onrender.com/openapi.json
+#### Backend API (Railway)
+- **Base URL**: https://mestocker-backend-production.up.railway.app
+- **API Documentation**: https://mestocker-backend-production.up.railway.app/docs
+- **Health Check**: https://mestocker-backend-production.up.railway.app/health
+- **OpenAPI JSON**: https://mestocker-backend-production.up.railway.app/openapi.json
 
 #### Frontend Application (Vercel)
-- **Production URL**: https://me-store-zbc5wx48r-jairos-projects-6e49f915.vercel.app
-- **Landing Page**: https://me-store-zbc5wx48r-jairos-projects-6e49f915.vercel.app/
-- **Admin Portal**: https://me-store-zbc5wx48r-jairos-projects-6e49f915.vercel.app/admin-portal
-- **Admin Login**: https://me-store-zbc5wx48r-jairos-projects-6e49f915.vercel.app/admin-login
+- **Production URL**: https://mestocker.com
+- **Alternative URL**: https://www.mestocker.com
+- **Landing Page**: https://mestocker.com/
+- **Admin Portal**: https://mestocker.com/admin-portal
+- **Admin Login**: https://mestocker.com/admin-login
 
 ### 🔐 Acceso Administrativo de Producción
 
@@ -767,7 +768,7 @@ Cualquier modificación a estos archivos DEBE ser seguida por verificación manu
 - **Password**: Admin123456
 - **Tipo**: SUPERUSER
 - **Estado**: ✅ VERIFICADO Y OPERATIVO EN PRODUCCIÓN
-- **Base de Datos**: PostgreSQL en Render
+- **Base de Datos**: PostgreSQL en Railway
 
 **🚨 PROHIBICIONES ABSOLUTAS EN PRODUCCIÓN:**
 - ❌ **NUNCA** modificar estas credenciales directamente en producción
@@ -777,14 +778,15 @@ Cualquier modificación a estos archivos DEBE ser seguida por verificación manu
 
 ### 📊 Infraestructura de Producción
 
-#### Backend (Render)
+#### Backend (Railway)
 - ✅ **FastAPI**: Corriendo en producción con Uvicorn
 - ✅ **Base de Datos**: PostgreSQL (34 tablas creadas exitosamente)
 - ✅ **Endpoints Activos**: 7 endpoints principales operativos
-- ✅ **CORS**: Configurado para frontend Vercel
+- ✅ **CORS**: Configurado para mestocker.com, www.mestocker.com, *.vercel.app
 - ✅ **Modelos**: Todos estandarizados a UUID String(36)
 - ✅ **Migraciones**: Alembic configurado y ejecutado
 - ✅ **Superuser**: Creado automáticamente con ORM
+- ✅ **Requirements**: requirements_production.txt (24 packages optimizados)
 
 **Endpoints Verificados:**
 - `/api/v1/auth/login` - Login de usuarios
@@ -808,15 +810,17 @@ Cualquier modificación a estos archivos DEBE ser seguida por verificación manu
 - ✅ Eliminados todos los IPs hardcoded (192.168.1.137)
 - ✅ Variables de entorno implementadas (.env.production)
 - ✅ WebSocket URLs dinámicas
-- ✅ VITE_API_URL apuntando a Render
-- ✅ vercel.json creado para rewrites
+- ✅ VITE_API_BASE_URL apuntando a Railway
+- ✅ CORS configurado para mestocker.com y www.mestocker.com
+- ✅ requirements_production.txt optimizado (24 packages)
+- ✅ nixpacks.toml configurado para Railway
 
 ### 🛡️ PROTOCOLO DE PRODUCCIÓN
 
 **⚠️ REGLAS CRÍTICAS PARA MODIFICACIONES EN PRODUCCIÓN:**
 
 #### Nivel 1: INFORMACIÓN (✅ Permitido)
-- Consultar logs de producción (Render/Vercel dashboards)
+- Consultar logs de producción (Railway/Vercel dashboards)
 - Monitorear métricas de rendimiento
 - Revisar errores en Sentry/logs
 - Analizar tráfico y uso
@@ -869,13 +873,13 @@ Cualquier modificación a estos archivos DEBE ser seguida por verificación manu
 
 4. **Backup de Producción**
    ```bash
-   # Backup de base de datos en Render
-   # Usar dashboard de Render para crear snapshot
+   # Backup de base de datos en Railway
+   # Usar dashboard de Railway para crear snapshot de PostgreSQL
    ```
 
 5. **Production Deployment**
    ```bash
-   # Backend: Push a main activa auto-deploy en Render
+   # Backend: Push a main activa auto-deploy en Railway
    git push origin main
 
    # Frontend: Push a main activa auto-deploy en Vercel
@@ -885,10 +889,10 @@ Cualquier modificación a estos archivos DEBE ser seguida por verificación manu
 6. **Verificación Post-Deployment**
    ```bash
    # Verificar health check
-   curl https://mestore.onrender.com/health
+   curl https://mestocker-backend-production.up.railway.app/health
 
    # Verificar login admin
-   curl -X POST "https://mestore.onrender.com/api/v1/auth/admin-login" \
+   curl -X POST "https://mestocker-backend-production.up.railway.app/api/v1/auth/admin-login" \
      -H "Content-Type: application/json" \
      -d '{"email": "admin@mestocker.com", "password": "Admin123456"}'
    ```
@@ -899,7 +903,7 @@ Cualquier modificación a estos archivos DEBE ser seguida por verificación manu
 
 | Área | Agente Responsable | Responsabilidades |
 |------|-------------------|-------------------|
-| **Infraestructura** | cloud-infrastructure-ai | Monitoreo de servicios Render/Vercel, uptime, scaling |
+| **Infraestructura** | cloud-infrastructure-ai | Monitoreo de servicios Railway/Vercel, uptime, scaling |
 | **Backend API** | backend-framework-ai | Health checks, performance, bug fixes |
 | **Frontend** | react-specialist-ai | UI/UX, performance, responsive design |
 | **Base de Datos** | database-architect-ai | Query optimization, migrations, backups |
@@ -924,9 +928,9 @@ python .workspace/scripts/contact_responsible_agent.py [tu-agente] [archivo-crit
 - ✅ Login success rate (>95%)
 
 **Herramientas de Monitoreo:**
-- **Render Dashboard**: Backend logs y métricas
+- **Railway Dashboard**: Backend logs y métricas
 - **Vercel Analytics**: Frontend performance
-- **PostgreSQL Metrics**: Database performance
+- **PostgreSQL Metrics**: Database performance (Railway)
 - **Custom Health Checks**: Endpoints de salud
 
 ### 🚨 Plan de Recuperación de Desastres
@@ -934,7 +938,7 @@ python .workspace/scripts/contact_responsible_agent.py [tu-agente] [archivo-crit
 **En caso de falla crítica:**
 
 1. **Identificar el Problema**
-   - Revisar logs en Render/Vercel
+   - Revisar logs en Railway/Vercel
    - Identificar última commit funcional
    - Determinar alcance del impacto
 
@@ -951,7 +955,7 @@ python .workspace/scripts/contact_responsible_agent.py [tu-agente] [archivo-crit
    - Documentar incidente
 
 4. **Restaurar desde Backup**
-   - Usar snapshot de base de datos en Render
+   - Usar snapshot de base de datos en Railway
    - Restaurar estado anterior estable
    - Verificar integridad de datos
 
@@ -965,14 +969,15 @@ python .workspace/scripts/contact_responsible_agent.py [tu-agente] [archivo-crit
 **Archivos Críticos de Producción:**
 - `.env.production` - Variables de entorno de producción
 - `vercel.json` - Configuración de deployment Vercel
-- `render.yaml` - Configuración de servicios Render (si existe)
+- `nixpacks.toml` - Configuración de build Railway
+- `requirements_production.txt` - Dependencias optimizadas (24 packages)
 - `.workspace/PRODUCTION_STATUS.md` - Estado detallado de producción
 
 **Logs y Troubleshooting:**
-- **Backend Logs**: Render Dashboard → Logs tab
+- **Backend Logs**: Railway Dashboard → Deployments → Logs
 - **Frontend Logs**: Vercel Dashboard → Deployments → Logs
-- **Database Logs**: Render PostgreSQL → Logs
-- **Build Logs**: Vercel/Render deployment history
+- **Database Logs**: Railway PostgreSQL → Logs tab
+- **Build Logs**: Railway/Vercel deployment history
 
 ### 🎯 Próximos Pasos Post-Producción
 
@@ -1021,7 +1026,7 @@ python .workspace/scripts/contact_responsible_agent.py [tu-agente] [archivo-crit
 
 **Para issues críticos en producción:**
 - **Master Orchestrator**: Coordinación general de crisis
-- **Cloud Infrastructure AI**: Issues de infraestructura Render/Vercel
+- **Cloud Infrastructure AI**: Issues de infraestructura Railway/Vercel
 - **Backend Framework AI**: Bugs críticos en API
 - **Security Backend AI**: Brechas de seguridad
 - **Database Architect AI**: Problemas de datos/queries
@@ -1056,11 +1061,189 @@ python .workspace/scripts/contact_responsible_agent.py [tu-agente] [archivo-crit
 
 ---
 
+## 🚄 RAILWAY DEPLOYMENT - PLATAFORMA DE PRODUCCIÓN
+
+### ✅ ESTADO: OPERATIVO EN RAILWAY
+
+**Fecha de Migración**: 2025-10-13
+**Plataforma**: Railway (https://railway.app)
+**Región**: us-west
+**Status**: ✅ PRODUCCIÓN ACTIVA
+
+### 📦 CONFIGURACIÓN RAILWAY
+
+#### Build Configuration (`nixpacks.toml`)
+
+```toml
+[phases.setup]
+nixPkgs = ["python311", "python311Packages.virtualenv"]
+
+[phases.install]
+cmds = [
+  "python -m venv /opt/venv",
+  ". /opt/venv/bin/activate && pip install --upgrade pip",
+  ". /opt/venv/bin/activate && pip install -r requirements_production.txt"
+]
+
+[start]
+cmd = ". /opt/venv/bin/activate && python scripts/create_admin_on_startup.py && uvicorn app.main_production:app --host 0.0.0.0 --port $PORT"
+```
+
+#### Requirements Production (`requirements_production.txt`)
+
+**Optimizaciones para Railway**:
+- ✅ Solo 24 packages esenciales
+- ✅ Sin dependencias ML/AI (torch, chromadb, transformers)
+- ✅ Tamaño: ~80MB (vs ~500MB con requirements.txt completo)
+- ✅ Tiempo de instalación: ~50 segundos
+
+**Packages Incluidos**:
+- FastAPI + Uvicorn
+- PostgreSQL drivers (asyncpg + psycopg2-binary)
+- SQLAlchemy + Alembic
+- JWT Auth (python-jose, passlib, bcrypt, cryptography)
+- Redis async
+- Logging (structlog, loguru)
+- Communications (Twilio, Resend)
+- Image processing (Pillow)
+- Utils (aiofiles, jinja2, qrcode, phonenumbers)
+
+### 🔧 VARIABLES DE ENTORNO RAILWAY
+
+**Variables Críticas Configuradas**:
+
+```bash
+# Database
+DATABASE_URL=postgresql://[connection-string]
+
+# Environment
+ENVIRONMENT=production
+
+# CORS (Actualizado 2025-10-13)
+CORS_ORIGINS=https://mestocker.com,https://www.mestocker.com,https://*.vercel.app
+
+# JWT Secret
+SECRET_KEY=[secure-token]
+
+# Services (Opcional - si están configurados)
+RESEND_API_KEY=[key]
+TWILIO_ACCOUNT_SID=[sid]
+TWILIO_AUTH_TOKEN=[token]
+TWILIO_FROM_NUMBER=[number]
+```
+
+### 🚀 DEPLOYMENT WORKFLOW
+
+**Auto-Deploy desde GitHub**:
+1. Push a `main` branch
+2. Railway detecta cambio automáticamente
+3. Build con nixpacks (~2-3 minutos)
+4. Deploy automático
+5. Health check (`/health`)
+
+**Timeline Típico**:
+- Detección: Inmediato
+- Build: 2-3 minutos
+- Deploy: 30 segundos
+- Total: ~3-4 minutos
+
+### 📊 MONITOREO RAILWAY
+
+**Dashboard Railway**:
+- **Deployments**: Historial de deploys con logs
+- **Metrics**: CPU, Memory, Network usage
+- **Logs**: Real-time streaming logs
+- **Database**: PostgreSQL metrics y backups
+
+**Health Checks**:
+```bash
+# Verificar estado
+curl https://mestocker-backend-production.up.railway.app/health
+
+# Verificar API docs
+curl https://mestocker-backend-production.up.railway.app/docs
+```
+
+### 🔄 ÚLTIMOS CAMBIOS (2025-10-13)
+
+**Commit 8ffbebf5**: CORS origins actualizados
+- Agregados: mestocker.com, www.mestocker.com
+- Mantenidos: *.vercel.app wildcard
+
+**Commit 1b67f9d3**: requirements_production.txt
+- Agregado al repositorio
+- 24 packages optimizados
+- Build más rápido y ligero
+
+### 🛠️ TROUBLESHOOTING RAILWAY
+
+#### Error: "requirements_production.txt not found"
+**Solución**: Verificar que el archivo está en el repositorio root
+```bash
+git add requirements_production.txt
+git commit -m "feat: Add requirements_production.txt"
+git push origin main
+```
+
+#### Error: Build timeout
+**Causa**: Requirements muy pesados o timeouts de red
+**Solución**: Usar requirements_production.txt en lugar de requirements.txt
+
+#### Error: Database connection failed
+**Causa**: DATABASE_URL no configurado o incorrecto
+**Solución**: Verificar variable en Railway Dashboard → Settings → Variables
+
+### 📝 COMANDOS RAILWAY CLI (Opcional)
+
+```bash
+# Instalar Railway CLI
+npm install -g @railway/cli
+
+# Login
+railway login
+
+# Ver logs en tiempo real
+railway logs
+
+# Ver variables de entorno
+railway variables
+
+# Redeploy manual
+railway up
+```
+
+### 🔐 SEGURIDAD RAILWAY
+
+**Medidas Implementadas**:
+- ✅ HTTPS automático con certificados SSL
+- ✅ Variables de entorno encriptadas
+- ✅ Network isolation
+- ✅ Automatic security updates
+- ✅ DDoS protection by Railway
+
+**Variables Sensibles** (NUNCA en código):
+- DATABASE_URL
+- SECRET_KEY
+- RESEND_API_KEY
+- TWILIO credentials
+
+### 📚 DOCUMENTACIÓN RAILWAY
+
+**Links Útiles**:
+- Dashboard: https://railway.app/dashboard
+- Docs: https://docs.railway.app
+- Nixpacks: https://nixpacks.com/docs
+
+**Guía Completa**: Ver `docs/deployment/RAILWAY_DEPLOYMENT_GUIDE.md` (pendiente creación)
+
+---
+
 **🎉 HITO HISTÓRICO ALCANZADO**
 
-El proyecto MeStore ha alcanzado su primer despliegue en producción exitoso. Este es un logro significativo que representa el trabajo coordinado de todo el ecosistema de agentes especializados.
+El proyecto MeStore ha alcanzado su primer despliegue en producción exitoso en Railway. Este es un logro significativo que representa el trabajo coordinado de todo el ecosistema de agentes especializados.
 
-**Fecha de Milestone**: 2025-10-05
-**Status**: PRODUCTION LIVE ✅
-**Responsable**: agent-recruiter-ai
+**Fecha de Milestone Original**: 2025-10-05 (Render)
+**Fecha de Migración Railway**: 2025-10-13
+**Status**: PRODUCTION LIVE EN RAILWAY ✅
+**Responsable**: cloud-infrastructure-ai
 **Aprobado por**: Director Enterprise CEO
