@@ -71,8 +71,14 @@ qrcode[pil]>=7.4.0
 
 phonenumbers>=8.13.0
 
+# Rate Limiting
+slowapi>=0.1.9
+
+# HTTP Client
+httpx>=0.27.0
+
 # ============================================================================
-# Total: 24 packages (vs ~50+ en requirements.txt completo)
-# Tamaño estimado: ~80MB (lightweight deployment)
-# Tiempo de instalación: ~50 segundos
+# Total: 26 packages (vs ~50+ en requirements.txt completo)
+# Tamaño estimado: ~85MB (lightweight deployment)
+# Tiempo de instalación: ~55 segundos
 # ============================================================================
