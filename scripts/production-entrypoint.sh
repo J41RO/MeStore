@@ -248,7 +248,6 @@ main() {
         uvicorn_args+=(
             "--log-level=${UVICORN_LOG_LEVEL:-info}"
             "--access-log"
-            "--log-config=logging.conf"
         )
         log "🏭 Production mode enabled"
     fi
