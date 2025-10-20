@@ -87,7 +87,7 @@ const Navbar: React.FC<NavbarProps> = ({ className = '' }) => {
                   Iniciar Sesión
                 </Link>
                 <Link
-                  to="/register"
+                  to="/user-type-selector"
                   className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all duration-200 transform hover:scale-105"
                 >
                   Registrarse

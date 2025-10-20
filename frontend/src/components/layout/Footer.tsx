@@ -69,7 +69,7 @@ const Footer: React.FC<FooterProps> = ({ className = '' }) => {
                     Iniciar Sesión
                   </Link>
                   <Link
-                    to="/register"
+                    to="/user-type-selector"
                     className="block bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:from-blue-700 hover:to-purple-700 transition-all"
                   >
                     Registrarse Gratis
