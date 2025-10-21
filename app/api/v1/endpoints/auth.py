@@ -55,6 +55,7 @@ from app.core.logger import get_logger
 from app.core.config import settings
 from app.services.email_service import EmailService
 from app.services.sms_service import SMSService
+from app.services.otp_service import OTPService
 from app.core.sms_security import (
     check_phone_rate_limit,
     check_ip_rate_limit,
@@ -1768,39 +1769,39 @@ async def verify_phone(
                 account_active=(user.account_status == AccountStatus.ACTIVE)
             )
 
-        # 3. Verificar código con Twilio Verify
+        # 3. Verificar código con OTPService (base de datos)
         try:
-            sms_service = SMSService()
-            verify_result = await sms_service.verify_code(
-                phone_number=data.phone,
-                code=data.code
+            otp_service = OTPService()
+            is_valid, message = await otp_service.validate_otp_code(
+                db=db,
+                user=user,
+                provided_code=data.code
             )
 
-            # SMSService returns 'success' not 'valid'
-            if not verify_result.get('success'):
+            if not is_valid:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Código de verificación inválido o expirado. Status: {verify_result.get('status')}"
+                    detail=message
                 )
 
         except HTTPException:
             raise
-        except Exception as twilio_error:
-            logger.error(f"❌ Error verificando código con Twilio: {str(twilio_error)}")
+        except Exception as otp_error:
+            logger.error(f"❌ Error verificando código OTP: {str(otp_error)}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Error verificando código de teléfono"
             )
 
-        # 4. Marcar teléfono como verificado
-        user.phone_verified = True
+        # 4. OTPService ya marcó phone_verified=True y hizo commit
+        # Refrescar user para obtener el estado actualizado
+        await db.refresh(user)
 
         # 5. Si email también está verificado, activar cuenta
-        if user.email_verified:
+        if user.email_verified and user.phone_verified:
             user.account_status = AccountStatus.ACTIVE
             logger.info(f"🎉 Cuenta activada completamente", user_id=str(user.id))
-
-        await db.commit()
+            await db.commit()
 
         logger.info(f"✅ Teléfono verificado exitosamente", phone=user.telefono)
 
