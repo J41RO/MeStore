@@ -866,28 +866,82 @@ async def send_sms_verification_public(
         logger.info(f"✅ Phone rate limit check passed", phone_e164=phone_e164)
 
         # ========================================================================
-        # BUSINESS LOGIC: SEND SMS WITH TWILIO VERIFY
+        # BUSINESS LOGIC: BUSCAR/CREAR USUARIO Y ENVIAR SMS CON OTP SINCRONIZADO
         # ========================================================================
         try:
-            logger.info(f"📤 Sending SMS via Twilio Verify", phone_e164=phone_e164)
+            # 1. Buscar usuario existente por teléfono
+            from sqlalchemy import select
+            result_query = await db.execute(
+                select(User).where(User.telefono == phone_e164)
+            )
+            user = result_query.scalar_one_or_none()
+
+            # 2. Si no existe, crear usuario temporal para poder guardar el OTP
+            if not user:
+                logger.info(f"👤 Usuario no encontrado, creando temporal", phone=phone_e164)
+
+                # Crear usuario temporal en estado PENDING
+                import secrets
+                temp_email = f"temp_{secrets.token_hex(4)}@mestocker.com"
+
+                user = User(
+                    email=temp_email,
+                    telefono=phone_e164,
+                    nombre="Usuario Temporal",
+                    user_type=UserType.SELLER,
+                    account_status=AccountStatus.PENDING,
+                    phone_verified=False,
+                    email_verified=False
+                )
+                db.add(user)
+                await db.commit()
+                await db.refresh(user)
+                logger.info(f"✅ Usuario temporal creado", user_id=str(user.id), phone=phone_e164)
+
+            # 3. Verificar cooldown con OTPService
+            otp_service = OTPService()
+            can_send, cooldown_message = otp_service.can_send_otp(user)
+            if not can_send:
+                logger.warning(f"⏱️ OTP cooldown activo", phone=phone_e164)
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail=cooldown_message,
+                    headers={"Retry-After": "60"}
+                )
+
+            # 4. Generar código OTP y guardarlo en DB
+            logger.info(f"🔐 Generando código OTP", phone=phone_e164)
+            otp_code, expires_at = await otp_service.create_otp_for_user(
+                db=db,
+                user=user,
+                otp_type="SMS"
+            )
+            logger.info(f"✅ Código OTP generado y guardado en DB",
+                       phone=phone_e164,
+                       code_length=len(otp_code),
+                       expires_at=expires_at.isoformat())
+
+            # 5. Enviar SMS con el MISMO código que está en DB
+            logger.info(f"📤 Enviando SMS con código OTP sincronizado", phone=phone_e164)
             sms_service = SMSService()
-            result = await sms_service.send_verification_code(
-                phone_number=phone_e164,  # Use validated E.164 format
-                channel="sms"
+            sms_sent, sms_message = await sms_service.send_otp_sms(
+                phone_number=phone_e164,
+                otp_code=otp_code,  # ← CRÍTICO: MISMO código que está en DB
+                user_name=user.nombre
             )
 
-            if result.get('success') or result.get('status') in ['pending', 'approved']:
-                logger.info(f"✅ SMS sent successfully",
-                          phone_e164=phone_e164,
-                          twilio_status=result.get('status'))
+            if sms_sent:
+                logger.info(f"✅ SMS enviado exitosamente con código sincronizado",
+                          phone=phone_e164,
+                          otp_code_synced=True)
 
                 # Log successful SMS sending
                 log_sms_security_event(
-                    "sms_sent",
+                    "sms_sent_otp",
                     phone_e164,
                     client_ip,
                     True,
-                    extra={"twilio_status": result.get('status')}
+                    extra={"otp_synced": True, "expires_at": expires_at.isoformat()}
                 )
 
                 return {
@@ -895,37 +949,37 @@ async def send_sms_verification_public(
                     "message": "Código de verificación enviado exitosamente"
                 }
             else:
-                logger.warning(f"⚠️ SMS sending failed",
-                             phone_e164=phone_e164,
-                             twilio_status=result.get('status'))
+                logger.error(f"❌ Error enviando SMS",
+                           phone=phone_e164,
+                           error=sms_message)
 
                 log_sms_security_event(
-                    "twilio_error",
+                    "sms_send_error",
                     phone_e164,
                     client_ip,
                     False,
-                    f"Twilio status: {result.get('status', 'unknown')}"
+                    sms_message
                 )
 
                 raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Error enviando SMS: {result.get('status', 'unknown')}"
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Error enviando SMS: {sms_message}"
                 )
 
         except HTTPException:
             raise
-        except Exception as twilio_error:
-            logger.error(f"❌ Twilio exception",
+        except Exception as otp_error:
+            logger.error(f"❌ Error en flujo OTP",
                         phone_e164=phone_e164,
-                        error=str(twilio_error),
+                        error=str(otp_error),
                         exc_info=True)
 
             log_sms_security_event(
-                "twilio_exception",
+                "otp_flow_exception",
                 phone_e164,
                 client_ip,
                 False,
-                str(twilio_error)
+                str(otp_error)
             )
 
             raise HTTPException(
