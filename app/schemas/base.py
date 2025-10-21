@@ -52,10 +52,10 @@ class BaseIDSchema(BaseSchema, IDValidationMixin):
     id: str = Field(
         ...,
         description="UUID identifier",
-        min_length=36,
+        min_length=32,
         max_length=36,
         json_schema_extra={
-            "example": "550e8400-e29b-41d4-a716-446655440000"
+            "example": "550e8400e29b41d4a716446655440000"
         }
     )
 

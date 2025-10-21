@@ -456,10 +456,96 @@ async def update_order_status_admin(
             order.notes = f"{existing_notes}\n[Admin Update {now.isoformat()}]: {status_update.notes}".strip()
 
         await db.commit()
-        await db.refresh(order)
 
-        # Return updated order detail
-        return await get_order_detail_admin(order_id, current_user, db)
+        # Fetch updated order with all related data
+        query = select(Order).options(
+            selectinload(Order.buyer),
+            selectinload(Order.items).selectinload(OrderItem.product),
+            selectinload(Order.transactions)
+        ).where(Order.id == order_id)
+
+        result = await db.execute(query)
+        order = result.scalar_one()
+
+        # Build items detail with vendor information
+        items_detail = []
+        for item in order.items:
+            vendor_id = None
+            vendor_name = None
+            if item.product:
+                vendor_id = item.product.vendor_id
+                # Get vendor info
+                if vendor_id:
+                    vendor_query = select(User).where(User.id == vendor_id)
+                    vendor_result = await db.execute(vendor_query)
+                    vendor = vendor_result.scalar_one_or_none()
+                    if vendor:
+                        vendor_name = f"{vendor.nombre} {vendor.apellido}"
+
+            items_detail.append(OrderItemDetail(
+                id=item.id,
+                product_id=item.product_id,
+                product_name=item.product_name,
+                product_sku=item.product_sku,
+                product_image_url=item.product_image_url,
+                unit_price=item.unit_price,
+                quantity=item.quantity,
+                total_price=item.total_price,
+                variant_attributes=item.variant_attributes,
+                vendor_id=vendor_id,
+                vendor_name=vendor_name
+            ))
+
+        # Build transactions detail
+        transactions_detail = [
+            OrderTransactionDetail(
+                id=t.id,
+                transaction_reference=t.transaction_reference,
+                amount=t.amount,
+                currency=t.currency,
+                status=t.status.value,
+                payment_method_type=t.payment_method_type,
+                gateway=t.gateway,
+                gateway_transaction_id=t.gateway_transaction_id,
+                created_at=t.created_at,
+                processed_at=t.processed_at,
+                failure_reason=t.failure_reason
+            )
+            for t in order.transactions
+        ]
+
+        return OrderDetailAdmin(
+            id=order.id,
+            order_number=order.order_number,
+            status=order.status.value,
+            buyer_id=order.buyer_id,
+            buyer_email=order.buyer.email,
+            buyer_name=f"{order.buyer.nombre} {order.buyer.apellido}",
+            buyer_phone=order.buyer.telefono,
+            subtotal=order.subtotal,
+            tax_amount=order.tax_amount,
+            shipping_cost=order.shipping_cost,
+            discount_amount=order.discount_amount,
+            total_amount=order.total_amount,
+            shipping_name=order.shipping_name,
+            shipping_phone=order.shipping_phone,
+            shipping_email=order.shipping_email,
+            shipping_address=order.shipping_address,
+            shipping_city=order.shipping_city,
+            shipping_state=order.shipping_state,
+            shipping_postal_code=order.shipping_postal_code,
+            shipping_country=order.shipping_country,
+            created_at=order.created_at,
+            updated_at=order.updated_at,
+            confirmed_at=order.confirmed_at,
+            shipped_at=order.shipped_at,
+            delivered_at=order.delivered_at,
+            cancelled_at=order.cancelled_at,
+            notes=order.notes,
+            cancellation_reason=order.cancellation_reason,
+            items=items_detail,
+            transactions=transactions_detail
+        )
 
     except HTTPException:
         raise

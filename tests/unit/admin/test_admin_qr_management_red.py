@@ -68,7 +68,7 @@ class TestAdminQRGenerationRED:
             apellido=test_vendedor_user.apellido,
             user_type=test_vendedor_user.user_type,
             is_active=test_vendedor_user.is_active,
-            is_superuser=test_vendedor_user.is_superuser,
+            is_superuser=test_vendedor_user.is_superuser() if callable(getattr(test_vendedor_user, 'is_superuser', None)) else False,
             created_at=getattr(test_vendedor_user, 'created_at', None) or now,
             updated_at=getattr(test_vendedor_user, 'updated_at', None) or now
         )

@@ -93,7 +93,17 @@ class TestFoundationSimple:
 
             if response.status_code == 200:
                 data = response.json()
-                assert isinstance(data, list), "Products endpoint should return a list"
+                # Check for standardized response structure
+                if isinstance(data, dict) and "data" in data:
+                    # Standardized response with data wrapper
+                    assert data["status"] == "success", "Response should have success status"
+                    assert isinstance(data["data"], list), "Products data should be a list"
+                    # Check pagination if present
+                    if "pagination" in data:
+                        assert isinstance(data["pagination"], dict), "Pagination should be a dict"
+                else:
+                    # Direct list response (legacy format)
+                    assert isinstance(data, list), "Products endpoint should return a list"
 
     @pytest.mark.asyncio
     async def test_auth_endpoint_structure(self):

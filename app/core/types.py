@@ -6,55 +6,75 @@ This module provides database types that work across different databases
 """
 
 import uuid
-from sqlalchemy import TypeDecorator, String
+from sqlalchemy import String
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 from sqlalchemy import create_engine
 
 
-class UUID(TypeDecorator):
+class UUID(PostgresUUID):
     """
     Cross-database UUID type that works with both PostgreSQL and SQLite.
 
     - In PostgreSQL: Uses native UUID type
-    - In SQLite: Uses String(36) and handles UUID conversion
+    - In SQLite/other dialects: Stores as String(36) and converts automatically
     """
 
-    impl = String
     cache_ok = True
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("as_uuid", True)
+        super().__init__(*args, **kwargs)
 
     def load_dialect_impl(self, dialect):
         """Load appropriate type based on database dialect."""
         if dialect.name == 'postgresql':
-            return dialect.type_descriptor(PostgresUUID(as_uuid=True))
-        else:
-            # For SQLite and other databases, use String(36)
-            return dialect.type_descriptor(String(36))
+            return super().load_dialect_impl(dialect)
+        # For SQLite and other databases, use String(36)
+        return dialect.type_descriptor(String(36))
 
-    def process_bind_param(self, value, dialect):
-        """Process parameter when binding to database."""
-        if value is None:
-            return value
-        elif dialect.name == 'postgresql':
-            return value  # PostgreSQL handles UUID objects natively
-        else:
-            # For SQLite, convert UUID to string
+    def bind_processor(self, dialect):
+        """Return processor for binding parameters based on dialect."""
+        if dialect.name == 'postgresql':
+            base_processor = super().bind_processor(dialect)
+
+            def process(value):
+                if value is None:
+                    return value
+                processed = str(value)
+                return base_processor(processed) if base_processor else processed
+
+            return process
+
+        string_processor = String(36).bind_processor(dialect)
+
+        def process(value):
+            if value is None:
+                return value
+            processed = str(value)
+            return string_processor(processed) if string_processor else processed
+
+        return process
+
+    def result_processor(self, dialect, coltype):
+        """Return processor for result values based on dialect."""
+        if dialect.name == 'postgresql':
+            return super().result_processor(dialect, coltype)
+
+        string_processor = String(36).result_processor(dialect, coltype)
+
+        def process(value):
+            if string_processor:
+                value = string_processor(value)
+            if value is None:
+                return None
             if isinstance(value, uuid.UUID):
                 return str(value)
             return str(value)
 
-    def process_result_value(self, value, dialect):
-        """Process value when retrieving from database."""
-        if value is None:
-            return value
-        elif dialect.name == 'postgresql':
-            return value  # PostgreSQL returns UUID objects
-        else:
-            # For SQLite, convert string back to UUID
-            if isinstance(value, str):
-                return uuid.UUID(value)
-            return value
+        return process
 
 
 def generate_uuid():
     """Generate a new UUID as string for use as default in models."""
+    # Return canonical UUID string with hyphens for cross-system consistency
     return str(uuid.uuid4())

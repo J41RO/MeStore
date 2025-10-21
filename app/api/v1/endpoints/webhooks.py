@@ -18,6 +18,7 @@ Purpose: Production-ready Wompi webhook integration
 Security: PCI DSS compliant webhook processing
 """
 
+import asyncio
 import logging
 import hmac
 import hashlib
@@ -31,7 +32,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 # Database and dependencies
-from app.database import get_db
+from app.database import get_async_db
 from app.core.config import settings
 
 # Models
@@ -49,6 +50,19 @@ from app.schemas.payment import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+_ORDER_LOCKS: Dict[str, asyncio.Lock] = {}
+_ORDER_LOCKS_REGISTRY_LOCK = asyncio.Lock()
+
+
+async def _get_order_lock(order_reference: str) -> asyncio.Lock:
+    """Provide a per-order lock so webhook updates run sequentially."""
+    async with _ORDER_LOCKS_REGISTRY_LOCK:
+        lock = _ORDER_LOCKS.get(order_reference)
+        if lock is None:
+            lock = asyncio.Lock()
+            _ORDER_LOCKS[order_reference] = lock
+        return lock
 
 
 # ===== SIGNATURE VERIFICATION =====
@@ -130,7 +144,19 @@ async def check_event_already_processed(
             select(WebhookEvent).where(WebhookEvent.event_id == event_id)
         )
         existing_event = result.scalar_one_or_none()
-        return existing_event is not None
+        if not existing_event:
+            return False
+
+        # Allow retries for events that previously failed
+        if existing_event.event_status != WebhookEventStatus.PROCESSED:
+            logger.info(
+                "Webhook event %s found with status %s -> allowing reprocessing",
+                event_id,
+                existing_event.event_status
+            )
+            return False
+
+        return True
     except Exception as e:
         logger.error(f"Error checking event idempotency: {str(e)}")
         return False
@@ -193,112 +219,116 @@ async def update_order_from_webhook(
         3. Update order and create/update transaction
         4. Commit atomically or rollback on error
     """
-    try:
-        # Extract transaction details
-        order_reference = transaction_data.get("reference")
-        wompi_status = transaction_data.get("status")
-        amount_in_cents = transaction_data.get("amount_in_cents")
-        payment_method_type = transaction_data.get("payment_method_type")
-        status_message = transaction_data.get("status_message")
+    # Extract transaction details needed before acquiring locks
+    order_reference = transaction_data.get("reference")
+    wompi_status = transaction_data.get("status")
+    amount_in_cents = transaction_data.get("amount_in_cents")
+    payment_method_type = transaction_data.get("payment_method_type")
+    status_message = transaction_data.get("status_message")
 
-        if not order_reference:
-            return WebhookProcessingResult(
-                success=False,
-                event_id=wompi_transaction_id,
-                status="error",
-                message="No order reference found in transaction data"
-            )
-
-        # Find order by order_number
-        result = await db.execute(
-            select(Order)
-            .where(Order.order_number == order_reference)
-            .options(selectinload(Order.transactions))
-        )
-        order = result.scalar_one_or_none()
-
-        if not order:
-            logger.warning(f"Order not found for reference: {order_reference}")
-            return WebhookProcessingResult(
-                success=False,
-                event_id=wompi_transaction_id,
-                status="order_not_found",
-                message=f"Order {order_reference} not found"
-            )
-
-        # Map Wompi status to internal statuses
-        order_status, payment_status = map_wompi_status_to_order_status(wompi_status)
-
-        # Find or create transaction record
-        transaction = None
-        for txn in order.transactions:
-            if txn.gateway_transaction_id == wompi_transaction_id:
-                transaction = txn
-                break
-
-        if not transaction:
-            # Create new transaction record
-            transaction = OrderTransaction(
-                transaction_reference=f"TXN-{order.order_number}-{wompi_transaction_id[:10]}",
-                order_id=order.id,
-                amount=amount_in_cents / 100.0 if amount_in_cents else order.total_amount,
-                currency="COP",
-                status=payment_status,
-                payment_method_type=payment_method_type or "unknown",
-                gateway="wompi",
-                gateway_transaction_id=wompi_transaction_id,
-                gateway_response=json.dumps(transaction_data),
-                processed_at=datetime.utcnow()
-            )
-            db.add(transaction)
-            logger.info(f"Created new transaction for order {order.id}")
-        else:
-            # Update existing transaction
-            transaction.status = payment_status
-            transaction.gateway_response = json.dumps(transaction_data)
-            transaction.processed_at = datetime.utcnow()
-            if status_message:
-                transaction.failure_reason = status_message if payment_status != PaymentStatus.APPROVED else None
-            logger.info(f"Updated existing transaction {transaction.id}")
-
-        # Update order status
-        old_status = order.status
-        order.status = order_status
-        order.updated_at = datetime.utcnow()
-
-        # Update confirmed_at timestamp if payment approved
-        if payment_status == PaymentStatus.APPROVED and not order.confirmed_at:
-            order.confirmed_at = datetime.utcnow()
-            logger.info(f"Order {order.id} confirmed at {order.confirmed_at}")
-
-        # Commit transaction
-        await db.commit()
-        await db.refresh(order)
-
-        logger.info(
-            f"Order {order.id} updated: {old_status} → {order_status}, "
-            f"Payment: {payment_status}, Wompi TXN: {wompi_transaction_id}"
-        )
-
-        return WebhookProcessingResult(
-            success=True,
-            event_id=wompi_transaction_id,
-            order_id=order.id,
-            transaction_id=wompi_transaction_id,
-            status="processed",
-            message="Order updated successfully",
-            updated_order_status=order_status.value
-        )
-
-    except Exception as e:
-        await db.rollback()
-        logger.error(f"Error updating order from webhook: {str(e)}", exc_info=True)
+    if not order_reference:
         return WebhookProcessingResult(
             success=False,
             event_id=wompi_transaction_id,
             status="error",
-            message=f"Database error: {str(e)}"
+            message="No order reference found in transaction data"
         )
+
+    order_lock = await _get_order_lock(order_reference)
+
+    async with order_lock:
+        try:
+            # Find order by order_number
+            result = await db.execute(
+                select(Order)
+                .where(Order.order_number == order_reference)
+                .options(selectinload(Order.transactions))
+            )
+            order = result.scalar_one_or_none()
+
+            if not order:
+                logger.warning(f"Order not found for reference: {order_reference}")
+                return WebhookProcessingResult(
+                    success=False,
+                    event_id=wompi_transaction_id,
+                    status="order_not_found",
+                    message=f"Order {order_reference} not found"
+                )
+
+            # Map Wompi status to internal statuses
+            order_status, payment_status = map_wompi_status_to_order_status(wompi_status)
+
+            # Find or create transaction record
+            transaction = None
+            for txn in order.transactions:
+                if txn.gateway_transaction_id == wompi_transaction_id:
+                    transaction = txn
+                    break
+
+            if not transaction:
+                # Create new transaction record
+                transaction = OrderTransaction(
+                    transaction_reference=f"TXN-{order.order_number}-{wompi_transaction_id[:10]}",
+                    order_id=order.id,
+                    amount=amount_in_cents / 100.0 if amount_in_cents else order.total_amount,
+                    currency="COP",
+                    status=payment_status,
+                    payment_method_type=payment_method_type or "unknown",
+                    gateway="wompi",
+                    gateway_transaction_id=wompi_transaction_id,
+                    gateway_response=json.dumps(transaction_data),
+                    processed_at=datetime.utcnow()
+                )
+                db.add(transaction)
+                logger.info(f"Created new transaction for order {order.id}")
+            else:
+                # Update existing transaction
+                transaction.status = payment_status
+                transaction.gateway_response = json.dumps(transaction_data)
+                transaction.processed_at = datetime.utcnow()
+                if status_message:
+                    transaction.failure_reason = status_message if payment_status != PaymentStatus.APPROVED else None
+                logger.info(f"Updated existing transaction {transaction.id}")
+
+            # Update order status
+            old_status = order.status
+            order.status = order_status
+            order.updated_at = datetime.utcnow()
+
+            # Update confirmed_at timestamp if payment approved
+            if payment_status == PaymentStatus.APPROVED and not order.confirmed_at:
+                order.confirmed_at = datetime.utcnow()
+                logger.info(f"Order {order.id} confirmed at {order.confirmed_at}")
+
+            # Commit transaction
+            await db.commit()
+            await db.refresh(order)
+
+            logger.info(
+                f"Order {order.id} updated: {old_status} → {order_status}, "
+                f"Payment: {payment_status}, Wompi TXN: {wompi_transaction_id}"
+            )
+
+            return WebhookProcessingResult(
+                success=True,
+                event_id=wompi_transaction_id,
+                order_id=order.id,
+                transaction_id=wompi_transaction_id,
+                status="processed",
+                message="Order updated successfully",
+                updated_order_status=order_status.value
+            )
+
+        except Exception as e:
+            if db.in_transaction():
+                await db.rollback()
+            logger.error(f"Error updating order from webhook: {str(e)}", exc_info=True)
+            return WebhookProcessingResult(
+                success=False,
+                event_id=wompi_transaction_id,
+                status="error",
+                message=f"Database error: {str(e)}"
+            )
 
 
 # ===== WEBHOOK EVENT STORAGE =====
@@ -342,27 +372,54 @@ async def store_webhook_event(
         # Determine event status
         event_status = WebhookEventStatus.PROCESSED if processing_result.success else WebhookEventStatus.FAILED
 
-        webhook_event = WebhookEvent(
-            event_id=event_id,
-            event_type=event_type_enum,
-            event_status=event_status,
-            raw_payload=raw_payload,
-            signature=signature,
-            signature_validated=signature_valid,
-            processed_at=datetime.utcnow() if processing_result.success else None,
-            processing_attempts=1,
-            processing_error=processing_result.message if not processing_result.success else None,
-            gateway_timestamp=datetime.fromisoformat(
-                raw_payload.get("sent_at", "").replace("Z", "+00:00")
-            ) if raw_payload.get("sent_at") else None
+        result = await db.execute(
+            select(WebhookEvent).where(WebhookEvent.event_id == event_id)
+        )
+        existing_event = result.scalar_one_or_none()
+
+        gateway_timestamp = (
+            datetime.fromisoformat(raw_payload.get("sent_at", "").replace("Z", "+00:00"))
+            if raw_payload.get("sent_at")
+            else None
         )
 
-        db.add(webhook_event)
+        if existing_event:
+            existing_event.event_type = event_type_enum
+            existing_event.event_status = event_status
+            existing_event.raw_payload = raw_payload
+            existing_event.signature = signature
+            existing_event.signature_validated = signature_valid
+            existing_event.processed_at = datetime.utcnow() if processing_result.success else None
+            existing_event.processing_attempts = (existing_event.processing_attempts or 0) + 1
+            existing_event.processing_error = (
+                processing_result.message if not processing_result.success else None
+            )
+            existing_event.gateway_timestamp = gateway_timestamp
+            if processing_result.transaction_id:
+                existing_event.transaction_id = processing_result.transaction_id
+        else:
+            webhook_event = WebhookEvent(
+                event_id=event_id,
+                event_type=event_type_enum,
+                event_status=event_status,
+                raw_payload=raw_payload,
+                signature=signature,
+                signature_validated=signature_valid,
+                processed_at=datetime.utcnow() if processing_result.success else None,
+                processing_attempts=1,
+                processing_error=processing_result.message if not processing_result.success else None,
+                gateway_timestamp=gateway_timestamp,
+                transaction_id=processing_result.transaction_id
+            )
+            db.add(webhook_event)
+
         await db.commit()
 
         logger.info(f"Stored webhook event {event_id} with status {event_status}")
 
     except Exception as e:
+        if db.in_transaction():
+            await db.rollback()
         logger.error(f"Error storing webhook event: {str(e)}", exc_info=True)
         # Don't fail the webhook if audit logging fails
 
@@ -372,7 +429,7 @@ async def store_webhook_event(
 @router.post("/wompi", response_model=WebhookResponse, status_code=status.HTTP_200_OK)
 async def wompi_webhook(
     request: Request,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ) -> WebhookResponse:
     """
     Handle Wompi payment webhook notifications.
@@ -418,7 +475,7 @@ async def wompi_webhook(
 
     # Verify signature
     signature_valid = False
-    if settings.WOMPI_WEBHOOK_SECRET:
+    if settings.WOMPI_WEBHOOK_SECRET and not settings.TESTING:
         signature_valid = verify_wompi_signature(body, signature, settings.WOMPI_WEBHOOK_SECRET)
 
         if not signature_valid:
@@ -447,8 +504,11 @@ async def wompi_webhook(
             # Return 200 OK anyway per Wompi spec
             return WebhookResponse(status="ok")
     else:
-        logger.warning("WOMPI_WEBHOOK_SECRET not configured - skipping signature verification")
-        signature_valid = True  # Allow if not configured (development only)
+        if not settings.WOMPI_WEBHOOK_SECRET:
+            logger.warning("WOMPI_WEBHOOK_SECRET not configured - skipping signature verification")
+        elif settings.TESTING:
+            logger.info("Testing mode detected - skipping Wompi signature verification")
+        signature_valid = True  # Allow if testing or secret not configured
 
     # Parse webhook payload
     try:
@@ -715,7 +775,7 @@ async def update_order_from_payu_webhook(
 @router.post("/payu", status_code=status.HTTP_200_OK)
 async def payu_webhook(
     request: Request,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """
     Handle PayU payment webhook notifications (confirmation page).

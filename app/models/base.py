@@ -30,11 +30,11 @@ Proporciona:
 - Validaciones base
 """
 
-import uuid
 from datetime import datetime
-from sqlalchemy import Column, DateTime, String, text
+from sqlalchemy import Column, DateTime, text
 
 from app.database import Base
+from app.core.types import UUID, generate_uuid
 
 
 class BaseModel(Base):
@@ -44,9 +44,9 @@ class BaseModel(Base):
 
     # Primary key UUID para mejor performance - SQLite compatible
     id = Column(
-        String(36),
+        UUID,
         primary_key=True,
-        default=lambda: str(uuid.uuid4()),
+        default=generate_uuid,
         index=True,
         comment="ID único del registro",
     )

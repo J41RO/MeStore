@@ -325,7 +325,7 @@ def mock_verification_workflow():
     workflow = Mock(spec=ProductVerificationWorkflow)
     workflow.queue_item = Mock(spec=IncomingProductQueue)
     workflow.get_current_step = Mock(return_value=VerificationStep.INITIAL_INSPECTION)
-    workflow.execute_step = Mock(return_value=False)  # Fail by default in RED phase
+    workflow.execute_step = AsyncMock(return_value=False)  # Fail by default in RED phase
     workflow.get_workflow_progress = Mock(return_value={
         "current_step": "initial_inspection",
         "completed_steps": [],

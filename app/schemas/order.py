@@ -48,7 +48,7 @@ class OrderItemBase(BaseSchema):
     product_id: str = Field(
         ...,
         description="Product UUID identifier",
-        min_length=36,
+        min_length=32,
         max_length=36
     )
     quantity: int = Field(..., ge=1, description="Quantity of the product")
@@ -73,7 +73,7 @@ class OrderItemResponse(OrderItemBase, BaseResponseSchema):
     order_id: str = Field(
         ...,
         description="Order UUID identifier",
-        min_length=36,
+        min_length=32,
         max_length=36
     )
 
@@ -90,13 +90,13 @@ class OrderBase(BaseSchema):
     buyer_id: str = Field(
         ...,
         description="Buyer UUID identifier",
-        min_length=36,
+        min_length=32,
         max_length=36
     )
     vendor_id: Optional[str] = Field(
         None,
         description="Vendor UUID identifier",
-        min_length=36,
+        min_length=32,
         max_length=36
     )
     status: OrderStatus = Field(
@@ -155,7 +155,7 @@ class OrderUpdate(BaseUpdateSchema):
     notes: Optional[str] = Field(None, max_length=1000)
     vendor_id: Optional[str] = Field(
         None,
-        min_length=36,
+        min_length=32,
         max_length=36
     )
 
@@ -194,8 +194,8 @@ class OrderStatusUpdate(BaseSchema):
 class OrderSearchFilter(BaseSchema):
     """Schema for order search filters."""
 
-    buyer_id: Optional[str] = Field(None, min_length=36, max_length=36)
-    vendor_id: Optional[str] = Field(None, min_length=36, max_length=36)
+    buyer_id: Optional[str] = Field(None, min_length=32, max_length=36)
+    vendor_id: Optional[str] = Field(None, min_length=32, max_length=36)
     status: Optional[OrderStatus] = None
     priority: Optional[OrderPriority] = None
     date_from: Optional[datetime] = None
@@ -216,8 +216,8 @@ class OrderSummary(BaseIDSchema):
     """Summary schema for orders in lists."""
 
     order_number: Optional[str] = Field(None, description="Human-readable order number")
-    buyer_id: str = Field(..., min_length=36, max_length=36)
-    vendor_id: Optional[str] = Field(None, min_length=36, max_length=36)
+    buyer_id: str = Field(..., min_length=32, max_length=36)
+    vendor_id: Optional[str] = Field(None, min_length=32, max_length=36)
     status: OrderStatus = Field(..., description="Order status")
     total_amount: Decimal = Field(..., ge=0, description="Total order amount")
     created_at: datetime = Field(..., description="Creation timestamp")
@@ -251,7 +251,7 @@ class TrackingEvent(BaseSchema):
 class OrderTrackingResponse(BaseSchema):
     """Schema for order tracking information response."""
 
-    order_id: int = Field(..., description="Order ID")
+    order_id: str = Field(..., description="Order ID")
     order_number: str = Field(..., description="Human-readable order number")
     status: OrderStatus = Field(..., description="Current order status")
     courier: Optional[str] = Field(None, description="Courier service name (Rappi, Uber, etc.)")
@@ -272,7 +272,7 @@ class OrderCancelRequest(BaseSchema):
 class OrderCancelResponse(BaseSchema):
     """Schema for order cancellation response."""
 
-    order_id: int = Field(..., description="Order ID")
+    order_id: str = Field(..., description="Order ID")
     status: OrderStatus = Field(..., description="New order status (should be cancelled)")
     cancelled_at: datetime = Field(..., description="Timestamp of cancellation")
     cancellation_reason: str = Field(..., description="Reason provided for cancellation")

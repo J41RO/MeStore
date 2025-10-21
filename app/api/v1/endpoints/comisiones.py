@@ -95,6 +95,24 @@ async def get_comisiones(
         raise e
 
 
+@router.get("", include_in_schema=False)
+async def get_comisiones_no_slash(
+    fecha_inicio: Optional[date] = Query(None, description="Fecha inicio (YYYY-MM-DD)"),
+    fecha_fin: Optional[date] = Query(None, description="Fecha fin (YYYY-MM-DD)"),
+    metodo_pago: Optional[MetodoPago] = Query(None, description="Filtrar por método de pago"),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Handler alterno sin trailing slash para compatibilidad con clientes legacy.
+    """
+    return await get_comisiones(
+        fecha_inicio=fecha_inicio,
+        fecha_fin=fecha_fin,
+        metodo_pago=metodo_pago,
+        db=db,
+    )
+
+
 @router.post("/solicitar-pago", response_model=PayoutRequestRead)
 async def solicitar_pago_comisiones(
     payout_data: PayoutRequestCreate,

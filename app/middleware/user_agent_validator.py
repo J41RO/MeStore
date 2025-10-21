@@ -118,6 +118,10 @@ class UserAgentValidatorMiddleware(BaseHTTPMiddleware):
 
         path = request.url.path
 
+        # Skip validation for CORS preflight requests
+        if request.method.upper() == "OPTIONS":
+            return await call_next(request)
+
         # Obtener información del cliente
         client_ip = request.client.host if request.client else "unknown"
         user_agent = request.headers.get("User-Agent", "")

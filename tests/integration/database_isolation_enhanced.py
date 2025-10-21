@@ -36,6 +36,15 @@ from sqlalchemy import event
 
 from app.database import Base, get_async_db
 from app.main import app
+import app.database as db_module  # Import module to modify its engine
+
+# Import all models at module level to ensure they're registered with Base
+# This MUST happen before any database session is created
+from app.models.user import User  # noqa: F401
+from app.models.product import Product  # noqa: F401
+from app.models.category import Category  # noqa: F401
+from app.models.order import Order, OrderItem  # noqa: F401
+from app.models.incoming_product_queue import IncomingProductQueue  # noqa: F401
 
 # Configure logging for database operations
 logger = logging.getLogger(__name__)
@@ -58,33 +67,20 @@ class EnhancedAsyncSessionManager:
     async def initialize(self):
         """Initialize the async engine and session factory."""
         if self._engine is None:
-            # Create async engine with proper configuration
-            self._engine = create_async_engine(
-                "sqlite+aiosqlite:///:memory:",
-                echo=False,
-                poolclass=StaticPool,
-                pool_pre_ping=True,
-                pool_recycle=300,
-                connect_args={
-                    "check_same_thread": False,
-                    "timeout": 30,
-                }
-            )
+            # IMPORTANT: Reuse the app's existing engine instead of creating a new one
+            # This ensures all connections (test and app) use the exact same database
+            self._engine = db_module.async_engine
+            self._session_factory = db_module.AsyncSessionLocal
 
-            # Create session factory
-            self._session_factory = async_sessionmaker(
-                bind=self._engine,
-                class_=AsyncSession,
-                expire_on_commit=False,
-                autoflush=False,
-                autocommit=False
-            )
+            # Debug: Check what tables are in metadata
+            table_names = list(Base.metadata.tables.keys())
+            logger.info(f"Base.metadata has {len(table_names)} tables: {table_names}")
 
-            # Create all tables
+            # Create all tables in the shared database (models already imported at module level)
             async with self._engine.begin() as conn:
                 await conn.run_sync(Base.metadata.create_all)
 
-            logger.info("Enhanced async session manager initialized")
+            logger.info("Enhanced async session manager initialized - using app's engine and tables created")
 
     async def create_session(self) -> AsyncSession:
         """
@@ -176,6 +172,16 @@ class EnhancedAsyncSessionManager:
             self._engine = None
             self._session_factory = None
 
+        # Clean up temporary database file
+        if hasattr(self, '_temp_db_path') and self._temp_db_path:
+            try:
+                import os
+                if os.path.exists(self._temp_db_path):
+                    os.unlink(self._temp_db_path)
+                    logger.info(f"Removed temporary database: {self._temp_db_path}")
+            except Exception as e:
+                logger.warning(f"Failed to remove temporary database: {e}")
+
         logger.info("Enhanced async session manager shutdown complete")
 
 
@@ -204,10 +210,7 @@ async def enhanced_async_session() -> AsyncGenerator[AsyncSession, None]:
     session = await session_manager.create_session()
 
     try:
-        # Begin transaction for isolation
-        await session.begin()
-
-        # Setup dependency override
+        # Setup dependency override (NO transaction begin - tables need to be visible)
         session_manager.setup_dependency_override(session)
 
         logger.info(f"Enhanced session {id(session)} created for test")
@@ -222,7 +225,7 @@ async def enhanced_async_session() -> AsyncGenerator[AsyncSession, None]:
 
     finally:
         try:
-            # Rollback transaction to clean up test data
+            # Rollback any pending transaction to clean up test data
             if session.in_transaction():
                 await session.rollback()
 

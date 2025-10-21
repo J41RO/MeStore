@@ -24,6 +24,7 @@ import hmac
 import json
 import logging
 import asyncio
+import inspect
 import time
 import uuid
 from datetime import datetime, timedelta
@@ -139,13 +140,22 @@ class PayUConfig:
         # Get credentials based on environment
         creds = settings.get_payu_credentials()
 
+        # Apply deterministic sandbox defaults when running outside production
+        # so that tests and local development do not require secrets
+        creds = self._apply_test_defaults(creds, environment=settings.ENVIRONMENT)
+
         self.merchant_id = creds["merchant_id"]
         self.api_key = creds["api_key"]
         self.api_login = creds["api_login"]
         self.account_id = creds["account_id"]
         self.base_url = creds["base_url"]
 
-        self.environment = os.getenv("PAYU_ENVIRONMENT", "test")
+        # Determine the active PayU environment
+        env_override = os.getenv("PAYU_ENVIRONMENT")
+        if env_override:
+            self.environment = env_override.lower()
+        else:
+            self.environment = (settings.PAYU_ENVIRONMENT or "test").lower()
         self.timeout = float(os.getenv("PAYU_TIMEOUT", "30.0"))
         self.max_retries = int(os.getenv("PAYU_MAX_RETRIES", "3"))
 
@@ -167,6 +177,28 @@ class PayUConfig:
 
         if self.timeout <= 0:
             raise ValueError("Timeout must be positive")
+
+    def _apply_test_defaults(self, creds: Dict[str, Any], environment: str) -> Dict[str, Any]:
+        """Populate missing sandbox credentials for non-production environments."""
+        # Only fill defaults for development/testing use cases.
+        resolved_env = (environment or "development").lower()
+        is_production = resolved_env == "production"
+
+        if is_production:
+            return creds
+
+        sandbox_defaults = {
+            "merchant_id": "508029",
+            "api_key": "4Vj8eK4rloUd272L48hsrarnUA",
+            "api_login": "pRRXKOl8ikMmt9u",
+            "account_id": "512321",
+            "base_url": "https://sandbox.api.payulatam.com/payments-api/4.0/service.cgi",
+        }
+
+        # Preserve any explicitly configured values and backfill the rest.
+        populated = dict(sandbox_defaults)
+        populated.update({k: v for k, v in creds.items() if v})
+        return populated
 
     @property
     def is_production(self) -> bool:
@@ -224,6 +256,16 @@ class PayUService:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.client.aclose()
+
+    async def _extract_json(self, response: httpx.Response | Any) -> Dict[str, Any]:
+        """Safely extract JSON data from httpx responses or mocks."""
+        json_callable = getattr(response, "json", None)
+        if callable(json_callable):
+            data = json_callable()
+            if inspect.isawaitable(data):
+                data = await data
+            return data
+        return json_callable
 
     def _generate_signature(self, reference: str, amount: str, currency: str = "COP") -> str:
         """
@@ -329,7 +371,14 @@ class PayUService:
             )
 
             response.raise_for_status()
-            data = response.json()
+
+            json_callable = getattr(response, "json", None)
+            if callable(json_callable):
+                data = json_callable()
+                if inspect.isawaitable(data):
+                    data = await data
+            else:
+                data = json_callable
 
             if data.get("code") == "SUCCESS":
                 payment_logger.info("PayU ping successful")
@@ -466,7 +515,7 @@ class PayUService:
             )
 
             response.raise_for_status()
-            data = response.json()
+            data = await self._extract_json(response)
 
             # Parse response
             result = self._parse_transaction_response(data)
@@ -578,7 +627,7 @@ class PayUService:
             )
 
             response.raise_for_status()
-            data = response.json()
+            data = await self._extract_json(response)
 
             if data.get("code") != "SUCCESS":
                 raise PayUError(f"PayU status query failed: {data.get('error')}", error_code=data.get("code"))

@@ -128,6 +128,23 @@ async def create_category(
 
 
 @router.get(
+    "/health",
+    summary="Health check de categorías",
+    description="Retorna el estado básico del módulo de categorías.",
+)
+async def categories_health() -> Dict[str, Any]:
+    """
+    Endpoint simple de salud para pruebas de carga/endurance.
+    No realiza consultas pesadas para evitar afectar las pruebas.
+    """
+    return {
+        "service": "CategoriesService",
+        "status": "ok",
+        "timestamp": datetime.utcnow().isoformat(),
+    }
+
+
+@router.get(
     "/{category_id}",
     response_model=CategoryRead,
     summary="Obtener categoría por ID",

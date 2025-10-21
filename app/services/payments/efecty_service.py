@@ -29,6 +29,8 @@ from decimal import Decimal
 import hashlib
 import uuid
 
+from app.core.id_validation import IDValidator, normalize_uuid_string
+
 logger = logging.getLogger(__name__)
 payment_logger = logging.getLogger(f"{__name__}.payments")
 
@@ -324,26 +326,39 @@ class EfectyService:
         """
         try:
             # Expected format: PREFIX-ORDERID-RANDOM
-            parts = payment_code.split("-")
+            prefix = self.config.code_prefix
 
-            if len(parts) != 3:
+            if not payment_code or not payment_code.startswith(f"{prefix}-"):
+                return {
+                    "valid": False,
+                    "error": f"Invalid prefix. Expected: {prefix}"
+                }
+
+            # Remove prefix and the following hyphen
+            code_body = payment_code[len(prefix) + 1:]
+
+            if "-" not in code_body:
                 return {
                     "valid": False,
                     "error": "Invalid payment code format. Expected: PREFIX-ORDERID-RANDOM"
                 }
 
-            prefix, order_id_str, random_suffix = parts
+            # Split once from the right to keep UUID hyphens intact
+            order_id_str, random_suffix = code_body.rsplit("-", 1)
 
-            if prefix != self.config.code_prefix:
+            normalized_order_id = None
+            if IDValidator.is_valid_uuid_string(order_id_str):
+                # Preserve original format: 32-char hex stays hex, 36-char stays canonical
+                if len(order_id_str) == 32:
+                    normalized_order_id = order_id_str.lower()
+                else:
+                    normalized_order_id = normalize_uuid_string(order_id_str)
+            elif order_id_str.isdigit():
+                normalized_order_id = int(order_id_str)
+            else:
                 return {
                     "valid": False,
-                    "error": f"Invalid prefix. Expected: {self.config.code_prefix}"
-                }
-
-            if not order_id_str.isdigit():
-                return {
-                    "valid": False,
-                    "error": "Order ID must be numeric"
+                    "error": "Order ID must be a UUID or numeric string"
                 }
 
             if len(random_suffix) != 6:
@@ -355,7 +370,7 @@ class EfectyService:
             return {
                 "valid": True,
                 "prefix": prefix,
-                "order_id": int(order_id_str),
+                "order_id": normalized_order_id,
                 "random_suffix": random_suffix
             }
 

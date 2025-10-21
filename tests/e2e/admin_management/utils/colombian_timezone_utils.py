@@ -363,6 +363,16 @@ class BusinessRulesValidator:
                 "requires_business_hours": True,
                 "max_security_level_required": 3,
                 "audit_trail_required": False
+            },
+            "daily_operations": {
+                "requires_business_hours": False,  # Flexible to accommodate admin schedules
+                "max_security_level_required": 3,
+                "audit_trail_required": True
+            },
+            "department_expansion": {
+                "requires_business_hours": False,  # Strategic planning can happen outside business hours
+                "max_security_level_required": 5,
+                "audit_trail_required": True
             }
         }
 

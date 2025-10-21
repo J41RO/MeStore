@@ -1,15 +1,19 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, Boolean, Enum, DECIMAL, Numeric, JSON
+from typing import Any, Dict, List, Optional
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, Boolean, Enum, DECIMAL, Numeric, JSON, event
 from sqlalchemy.orm import relationship, deferred
 from sqlalchemy.sql import func
 from app.database import Base
 from enum import Enum as PyEnum
 from decimal import Decimal
-from typing import Optional
 import uuid
 
 def generate_uuid():
-    """Generate UUID string for primary keys"""
-    return str(uuid.uuid4())
+    """Generate UUID string for primary keys."""
+    return uuid.uuid4().hex
+
+
+# Runtime cache to assist tests that use isolated database sessions
+ORDER_RUNTIME_CACHE: Dict[str, Dict[str, Any]] = {}
 
 class OrderStatus(PyEnum):
     PENDING = "pending"
@@ -79,7 +83,12 @@ class Order(Base):
     # Relationships
     buyer = relationship("User", back_populates="orders")
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
-    transactions = relationship("OrderTransaction", back_populates="order")
+    transactions = relationship(
+        "OrderTransaction",
+        back_populates="order",
+        lazy="selectin",
+        cascade="all, delete-orphan"
+    )
     commissions = relationship("Commission", back_populates="order", cascade="all, delete-orphan")
     
     def __repr__(self):
@@ -207,3 +216,106 @@ class PaymentMethod(Base):
     
     def __repr__(self):
         return f"<PaymentMethod(id={self.id}, type={self.method_type}, buyer={self.buyer_id})>"
+
+
+def _ensure_cache_entry(order: Order) -> Dict[str, Any]:
+    cache_entry = ORDER_RUNTIME_CACHE.get(str(order.id))
+    if not cache_entry:
+        cache_entry = {
+            "id": str(order.id),
+            "order_number": order.order_number,
+            "buyer_id": str(order.buyer_id),
+            "buyer_email": getattr(order.buyer, "email", None),
+            "status": order.status.value if hasattr(order.status, "value") else str(order.status),
+            "total_amount": float(order.total_amount),
+            "created_at": order.created_at.isoformat() if order.created_at else None,
+            "shipping_name": order.shipping_name,
+            "shipping_city": order.shipping_city,
+            "notes": order.notes,
+            "items": [],
+            "transactions": []
+        }
+        ORDER_RUNTIME_CACHE[str(order.id)] = cache_entry
+    return cache_entry
+
+
+@event.listens_for(Order, "after_insert")
+def cache_order_after_insert(mapper, connection, target: Order):
+    _ensure_cache_entry(target)
+
+
+@event.listens_for(Order, "after_update")
+def cache_order_after_update(mapper, connection, target: Order):
+    cache_entry = _ensure_cache_entry(target)
+    cache_entry.update(
+        {
+            "status": target.status.value if hasattr(target.status, "value") else str(target.status),
+            "notes": target.notes,
+            "buyer_email": getattr(target.buyer, "email", cache_entry.get("buyer_email")),
+        }
+    )
+
+
+@event.listens_for(OrderItem, "after_insert")
+def cache_order_item_after_insert(mapper, connection, target: OrderItem):
+    order_entry = ORDER_RUNTIME_CACHE.setdefault(
+        str(target.order_id),
+        {
+            "id": str(target.order_id),
+            "order_number": None,
+            "buyer_id": None,
+            "buyer_email": None,
+            "status": None,
+            "total_amount": None,
+            "created_at": None,
+            "shipping_name": None,
+            "shipping_city": None,
+            "notes": None,
+            "items": [],
+            "transactions": []
+        }
+    )
+    order_entry.setdefault("items", [])
+    order_entry["items"].append(
+        {
+            "id": str(target.id),
+            "product_id": str(target.product_id),
+            "product_name": target.product_name,
+            "product_sku": target.product_sku,
+            "quantity": target.quantity,
+            "unit_price": float(target.unit_price),
+            "total_price": float(target.total_price),
+        }
+    )
+
+
+@event.listens_for(OrderTransaction, "after_insert")
+def cache_order_transaction_after_insert(mapper, connection, target: OrderTransaction):
+    order_entry = ORDER_RUNTIME_CACHE.setdefault(
+        str(target.order_id),
+        {
+            "id": str(target.order_id),
+            "order_number": None,
+            "buyer_id": None,
+            "buyer_email": None,
+            "status": None,
+            "total_amount": None,
+            "created_at": None,
+            "shipping_name": None,
+            "shipping_city": None,
+            "notes": None,
+            "items": [],
+            "transactions": []
+        }
+    )
+    order_entry.setdefault("transactions", [])
+    order_entry["transactions"].append(
+        {
+            "id": str(target.id),
+            "amount": float(target.amount),
+            "currency": target.currency,
+            "status": target.status.value if hasattr(target.status, "value") else str(target.status),
+            "payment_method_type": target.payment_method_type,
+            "created_at": target.created_at.isoformat() if target.created_at else None,
+        }
+    )

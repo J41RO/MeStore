@@ -17,6 +17,7 @@ Purpose: Validate complete payment system integration
 """
 
 import pytest
+import pytest_asyncio
 import asyncio
 import json
 import hmac
@@ -39,6 +40,7 @@ from app.models.user import User
 # Import services
 from app.services.payments.payu_service import PayUService, PayUError, PayUConfig
 from app.services.payments.efecty_service import EfectyService, EfectyError
+from app.core.types import generate_uuid
 
 # Import endpoints
 from app.api.v1.endpoints.webhooks import (
@@ -50,11 +52,11 @@ from app.api.v1.endpoints.webhooks import (
 
 # ===== FIXTURES =====
 
-@pytest.fixture
-async def test_order(db_session: AsyncSession, test_buyer: User):
+@pytest_asyncio.fixture
+async def test_order(async_session: AsyncSession, test_buyer: User):
     """Create test order for payment integration tests"""
     order = Order(
-        order_number=f"ORD-TEST-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}",
+        order_number=f"ORD-TEST-{generate_uuid()[:8]}",
         buyer_id=test_buyer.id,
         subtotal=100000.0,
         tax_amount=19000.0,
@@ -71,9 +73,9 @@ async def test_order(db_session: AsyncSession, test_buyer: User):
         shipping_postal_code="110111",
         shipping_country="CO"
     )
-    db_session.add(order)
-    await db_session.commit()
-    await db_session.refresh(order)
+    async_session.add(order)
+    await async_session.commit()
+    await async_session.refresh(order)
     return order
 
 
@@ -108,11 +110,12 @@ def payu_transaction_data():
 @pytest.fixture
 def wompi_webhook_payload():
     """Sample Wompi webhook payload"""
+    transaction_id = f"wompi-txn-{generate_uuid()[:12]}"
     return {
         "event": "transaction.updated",
         "data": {
-            "id": "wompi-txn-12345",
-            "reference": "ORD-TEST-12345",
+            "id": transaction_id,
+            "reference": f"ORD-REF-{generate_uuid()[:8]}",
             "status": "APPROVED",
             "amount_in_cents": 12900000,
             "currency": "COP",
@@ -142,6 +145,26 @@ def payu_webhook_payload():
     }
 
 
+# ===== HELPER FUNCTIONS =====
+
+def create_mock_payu_config():
+    """Create a complete mock PayU config object with all required attributes"""
+    mock_config = MagicMock()
+    mock_config.api_key = "test-api-key"
+    mock_config.merchant_id = "test-merchant-id"
+    mock_config.api_login = "test-api-login"
+    mock_config.account_id = "test-account-id"
+    mock_config.base_url = "https://sandbox.api.payulatam.com/payments-api/4.0/service.cgi"
+    mock_config.timeout = 30.0
+    mock_config.max_retries = 3
+    mock_config.environment = "test"
+    mock_config.country_code = "CO"
+    mock_config.currency = "COP"
+    mock_config.language = "es"
+    mock_config.is_production = False
+    return mock_config
+
+
 # ===== PAYU SERVICE INTEGRATION TESTS =====
 
 class TestPayUServiceIntegration:
@@ -150,116 +173,131 @@ class TestPayUServiceIntegration:
     @pytest.mark.asyncio
     async def test_payu_signature_generation(self):
         """Test PayU signature generation algorithm"""
-        service = PayUService()
+        # Create mock config
+        mock_config = create_mock_payu_config()
 
-        # Test signature with known values
-        reference = "TEST-ORDER-123"
-        amount = "50000.0"
-        currency = "COP"
+        # Mock PayUConfig to return our mock
+        with patch('app.services.payments.payu_service.PayUConfig', return_value=mock_config):
+            service = PayUService()
 
-        signature = service._generate_signature(reference, amount, currency)
+            # Test signature with known values
+            reference = "TEST-ORDER-123"
+            amount = "50000.0"
+            currency = "COP"
 
-        # Signature should be MD5 hash (32 chars)
-        assert len(signature) == 32
-        assert signature.isalnum()
+            signature = service._generate_signature(reference, amount, currency)
 
-        # Same inputs should generate same signature (deterministic)
-        signature2 = service._generate_signature(reference, amount, currency)
-        assert signature == signature2
+            # Signature should be MD5 hash (32 chars)
+            assert len(signature) == 32
+            assert signature.isalnum()
+
+            # Same inputs should generate same signature (deterministic)
+            signature2 = service._generate_signature(reference, amount, currency)
+            assert signature == signature2
 
     @pytest.mark.asyncio
     async def test_payu_transaction_creation_with_db(
         self,
-        db_session: AsyncSession,
+        async_session: AsyncSession,
         test_order: Order,
         payu_transaction_data: Dict[str, Any]
     ):
         """Test PayU transaction creation and database storage"""
-        service = PayUService()
+        # Create mock config
+        mock_config = create_mock_payu_config()
 
-        # Mock the HTTP request to PayU
-        mock_response = {
-            "code": "SUCCESS",
-            "transactionResponse": {
-                "state": "APPROVED",
-                "transactionId": "payu-12345",
-                "orderId": "order-67890",
-                "responseCode": "APPROVED",
-                "responseMessage": "Transaction approved",
-                "authorizationCode": "AUTH-123",
-                "trazabilityCode": "TRACE-456"
+        # Mock PayUConfig to return our mock
+        with patch('app.services.payments.payu_service.PayUConfig', return_value=mock_config):
+            service = PayUService()
+
+            # Mock the HTTP request to PayU
+            mock_response = {
+                "code": "SUCCESS",
+                "transactionResponse": {
+                    "state": "APPROVED",
+                    "transactionId": "payu-12345",
+                    "orderId": "order-67890",
+                    "responseCode": "APPROVED",
+                    "responseMessage": "Transaction approved",
+                    "authorizationCode": "AUTH-123",
+                    "trazabilityCode": "TRACE-456"
+                }
             }
-        }
 
-        with patch.object(service.client, 'post', new_callable=AsyncMock) as mock_post:
-            mock_post.return_value.json.return_value = mock_response
-            mock_post.return_value.raise_for_status = MagicMock()
+            with patch.object(service.client, 'post', new_callable=AsyncMock) as mock_post:
+                mock_post.return_value.json.return_value = mock_response
+                mock_post.return_value.raise_for_status = MagicMock()
 
-            # Update transaction data with test order reference
-            payu_transaction_data["reference"] = test_order.order_number
+                # Update transaction data with test order reference
+                payu_transaction_data["reference"] = test_order.order_number
 
-            # Create transaction
-            result = await service.create_transaction(payu_transaction_data)
+                # Create transaction
+                result = await service.create_transaction(payu_transaction_data)
 
-            # Validate result
-            assert result["status"] == "approved"
-            assert result["transaction_id"] == "payu-12345"
-            assert result["order_id"] == "order-67890"
-            assert result["authorization_code"] == "AUTH-123"
+                # Validate result
+                assert result["status"] == "approved"
+                assert result["transaction_id"] == "payu-12345"
+                assert result["order_id"] == "order-67890"
+                assert result["authorization_code"] == "AUTH-123"
 
-            # Create database transaction record
-            transaction = OrderTransaction(
-                transaction_reference=f"TXN-{test_order.order_number}-{result['transaction_id'][:10]}",
-                order_id=test_order.id,
-                amount=payu_transaction_data["amount_in_cents"] / 100.0,
-                currency="COP",
-                status=PaymentStatus.APPROVED,
-                payment_method_type="VISA",
-                gateway="payu",
-                gateway_transaction_id=result["transaction_id"],
-                gateway_response=json.dumps(result["raw_response"]),
-                processed_at=datetime.utcnow()
-            )
-            db_session.add(transaction)
+                # Create database transaction record
+                transaction = OrderTransaction(
+                    transaction_reference=f"TXN-{test_order.order_number}-{result['transaction_id'][:10]}",
+                    order_id=test_order.id,
+                    amount=payu_transaction_data["amount_in_cents"] / 100.0,
+                    currency="COP",
+                    status=PaymentStatus.APPROVED,
+                    payment_method_type="VISA",
+                    gateway="payu",
+                    gateway_transaction_id=result["transaction_id"],
+                    gateway_response=json.dumps(result["raw_response"]),
+                    processed_at=datetime.utcnow()
+                )
+                async_session.add(transaction)
 
-            # Update order status
-            test_order.status = OrderStatus.CONFIRMED
-            test_order.confirmed_at = datetime.utcnow()
+                # Update order status
+                test_order.status = OrderStatus.CONFIRMED
+                test_order.confirmed_at = datetime.utcnow()
 
-            await db_session.commit()
-            await db_session.refresh(test_order)
+                await async_session.commit()
+                await async_session.refresh(test_order)
 
-            # Validate database state
-            assert test_order.status == OrderStatus.CONFIRMED
-            assert test_order.confirmed_at is not None
-            assert len(test_order.transactions) == 1
-            assert test_order.transactions[0].status == PaymentStatus.APPROVED
+                # Validate database state
+                assert test_order.status == OrderStatus.CONFIRMED
+                assert test_order.confirmed_at is not None
+                assert len(test_order.transactions) == 1
+                assert test_order.transactions[0].status == PaymentStatus.APPROVED
 
     @pytest.mark.asyncio
     async def test_payu_webhook_signature_validation(self):
         """Test PayU webhook signature verification"""
-        service = PayUService()
+        # Create mock config
+        mock_config = create_mock_payu_config()
 
-        payload = {
-            "reference_sale": "TEST-ORDER-123",
-            "value": "50000.0",
-            "currency": "COP",
-            "state_pol": "4"
-        }
+        # Mock PayUConfig to return our mock
+        with patch('app.services.payments.payu_service.PayUConfig', return_value=mock_config):
+            service = PayUService()
 
-        # Generate signature
-        api_key = service.config.api_key
-        merchant_id = service.config.merchant_id
-        signature_string = f"{api_key}~{merchant_id}~{payload['reference_sale']}~{payload['value']}~{payload['currency']}~{payload['state_pol']}"
-        expected_signature = hashlib.md5(signature_string.encode('utf-8')).hexdigest()
+            payload = {
+                "reference_sale": "TEST-ORDER-123",
+                "value": "50000.0",
+                "currency": "COP",
+                "state_pol": "4"
+            }
 
-        # Validate signature
-        is_valid = service.validate_webhook_signature(payload, expected_signature)
-        assert is_valid is True
+            # Generate signature
+            api_key = service.config.api_key
+            merchant_id = service.config.merchant_id
+            signature_string = f"{api_key}~{merchant_id}~{payload['reference_sale']}~{payload['value']}~{payload['currency']}~{payload['state_pol']}"
+            expected_signature = hashlib.md5(signature_string.encode('utf-8')).hexdigest()
 
-        # Test with invalid signature
-        is_valid = service.validate_webhook_signature(payload, "invalid-signature")
-        assert is_valid is False
+            # Validate signature
+            is_valid = service.validate_webhook_signature(payload, expected_signature)
+            assert is_valid is True
+
+            # Test with invalid signature
+            is_valid = service.validate_webhook_signature(payload, "invalid-signature")
+            assert is_valid is False
 
 
 # ===== EFECTY SERVICE INTEGRATION TESTS =====
@@ -270,7 +308,7 @@ class TestEfectyServiceIntegration:
     @pytest.mark.asyncio
     async def test_efecty_code_generation(
         self,
-        db_session: AsyncSession,
+        async_session: AsyncSession,
         test_order: Order
     ):
         """Test Efecty payment code generation and validation"""
@@ -312,11 +350,11 @@ class TestEfectyServiceIntegration:
             gateway_response=json.dumps(code_data),
             created_at=datetime.utcnow()
         )
-        db_session.add(transaction)
-        await db_session.commit()
+        async_session.add(transaction)
+        await async_session.commit()
 
         # Validate database storage
-        result = await db_session.execute(
+        result = await async_session.execute(
             select(OrderTransaction).where(
                 OrderTransaction.gateway_reference == code_data["payment_code"]
             )
@@ -358,7 +396,7 @@ class TestEfectyServiceIntegration:
     @pytest.mark.asyncio
     async def test_efecty_payment_confirmation(
         self,
-        db_session: AsyncSession,
+        async_session: AsyncSession,
         test_order: Order
     ):
         """Test Efecty payment confirmation flow"""
@@ -419,7 +457,7 @@ class TestWebhookIntegration:
     @pytest.mark.asyncio
     async def test_wompi_webhook_order_update(
         self,
-        db_session: AsyncSession,
+        async_session: AsyncSession,
         test_order: Order,
         wompi_webhook_payload: Dict[str, Any]
     ):
@@ -429,7 +467,7 @@ class TestWebhookIntegration:
 
         # Process webhook
         result = await update_order_from_webhook(
-            db=db_session,
+            db=async_session,
             transaction_data=wompi_webhook_payload["data"],
             wompi_transaction_id=wompi_webhook_payload["data"]["id"]
         )
@@ -440,7 +478,7 @@ class TestWebhookIntegration:
         assert result.status == "processed"
 
         # Refresh order from database
-        await db_session.refresh(test_order)
+        await async_session.refresh(test_order)
 
         # Validate order status updated
         assert test_order.status == OrderStatus.CONFIRMED
@@ -456,7 +494,7 @@ class TestWebhookIntegration:
     @pytest.mark.asyncio
     async def test_webhook_idempotency_protection(
         self,
-        db_session: AsyncSession,
+        async_session: AsyncSession,
         test_order: Order,
         wompi_webhook_payload: Dict[str, Any]
     ):
@@ -466,7 +504,7 @@ class TestWebhookIntegration:
 
         # Process webhook first time
         result1 = await update_order_from_webhook(
-            db=db_session,
+            db=async_session,
             transaction_data=wompi_webhook_payload["data"],
             wompi_transaction_id=transaction_id
         )
@@ -481,16 +519,16 @@ class TestWebhookIntegration:
             signature_validated=True,
             processed_at=datetime.utcnow()
         )
-        db_session.add(webhook_event)
-        await db_session.commit()
+        async_session.add(webhook_event)
+        await async_session.commit()
 
         # Check idempotency
         from app.api.v1.endpoints.webhooks import check_event_already_processed
-        already_processed = await check_event_already_processed(db_session, transaction_id)
+        already_processed = await check_event_already_processed(async_session, transaction_id)
         assert already_processed is True
 
         # Attempting to process again should be detected
-        result2 = await db_session.execute(
+        result2 = await async_session.execute(
             select(WebhookEvent).where(WebhookEvent.event_id == transaction_id)
         )
         existing_event = result2.scalar_one()
@@ -534,9 +572,24 @@ class TestPaymentAPIIntegration:
         assert data["currency"] == "COP"
 
     @pytest.mark.asyncio
-    async def test_payment_methods_endpoint(self, async_client: AsyncClient):
+    async def test_payment_methods_endpoint(self, async_client: AsyncClient, async_session: AsyncSession, test_buyer: User):
         """Test payment methods endpoint with PSE banks"""
-        response = await async_client.get("/api/v1/payments/methods")
+        # Use existing buyer fixture and create token
+        from app.core.security import create_access_token
+
+        token_data = {
+            "sub": str(test_buyer.id),
+            "user_id": str(test_buyer.id),
+            "email": test_buyer.email,
+            "nombre": test_buyer.nombre,
+            "user_type": test_buyer.user_type.value,
+            "is_active": test_buyer.is_active,
+            "is_verified": test_buyer.is_verified,
+        }
+        access_token = create_access_token(data=token_data)
+        headers = {"Authorization": f"Bearer {access_token}"}
+
+        response = await async_client.get("/api/v1/payments/methods", headers=headers)
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -551,7 +604,7 @@ class TestPaymentAPIIntegration:
     async def test_webhook_endpoint_with_signature(
         self,
         async_client: AsyncClient,
-        db_session: AsyncSession,
+        async_session: AsyncSession,
         test_order: Order,
         wompi_webhook_payload: Dict[str, Any]
     ):
@@ -590,7 +643,7 @@ class TestRaceConditions:
     @pytest.mark.asyncio
     async def test_concurrent_webhook_processing(
         self,
-        db_session: AsyncSession,
+        async_session: AsyncSession,
         test_order: Order
     ):
         """Test that concurrent webhook processing is handled correctly"""
@@ -605,8 +658,8 @@ class TestRaceConditions:
 
         # Process concurrently (simulating race condition)
         results = await asyncio.gather(
-            update_order_from_webhook(db_session, webhook_data, "wompi-concurrent-test"),
-            update_order_from_webhook(db_session, webhook_data, "wompi-concurrent-test"),
+            update_order_from_webhook(async_session, webhook_data, "wompi-concurrent-test"),
+            update_order_from_webhook(async_session, webhook_data, "wompi-concurrent-test"),
             return_exceptions=True
         )
 
@@ -615,7 +668,7 @@ class TestRaceConditions:
         assert len(successful_results) >= 1
 
         # Verify database consistency
-        await db_session.refresh(test_order)
+        await async_session.refresh(test_order)
         assert test_order.status == OrderStatus.CONFIRMED
 
         # Should only have one transaction
@@ -624,7 +677,7 @@ class TestRaceConditions:
     @pytest.mark.asyncio
     async def test_transaction_rollback_on_error(
         self,
-        db_session: AsyncSession,
+        async_session: AsyncSession,
         test_order: Order
     ):
         """Test that database transaction rolls back on error"""
@@ -639,7 +692,7 @@ class TestRaceConditions:
 
         # Process webhook (should fail)
         result = await update_order_from_webhook(
-            db=db_session,
+            db=async_session,
             transaction_data=webhook_data,
             wompi_transaction_id="wompi-error-test"
         )
@@ -647,7 +700,7 @@ class TestRaceConditions:
         assert result.success is False
 
         # Order status should not change
-        await db_session.refresh(test_order)
+        await async_session.refresh(test_order)
         assert test_order.status == initial_status
 
         # No transaction should be created
@@ -662,7 +715,7 @@ class TestDataIntegrity:
     @pytest.mark.asyncio
     async def test_payment_amount_consistency(
         self,
-        db_session: AsyncSession,
+        async_session: AsyncSession,
         test_order: Order
     ):
         """Test amount consistency between order and transaction"""
@@ -678,8 +731,8 @@ class TestDataIntegrity:
             gateway_transaction_id="wompi-amount-test",
             processed_at=datetime.utcnow()
         )
-        db_session.add(transaction)
-        await db_session.commit()
+        async_session.add(transaction)
+        await async_session.commit()
 
         # Validate amounts match
         assert transaction.amount == test_order.total_amount
@@ -691,7 +744,7 @@ class TestDataIntegrity:
     @pytest.mark.asyncio
     async def test_order_status_transitions(
         self,
-        db_session: AsyncSession,
+        async_session: AsyncSession,
         test_order: Order
     ):
         """Test valid order status transitions"""
@@ -700,21 +753,21 @@ class TestDataIntegrity:
 
         test_order.status = OrderStatus.CONFIRMED
         test_order.confirmed_at = datetime.utcnow()
-        await db_session.commit()
+        await async_session.commit()
 
         assert test_order.status == OrderStatus.CONFIRMED
         assert test_order.confirmed_at is not None
 
         # CONFIRMED → PROCESSING
         test_order.status = OrderStatus.PROCESSING
-        await db_session.commit()
+        await async_session.commit()
 
         assert test_order.status == OrderStatus.PROCESSING
 
     @pytest.mark.asyncio
     async def test_webhook_audit_trail(
         self,
-        db_session: AsyncSession,
+        async_session: AsyncSession,
         test_order: Order,
         wompi_webhook_payload: Dict[str, Any]
     ):
@@ -734,11 +787,11 @@ class TestDataIntegrity:
             processing_attempts=1,
             gateway_timestamp=datetime.utcnow()
         )
-        db_session.add(webhook_event)
-        await db_session.commit()
+        async_session.add(webhook_event)
+        await async_session.commit()
 
         # Verify audit trail
-        result = await db_session.execute(
+        result = await async_session.execute(
             select(WebhookEvent).where(WebhookEvent.event_id == transaction_id)
         )
         stored_event = result.scalar_one()
@@ -757,7 +810,7 @@ class TestPaymentPerformance:
     @pytest.mark.asyncio
     async def test_webhook_processing_performance(
         self,
-        db_session: AsyncSession,
+        async_session: AsyncSession,
         test_order: Order
     ):
         """Test webhook processing completes within acceptable time"""
@@ -773,7 +826,7 @@ class TestPaymentPerformance:
 
         start_time = time.time()
         result = await update_order_from_webhook(
-            db=db_session,
+            db=async_session,
             transaction_data=webhook_data,
             wompi_transaction_id="wompi-perf-test"
         )
@@ -788,7 +841,7 @@ class TestPaymentPerformance:
     @pytest.mark.asyncio
     async def test_bulk_transaction_creation(
         self,
-        db_session: AsyncSession,
+        async_session: AsyncSession,
         test_order: Order
     ):
         """Test creating multiple transactions efficiently"""
@@ -796,24 +849,25 @@ class TestPaymentPerformance:
 
         start_time = time.time()
 
-        # Create 10 transactions
+        # Create 10 transactions with unique references
         transactions = []
+        unique_suffix = generate_uuid()[:8]
         for i in range(10):
             transaction = OrderTransaction(
-                transaction_reference=f"TXN-BULK-{i}",
+                transaction_reference=f"TXN-BULK-{unique_suffix}-{i}",
                 order_id=test_order.id,
                 amount=test_order.total_amount,
                 currency="COP",
                 status=PaymentStatus.PENDING,
                 payment_method_type="CARD",
                 gateway="wompi",
-                gateway_transaction_id=f"wompi-bulk-{i}",
+                gateway_transaction_id=f"wompi-bulk-{unique_suffix}-{i}",
                 created_at=datetime.utcnow()
             )
             transactions.append(transaction)
 
-        db_session.add_all(transactions)
-        await db_session.commit()
+        async_session.add_all(transactions)
+        await async_session.commit()
 
         end_time = time.time()
         processing_time = (end_time - start_time) * 1000  # ms
@@ -822,7 +876,7 @@ class TestPaymentPerformance:
         assert processing_time < 1000
 
         # Verify all created
-        result = await db_session.execute(
+        result = await async_session.execute(
             select(OrderTransaction).where(OrderTransaction.order_id == test_order.id)
         )
         all_transactions = result.scalars().all()

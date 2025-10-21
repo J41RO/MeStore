@@ -316,3 +316,35 @@ backup-db: ## Crear backup de la base de datos
 # ==============================================================================
 # FIN DEL MAKEFILE
 # ==============================================================================
+# ==============================================================================
+# 🧪 TESTS Y MANTENIMIENTO AUTOMÁTICO
+# ==============================================================================
+# Este bloque mantiene el orden en la carpeta tests/ y automatiza validaciones.
+# Usa: make reorganize-tests   → Reorganiza automáticamente
+# Usa: make test               → Ejecuta pytest básico
+# Usa: make check              → Linter + Tests
+# ==============================================================================
+
+reorganize-tests: ## Reorganiza automáticamente la estructura de tests
+	@echo "$(CYAN)=== 🧠 Reorganizando estructura de tests ===$(NC)"
+	@bash scripts/reorganize_tests.sh
+
+test: ## Ejecutar Pytest rápido
+	@echo "$(CYAN)=== 🧪 Ejecutando Pytest básico ===$(NC)"
+	@pytest tests -q --disable-warnings --maxfail=3
+	@echo "$(GREEN)✅ Tests básicos completados$(NC)"
+
+check: ## Linter + Tests
+	@echo "$(CYAN)=== 🔍 Ejecutando verificación completa ===$(NC)"
+	@ruff check .
+	@pytest tests -q --disable-warnings
+	@echo "$(GREEN)✅ Verificación completa finalizada$(NC)"
+
+# ======================================================================
+# COMANDO DE LIMPIEZA DEL PROYECTO
+# ======================================================================
+
+clean-project: ## Limpieza automática de estructura y temporales
+	@echo "$(CYAN)=== 🧹 Ejecutando limpieza de proyecto ===$(NC)"
+	@bash scripts/clean_project.sh
+	@echo "$(GREEN)Limpieza completa$(NC)"

@@ -1,9 +1,15 @@
 """
 Shipping management endpoints for order tracking and delivery management.
+
+This module implements proper async SQLAlchemy patterns to handle deferred columns:
+- tracking_number, courier, estimated_delivery, shipping_events are deferred in Order model
+- Using undefer() to explicitly load deferred columns in async context
+- Prevents MissingGreenlet errors from lazy loading in async operations
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload, undefer
 from typing import Dict, Any
 from datetime import datetime, timedelta
 import secrets
@@ -36,7 +42,7 @@ def generate_tracking_number() -> str:
 
 @router.post("/orders/{order_id}/shipping", response_model=Dict[str, Any])
 async def assign_shipping(
-    order_id: int,
+    order_id: str,
     shipping_data: ShippingAssignment,
     db: AsyncSession = Depends(get_async_db),
     current_user: User = Depends(require_admin)
@@ -44,9 +50,21 @@ async def assign_shipping(
     """
     Assign courier and generate tracking number for an order.
     Only admin users can assign shipping.
+
+    Uses undefer() to explicitly load deferred shipping columns (tracking_number, courier,
+    estimated_delivery, shipping_events) to prevent lazy loading in async context.
     """
-    # Fetch order
-    result = await db.execute(select(Order).where(Order.id == order_id))
+    # Fetch order with undefer to load all shipping-related deferred columns
+    result = await db.execute(
+        select(Order)
+        .where(Order.id == order_id)
+        .options(
+            undefer(Order.tracking_number),
+            undefer(Order.courier),
+            undefer(Order.estimated_delivery),
+            undefer(Order.shipping_events)
+        )
+    )
     order = result.scalar_one_or_none()
 
     if not order:
@@ -55,18 +73,18 @@ async def assign_shipping(
             detail="Order not found"
         )
 
+    # Check if shipping already assigned (before status check)
+    if order.tracking_number:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Shipping already assigned to this order"
+        )
+
     # Validate order status
     if order.status not in [OrderStatus.CONFIRMED, OrderStatus.PROCESSING]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Cannot assign shipping to order with status: {order.status.value}"
-        )
-
-    # Check if shipping already assigned
-    if order.tracking_number:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Shipping already assigned to this order"
         )
 
     # Generate tracking number
@@ -105,7 +123,7 @@ async def assign_shipping(
 
 @router.patch("/orders/{order_id}/shipping/location", response_model=Dict[str, Any])
 async def update_shipping_location(
-    order_id: int,
+    order_id: str,
     location_data: ShippingLocationUpdate,
     db: AsyncSession = Depends(get_async_db),
     current_user: User = Depends(require_admin)
@@ -113,9 +131,20 @@ async def update_shipping_location(
     """
     Update shipping location and status.
     Only admin users can update shipping information.
+
+    Uses undefer() to explicitly load deferred shipping columns to prevent lazy loading.
     """
-    # Fetch order
-    result = await db.execute(select(Order).where(Order.id == order_id))
+    # Fetch order with undefer to load all shipping-related deferred columns
+    result = await db.execute(
+        select(Order)
+        .where(Order.id == order_id)
+        .options(
+            undefer(Order.tracking_number),
+            undefer(Order.courier),
+            undefer(Order.estimated_delivery),
+            undefer(Order.shipping_events)
+        )
+    )
     order = result.scalar_one_or_none()
 
     if not order:
@@ -130,6 +159,9 @@ async def update_shipping_location(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No shipping assigned to this order"
         )
+
+    # Store tracking_number before modifications to avoid lazy loading after commit
+    tracking_num = order.tracking_number
 
     # Create new event
     new_event = {
@@ -149,31 +181,44 @@ async def update_shipping_location(
         order.status = OrderStatus.DELIVERED
         order.delivered_at = datetime.now()
 
+    # Store status before commit
+    order_status = OrderStatus.DELIVERED if location_data.status == ShippingStatus.DELIVERED else order.status
+
     await db.commit()
-    await db.refresh(order)
 
     return {
         "message": "Shipping location updated successfully",
-        "tracking_number": order.tracking_number,
+        "tracking_number": tracking_num,
         "current_location": location_data.current_location,
         "status": location_data.status.value,
-        "order_status": order.status.value,
+        "order_status": order_status.value,
         "total_events": len(current_events)
     }
 
 
 @router.get("/orders/{order_id}/shipping/tracking", response_model=TrackingResponse)
 async def get_shipping_tracking(
-    order_id: int,
+    order_id: str,
     db: AsyncSession = Depends(get_async_db),
     current_user: User = Depends(get_current_user)
 ):
     """
     Get shipping tracking information for an order.
     Users can only view tracking for their own orders, admins can view all.
+
+    Uses undefer() to explicitly load deferred shipping columns to prevent lazy loading.
     """
-    # Fetch order
-    result = await db.execute(select(Order).where(Order.id == order_id))
+    # Fetch order with undefer to load all shipping-related deferred columns
+    result = await db.execute(
+        select(Order)
+        .where(Order.id == order_id)
+        .options(
+            undefer(Order.tracking_number),
+            undefer(Order.courier),
+            undefer(Order.estimated_delivery),
+            undefer(Order.shipping_events)
+        )
+    )
     order = result.scalar_one_or_none()
 
     if not order:
@@ -235,10 +280,19 @@ async def track_by_tracking_number(
     """
     Public endpoint to track order by tracking number.
     No authentication required.
+
+    Uses undefer() to explicitly load deferred shipping columns to prevent lazy loading.
     """
-    # Fetch order by tracking number
+    # Fetch order by tracking number with undefer to load all shipping-related deferred columns
     result = await db.execute(
-        select(Order).where(Order.tracking_number == tracking_number)
+        select(Order)
+        .where(Order.tracking_number == tracking_number)
+        .options(
+            undefer(Order.tracking_number),
+            undefer(Order.courier),
+            undefer(Order.estimated_delivery),
+            undefer(Order.shipping_events)
+        )
     )
     order = result.scalar_one_or_none()
 

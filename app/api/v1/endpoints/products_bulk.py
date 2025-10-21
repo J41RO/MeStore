@@ -96,11 +96,21 @@ def validate_product_ids(product_ids: List[str]) -> List[UUID]:
     
     return valid_uuids
 
-@router.delete("/bulk", response_model=BulkOperationResponse)
+
+async def require_authenticated_user(current_user=Depends(get_current_user)):
+    """Asegura autenticación antes de procesar requests bulk."""
+    return current_user
+
+
+@router.delete(
+    "/bulk",
+    response_model=BulkOperationResponse,
+    dependencies=[Depends(require_authenticated_user)],
+)
 async def bulk_delete_products(
     request: BulkDeleteRequest,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    current_user = Depends(require_authenticated_user)
 ):
     """
     Eliminar múltiples productos en una sola operación.
@@ -154,11 +164,15 @@ async def bulk_delete_products(
             detail=f"Error interno durante eliminación bulk: {str(e)}"
         )
 
-@router.patch("/bulk/status", response_model=BulkOperationResponse)
+@router.patch(
+    "/bulk/status",
+    response_model=BulkOperationResponse,
+    dependencies=[Depends(require_authenticated_user)],
+)
 async def bulk_update_product_status(
     request: BulkStatusUpdateRequest,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    current_user = Depends(require_authenticated_user)
 ):
     """
     Actualizar estado de múltiples productos en una sola operación.

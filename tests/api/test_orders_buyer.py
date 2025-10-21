@@ -8,12 +8,15 @@ Tests for:
 """
 
 import pytest
+import pytest_asyncio
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
 from decimal import Decimal
 import uuid
 
+from app.main import app
+from app.api.v1.endpoints.orders import get_current_user_for_orders
 from app.models.order import Order, OrderItem, OrderStatus
 from app.models.user import User, UserType
 from app.models.product import Product
@@ -23,7 +26,7 @@ from app.models.product import Product
 # FIXTURES
 # ============================================================================
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def test_user(async_session: AsyncSession):
     """Create test buyer user."""
     user = User(
@@ -41,7 +44,7 @@ async def test_user(async_session: AsyncSession):
     return user
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def second_user(async_session: AsyncSession):
     """Create second buyer user for ownership tests."""
     user = User(
@@ -59,11 +62,40 @@ async def second_user(async_session: AsyncSession):
     return user
 
 
-@pytest.fixture
-def auth_headers(test_user: User):
-    """Create authorization headers with mock token."""
-    # Using mock token for testing - orders endpoint handles test scenario
-    return {"Authorization": "Bearer mock-token"}
+@pytest_asyncio.fixture
+async def auth_headers(test_user: User):
+    """Create authorization headers with a real JWT token."""
+    from app.core.security import create_access_token
+
+    token = create_access_token(
+        data={
+            "sub": str(test_user.id),
+            "email": test_user.email,
+            "user_type": test_user.user_type.value,
+        }
+    )
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest_asyncio.fixture
+async def orders_auth_override(test_user: User):
+    """Override orders authentication dependency to bypass JWT validation."""
+    async def override():
+        return type(
+            "AuthUser",
+            (),
+            {
+                "id": str(test_user.id),
+                "email": test_user.email,
+                "user_type": "BUYER",
+            },
+        )()
+
+    app.dependency_overrides[get_current_user_for_orders] = override
+    try:
+        yield
+    finally:
+        app.dependency_overrides.pop(get_current_user_for_orders, None)
 
 
 @pytest.fixture
@@ -118,7 +150,8 @@ async def test_get_order_tracking_not_found(
     async_client: AsyncClient,
     async_session: AsyncSession,
     test_user: User,
-    auth_headers: dict
+    auth_headers: dict,
+    orders_auth_override
 ):
     """
     RED TEST: Get tracking for non-existent order should return 404
@@ -145,7 +178,8 @@ async def test_get_order_tracking_forbidden_not_owner(
     test_user: User,
     second_user: User,
     test_order: Order,
-    auth_headers: dict
+    auth_headers: dict,
+    orders_auth_override
 ):
     """
     RED TEST: Get tracking for another user's order should return 403
@@ -191,7 +225,8 @@ async def test_get_order_tracking_success(
     async_client: AsyncClient,
     async_session: AsyncSession,
     test_user: User,
-    auth_headers: dict
+    auth_headers: dict,
+    orders_auth_override
 ):
     """
     RED TEST: Get tracking for own order should return tracking information
@@ -261,7 +296,8 @@ async def test_cancel_order_unauthorized(async_client: AsyncClient):
 @pytest.mark.red_test
 async def test_cancel_order_not_found(
     async_client: AsyncClient,
-    auth_headers: dict
+    auth_headers: dict,
+    orders_auth_override
 ):
     """
     RED TEST: Cancel non-existent order should return 404
@@ -282,7 +318,8 @@ async def test_cancel_order_forbidden_not_owner(
     async_session: AsyncSession,
     test_user: User,
     second_user: User,
-    auth_headers: dict
+    auth_headers: dict,
+    orders_auth_override
 ):
     """
     RED TEST: Cancel another user's order should return 403
@@ -323,7 +360,8 @@ async def test_cancel_order_invalid_status_already_shipped(
     async_client: AsyncClient,
     async_session: AsyncSession,
     test_user: User,
-    auth_headers: dict
+    auth_headers: dict,
+    orders_auth_override
 ):
     """
     RED TEST: Cannot cancel order that is already shipped
@@ -370,7 +408,8 @@ async def test_cancel_order_invalid_status_already_cancelled(
     async_client: AsyncClient,
     async_session: AsyncSession,
     test_user: User,
-    auth_headers: dict
+    auth_headers: dict,
+    orders_auth_override
 ):
     """
     RED TEST: Cannot cancel order that is already cancelled
@@ -412,7 +451,8 @@ async def test_cancel_order_success_pending_status(
     async_client: AsyncClient,
     async_session: AsyncSession,
     test_user: User,
-    auth_headers: dict
+    auth_headers: dict,
+    orders_auth_override
 ):
     """
     RED TEST: Successfully cancel order with PENDING status
@@ -476,7 +516,8 @@ async def test_cancel_order_success_processing_status(
     async_client: AsyncClient,
     async_session: AsyncSession,
     test_user: User,
-    auth_headers: dict
+    auth_headers: dict,
+    orders_auth_override
 ):
     """
     RED TEST: Successfully cancel order with PROCESSING status
@@ -527,7 +568,8 @@ async def test_cancel_order_missing_reason(
     async_client: AsyncClient,
     async_session: AsyncSession,
     test_user: User,
-    auth_headers: dict
+    auth_headers: dict,
+    orders_auth_override
 ):
     """
     RED TEST: Cancel order without reason should return 422 validation error

@@ -11,7 +11,10 @@ class Settings(BaseSettings):
     # Database Configuration - Unified source of truth
     DATABASE_URL: str = Field(
         default="sqlite+aiosqlite:///./mestore.db",
-        description="SQLite database URL - ÚNICA BASE DE DATOS PARA TODO EL SISTEMA",
+        description=(
+            "Unified database URL supporting PostgreSQL (asyncpg/psycopg drivers) "
+            "and SQLite for development, testing, and local operations."
+        ),
     )
     DB_ECHO: bool = Field(
         default=False, description="Enable SQL statement logging for debugging"
@@ -168,7 +171,9 @@ class Settings(BaseSettings):
             origins = [origin.strip() for origin in v.split(",")]
             for origin in origins:
                 if "*" in origin and origin not in allowed_wildcards:
-                    raise ValueError(f"CORS origin wildcard not allowed: {origin}. Only Vercel wildcards permitted.")
+                    raise ValueError(
+                        f"CORS origins cannot contain wildcards (found: {origin}). Only Vercel wildcards permitted."
+                    )
         return v
 
     def get_cors_origins_for_environment(self) -> list[str]:
@@ -213,12 +218,10 @@ class Settings(BaseSettings):
             # Production: Strict validation for production domains only
             default_dev_origins = "http://localhost:5173,http://localhost:3000,http://192.168.1.137:5173"
             if not base_origins or self.CORS_ORIGINS == default_dev_origins:
-                # DEPLOYMENT FIX: Don't block startup, use secure defaults and log warning
                 import logging
                 logger = logging.getLogger(__name__)
-                logger.warning("Production CORS_ORIGINS not configured - using Render default. Set CORS_ORIGINS env var for production.")
-                # Use Render's .onrender.com domain as safe default
-                return ["https://mestore-api.onrender.com"]
+                logger.error("Production CORS_ORIGINS must be explicitly set")
+                raise ValueError("Production CORS_ORIGINS must be explicitly set")
 
             # Security: Ensure all production origins use HTTPS
             for origin in base_origins:

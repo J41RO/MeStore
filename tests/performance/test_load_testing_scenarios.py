@@ -120,6 +120,21 @@ class TestConcurrentUserScenarios:
 
         results = []
 
+        # Prepare authenticated vendor session
+        vendor_email = f"load.vendor.{int(time.time())}@testload.com"
+        vendor_registration = {
+            "email": vendor_email,
+            "password": "VendorPass123!",
+            "nombre": "Load Test Vendor",
+            "celular": "3001234567",
+            "user_type": "VENDOR"
+        }
+
+        register_response = client.post("/api/v1/auth/register", json=vendor_registration)
+        assert register_response.status_code in [200, 201], register_response.text
+        token_data = register_response.json()
+        headers = {"Authorization": f"Bearer {token_data['access_token']}"}
+
         # Sequential operations to prevent TestClient concurrency issues
         import random
         test_id = random.randint(10000, 99999)
@@ -136,7 +151,7 @@ class TestConcurrentUserScenarios:
             }
 
             start_time = time.time()
-            create_response = client.post("/api/v1/productos/", json=product_data)
+            create_response = client.post("/api/v1/productos/", json=product_data, headers=headers)
             end_time = time.time()
 
             results.append({
@@ -147,7 +162,7 @@ class TestConcurrentUserScenarios:
 
             # Try to read product list instead of specific product to avoid ID issues
             start_time = time.time()
-            read_response = client.get("/api/v1/productos/", params={"limit": 1})
+            read_response = client.get("/api/v1/productos/", params={"limit": 1}, headers=headers)
             end_time = time.time()
 
             results.append({

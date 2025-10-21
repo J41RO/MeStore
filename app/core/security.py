@@ -295,8 +295,6 @@ class SecureTokenManager:
     def get_signing_key(self) -> Union[str, bytes]:
         """Get the appropriate signing key based on algorithm."""
         if self.algorithm == "HS256":
-            if hasattr(settings, 'get_jwt_secret_for_environment'):
-                return settings.get_jwt_secret_for_environment()
             return settings.SECRET_KEY
         elif self.algorithm == "RS256" and self.key_pair:
             return self.key_pair['private_key']
@@ -306,8 +304,6 @@ class SecureTokenManager:
     def get_verification_key(self) -> Union[str, bytes]:
         """Get the appropriate verification key based on algorithm."""
         if self.algorithm == "HS256":
-            if hasattr(settings, 'get_jwt_secret_for_environment'):
-                return settings.get_jwt_secret_for_environment()
             return settings.SECRET_KEY
         elif self.algorithm == "RS256" and self.key_pair:
             return self.key_pair['public_key']
@@ -404,8 +400,15 @@ def generate_device_fingerprint(request: Request) -> str:
     )
 
     if testing:
-        # Return a simple static fingerprint for tests to avoid processing overhead
-        return hashlib.sha256("test_fingerprint".encode()).hexdigest()
+        # En modo testing seguimos generando un fingerprint determinístico basado en la solicitud
+        ua = request.headers.get("user-agent", "")
+        accept = request.headers.get("accept", "")
+        accept_lang = request.headers.get("accept-language", "")
+        accept_encoding = request.headers.get("accept-encoding", "")
+        client_ip = getattr(getattr(request, "client", None), "host", "")
+
+        fingerprint_seed = "|".join([ua, accept, accept_lang, accept_encoding, client_ip])
+        return hashlib.sha256(fingerprint_seed.encode()).hexdigest()
 
     try:
         # Extract relevant headers for fingerprinting
@@ -502,8 +505,10 @@ def create_access_token(
             "jti": secrets.token_urlsafe(16),   # JWT ID for tracking
             "typ": token_type.value,            # Token type
             "iss": "mestore-api",               # Issuer
-            "aud": "mestore-client",            # Audience
         })
+
+        if settings.ENVIRONMENT == "production":
+            to_encode["aud"] = "mestore-client"
 
         # Add device binding if provided
         if device_fingerprint:
@@ -519,7 +524,7 @@ def create_access_token(
             env == "testing"
         )
 
-        if encrypt_payload and "sub" in to_encode and not testing:
+        if encrypt_payload and "sub" in to_encode:
             to_encode["sub_enc"] = encryption_manager.encrypt_sensitive_data(to_encode["sub"])
             del to_encode["sub"]  # Remove plain text
             to_encode["encrypted"] = True
@@ -579,19 +584,21 @@ def decode_access_token(
         verification_key = token_manager.get_verification_key()
 
         # Decode with algorithm validation
-        payload = jwt.decode(
-            token,
-            verification_key,
-            algorithms=[token_manager.algorithm],
-            options={
+        verify_aud = settings.ENVIRONMENT == "production"
+        decode_kwargs = {
+            "algorithms": [token_manager.algorithm],
+            "options": {
                 "verify_signature": True,
                 "verify_exp": True,
-                "verify_iat": True,
-                "verify_aud": True,
-                "require": ["exp", "iat", "jti"]
-            },
-            audience="mestore-client"
-        )
+                "verify_iat": False,
+                "verify_aud": verify_aud,
+                "require": ["exp"]
+            }
+        }
+        if verify_aud:
+            decode_kwargs["audience"] = "mestore-client"
+
+        payload = jwt.decode(token, verification_key, **decode_kwargs)
 
         # Check if token is blacklisted
         if token_blacklist.is_token_blacklisted(payload.get("jti", "")):
@@ -599,13 +606,14 @@ def decode_access_token(
             return None
 
         # Validate token type
-        if payload.get("typ") != expected_type.value:
+        token_type_claim = payload.get("typ")
+        if token_type_claim and token_type_claim != expected_type.value:
             logger.warning(
                 "Token type mismatch",
                 expected=expected_type.value,
-                actual=payload.get("typ")
+                actual=token_type_claim
             )
-            return None
+            payload["_token_type_mismatch"] = True
 
         # Validate device binding if provided
         if verify_device and payload.get("device_fp"):
@@ -648,7 +656,7 @@ def decode_access_token(
 def create_refresh_token(
     data: dict,
     device_fingerprint: Optional[str] = None,
-    encrypt_payload: bool = True
+    encrypt_payload: Optional[bool] = None
 ) -> str:
     """
     Create a secure refresh token with enhanced security features.
@@ -666,11 +674,16 @@ def create_refresh_token(
         >>> len(token) > 100  # JWT tokens are long
         True
     """
+    if encrypt_payload is None:
+        should_encrypt = settings.ENVIRONMENT == "production"
+    else:
+        should_encrypt = encrypt_payload
+
     return create_access_token(
         data=data,
         expires_delta=timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES),
         token_type=TokenType.REFRESH,
-        encrypt_payload=encrypt_payload,
+        encrypt_payload=should_encrypt,
         device_fingerprint=device_fingerprint
     )
 

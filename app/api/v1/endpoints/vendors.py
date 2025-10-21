@@ -19,21 +19,28 @@
 # ---------------------------------------------------------------------------------------------
 
 """
-Vendor Registration Endpoint para MeStore MVP.
+Consolidated vendor endpoints (English + legacy Spanish).
 
-Este módulo contiene el endpoint para:
-- POST /vendors/register: Registrar nuevo vendor con auto-aprobación
+All vendor functionality now lives in this module; the legacy
+``vendedores`` module simply re-exports the shared router.
+
+Additional English-friendly routes (e.g. ``/vendors/register``)
+are defined here while the original Spanish paths remain available.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
 
 from app.core.database import get_db
 from app.schemas.vendor import VendorCreate, VendorResponse
 from app.services.vendor_service import VendorService
+from app.api.v1.endpoints import vendedores as legacy_vendors
 
-router = APIRouter(tags=["vendor-registration"])
+# Re-use the comprehensive legacy router so all existing endpoints remain intact.
+router = legacy_vendors.router
+if "vendors" not in router.tags:
+    router.tags.append("vendors")
 
 
 @router.post("/register", response_model=VendorResponse, status_code=status.HTTP_201_CREATED)

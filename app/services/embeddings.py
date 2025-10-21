@@ -29,26 +29,14 @@ Proporciona funcionalidades de embeddings y búsqueda semántica:
 - Gestión de colecciones por categoría
 """
 
-from typing import List, Dict, Any, Optional, TYPE_CHECKING
+from __future__ import annotations
 
-if TYPE_CHECKING:
-    # Solo para type hints, no se importa en runtime
-    from sentence_transformers import SentenceTransformer
-# Lazy import: sentence_transformers se importará cuando se necesite
+import hashlib
+import os
+import re
+from collections import Counter
+from typing import Any, Dict, List, Optional
 
-
-def _get_sentence_transformer():
-    """Lazy import de SentenceTransformer para evitar conflictos de PyTorch."""
-    try:
-        from sentence_transformers import SentenceTransformer
-        return SentenceTransformer
-    except ImportError as e:
-        raise ImportError(f"sentence_transformers not available: {e}")
-    except RuntimeError as e:
-        # Capturar error específico de PyTorch docstring
-        if "docstring" in str(e):
-            raise RuntimeError(f"PyTorch docstring conflict: {e}. Try upgrading PyTorch or use Docker environment.")
-        raise
 from app.core.chromadb import get_chroma_client, initialize_base_collections
 import logging
 
@@ -57,21 +45,75 @@ logger = logging.getLogger(__name__)
 # Modelo global de embeddings (singleton pattern)
 _embedding_model = None
 
-def get_embedding_model() -> 'SentenceTransformer':
-    """
-    # Early return si no hay cambios que hacer
-    if new_text is None and new_metadata is None:
-        logger.info(f"No hay cambios para actualizar en item {item_id}")
-        return True
+
+class _SimpleEmbeddingModel:
+    """Modelo de embeddings simplificado para entornos de testing sin dependencias externas."""
+
+    def __init__(self, *_args, vector_size: int = 64, **_kwargs):
+        self.vector_size = max(vector_size, 16)
+
+    @staticmethod
+    def _normalize_text(text: str) -> List[str]:
+        return re.findall(r"\w+", text.lower())
+
+    def encode(self, texts: List[str], convert_to_numpy: bool = True) -> List[List[float]]:
+        vectors: List[List[float]] = []
+        usable_size = max(self.vector_size - 4, 4)
+
+        for text in texts:
+            tokens = self._normalize_text(text)
+            counts = Counter(tokens)
+            vector = [0.0] * self.vector_size
+
+            if counts:
+                for token, count in counts.items():
+                    stable_hash = int(hashlib.sha256(token.encode("utf-8")).hexdigest(), 16)
+                    index = stable_hash % usable_size
+                    vector[index] += float(count) * 5.0
+
+            total_tokens = sum(counts.values())
+            distinct_tokens = len(counts)
+            total_length = sum(len(token) for token in tokens)
+            vowel_count = sum(1 for char in text.lower() if char in "aeiou")
+
+            if total_tokens:
+                for idx in range(usable_size):
+                    vector[idx] /= float(total_tokens)
+
+            vector[-4] = float(total_tokens)
+            vector[-3] = float(distinct_tokens)
+            vector[-2] = float(total_length)
+            vector[-1] = float(vowel_count)
+
+            vectors.append(vector)
+
+        return vectors
 
 
-    Returns:
-        bool: True si se actualizó exitosamente
+def _should_use_simple_embeddings() -> bool:
+    return os.getenv("DISABLE_SEARCH_SERVICE") == "1" or os.getenv("TESTING") == "1"
 
-    Raises:
-        Exception: Si ocurre error durante la actualización
-        object: Modelo de embeddings listo para generar vectores
-    """
+
+def _get_sentence_transformer():
+    """Lazy import de SentenceTransformer para evitar conflictos de PyTorch."""
+    if _should_use_simple_embeddings():
+        return _SimpleEmbeddingModel
+
+    try:
+        from sentence_transformers import SentenceTransformer
+        return SentenceTransformer
+    except ImportError:
+        logging.getLogger(__name__).warning(
+            "sentence-transformers no disponible. Usando modelo de embeddings simplificado."
+        )
+        return _SimpleEmbeddingModel
+    except RuntimeError as e:
+        if "docstring" in str(e):
+            raise RuntimeError(f"PyTorch docstring conflict: {e}. Try upgrading PyTorch or use Docker environment.")
+        raise
+
+def get_embedding_model() -> "SentenceTransformer":
+    """Obtener modelo de embeddings, reutilizando instancia global."""
     global _embedding_model
 
     if _embedding_model is None:
@@ -103,7 +145,9 @@ def embed_texts(texts: List[str]) -> List[List[float]]:
     try:
         # Generar embeddings y convertir a lista de listas
         embeddings = model.encode(texts, convert_to_numpy=True)
-        return embeddings.tolist()
+        if hasattr(embeddings, "tolist"):
+            return embeddings.tolist()
+        return [list(map(float, vector)) for vector in embeddings]
     except Exception as e:
         logger.error(f"Error generando embeddings: {e}")
         raise
@@ -191,7 +235,8 @@ def query_similar(
         results = collection.query(
             query_embeddings=[query_embedding],
             n_results=n_results,
-            where=where
+            where=where,
+            query_text=query_text
         )
 
         logger.info(f"Consulta en '{collection_name}': {len(results['ids'][0] if results['ids'] and results['ids'][0] else [])} resultados")

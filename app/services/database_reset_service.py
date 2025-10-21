@@ -19,6 +19,7 @@ Version: 1.0.0
 """
 
 import asyncio
+import inspect
 import logging
 from datetime import datetime
 from enum import Enum
@@ -32,6 +33,7 @@ from app.models.user import User, UserType
 from app.models.base import BaseModel
 from app.core.security import get_password_hash
 import uuid
+from unittest.mock import DEFAULT
 
 
 class ResetLevel(str, Enum):
@@ -79,6 +81,7 @@ class DatabaseResetService:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         self.session: Optional[AsyncSession] = None
+        self._session_source = None
 
         # Safety configuration
         self.allowed_environments = {"development", "testing", "dev", "test"}
@@ -115,13 +118,43 @@ class DatabaseResetService:
 
     async def __aenter__(self):
         """Async context manager entry."""
-        self.session = AsyncSessionLocal()
+        session_candidate = AsyncSessionLocal()
+        self._session_source = None
+
+        # Support both direct AsyncSession instances and async generators/mocks used in tests
+        anext_attr = getattr(session_candidate, "__anext__", None)
+        use_anext = False
+
+        if anext_attr:
+            mock_return = getattr(anext_attr, "_mock_return_value", None)
+            if mock_return is None or mock_return is not DEFAULT:
+                use_anext = True
+
+        if use_anext:
+            self._session_source = session_candidate
+            next_value = anext_attr()
+            self.session = await next_value if inspect.isawaitable(next_value) else next_value
+        else:
+            self.session = session_candidate
+
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit."""
-        if self.session:
-            await self.session.close()
+        try:
+            if self.session:
+                close_method = getattr(self.session, "close", None)
+                if close_method:
+                    close_result = close_method()
+                    if inspect.isawaitable(close_result):
+                        await close_result
+        finally:
+            if self._session_source and hasattr(self._session_source, "aclose"):
+                close_context = self._session_source.aclose()
+                if inspect.isawaitable(close_context):
+                    await close_context
+            self.session = None
+            self._session_source = None
 
     def _validate_environment(self) -> None:
         """

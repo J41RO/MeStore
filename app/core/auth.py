@@ -41,25 +41,25 @@ class AuthService:
         Args:
             email: Email del usuario
             password: Contraseña en texto plano
-            db: Database session (optional)
+            db: AsyncSession database session (required)
 
         Returns:
             Usuario si credenciales son válidas, None si son inválidas
         """
         from app.models.user import User
-        from app.core.database import get_db
+        from sqlalchemy import select
 
-        # Use provided db session or get a new one
+        # db session is required for async operations
         if db is None:
-            db_gen = get_db()
-            db = next(db_gen)
-            should_close = True
-        else:
-            should_close = False
+            import logging
+            logging.error("authenticate_user requires db session parameter")
+            return None
 
         try:
-            # Buscar usuario por email usando sync query (compatible with get_db)
-            user = db.query(User).filter(User.email == email).first()
+            # Buscar usuario por email usando SQLAlchemy 2.0 async patterns
+            stmt = select(User).where(User.email == email)
+            result = await db.execute(stmt)
+            user = result.scalar_one_or_none()
 
             if not user:
                 return None
@@ -75,9 +75,6 @@ class AuthService:
             import logging
             logging.error(f"Error en authenticate_user: {str(e)}")
             return None
-        finally:
-            if should_close:
-                db.close()
 
     def create_access_token(self, user_id: str, expires_delta: Optional[timedelta] = None):
         """Crear access token JWT para usuario"""

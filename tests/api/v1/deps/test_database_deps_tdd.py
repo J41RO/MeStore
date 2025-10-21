@@ -27,6 +27,8 @@ from app.api.v1.deps.database import (
 )
 from tests.tdd_patterns import TDDTestCase, TDDAssertionsMixin, TDDMockFactory
 
+pytestmark = pytest.mark.asyncio
+
 
 class TestDatabaseSessionDependencies:
     """

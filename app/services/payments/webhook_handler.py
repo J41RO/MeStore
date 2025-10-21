@@ -56,7 +56,8 @@ class WompiWebhookHandler:
                 raw_payload=event_data,
                 signature=signature,
                 signature_validated=True,
-                gateway_timestamp=datetime.fromtimestamp(timestamp) if timestamp else None
+                gateway_timestamp=datetime.fromtimestamp(timestamp) if timestamp else None,
+                processing_attempts=0
             )
             
             self.db.add(webhook_event)

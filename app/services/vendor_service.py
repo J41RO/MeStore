@@ -100,7 +100,7 @@ class VendorService:
         Crear nuevo vendor con auto-aprobación (MVP).
 
         Reglas de Negocio:
-        - Email debe ser único
+        - Email debe ser único (case-insensitive)
         - Password hasheado con bcrypt
         - user_type = UserType.VENDOR
         - vendor_status = VendorStatus.APPROVED (auto-aprobado para MVP)
@@ -117,9 +117,12 @@ class VendorService:
         Raises:
             ValueError: Si email ya existe
         """
-        # Verificar que el email no exista
+        # Normalizar email a minúsculas para comparación case-insensitive
+        email_normalized = vendor_data.email.lower().strip()
+
+        # Verificar que el email no exista (case-insensitive)
         existing_user = await self.db.execute(
-            select(User).where(User.email == vendor_data.email)
+            select(User).where(User.email == email_normalized)
         )
         if existing_user.scalar_one_or_none():
             raise ValueError("El email ya está registrado")
@@ -132,9 +135,9 @@ class VendorService:
         nombre = name_parts[0] if len(name_parts) > 0 else ""
         apellido = name_parts[1] if len(name_parts) > 1 else ""
 
-        # Crear nuevo vendor
+        # Crear nuevo vendor con email normalizado
         new_vendor = User(
-            email=vendor_data.email,
+            email=email_normalized,
             password_hash=password_hash,
             nombre=nombre,
             apellido=apellido,

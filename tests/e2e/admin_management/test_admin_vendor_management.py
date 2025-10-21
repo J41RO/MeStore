@@ -11,6 +11,7 @@ regional managers handling vendor onboarding and operations in Colombian context
 """
 
 import pytest
+import pytest_asyncio
 import asyncio
 from datetime import datetime, timedelta
 from typing import Dict, List, Any
@@ -31,13 +32,13 @@ from tests.e2e.admin_management.fixtures.vendor_lifecycle_fixtures import (
 from tests.e2e.admin_management.utils.colombian_timezone_utils import ColombianTimeManager, BusinessRulesValidator
 from tests.e2e.admin_management.utils.business_rules_validator import ComprehensiveBusinessRulesValidator
 
-pytestmark = pytest.mark.e2e
+pytestmark = [pytest.mark.e2e, pytest.mark.asyncio]
 
 
 class TestAdminVendorManagementWorkflows:
     """Test suite for ADMIN vendor management workflows and scenarios."""
 
-    @pytest.fixture(autouse=True)
+    @pytest_asyncio.fixture(autouse=True)
     async def setup_test_environment(self, db_session: Session):
         """Set up test environment with Colombian business context."""
         self.db = db_session

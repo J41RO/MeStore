@@ -34,6 +34,8 @@ from app.api.v1.deps.standardized_auth import (
 from app.models.user import UserType
 from tests.tdd_patterns import TDDTestCase, TDDAssertionsMixin, TDDMockFactory
 
+pytestmark = pytest.mark.asyncio
+
 
 class TestGetCurrentUserDependency:
     """

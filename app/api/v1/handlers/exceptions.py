@@ -48,6 +48,7 @@ from app.schemas.response_base import (
     create_error_response,
     create_validation_error_response
 )
+from app.core.id_validation import IDValidationError
 
 # Configurar logger para exceptions
 logger = logging.getLogger(__name__)
@@ -230,7 +231,11 @@ async def app_exception_handler(request: Request, exc: AppException) -> JSONResp
         error_message=exc.message,
         details=exc.details,
         message=f"Request failed at {request.url.path}",
-        request_id=request_id
+        request_id=request_id,
+        error=exc.error_code,
+        detail=exc.message,
+        status_code=exc.status_code,
+        path=request.url.path
     )
 
     return JSONResponse(
@@ -277,7 +282,11 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
         error_code=error_code,
         error_message=str(exc.detail),
         message=f"HTTP error {exc.status_code} at {request.url.path}",
-        request_id=request_id
+        request_id=request_id,
+        error=f"HTTP{exc.status_code}",
+        detail=str(exc.detail),
+        status_code=exc.status_code,
+        path=request.url.path
     )
 
     return JSONResponse(
@@ -317,9 +326,12 @@ async def validation_exception_handler(
 
     error_response = create_validation_error_response(
         validation_errors=validation_details,
-        message=f"Request validation failed at {request.url.path}"
+        message=f"Request validation failed at {request.url.path}",
+        request_id=request_id,
+        status_code=422,
+        path=request.url.path,
+        error="ValidationError"
     )
-    error_response.request_id = request_id
 
     return JSONResponse(
         status_code=422,
@@ -349,11 +361,49 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
         error_code=ErrorCodes.INTERNAL_SERVER_ERROR,
         error_message="Error interno del servidor. Por favor contacte al administrador.",
         message=f"Unexpected error at {request.url.path}",
-        request_id=request_id
+        request_id=request_id,
+        error="InternalServerError",
+        detail=str(exc) or "Unexpected server error",
+        status_code=500,
+        path=request.url.path
     )
 
     return JSONResponse(
         status_code=500,
+        content=error_response.model_dump(mode='json')
+    )
+
+
+async def id_validation_exception_handler(request: Request, exc: IDValidationError) -> JSONResponse:
+    """
+    Handler para errores de validación de ID (UUID).
+
+    Args:
+        request: Request de FastAPI
+        exc: Instancia de IDValidationError
+
+    Returns:
+        JSONResponse con error 422 estandarizado
+    """
+    request_id = generate_request_id()
+
+    logger.warning(
+        f"ID Validation error: {str(exc)} - Path: {request.url.path} - RequestID: {request_id}"
+    )
+
+    error_response = create_error_response(
+        error_code=ErrorCodes.VALIDATION_ERROR,
+        error_message=str(exc),
+        message=f"Invalid ID format at {request.url.path}",
+        request_id=request_id,
+        error="IDValidationError",
+        detail=str(exc),
+        status_code=422,
+        path=request.url.path
+    )
+
+    return JSONResponse(
+        status_code=422,
         content=error_response.model_dump(mode='json')
     )
 
@@ -366,6 +416,7 @@ def register_exception_handlers(app: FastAPI) -> None:
     - AppException (excepciones personalizadas)
     - HTTPException (errores HTTP estándar)
     - RequestValidationError (errores de validación)
+    - IDValidationError (errores de validación de UUID)
     - Exception (fallback global para errores no manejados)
 
     Args:
@@ -380,6 +431,9 @@ def register_exception_handlers(app: FastAPI) -> None:
 
     # Handler para errores de validación
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
+
+    # Handler para errores de validación de ID (UUID)
+    app.add_exception_handler(IDValidationError, id_validation_exception_handler)
 
     # Handler global para excepciones no capturadas
     app.add_exception_handler(Exception, global_exception_handler)

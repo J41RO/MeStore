@@ -74,6 +74,11 @@ from tests.fixtures.admin_test_fixtures_refactored import (
     ErrorScenarioGenerator
 )
 
+pytest_plugins = [
+    "tests.unit.admin_management.conftest_admin_user_management",
+    "tests.fixtures.admin_test_fixtures_refactored"
+]
+
 
 # ============================================================================
 # REFACTOR PHASE TEST MARKERS

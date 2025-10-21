@@ -54,6 +54,7 @@ from sqlalchemy.orm import relationship, validates
 from sqlalchemy.ext.hybrid import hybrid_property
 
 from app.models.base import BaseModel
+from app.core.types import UUID
 
 
 class CategoryStatus(PyEnum):
@@ -126,7 +127,7 @@ class Category(BaseModel):
 
     # Jerarquía
     parent_id = Column(
-        String(36),
+        UUID,
         ForeignKey("categories.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
@@ -688,7 +689,7 @@ class ProductCategory(BaseModel):
 
     # Foreign keys
     product_id = Column(
-        String(36),
+        UUID,
         ForeignKey("products.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -696,7 +697,7 @@ class ProductCategory(BaseModel):
     )
 
     category_id = Column(
-        String(36),
+        UUID,
         ForeignKey("categories.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -721,7 +722,7 @@ class ProductCategory(BaseModel):
 
     # Tracking de asignación
     assigned_by_id = Column(
-        String(36),
+        UUID,
         ForeignKey("users.id"),
         nullable=True,
         comment="Usuario que asignó la categoría"

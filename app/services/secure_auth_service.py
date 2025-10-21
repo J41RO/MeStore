@@ -28,7 +28,6 @@ import redis
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from typing import Optional, Tuple, Dict, Any
-from passlib.context import CryptContext
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -36,6 +35,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user import User, UserType
 from app.core.security import create_access_token, create_refresh_token, decode_access_token
 from app.core.config import settings
+from app.utils.password import pwd_context as shared_pwd_context
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -315,11 +315,7 @@ class SecureAuthService:
 
     def __init__(self):
         """Initialize secure authentication service."""
-        self.pwd_context = CryptContext(
-            schemes=["bcrypt"],
-            deprecated="auto",
-            bcrypt__rounds=12  # Increased rounds for better security
-        )
+        self.pwd_context = shared_pwd_context
 
         # ThreadPoolExecutor for CPU-intensive operations
         self.executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="auth_secure")

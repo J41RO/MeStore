@@ -23,6 +23,7 @@ Optimizations Applied:
 """
 
 from datetime import datetime, timedelta
+from uuid import uuid4
 from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Body
 from fastapi.security import HTTPBearer
@@ -31,17 +32,14 @@ from sqlalchemy import and_, or_, func, desc
 from pydantic import BaseModel, Field, EmailStr
 
 # Import consolidated utilities
+from app.core import admin_utils
 from app.core.admin_utils import (
     require_admin_permission,
     log_admin_operation,
     monitor_performance,
-    validate_admin_user_access,
-    validate_security_clearance_change,
     OptimizedAdminQueries,
     AdminErrorHandler,
-    process_bulk_admin_operation,
     format_admin_response,
-    format_permission_response,
     AdminValidationResult,
     AdminOperationMetrics
 )
@@ -52,7 +50,8 @@ from app.core.auth import get_current_user
 from app.models.user import User, UserType, VendorStatus
 from app.models.admin_permission import AdminPermission, PermissionScope, PermissionAction, ResourceType
 from app.models.admin_activity_log import AdminActivityLog, AdminActionType, ActionResult, RiskLevel
-from app.services.admin_permission_service import admin_permission_service, PermissionDeniedError
+from app.services import admin_permission_service as admin_permission_service_module
+from app.services.admin_permission_service import PermissionDeniedError
 from app.schemas.user import UserResponse, UserCreate
 import logging
 
@@ -277,7 +276,7 @@ async def create_admin_user_optimized(
                 )
 
         # Validate security clearance using consolidated utility
-        clearance_validation = await validate_security_clearance_change(
+        clearance_validation = await admin_utils.validate_security_clearance_change(
             current_user=current_user,
             target_user=User(),  # New user, no existing clearance
             new_clearance_level=request.security_clearance_level
@@ -318,14 +317,23 @@ async def create_admin_user_optimized(
             'is_active': True,
             'is_verified': True,
             'force_password_change': request.force_password_change,
-            'performance_score': 100,
-            'habeas_data_accepted': True,
-            'data_processing_consent': True
+            'performance_score': 100
         }
 
         new_admin = User(**admin_data)
+        setattr(new_admin, 'habeas_data_accepted', True)
+        setattr(new_admin, 'data_processing_consent', True)
         db.add(new_admin)
         db.flush()  # Get the ID
+
+        if not getattr(new_admin, "id", None):
+            setattr(new_admin, "id", str(uuid4()))
+        if getattr(new_admin, "failed_login_attempts", None) is None:
+            setattr(new_admin, "failed_login_attempts", 0)
+        if getattr(new_admin, "created_at", None) is None:
+            setattr(new_admin, "created_at", datetime.utcnow())
+        if getattr(new_admin, "updated_at", None) is None:
+            setattr(new_admin, "updated_at", datetime.utcnow())
 
         # Grant initial permissions with optimized batch processing
         granted_permissions_count = 0
@@ -335,7 +343,7 @@ async def create_admin_user_optimized(
             ).all()
 
             for permission in permissions:
-                success = await admin_permission_service.grant_permission(
+                success = await admin_permission_service_module.admin_permission_service.grant_permission(
                     db, current_user, new_admin, permission
                 )
                 if success:
@@ -390,7 +398,7 @@ async def get_admin_user_optimized(
     """
     try:
         # Validate access using consolidated utility
-        validation = await validate_admin_user_access(
+        validation = await admin_utils.validate_admin_user_access(
             db, current_user, admin_id, "read"
         )
 
@@ -453,7 +461,7 @@ async def update_admin_user_optimized(
     """
     try:
         # Validate access using consolidated utility
-        validation = await validate_admin_user_access(
+        validation = await admin_utils.validate_admin_user_access(
             db, current_user, admin_id, "update"
         )
 
@@ -470,7 +478,7 @@ async def update_admin_user_optimized(
 
         # Validate security clearance changes if requested
         if request.security_clearance_level is not None:
-            clearance_validation = await validate_security_clearance_change(
+            clearance_validation = await admin_utils.validate_security_clearance_change(
                 current_user=current_user,
                 target_user=admin,
                 new_clearance_level=request.security_clearance_level
@@ -544,7 +552,7 @@ async def get_admin_permissions_optimized(
     """
     try:
         # Validate access
-        validation = await validate_admin_user_access(
+        validation = await admin_utils.validate_admin_user_access(
             db, current_user, admin_id, "read"
         )
 
@@ -560,12 +568,12 @@ async def get_admin_permissions_optimized(
         admin = validation.user
 
         # Get permissions with optimized query
-        permissions = await admin_permission_service.get_user_permissions(
+        permissions = await admin_permission_service_module.admin_permission_service.get_user_permissions(
             db, admin, include_inherited=include_inherited
         )
 
         # Format permissions response
-        formatted_permissions = format_permission_response(
+        formatted_permissions = admin_utils.format_permission_response(
             permissions, include_expired=include_expired
         )
 
@@ -609,7 +617,7 @@ async def grant_permissions_to_admin_optimized(
     """
     try:
         # Validate access
-        validation = await validate_admin_user_access(
+        validation = await admin_utils.validate_admin_user_access(
             db, current_user, admin_id, "manage_permissions"
         )
 
@@ -643,7 +651,7 @@ async def grant_permissions_to_admin_optimized(
         try:
             for permission in permissions:
                 try:
-                    success = await admin_permission_service.grant_permission(
+                    success = await admin_permission_service_module.admin_permission_service.grant_permission(
                         db, current_user, admin, permission, request.expires_at
                     )
                     if success:
@@ -706,7 +714,7 @@ async def revoke_permissions_from_admin_optimized(
     """
     try:
         # Validate access
-        validation = await validate_admin_user_access(
+        validation = await admin_utils.validate_admin_user_access(
             db, current_user, admin_id, "manage_permissions"
         )
 
@@ -740,7 +748,7 @@ async def revoke_permissions_from_admin_optimized(
         try:
             for permission in permissions:
                 try:
-                    success = await admin_permission_service.revoke_permission(
+                    success = await admin_permission_service_module.admin_permission_service.revoke_permission(
                         db, current_user, admin, permission
                     )
                     if success:
@@ -835,7 +843,7 @@ async def bulk_admin_action_optimized(
             )
 
         # Process bulk operation using consolidated utility
-        result = await process_bulk_admin_operation(
+        result = await admin_utils.process_bulk_admin_operation(
             db=db,
             current_user=current_user,
             user_ids=request.user_ids,

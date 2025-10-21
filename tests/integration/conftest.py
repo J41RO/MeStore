@@ -3,22 +3,21 @@
 Integration Test Configuration with Enhanced Database Isolation
 ==============================================================
 
-This module provides specialized configuration for integration tests with
-enhanced database isolation to prevent ResourceClosedError and ensure
-proper cross-system testing.
+Configuración de pruebas de integración con aislamiento mejorado
+para prevenir ResourceClosedError y garantizar coherencia entre
+módulos.
 
-Features:
-1. Enhanced async session management
-2. Proper FastAPI dependency injection
-3. User fixtures with proper token generation
-4. Cross-system authentication validation
-5. Transaction isolation and cleanup
-
-Author: Integration Testing Specialist
-Date: 2025-09-23
+Características:
+1. Manejo asíncrono de sesiones
+2. Inyección de dependencias FastAPI limpia
+3. Creación automática de usuarios de prueba (superuser, vendor, buyer)
+4. Generación de tokens JWT válidos
+5. Limpieza y aislamiento entre tests
 """
 
 import os
+import asyncio
+import logging
 from typing import AsyncGenerator
 
 import pytest
@@ -26,18 +25,44 @@ from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-# Set testing environment
+# ==========================================================
+# 🔧 Configuración del entorno de pruebas
+# ==========================================================
+
+# IMPORTANT: Set up temporary database path BEFORE any app imports
+import tempfile
+temp_db = tempfile.NamedTemporaryFile(mode='w', suffix='.db', delete=False)
+temp_db_path = temp_db.name
+temp_db.close()
+
 os.environ["TESTING"] = "1"
 os.environ["DISABLE_SEARCH_SERVICE"] = "1"
 os.environ["DISABLE_CHROMA_SERVICE"] = "1"
+os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{temp_db_path}"
+
+# Store temp db path for cleanup
+_TEMP_DB_PATH = temp_db_path
 
 from app.main import app
 from app.models.user import User, UserType
 from app.core.security import create_access_token, get_password_hash
 from app.core.types import generate_uuid
 
-# Import enhanced database isolation
+# Enhanced database isolation tools
 from tests.integration.database_isolation_enhanced import enhanced_async_session, session_manager
+
+# ==========================================================
+# 🧩 Fixtures base de sesión y cliente
+# ==========================================================
+
+@pytest.fixture(scope="function")
+async def db_session(enhanced_async_session: AsyncSession) -> AsyncSession:
+    """Alias de compatibilidad para pruebas heredadas."""
+    if not hasattr(enhanced_async_session, "query"):
+        def _unsupported_query(*_args, **_kwargs):  # pragma: no cover
+            raise AttributeError("AsyncSession no soporta .query; usa SQLAlchemy select()")
+        setattr(enhanced_async_session, "query", _unsupported_query)
+    return enhanced_async_session
 
 
 @pytest.fixture(scope="function")
@@ -45,27 +70,17 @@ async def integration_async_client(
     enhanced_async_session: AsyncSession
 ) -> AsyncGenerator[AsyncClient, None]:
     """
-    Async client fixture for integration tests with enhanced session management.
+    Cliente HTTP asíncrono para pruebas de integración.
 
-    This fixture:
-    - Uses enhanced async session with proper isolation
-    - Configures FastAPI dependency injection
-    - Provides clean client for each test
-    - Ensures proper cleanup to prevent ResourceClosedError
-
-    Args:
-        enhanced_async_session: Enhanced session with proper isolation
-
-    Yields:
-        AsyncClient: Configured client for integration tests
+    - Usa sesión de base de datos aislada
+    - Configura headers realistas
+    - Limpia conexiones al finalizar
     """
-    # Headers for realistic requests
     headers = {
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) Integration-Test/1.0",
+        "User-Agent": "Integration-Test/1.0",
         "Content-Type": "application/json"
     }
 
-    # Create async client with proper transport
     transport = ASGITransport(app=app)
 
     async with AsyncClient(
@@ -76,269 +91,172 @@ async def integration_async_client(
     ) as client:
         yield client
 
+# ==========================================================
+# 👥 Fixtures de usuarios de integración
+# ==========================================================
 
-@pytest.fixture(scope="function")
-async def integration_superuser(
-    enhanced_async_session: AsyncSession
+async def _create_user(
+    session: AsyncSession,
+    email_prefix: str,
+    password: str,
+    user_type: UserType,
+    nombre: str,
+    apellido: str,
+    telefono: str
 ) -> User:
-    """
-    Create a superuser for integration tests with enhanced session management.
-
-    This fixture creates a superuser with all required fields for
-    proper JWT token generation and cross-system authentication.
-
-    Args:
-        enhanced_async_session: Enhanced session for database operations
-
-    Returns:
-        User: Superuser with proper configuration for integration tests
-    """
-    superuser = User(
+    """Crea un usuario genérico para integración."""
+    suffix = generate_uuid()[:8]
+    user = User(
         id=generate_uuid(),
-        email="integration.superuser@mestore.com",
-        password_hash=await get_password_hash("SuperSecure123!"),
-        nombre="Integration",
-        apellido="Superuser",
-        user_type=UserType.SUPERUSER,
+        email=f"integration.{email_prefix}+{suffix}@mestore.com",
+        password_hash=await get_password_hash(password),
+        nombre=nombre,
+        apellido=apellido,
+        user_type=user_type,
         is_active=True,
         is_verified=True,
-        documento="12345678",  # Required field
-        telefono="3001234567"  # Required field
+        documento=generate_uuid()[:10],
+        telefono=telefono
     )
-
-    enhanced_async_session.add(superuser)
-    await enhanced_async_session.commit()
-    await enhanced_async_session.refresh(superuser)
-
-    return superuser
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
+    return user
 
 
 @pytest.fixture(scope="function")
-async def integration_vendor(
-    enhanced_async_session: AsyncSession
-) -> User:
-    """
-    Create a vendor user for integration tests.
-
-    Args:
-        enhanced_async_session: Enhanced session for database operations
-
-    Returns:
-        User: Vendor user configured for integration tests
-    """
-    vendor = User(
-        id=generate_uuid(),
-        email="integration.vendor@mestore.com",
-        password_hash=await get_password_hash("VendorSecure123!"),
-        nombre="Integration",
-        apellido="Vendor",
-        user_type=UserType.VENDOR,
-        is_active=True,
-        is_verified=True,
-        documento="87654321",
-        telefono="3009876543"
+async def integration_superuser(enhanced_async_session: AsyncSession) -> User:
+    """Superusuario de integración."""
+    return await _create_user(
+        enhanced_async_session,
+        "superuser",
+        "SuperSecure123!",
+        UserType.SUPERUSER,
+        "Integration",
+        "Superuser",
+        "3001234567"
     )
-
-    enhanced_async_session.add(vendor)
-    await enhanced_async_session.commit()
-    await enhanced_async_session.refresh(vendor)
-
-    return vendor
 
 
 @pytest.fixture(scope="function")
-async def integration_buyer(
-    enhanced_async_session: AsyncSession
-) -> User:
-    """
-    Create a buyer user for integration tests.
-
-    Args:
-        enhanced_async_session: Enhanced session for database operations
-
-    Returns:
-        User: Buyer user configured for integration tests
-    """
-    buyer = User(
-        id=generate_uuid(),
-        email="integration.buyer@mestore.com",
-        password_hash=await get_password_hash("BuyerSecure123!"),
-        nombre="Integration",
-        apellido="Buyer",
-        user_type=UserType.BUYER,
-        is_active=True,
-        is_verified=True,
-        documento="11223344",
-        telefono="3005566778"
+async def integration_vendor(enhanced_async_session: AsyncSession) -> User:
+    """Vendedor de integración."""
+    return await _create_user(
+        enhanced_async_session,
+        "vendor",
+        "VendorSecure123!",
+        UserType.VENDOR,
+        "Integration",
+        "Vendor",
+        "3009876543"
     )
 
-    enhanced_async_session.add(buyer)
-    await enhanced_async_session.commit()
-    await enhanced_async_session.refresh(buyer)
 
-    return buyer
+@pytest.fixture(scope="function")
+async def integration_buyer(enhanced_async_session: AsyncSession) -> User:
+    """Comprador de integración."""
+    return await _create_user(
+        enhanced_async_session,
+        "buyer",
+        "BuyerSecure123!",
+        UserType.BUYER,
+        "Integration",
+        "Buyer",
+        "3005566778"
+    )
+
+# ==========================================================
+# 🔐 Fixtures de tokens y cabeceras
+# ==========================================================
+
+def _make_token(user: User) -> str:
+    """Genera un JWT válido para un usuario dado."""
+    token_data = {
+        "sub": str(user.id),
+        "user_id": str(user.id),
+        "email": user.email,
+        "nombre": user.nombre,
+        "apellido": user.apellido,
+        "user_type": user.user_type.value,
+        "is_active": user.is_active,
+        "is_verified": user.is_verified,
+        "documento": user.documento,
+        "telefono": user.telefono,
+    }
+    return create_access_token(data=token_data)
 
 
 @pytest.fixture(scope="function")
 def integration_superuser_token(integration_superuser: User) -> str:
-    """
-    Generate a valid JWT token for the integration superuser.
-
-    This token includes all fields expected by the auth system
-    and is properly formatted for cross-system authentication.
-
-    Args:
-        integration_superuser: Superuser to create token for
-
-    Returns:
-        str: Valid JWT access token
-    """
-    token_data = {
-        "sub": str(integration_superuser.id),
-        "user_id": str(integration_superuser.id),
-        "email": integration_superuser.email,
-        "nombre": integration_superuser.nombre,
-        "apellido": integration_superuser.apellido,
-        "user_type": integration_superuser.user_type.value,
-        "is_active": integration_superuser.is_active,
-        "is_verified": integration_superuser.is_verified,
-        "documento": integration_superuser.documento,
-        "telefono": integration_superuser.telefono,
-    }
-
-    return create_access_token(data=token_data)
+    return _make_token(integration_superuser)
 
 
 @pytest.fixture(scope="function")
 def integration_vendor_token(integration_vendor: User) -> str:
-    """
-    Generate a valid JWT token for the integration vendor.
-
-    Args:
-        integration_vendor: Vendor to create token for
-
-    Returns:
-        str: Valid JWT access token
-    """
-    token_data = {
-        "sub": str(integration_vendor.id),
-        "user_id": str(integration_vendor.id),
-        "email": integration_vendor.email,
-        "nombre": integration_vendor.nombre,
-        "apellido": integration_vendor.apellido,
-        "user_type": integration_vendor.user_type.value,
-        "is_active": integration_vendor.is_active,
-        "is_verified": integration_vendor.is_verified,
-        "documento": integration_vendor.documento,
-        "telefono": integration_vendor.telefono,
-    }
-
-    return create_access_token(data=token_data)
+    return _make_token(integration_vendor)
 
 
 @pytest.fixture(scope="function")
 def integration_buyer_token(integration_buyer: User) -> str:
-    """
-    Generate a valid JWT token for the integration buyer.
+    return _make_token(integration_buyer)
 
-    Args:
-        integration_buyer: Buyer to create token for
 
-    Returns:
-        str: Valid JWT access token
-    """
-    token_data = {
-        "sub": str(integration_buyer.id),
-        "user_id": str(integration_buyer.id),
-        "email": integration_buyer.email,
-        "nombre": integration_buyer.nombre,
-        "apellido": integration_buyer.apellido,
-        "user_type": integration_buyer.user_type.value,
-        "is_active": integration_buyer.is_active,
-        "is_verified": integration_buyer.is_verified,
-        "documento": integration_buyer.documento,
-        "telefono": integration_buyer.telefono,
-    }
-
-    return create_access_token(data=token_data)
+def _auth_headers(token: str) -> dict:
+    """Crea headers con token JWT."""
+    return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
 
 @pytest.fixture(scope="function")
 def integration_superuser_headers(integration_superuser_token: str) -> dict:
-    """
-    Generate authentication headers for the integration superuser.
-
-    Args:
-        integration_superuser_token: JWT token for superuser
-
-    Returns:
-        dict: Headers with Authorization bearer token
-    """
-    return {
-        "Authorization": f"Bearer {integration_superuser_token}",
-        "Content-Type": "application/json"
-    }
+    return _auth_headers(integration_superuser_token)
 
 
 @pytest.fixture(scope="function")
 def integration_vendor_headers(integration_vendor_token: str) -> dict:
-    """
-    Generate authentication headers for the integration vendor.
-
-    Args:
-        integration_vendor_token: JWT token for vendor
-
-    Returns:
-        dict: Headers with Authorization bearer token
-    """
-    return {
-        "Authorization": f"Bearer {integration_vendor_token}",
-        "Content-Type": "application/json"
-    }
+    return _auth_headers(integration_vendor_token)
 
 
 @pytest.fixture(scope="function")
 def integration_buyer_headers(integration_buyer_token: str) -> dict:
-    """
-    Generate authentication headers for the integration buyer.
+    return _auth_headers(integration_buyer_token)
 
-    Args:
-        integration_buyer_token: JWT token for buyer
-
-    Returns:
-        dict: Headers with Authorization bearer token
-    """
-    return {
-        "Authorization": f"Bearer {integration_buyer_token}",
-        "Content-Type": "application/json"
-    }
-
+# ==========================================================
+# 🧹 Limpieza automática tras cada test
+# ==========================================================
 
 @pytest.fixture(scope="function", autouse=True)
 async def cleanup_integration_test():
     """
-    Auto-cleanup fixture for integration tests.
-
-    This fixture ensures proper cleanup after each integration test
-    to prevent ResourceClosedError and maintain test isolation.
+    Limpieza post-test para prevenir ResourceClosedError
+    y mantener aislamiento de sesiones.
     """
-    # Setup - nothing needed
     yield
-
-    # Cleanup - ensure session manager is clean
     try:
         await session_manager.cleanup_all_sessions()
         session_manager.clear_dependency_overrides()
     except Exception as e:
-        # Log cleanup errors but don't fail the test
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.warning(f"Integration test cleanup warning: {e}")
+        logging.getLogger(__name__).warning(f"⚠️ Limpieza de test falló: {e}")
 
-
-# Aliases for backward compatibility with existing test imports
+# ==========================================================
+# 🧭 Aliases de compatibilidad (legacy)
+# ==========================================================
 async_session = enhanced_async_session
 async_client = integration_async_client
 test_admin_user = integration_superuser
 test_vendor_user = integration_vendor
 test_buyer_user = integration_buyer
+test_buyer = integration_buyer
+
+# ==========================================================
+# 🧹 Limpieza final de sesión completa
+# ==========================================================
+
+def pytest_sessionfinish(session, exitstatus):
+    """Limpieza al finalizar toda la sesión de pytest"""
+    try:
+        import os
+        if os.path.exists(_TEMP_DB_PATH):
+            os.unlink(_TEMP_DB_PATH)
+            logging.getLogger(__name__).info(f"Removed temporary database: {_TEMP_DB_PATH}")
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"Failed to remove temporary database: {e}")

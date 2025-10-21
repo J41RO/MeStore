@@ -9,6 +9,7 @@ Este módulo configura logging estructurado con:
 """
 
 import logging
+import os
 import sys
 from typing import Any, Dict
 
@@ -76,7 +77,8 @@ def configure_loguru() -> None:
     Configura loguru para logs más legibles en desarrollo.
     Solo se activa si ENVIRONMENT=development.
     """
-    if settings.ENVIRONMENT.lower() != "development":
+    current_environment = os.getenv("ENVIRONMENT", settings.ENVIRONMENT)
+    if current_environment.lower() != "development":
         return
 
     # Remover handler por defecto de loguru

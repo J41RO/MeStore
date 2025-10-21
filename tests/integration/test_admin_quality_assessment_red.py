@@ -204,7 +204,7 @@ class TestQualityChecklistIntegrationRed:
                 with patch('app.services.product_verification_workflow.ProductVerificationWorkflow') as mock_workflow_class:
                     mock_workflow = Mock()
                     # Simulate workflow step validation failure
-                    mock_workflow.execute_step.return_value = False  # Step execution fails
+                    mock_workflow.execute_step = AsyncMock(return_value=False)  # Step execution fails
                     mock_workflow.get_workflow_progress.return_value = {"error": "Invalid workflow state"}
                     mock_workflow_class.return_value = mock_workflow
 

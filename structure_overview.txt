@@ -1,0 +1,2461 @@
+.
+├── agents
+│   └── claude-dev.yaml
+├── alembic
+│   ├── env.py
+│   ├── env.py.backup.1753310559
+│   ├── env.py.backup.1753312510
+│   ├── env.py.backup.error
+│   ├── env.py.bak
+│   ├── env.py.bak2
+│   ├── README
+│   ├── script.py.mako
+│   ├── versions
+│   │   ├── 2025_09_17_1400-standardize_id_types_to_uuid.py
+│   │   ├── 2025_09_17_1917-c58467fecce8_initial_sqlite_migration_complete_tables.py
+│   │   ├── 2025_09_17_2100-standardize_usertype_enum_values.py
+│   │   ├── 2025_09_18_0529-641172eac6b5_merge_uuid_and_usertype_standardization_.py
+│   │   ├── 2025_09_19_1442-69f3069781fc_fix_buyer_id_foreign_key_to_use_uuid_.py
+│   │   ├── 2025_09_29_1850-953052bf3be8_add_google_oauth_fields_to_user_model.py
+│   │   ├── 2025_10_02_0520-2a1280396cea_merge_decimal_types_and_constraints.py
+│   │   ├── 2025_10_02_1000_fix_order_decimal_types.py
+│   │   ├── 2025_10_02_1010_fix_order_item_decimal_types.py
+│   │   ├── 2025_10_02_1020_fix_order_transaction_decimal_types.py
+│   │   ├── 2025_10_02_add_critical_database_constraints.py
+│   │   ├── 2025_10_03_0614-34bac231e539_add_cancellation_fields_to_orders.py
+│   │   ├── 2025_10_03_0716-db108145b492_add_shipping_tracking_fields_to_orders.py
+│   │   ├── 2025_10_08_2141-fe0b5dec2fb2_add_account_status_to_users.py
+│   │   ├── 2025_10_11_0655-eff21666914a_add_email_verification_token_fields_to_.py
+│   │   ├── 2025_10_11_0714-eed5e29cc9eb_add_vendor_type_fields_for_persona_.py
+│   │   ├── 2025_10_11_0722-063355405f32_add_vendor_type_fields_for_persona_.py
+│   │   ├── 2025_10_11_0747-7fa3d3be7e02_add_email_verification_token_fields.py
+│   │   └── 2025_10_12_2101-b68d8e937bad_p0_p1_add_rejection_and_audit_fields.py
+│   └── versions.bak.1758132102
+│       ├── 2025_07_30_1744-9164fb08a156_baseline_migration_corrected_foreign_.py
+│       ├── 2025_07_31_0037-ba2f2921ee25_add_missing_temporal_indexes_manual.py
+│       ├── 2025_07_31_0205-e0fc93249ec0_sync_models_final.py
+│       ├── 2025_08_01_1659-b6874abecde5_add_otp_verification_fields_to_user_.py
+│       ├── 2025_08_03_0708-5e0e1b1f0cfc_add_password_reset_fields_to_user_model.py
+│       ├── 2025_09_10_0512-63e0f6cd7e5c_add_inventory_audit_tables.py
+│       ├── 2025_09_13_0147-abc123_add_commission_system_tables.py
+│       ├── 2025_09_13_0200-add_processing_at_to_orders.py
+│       ├── 2025_09_13_0345-def456_add_vendor_id_to_orders_table.py
+│       ├── 2025_09_13_0350-ghi789_update_usertype_enum_to_english.py
+│       ├── 2025_09_17_0227-ab40848d19b_add_hierarchical_category_system.py
+│       ├── 2025_09_17_1200-add_fulltext_search_indexes.py
+│       └── 2025_09_17_1200-add_fulltext_search_indexes.py.bak
+├── alembic.ini
+├── app
+│   ├── agents
+│   │   └── __init__.py
+│   ├── api
+│   │   ├── __init__.py
+│   │   └── v1
+│   ├── core
+│   │   ├── admin_utils.py
+│   │   ├── auth.py
+│   │   ├── chromadb.py
+│   │   ├── concurrent_session_manager.py
+│   │   ├── config.py
+│   │   ├── csrf_protection.py
+│   │   ├── database.py
+│   │   ├── dependencies.py
+│   │   ├── dependencies_simple.py
+│   │   ├── id_validation.py
+│   │   ├── integrated_auth.py
+│   │   ├── integrated_logging_system.py
+│   │   ├── logger.py
+│   │   ├── logging.py
+│   │   ├── logging_rotation.py
+│   │   ├── middleware
+│   │   ├── middleware_integration.py
+│   │   ├── middleware_integration_simple.py
+│   │   ├── monitoring
+│   │   ├── performance_middleware.py
+│   │   ├── rate_limiting.py
+│   │   ├── redis
+│   │   ├── responses.py
+│   │   ├── secret_manager.py
+│   │   ├── security.py
+│   │   ├── sms_security.py
+│   │   ├── system_integration_validator.py
+│   │   ├── types.py
+│   │   └── unified_error_handler.py
+│   ├── .coverage
+│   ├── database
+│   │   ├── __init__.py
+│   │   └── session.py
+│   ├── docs
+│   │   └── api_categories_documentation.md
+│   ├── fulfillment
+│   │   └── __init__.py
+│   ├── __init__.py
+│   ├── main_production.py
+│   ├── main.py
+│   ├── marketplace
+│   │   └── __init__.py
+│   ├── middleware
+│   │   ├── auth_rate_limiting.py
+│   │   ├── comprehensive_security.py
+│   │   ├── enterprise_security.py
+│   │   ├── __init__.py
+│   │   ├── logging_example.md
+│   │   ├── logging.py
+│   │   ├── performance_monitor.py
+│   │   ├── performance_optimization.py
+│   │   ├── rate_limiter.py
+│   │   ├── rate_limiting.py
+│   │   ├── response_standardization.py
+│   │   ├── security.py
+│   │   └── user_agent_validator.py
+│   ├── models
+│   │   ├── admin_activity_log.py
+│   │   ├── admin_permission.py
+│   │   ├── base.py
+│   │   ├── business_metric.py.disabled
+│   │   ├── category.py
+│   │   ├── commission_dispute.py
+│   │   ├── commission.py
+│   │   ├── discrepancy_report.py
+│   │   ├── incidente_inventario.py
+│   │   ├── incoming_product_queue.py
+│   │   ├── __init__.py
+│   │   ├── __init__.py.backup.1753312848
+│   │   ├── inventory_audit.py
+│   │   ├── inventory.py
+│   │   ├── inventory.py.backup.manual
+│   │   ├── movement_tracker.py
+│   │   ├── movimiento_stock.py
+│   │   ├── order.py
+│   │   ├── payment.py
+│   │   ├── payout_history.py
+│   │   ├── payout_request.py
+│   │   ├── product_image.py
+│   │   ├── product.py
+│   │   ├── storage.py
+│   │   ├── storage.py.corrupted
+│   │   ├── system_setting.py
+│   │   ├── transaction.py
+│   │   ├── user.py
+│   │   ├── vendor_audit.py
+│   │   ├── vendor_document.py
+│   │   └── vendor_note.py
+│   ├── schemas
+│   │   ├── admin.py
+│   │   ├── admin_users.py
+│   │   ├── alerts.py
+│   │   ├── auth.py
+│   │   ├── base.py
+│   │   ├── category.py
+│   │   ├── commission_dispute.py
+│   │   ├── commission.py
+│   │   ├── common.py
+│   │   ├── embeddings_schemas.py
+│   │   ├── financial_reports.py
+│   │   ├── __init__.py
+│   │   ├── inventory_audit.py
+│   │   ├── inventory.py
+│   │   ├── leads.py
+│   │   ├── order.py
+│   │   ├── payment.py
+│   │   ├── payout_history.py
+│   │   ├── payout_request.py
+│   │   ├── product_image.py
+│   │   ├── product.py
+│   │   ├── product_verification.py
+│   │   ├── response_base.py
+│   │   ├── search.py
+│   │   ├── shipping.py
+│   │   ├── storage.py
+│   │   ├── superuser_admin.py
+│   │   ├── system_config.py
+│   │   ├── transaction.py
+│   │   ├── user.py
+│   │   ├── user.py.backup.1753594341
+│   │   ├── vendedor.py
+│   │   ├── vendor_document.py
+│   │   ├── vendor_profile.py
+│   │   └── vendor.py
+│   ├── services
+│   │   ├── admin_permission_service.py
+│   │   ├── alternative_sms_service.py
+│   │   ├── analytics_service.py
+│   │   ├── audit_logging_service.py
+│   │   ├── audit_service.py
+│   │   ├── auth_service.py
+│   │   ├── cache_service.py
+│   │   ├── category_service.py
+│   │   ├── chroma_service.py
+│   │   ├── commission_service.py
+│   │   ├── database_optimization_service.py
+│   │   ├── database_reset_service.py
+│   │   ├── discrepancy_analyzer.py
+│   │   ├── email_service.py
+│   │   ├── embeddings.py
+│   │   ├── embedding_sync_service.py
+│   │   ├── fraud_detection_service.py
+│   │   ├── google_oauth_service.py
+│   │   ├── __init__.py
+│   │   ├── integrated_payment_service.py
+│   │   ├── integrated_performance_service.py
+│   │   ├── inventory_service.py
+│   │   ├── jwt_blacklist_service.py
+│   │   ├── location_assignment_service.py
+│   │   ├── notification_service.py
+│   │   ├── order_notification_service.py
+│   │   ├── order_state_service.py
+│   │   ├── order_tracking_service.py
+│   │   ├── otp_service.py
+│   │   ├── payments
+│   │   ├── payment_service.py
+│   │   ├── performance_monitoring_service.py
+│   │   ├── product_service.py
+│   │   ├── product_verification_workflow.py
+│   │   ├── qr_service.py
+│   │   ├── queue_notification_service.py
+│   │   ├── rate_limiting_service.py
+│   │   ├── search_analytics_service.py
+│   │   ├── search_cache_service.py
+│   │   ├── search_performance_service.py
+│   │   ├── search_service.py
+│   │   ├── secure_auth_service.py
+│   │   ├── secure_session_service.py
+│   │   ├── security_validation_service.py
+│   │   ├── session_service.py
+│   │   ├── sms_service.py
+│   │   ├── smtp_email_service.py
+│   │   ├── space_optimizer_service.py
+│   │   ├── storage_manager_service.py
+│   │   ├── superuser_service.py
+│   │   ├── transaction_service.py
+│   │   └── vendor_service.py
+│   ├── static
+│   │   └── logos
+│   ├── tasks
+│   │   └── queue_scheduler.py
+│   └── utils
+│       ├── auth_helpers.py
+│       ├── benchmark.py
+│       ├── crud.py
+│       ├── crud_sync.py
+│       ├── database.py
+│       ├── database_utils.py
+│       ├── file_validator.py
+│       ├── __init__.py
+│       ├── password.py
+│       ├── password.py.backup.1753975910
+│       ├── query_analyzer.py
+│       ├── response_utils.py
+│       ├── url_helper.py
+│       └── validators.py
+├── .archive
+│   ├── 2024
+│   └── 2025
+│       └── htmlcov_final
+├── BACKEND_REPAIR_SUMMARY.md
+├── .backups
+│   ├── api-migration-20251001_023642
+│   └── api-migration-20251001_023651
+│       └── services
+├── bin
+│   └── alembic
+├── ceo-office
+├── check_all_tests.sh
+├── .claude
+│   ├── agents
+│   │   ├── accessibility-ai.md
+│   │   ├── agent-recruiter-ai.md
+│   │   ├── api-architect-ai.md
+│   │   ├── api-security.md
+│   │   ├── api-testing-specialist.md
+│   │   ├── backend-framework-ai.md
+│   │   ├── business-analyst-ai.md
+│   │   ├── caching-strategy.md
+│   │   ├── canvas-optimization-ai.md
+│   │   ├── canvas-specialist-ai.md
+│   │   ├── cloud-architect-ai.md
+│   │   ├── cloud-infrastructure-ai.md
+│   │   ├── code-analysis-expert.md
+│   │   ├── communication-ai.md
+│   │   ├── communication-hub-ai.md
+│   │   ├── compliance-automation-ai.md
+│   │   ├── configuration-management.md
+│   │   ├── customer-success-ai.md
+│   │   ├── cybersecurity-ai.md
+│   │   ├── database-architect-ai.md
+│   │   ├── database-performance.md
+│   │   ├── database-testing-specialist.md
+│   │   ├── data-engineering-ai.md
+│   │   ├── data-pipeline-architect.md
+│   │   ├── data-privacy-ai.md
+│   │   ├── data-security.md
+│   │   ├── development-coordinator.md
+│   │   ├── devops-integration-ai.md
+│   │   ├── director-enterprise-ceo.md
+│   │   ├── e2e-testing-ai.md
+│   │   ├── embeddings-ai.md
+│   │   ├── enterprise-product-manager.md
+│   │   ├── feature-prioritization-ai.md
+│   │   ├── frontend-performance-ai.md
+│   │   ├── frontend-security-ai.md
+│   │   ├── functional-validator-ai.md
+│   │   ├── git-control-ai.md
+│   │   ├── information-architect-ai.md
+│   │   ├── integration-quality-ai.md
+│   │   ├── integration-testing.md
+│   │   ├── load-testing.md
+│   │   ├── machine-learning-ai.md
+│   │   ├── marketing-analytics-ai.md
+│   │   ├── master-orchestrator.md
+│   │   ├── mobile-ux-ai.md
+│   │   ├── monitoring-ai.md
+│   │   ├── mvp-strategist.md
+│   │   ├── navigation-ux-ai.md
+│   │   ├── payment-systems-ai.md
+│   │   ├── performance-optimization-ai.md
+│   │   ├── performance-testing-ai.md
+│   │   ├── personal-assistant.md
+│   │   ├── project-coordination.md
+│   │   ├── project-librarian.md
+│   │   ├── pwa-specialist.md
+│   │   ├── react-specialist-ai.md
+│   │   ├── real-time-analytics-ai.md
+│   │   ├── roadmap-architect-ai.md
+│   │   ├── security-backend-ai.md
+│   │   ├── security-vulnerability-tester.md
+│   │   ├── seo-specialist-ai.md
+│   │   ├── similarity-search.md
+│   │   ├── solution-architect-ai.md
+│   │   ├── supply-chain-optimizer.md
+│   │   ├── system-architect-ai.md
+│   │   ├── task-distribution.md
+│   │   ├── tdd-specialist.md
+│   │   ├── team-mvp-orchestrator.md
+│   │   ├── team-testing-orchestrator.md
+│   │   ├── technical-debt-manager.md
+│   │   ├── test-architect.md
+│   │   ├── third-party-integration-ai.md
+│   │   ├── unit-testing-ai.md
+│   │   ├── ux-specialist-ai.md
+│   │   ├── ux-visualization-specialist.md
+│   │   ├── vector-database.md
+│   │   ├── voice-applications-ai.md
+│   │   ├── workflow-manager.md
+│   │   └── x-progress-tracker-ai.md
+│   ├── hooks
+│   │   └── test-command.sh
+│   ├── organization
+│   │   ├── command-center
+│   │   ├── core-architecture
+│   │   ├── development-engines
+│   │   ├── personal-office
+│   │   ├── quality-operations
+│   │   └── specialized-domains
+│   └── settings.local.json
+├── .codecov.yml
+├── complete_test_run_after_fix.log
+├── config
+│   ├── dev_server.pid
+│   ├── logging.conf
+│   ├── Procfile
+│   └── render.yaml
+├── .coveragerc
+├── data
+│   ├── chroma
+│   │   ├── 35ebcc0e-5aa1-43b7-b91b-086dcb1a9c10
+│   │   └── chroma.sqlite3
+│   ├── databases
+│   │   ├── app.db
+│   │   ├── mestocker.db
+│   │   ├── mestocker_development.db
+│   │   ├── mestore.db
+│   │   ├── mestore_development.db
+│   │   ├── mestore_production.db
+│   │   └── mestore_production.db.backup
+│   ├── mestore.db
+│   ├── mestore_production.db
+│   └── reports
+│       ├── api_coverage_analysis.json
+│       ├── enhanced_api_coverage_analysis.json
+│       ├── FLOAT_FIELDS_INVENTORY.json
+│       ├── integration_test_report_20250928_184109.json
+│       ├── integration_test_report_20251006_181448.json
+│       ├── integration_test_report_20251006_182142.json
+│       ├── integration_test_report_20251006_182342.json
+│       ├── integration_test_report_20251006_182553.json
+│       ├── integration_test_report_20251006_182649.json
+│       ├── integration_test_report_20251006_182927.json
+│       ├── integration_test_report_20251006_183613.json
+│       ├── integration_test_report_20251006_183814.json
+│       ├── integration_test_report_20251006_185130.json
+│       ├── integration_test_report_20251006_191455.json
+│       ├── reorganization_inventory.json
+│       ├── user_create_modal_validation_1759082427.json
+│       └── user_create_modal_validation_1759082454.json
+├── docker-compose.production.yml
+├── docker-compose.secrets.yml
+├── docker-compose.staging.yml
+├── docker-compose.yml
+├── Dockerfile.production
+├── .dockerignore
+├── docs
+│   ├── ADMIN_MANAGEMENT_REFACTOR_DOCUMENTATION.md
+│   ├── ai_notes
+│   │   ├── CLAUDE_CORRECTED.md
+│   │   ├── CLAUDE.md
+│   │   └── CLAUDE_MD_CHANGELOG.md
+│   ├── alembic_commands.md
+│   ├── alembic_recovery_guide.md
+│   ├── analysis
+│   │   └── AUTHENTICATION_SYSTEM_MAP.md
+│   ├── api
+│   │   ├── endpoints
+│   │   ├── payments-fraud-detection.md
+│   │   ├── schemas
+│   │   └── search-api-guide.md
+│   ├── architecture
+│   │   ├── ARCHITECTURE_DESIGN_EXECUTIVE_SUMMARY.md
+│   │   ├── ARCHITECTURE_DESIGN_INDEX.md
+│   │   ├── decisions
+│   │   ├── diagrams
+│   │   ├── DIRECTORY_STRUCTURE_DESIGN.md
+│   │   ├── FASE_1_ARCHITECTURE_DESIGN_COMPLETE.md
+│   │   ├── system-design
+│   │   └── WORKSPACE_OPTIMIZATION_PROPOSAL.md
+│   ├── architecture-hybrid.md
+│   ├── AUTHENTICATION_AUDIT_REPORT_FINAL.md
+│   ├── BCRYPT_WARNING.md
+│   ├── category_system_queries.md
+│   ├── DATABASE_RESET_SYSTEM.md
+│   ├── deployment
+│   │   ├── EVALUACION_PRE_PRODUCCION.md
+│   │   ├── migration_deploy_guide.md
+│   │   ├── PRODUCTION_READINESS_REPORT.md
+│   │   └── RAILWAY_DEPLOYMENT_GUIDE.md
+│   ├── detec-tipo-proyecto.md
+│   ├── executive
+│   │   ├── API_ROADMAP_POST_MVP.md
+│   │   ├── BUYER_DASHBOARD_EXECUTIVE_SUMMARY.md
+│   │   ├── CODE_QUALITY_EXECUTIVE_SUMMARY.md
+│   │   ├── FLOAT_TO_DECIMAL_EXECUTIVE_SUMMARY.md
+│   │   ├── MVP_CONSOLIDATED_REPORT.md
+│   │   ├── MVP_EXECUTIVE_SUMMARY.md
+│   │   ├── MVP_IMPLEMENTATION_CHECKLIST.md
+│   │   ├── NEXT_STEPS_VENDOR_ORDER_MANAGEMENT.md
+│   │   ├── PHASE_1_EXECUTIVE_SUMMARY.md
+│   │   ├── QA_FIXES_EXECUTIVE_SUMMARY.md
+│   │   ├── RACE_CONDITION_EXECUTIVE_SUMMARY.md
+│   │   ├── ROADMAP_STATUS_UPDATE_2025-10-02.md
+│   │   ├── ROADMAP_STRATEGIC_COMPLETION.md
+│   │   ├── SHIPPING_MVP_EXECUTIVE_SUMMARY.md
+│   │   ├── STOCK_FIX_EXECUTIVE_SUMMARY.md
+│   │   ├── TODO_MVP_VENDOR_FLOW.md
+│   │   └── VENDOR_ORDER_MANAGEMENT_EXECUTIVE_SUMMARY.md
+│   ├── FASE_2_DOCUMENTATION_COMPLETE.md
+│   ├── guides
+│   │   ├── features
+│   │   ├── integration
+│   │   ├── setup
+│   │   ├── testing
+│   │   └── validation
+│   ├── migrations
+│   │   ├── migration_validation_report.md
+│   │   └── users_table_structure.md
+│   ├── model_auto_discovery.md
+│   ├── naming-conventions.md
+│   ├── PAYMENT_INTEGRATION_QUICK_REFERENCE.md
+│   ├── performance_system_guide.md
+│   ├── PROJECT_REORGANIZATION_COMPLETE.md
+│   ├── pydantic-v2-examples.md
+│   ├── pydantic-v2-implementation-guide.md
+│   ├── pydantic-v2-migration-strategy.md
+│   ├── README.md
+│   ├── REPORTE_EJECUTIVO_DELEGACION_AGENTES.md
+│   ├── reports
+│   │   ├── ADMIN_DATA_MANAGEMENT_RED_PHASE_COMPLETION_REPORT.md
+│   │   ├── ADMIN_INTEGRATION_TESTING_FRAMEWORK_REPORT.md
+│   │   ├── ADMIN_MANAGEMENT_COVERAGE_ANALYSIS_EXPERT_REPORT.md
+│   │   ├── ADMIN_MANAGEMENT_REFACTOR_COMPLETION_REPORT.md
+│   │   ├── ADMIN_MANAGEMENT_TESTING_SUITE_FINAL_PROGRESS_REPORT.md
+│   │   ├── ADMIN_SECURITY_REMEDIATION_GUIDE.md
+│   │   ├── ADMIN_TESTING_ARCHITECTURE_SUMMARY.md
+│   │   ├── ALEMBIC_MULTI_ENVIRONMENT_GUIDE.md
+│   │   ├── ANALYTICS_PERFORMANCE_OPTIMIZATION_REPORT.md
+│   │   ├── API_INTEGRATION_TESTS_REPORT.md
+│   │   ├── API_STANDARDIZATION_COMPLETE.md
+│   │   ├── API_V1_DEPENDENCIES_TDD_TESTING_STRATEGY.md
+│   │   ├── audits
+│   │   ├── BACKEND_ADMIN_TESTING_ARCHITECTURE_ANALYSIS.md
+│   │   ├── BACKEND_ADMIN_TESTING_DELIVERABLES_SUMMARY.md
+│   │   ├── bugs
+│   │   ├── CHECKOUT_INTEGRATION_REPORT.md
+│   │   ├── COMPREHENSIVE_ADMIN_PERFORMANCE_ANALYSIS_REPORT.md
+│   │   ├── COMPREHENSIVE_ADMIN_SECURITY_AUDIT_REPORT.md
+│   │   ├── COMPREHENSIVE_AUTH_TEST_REPORT.md
+│   │   ├── CONFIGURATION_MANAGEMENT_IMPLEMENTATION.md
+│   │   ├── COVERAGE_ANALYSIS.md
+│   │   ├── CREDENCIALES_PROYECTO_FINAL.md
+│   │   ├── CREDENCIALES_SISTEMA.md
+│   │   ├── DASHBOARD_FIXES_COMPLETE.md
+│   │   ├── DATABASE_TESTING_ANALYSIS_REPORT.md
+│   │   ├── DISCREPANCIA_PRODUCTOS_CORREGIDA_REPORTE.md
+│   │   ├── E2E_ADMIN_MANAGEMENT_IMPLEMENTATION_REPORT.md
+│   │   ├── E2E_ADMIN_MANAGEMENT_SUITE_SUMMARY.md
+│   │   ├── E2E_TESTING_FINAL_REPORT.md
+│   │   ├── ENHANCED_UX_IMPLEMENTATION_SUMMARY.md
+│   │   ├── ERROR_PAGINATION_CORREGIDO_REPORTE.md
+│   │   ├── ERROR_PRODUCTTABLE_CORREGIDO_REPORTE.md
+│   │   ├── FASTAPI_RESPONSE_STANDARDIZATION.md
+│   │   ├── FINAL_ADMIN_MONITORING_ANALYTICS_RED_PHASE_COMPLETION_REPORT.md
+│   │   ├── FRONTEND_LOGGING_GUIDE.md
+│   │   ├── implementation
+│   │   ├── IMPLEMENTATION_SUMMARY.md
+│   │   ├── INFORME_FINAL_1.1.1.5.md
+│   │   ├── INFORME_FINAL_TAREA_1.1.4.4.md
+│   │   ├── INSTRUCCIONES_PRUEBA.md
+│   │   ├── INTEGRATION_TESTING.md
+│   │   ├── INTEGRATION_TESTS_ACTIVATION_REPORT.md
+│   │   ├── INTEGRATION_TEST_SUMMARY.md
+│   │   ├── integration_validation_report.md
+│   │   ├── LOGGING_GUIDE.md
+│   │   ├── LOGGING_ROTATION_GUIDE.md
+│   │   ├── MASSIVE_ADMIN_TESTING_ARCHITECTURE.md
+│   │   ├── MASSIVE_UNIT_TEST_ACTIVATION_REPORT.md
+│   │   ├── MESTORE_MVP_INTEGRATION_VERIFICATION_FINAL_REPORT.md
+│   │   ├── migration_report.md
+│   │   ├── MVP_TESTING_VALIDATION_REPORT.md
+│   │   ├── performance
+│   │   ├── PERFORMANCE_OPTIMIZATION.md
+│   │   ├── PERFORMANCE_OPTIMIZATION_REPORT.md
+│   │   ├── PIPELINE_VALIDATION.md
+│   │   ├── PROBLEMA_LOGIN_ADMIN_SOLUCIONADO.md
+│   │   ├── PRODUCT_MANAGEMENT_UX_REPORT.md
+│   │   ├── project-management.md
+│   │   ├── PWA_FILES_SUMMARY.md
+│   │   ├── PWA_IMPLEMENTATION_GUIDE.md
+│   │   ├── PWA_IMPLEMENTATION_REPORT.md
+│   │   ├── pydantic_v2_migration_report.md
+│   │   ├── README_TEST_COMMANDS.md
+│   │   ├── ROLE_SYSTEM_FIX_DOCUMENTATION.md
+│   │   ├── ROUTING_FIXES_SUMMARY.md
+│   │   ├── SEARCH_SYSTEM.md
+│   │   ├── security
+│   │   ├── SECURITY_AUDIT_REPORT.md
+│   │   ├── security-audits.md
+│   │   ├── SECURITY_TESTING_IMPLEMENTATION_COMPLETE.md
+│   │   ├── SECURITY_VULNERABILITY_ASSESSMENT_REPORT.md
+│   │   ├── SISTEMA_USUARIOS_ROLES_TODO.md
+│   │   ├── SQUAD_1_RED_PHASE_IMPLEMENTATION_REPORT.md
+│   │   ├── SQUAD_2_GREEN_PHASE_COMPLETION_REPORT.md
+│   │   ├── SQUAD_2_RED_PHASE_COMPLETION_REPORT.md
+│   │   ├── SQUAD_IMPLEMENTATION_GUIDES.md
+│   │   ├── SUBDOMINIO_ADMIN_CONFIG.md
+│   │   ├── TAREA_1.2.6.6_COMPLETADA.md
+│   │   ├── tasks.md
+│   │   ├── TDD_ADMIN_MANAGEMENT_STRATEGIC_ANALYSIS.md
+│   │   ├── TDD_ADMIN_USER_MANAGEMENT_RED_PHASE_SUMMARY.md
+│   │   ├── TDD_DELIVERABLES_SUMMARY.md
+│   │   ├── TDD_SETUP_COMPLETE.md
+│   │   ├── testing
+│   │   ├── TEST-PLAN.md
+│   │   ├── test-reports.md
+│   │   ├── todo.md
+│   │   ├── VALIDATION_SYSTEM_COMPLETE_REPORT.md
+│   │   ├── VENDOR_DASHBOARD_INTEGRATION_FINAL_REPORT.md
+│   │   ├── VENDOR_REGISTRATION_E2E_TEST_REPORT.md
+│   │   ├── VENDOR_REGISTRATION_OPTIMIZATION_REPORT.md
+│   │   ├── VENDOR_REGISTRATION_TEST_RESULTS.md
+│   │   ├── VENDOR_TESTING_CREDENTIALS.md
+│   │   └── WEBSOCKET_ANALYTICS_IMPLEMENTATION.md
+│   ├── requirements-ai.md
+│   ├── requirements-fulfillment.md
+│   ├── requirements-marketplace.md
+│   ├── security
+│   │   └── JWT_ENCRYPTION_SECURITY_STANDARDS.md
+│   ├── SECURITY_AUDIT_REPORT.md
+│   ├── TDD_ADMIN_MANAGEMENT_STRATEGY.md
+│   ├── TDD_ADMIN_UTILS_IMPLEMENTATION_REPORT.md
+│   ├── TDD_RATE_LIMITING_SOLUTION.md
+│   ├── VENDOR_MANAGEMENT_COMPLETE.md
+│   ├── VENDOR_MANAGEMENT_DASHBOARD.md
+│   └── WOMPI_SERVICE_IMPLEMENTATION.md
+├── .env
+├── .env.development
+├── .env.example
+├── .env.local
+├── .env.production
+├── .env.production.template
+├── .env.security.example
+├── .env.staging.template
+├── .env.template
+├── .env.test
+├── .env.twilio.example
+├── file::memory:
+├── FINAL_BACKEND_TEST_REPORT.md
+├── FINAL_COMPREHENSIVE_BACKEND_TEST_REPORT.md
+├── frontend
+│   ├── =
+│   ├── 0
+│   ├── ACCESSIBILITY_COMPLIANCE_REPORT.md
+│   ├── .appstore_implementation.md
+│   ├── babel.config.cjs
+│   ├── build.log
+│   ├── debug-react.html
+│   ├── debug_vendor_auth.html
+│   ├── dev.log
+│   ├── Dockerfile
+│   ├── docs
+│   │   ├── MIGRATION_TO_SUBDOMAIN.md
+│   │   ├── OAUTH_SETUP.md
+│   │   └── SEARCH_CONSOLIDATION_DECISION.md
+│   ├── .env.backup
+│   ├── .env.development
+│   ├── .env.example
+│   ├── .env.production
+│   ├── ERROR_HANDLING_QUICK_REFERENCE.md
+│   ├── ERROR_HANDLING_SYSTEM_SUMMARY.md
+│   ├── eslint.config.js
+│   ├── .eslintrc.cjs
+│   ├── final_build_check.log
+│   ├── fix_critical_ts.sh
+│   ├── fix_ts_errors.cjs
+│   ├── fix_unused.sh
+│   ├── FORM_VALIDATION_IMPROVEMENTS_SUMMARY.md
+│   ├── frontend@0.0.0
+│   ├── .gitignore
+│   ├── index.html
+│   ├── jest
+│   ├── jest.config.cjs
+│   ├── LOADING_COMPONENTS_FILES.txt
+│   ├── LOADING_COMPONENTS_IMPLEMENTATION_SUMMARY.md
+│   ├── LOADING_STATES_EXECUTIVE_SUMMARY.md
+│   ├── nginx.conf
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── page_content.html
+│   ├── pattern_extractor.py
+│   ├── PAYMENT_COMPONENTS_INTEGRATION.md
+│   ├── PERFORMANCE_REPORT.md
+│   ├── playwright.config.ts
+│   ├── postcss.config.js
+│   ├── prettier.config.js
+│   ├── .prettierignore
+│   ├── public
+│   │   ├── apple-touch-icon.png
+│   │   ├── masked-icon.svg
+│   │   ├── mock-data-override.js
+│   │   ├── offline.html
+│   │   ├── pwa-192x192.png
+│   │   ├── pwa-512x512.png
+│   │   ├── pwa-64x64.png
+│   │   ├── sw-advanced.js
+│   │   └── vite.svg
+│   ├── README.md
+│   ├── scripts
+│   │   ├── accessibility-audit.js
+│   │   ├── performance-analysis.js
+│   │   ├── validate-production-safety.js
+│   │   └── validate-tdd-red-phase.js
+│   ├── SHOPPING_CART_IMPLEMENTATION.md
+│   ├── SHOPPING_CART_TESTING_CHECKLIST.md
+│   ├── src
+│   │   ├── App.css
+│   │   ├── App.test.tsx
+│   │   ├── AppTest.tsx
+│   │   ├── App.tsx
+│   │   ├── App.tsx.backup-20250908_013602
+│   │   ├── assets
+│   │   ├── .backups
+│   │   ├── components
+│   │   ├── config
+│   │   ├── contexts
+│   │   ├── debug_user_data.js
+│   │   ├── docs
+│   │   ├── features
+│   │   ├── hooks
+│   │   ├── index.css
+│   │   ├── jest.setup.js
+│   │   ├── main.test.tsx
+│   │   ├── main.tsx
+│   │   ├── __mocks__
+│   │   ├── pages
+│   │   ├── routes
+│   │   ├── schemas
+│   │   ├── services
+│   │   ├── setupTests.ts
+│   │   ├── store
+│   │   ├── stores
+│   │   ├── styles
+│   │   ├── test
+│   │   ├── TestComponent.tsx
+│   │   ├── test_role_logic.tsx
+│   │   ├── tests
+│   │   ├── types
+│   │   ├── utils
+│   │   └── vite-env.d.ts
+│   ├── tailwind.config.js
+│   ├── TDD_RED_PHASE_VALIDATION_REPORT.md
+│   ├── temp_fix.tsx
+│   ├── temp_productos_update.tsx
+│   ├── test_buyer_routing.html
+│   ├── test-results
+│   │   ├── .playwright-artifacts-4
+│   │   ├── sms-verification-SMS-Verif-7e477-S-verification-successfully-chromium
+│   │   ├── sms-verification-SMS-Verif-9f0d4-e-format-before-sending-SMS-chromium
+│   │   ├── sms-verification-SMS-Verif-a46cc-ack-after-multiple-attempts-chromium
+│   │   └── sms-verification-SMS-Verif-c0a77-le-SMS-code-input-correctly-chromium
+│   ├── test_routes.html
+│   ├── tests
+│   │   ├── e2e
+│   │   └── services
+│   ├── test_tailwind.html
+│   ├── tsconfig.app.json
+│   ├── tsconfig.json
+│   ├── tsconfig.json.backup-20250906_031609
+│   ├── tsconfig.node.json
+│   ├── tsconfig.tsbuildinfo
+│   ├── UI_UX_POLISH_IMPLEMENTATION_SUMMARY.md
+│   ├── vercel.json
+│   ├── verify.sh
+│   ├── vite.config.js
+│   ├── vite.config.js.temp
+│   ├── vite.config.js.tmp
+│   ├── vite.config.production.ts
+│   ├── vite.config.ts
+│   └── vite.config.ts.backup-1758211753
+├── full_test_run_complete.log
+├── full_test_run.log
+├── functions
+│   └── insertion
+├── .github
+│   └── workflows
+│       ├── deploy.yml
+│       ├── tdd-ci.yml
+│       ├── test.yml
+│       └── test.yml.backup.codecov
+├── .gitignore
+├── .gitmessage
+├── INTEGRATION_TEST_FIX_SUMMARY.md
+├── integration_test_report_20251016_074537.json
+├── integration_test_report_20251016_075030.json
+├── integration_test_report_20251016_075047.json
+├── integration_test_report_20251016_075210.json
+├── integration_test_report_20251016_075300.json
+├── integration_test_report_20251016_075411.json
+├── integration_test_report_20251016_075542.json
+├── integration_test_report_20251016_075728.json
+├── integration_test_report_20251016_080008.json
+├── integration_test_report_20251016_080747.json
+├── integration_test_report_20251016_080757.json
+├── integration_test_report_20251016_081314.json
+├── integration_test_report_20251016_081635.json
+├── integration_test_report_20251016_082547.json
+├── integration_test_report_20251016_082743.json
+├── integration_test_report_20251016_082939.json
+├── integration_test_report_20251016_083137.json
+├── integration_test_report_20251016_180938.json
+├── integration_test_report_20251016_182038.json
+├── integration_test_report_20251016_182329.json
+├── integration_test_report_20251016_182618.json
+├── integration_test_report_20251016_190743.json
+├── integration_test_report_20251016_190956.json
+├── integration_test_report_20251016_191107.json
+├── integration_test_report_20251016_191255.json
+├── integration_test_report_20251016_191314.json
+├── integration_test_report_20251016_191522.json
+├── integration_test_report_20251016_191711.json
+├── integration_test_report_20251016_192014.json
+├── integration_test_report_20251016_192253.json
+├── integration_test_report_20251016_192824.json
+├── integration_test_report_20251016_192838.json
+├── integration_test_report_20251016_193612.json
+├── integration_test_report_20251016_193721.json
+├── integration_test_report_20251016_193857.json
+├── integration_test_report_20251016_194041.json
+├── integration_test_report_20251016_194825.json
+├── integration_test_report_20251016_195500.json
+├── integration_test_report_20251016_195525.json
+├── integration_test_report_20251016_195821.json
+├── integration_test_report_20251016_195957.json
+├── integration_test_report_20251016_200122.json
+├── integration_test_report_20251016_200409.json
+├── integration_test_report_20251016_202223.json
+├── integration_test_report_20251016_202955.json
+├── integration_test_report_20251016_203209.json
+├── integration_test_report_20251017_052041.json
+├── integration_test_report_20251017_052255.json
+├── integration_test_report_20251017_052526.json
+├── integration_test_report_20251017_052846.json
+├── integration_test_report_20251017_053131.json
+├── integration_test_report_20251017_053350.json
+├── integration_test_report_20251017_054243.json
+├── integration_test_report_20251017_054542.json
+├── integration_test_report_20251017_060405.json
+├── integration_test_report_20251017_061815.json
+├── integration_test_report_20251017_062027.json
+├── integration_test_report_20251017_062409.json
+├── integration_test_report_20251017_062806.json
+├── integration_test_report_20251017_190334.json
+├── integration_test_report_20251017_190912.json
+├── integration_test_report_20251017_191349.json
+├── integration_test_report_20251017_202943.json
+├── integration_test_report_20251017_203626.json
+├── integration_test_report_20251018_070359.json
+├── integration_test_report_20251018_070535.json
+├── integration_test_report_20251018_071842.json
+├── integration_test_report_20251018_072153.json
+├── integration_test_report_20251018_073647.json
+├── integration_test_report_20251018_074037.json
+├── integration_test_report_20251018_171547.json
+├── integration_test_report_20251018_174031.json
+├── integration_test_report_20251018_181813.json
+├── integration_test_report_20251018_181926.json
+├── integration_test_report_20251018_183301.json
+├── integration_test_report_20251018_183339.json
+├── integration_test_report_20251018_190535.json
+├── integration_test_report_20251018_193020.json
+├── integration_test_report_20251018_193147.json
+├── integration_test_report_20251019_181912.json
+├── integration_test_report_20251019_182722.json
+├── integration_test_report_20251019_184135.json
+├── integration_test_report_20251019_184710.json
+├── integration_test_report_20251019_190501.json
+├── jest.config.cjs
+├── jest.config.js
+├── labels
+├── .librarian
+│   ├── state.json
+│   └── verification-log.md
+├── library
+│   ├── analytics
+│   ├── evolutionary
+│   │   ├── bugs
+│   │   ├── features
+│   │   └── improvements
+│   ├── historical
+│   │   └── deprecated
+│   ├── immutable
+│   │   ├── architecture
+│   │   ├── decisions
+│   │   └── production
+│   ├── indexes
+│   │   ├── INDEX-BUGS.md
+│   │   ├── INDEX-DECISIONS.md
+│   │   ├── INDEX-FEATURES.md
+│   │   ├── INDEX-MASTER.md
+│   │   ├── INDEX-PENDING.md
+│   │   └── INDEX-SECURITY.md
+│   ├── ORGANIZATION_REPORT.md
+│   ├── README.md
+│   ├── security
+│   │   ├── threats
+│   │   └── vulnerabilities
+│   └── THE-BOOK.md
+├── logs
+│   ├── backend_daemon.log
+│   ├── backend.log
+│   ├── backend_new.log
+│   ├── backups
+│   │   ├── backend_20250919_020001.log.gz
+│   │   ├── backend_daemon_20250919_020001.log.gz
+│   │   ├── frontend_20250919_020001.log.gz
+│   │   └── frontend_daemon_20250919_020002.log.gz
+│   ├── browser_e2e_results.log
+│   ├── development
+│   │   ├── api.log
+│   │   ├── authentication.log
+│   │   ├── business.log
+│   │   ├── database.log
+│   │   ├── error.log
+│   │   ├── mestocker-development.log
+│   │   ├── mestocker-development.log.1
+│   │   ├── mestocker-development.log.2
+│   │   ├── mestocker-development.log.3
+│   │   ├── mestocker-testing.log
+│   │   ├── payment.log
+│   │   ├── performance.log
+│   │   ├── security.log
+│   │   ├── system.log
+│   │   └── user_activity.log
+│   ├── frontend_daemon.log
+│   ├── frontend.log
+│   ├── mestocker-development.log
+│   ├── migration_python_20250922_105306.log
+│   ├── migration_python_20251015_140322.log
+│   ├── performance_e2e_results.log
+│   └── server.log
+├── Makefile
+├── Makefile.config
+├── mestore.db
+├── mestore_production.db
+├── migrations_sql
+│   ├── add_email_verification_token_fields.sql
+│   └── add_vendor_juridica_fields.sql
+├── misc
+│   ├── create_direct_auth_endpoint.py
+│   ├── create_mock_data_frontend.py
+│   ├── create_workspace.py
+│   ├── final_diagnostico_frontend.py
+│   ├── fix_vendedores_endpoint.py
+│   ├── package.json.old
+│   ├── package-lock.json.old
+│   ├── security_implementation_demo.py
+│   └── simple_auth_app.py
+├── monitoring
+│   ├── grafana
+│   │   ├── dashboards
+│   │   ├── datasources
+│   │   └── sms_verification_dashboard.json
+│   └── prometheus
+│       ├── alerts.yml
+│       └── prometheus.yml
+├── monitoring-dashboard
+│   ├── app
+│   │   ├── api
+│   │   ├── database
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   ├── logs
+│   │   └── page.tsx
+│   ├── BACKEND_IMPLEMENTATION.md
+│   ├── components
+│   │   ├── AlertsPanel.tsx
+│   │   ├── LogsPanel.tsx
+│   │   ├── MetricsChart.tsx
+│   │   ├── README.md
+│   │   └── TestingPanel.tsx
+│   ├── .env.example
+│   ├── .env.local
+│   ├── .gitignore
+│   ├── lib
+│   │   ├── backend-client.ts
+│   │   ├── railway-client.ts
+│   │   └── utils.ts
+│   ├── .next
+│   │   ├── app-build-manifest.json
+│   │   ├── build-manifest.json
+│   │   ├── cache
+│   │   ├── package.json
+│   │   ├── react-loadable-manifest.json
+│   │   ├── server
+│   │   ├── static
+│   │   ├── trace
+│   │   └── types
+│   ├── next.config.js
+│   ├── next-env.d.ts
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── postcss.config.js
+│   ├── README.md
+│   ├── tailwind.config.ts
+│   └── tsconfig.json
+├── nixpacks.toml
+├── postgres
+│   └── postgresql.prod.conf
+├── .pre-commit-config.yaml
+├── pytest.ini
+├── .python-version
+├── qr_codes
+│   ├── qr_MS-20251014211053-4283C35B_20251014_211054.png
+│   ├── qr_MS-20251014211335-A985D0EB_20251014_211335.png
+│   ├── qr_MS-20251014212530-B7AAFEF8_20251014_212530.png
+│   ├── qr_MS-20251014212805-5C45815B_20251014_212805.png
+│   ├── qr_MS-20251014213522-CC9D5480_20251014_213522.png
+│   ├── qr_MS-20251014213812-ADDA3851_20251014_213812.png
+│   ├── qr_MS-20251014214702-42DD6343_20251014_214703.png
+│   ├── qr_MS-20251014214845-7DC61976_20251014_214845.png
+│   ├── qr_MS-20251014215536-7D1A060A_20251014_215536.png
+│   ├── qr_MS-20251014220224-834642BA_20251014_220224.png
+│   ├── qr_MS-20251014220913-0FEBA304_20251014_220913.png
+│   ├── qr_MS-20251014221734-B1AD6C4A_20251014_221734.png
+│   ├── qr_MS-20251014221749-564A11BD_20251014_221749.png
+│   ├── qr_MS-20251014222338-5595CA54_20251014_222338.png
+│   ├── qr_MS-20251014222905-E298754B_20251014_222905.png
+│   ├── qr_MS-20251014223426-B7552B3A_20251014_223426.png
+│   ├── qr_MS-20251014223900-42B15333_20251014_223900.png
+│   ├── qr_MS-20251014224445-7C9CC0A7_20251014_224445.png
+│   ├── qr_MS-20251014225004-B48299CF_20251014_225004.png
+│   ├── qr_MS-20251014225521-B99218EA_20251014_225521.png
+│   ├── qr_MS-20251014230122-A27ACC05_20251014_230122.png
+│   ├── qr_MS-20251014230759-A82BDA92_20251014_230759.png
+│   ├── qr_MS-20251014231020-F19D8859_20251014_231020.png
+│   ├── qr_MS-20251014231544-F688D8FF_20251014_231544.png
+│   ├── qr_MS-20251014231817-CD0A954C_20251014_231817.png
+│   ├── qr_MS-20251014232222-3B05ADAB_20251014_232222.png
+│   ├── qr_MS-20251014232840-8086A436_20251014_232840.png
+│   ├── qr_MS-20251014233435-AD52DB2D_20251014_233435.png
+│   ├── qr_MS-20251014234222-7B6955FF_20251014_234222.png
+│   ├── qr_MS-20251014235729-2D5A602B_20251014_235729.png
+│   ├── qr_MS-20251015000125-15F5FA24_20251015_000125.png
+│   ├── qr_MS-20251015000602-6406044A_20251015_000602.png
+│   ├── qr_MS-20251015000746-97FEB751_20251015_000746.png
+│   ├── qr_MS-20251015010644-29B8C292_20251015_010644.png
+│   ├── qr_MS-20251015011852-1DD311C1_20251015_011852.png
+│   ├── qr_MS-20251015012344-FA1ACB61_20251015_012344.png
+│   ├── qr_MS-20251015013129-AF6DB6B5_20251015_013129.png
+│   ├── qr_MS-20251015014210-A001A72E_20251015_014210.png
+│   ├── qr_MS-20251015014854-46B6735F_20251015_014854.png
+│   ├── qr_MS-20251015014959-2821A0A2_20251015_014959.png
+│   ├── qr_MS-20251015015749-2D975EDB_20251015_015749.png
+│   ├── qr_MS-20251015021006-0677D5F0_20251015_021006.png
+│   ├── qr_MS-20251015021534-7C25518D_20251015_021534.png
+│   ├── qr_MS-20251015022022-BD2A3A78_20251015_022022.png
+│   ├── qr_MS-20251015022108-D4B4523F_20251015_022108.png
+│   ├── qr_MS-20251015022729-EC27BD5D_20251015_022729.png
+│   ├── qr_MS-20251015023029-F6650D82_20251015_023029.png
+│   ├── qr_MS-20251015023746-C3DA49DE_20251015_023746.png
+│   ├── qr_MS-20251015024205-4F41B965_20251015_024205.png
+│   ├── qr_MS-20251015024655-1BDFED8F_20251015_024655.png
+│   ├── qr_MS-20251015024833-D131201D_20251015_024833.png
+│   ├── qr_MS-20251015025533-43BC6837_20251015_025534.png
+│   ├── qr_MS-20251015025602-6F3AE1FB_20251015_025602.png
+│   ├── qr_MS-20251015030220-75D842B8_20251015_030220.png
+│   ├── qr_MS-20251015031235-73CB030C_20251015_031235.png
+│   ├── qr_MS-20251015031527-3B7D3919_20251015_031527.png
+│   ├── qr_MS-20251015032003-3A3A7561_20251015_032003.png
+│   ├── qr_MS-20251015032448-68B48277_20251015_032448.png
+│   ├── qr_MS-20251015032721-A56D0364_20251015_032721.png
+│   ├── qr_MS-20251015033406-9B6B2CE7_20251015_033406.png
+│   ├── qr_MS-20251015033717-61DD4944_20251015_033717.png
+│   ├── qr_MS-20251015034617-62AC9CAF_20251015_034617.png
+│   ├── qr_MS-20251015035003-FB764030_20251015_035003.png
+│   ├── qr_MS-20251015035425-21C1CB78_20251015_035425.png
+│   ├── qr_MS-20251015040601-746E28A6_20251015_040601.png
+│   ├── qr_MS-20251015041217-B2B4301A_20251015_041217.png
+│   ├── qr_MS-20251017140518-01EBE1CE_20251017_140518.png
+│   ├── qr_MS-20251017141058-EDF38F9C_20251017_141058.png
+│   ├── qr_MS-20251017152105-85E9B9B0_20251017_152105.png
+│   ├── qr_MS-20251018121735-6335DF1E_20251018_121735.png
+│   ├── qr_MS-20251018132003-32A2EBFA_20251018_132003.png
+│   └── qr_MS-20251019140652-6BFE74B3_20251019_140652.png
+├── .railway-deploy-trigger
+├── .railway-force-deploy
+├── .railway-rebuild-1759995262
+├── README.md
+├── README_ROOT_STRUCTURE.md
+├── redis
+│   └── redis.prod.conf
+├── reports
+│   ├── archive
+│   │   ├── integration_test_report_20251014_181954.json
+│   │   ├── integration_test_report_20251014_182337.json
+│   │   ├── integration_test_report_20251014_182418.json
+│   │   ├── integration_test_report_20251014_182725.json
+│   │   ├── integration_test_report_20251014_183708.json
+│   │   ├── integration_test_report_20251014_190216.json
+│   │   ├── integration_test_report_20251014_190430.json
+│   │   ├── integration_test_report_20251014_190759.json
+│   │   ├── integration_test_report_20251014_190912.json
+│   │   ├── integration_test_report_20251014_191405.json
+│   │   ├── integration_test_report_20251014_192028.json
+│   │   ├── integration_test_report_20251014_192341.json
+│   │   ├── integration_test_report_20251014_192629.json
+│   │   ├── integration_test_report_20251014_192916.json
+│   │   ├── integration_test_report_20251014_193657.json
+│   │   ├── integration_test_report_20251014_193806.json
+│   │   ├── integration_test_report_20251014_195152.json
+│   │   ├── integration_test_report_20251014_195359.json
+│   │   ├── integration_test_report_20251014_195736.json
+│   │   ├── integration_test_report_20251014_200338.json
+│   │   ├── integration_test_report_20251014_200939.json
+│   │   ├── integration_test_report_20251014_201001.json
+│   │   ├── integration_test_report_20251014_201328.json
+│   │   ├── integration_test_report_20251015_011920.json
+│   │   ├── integration_test_report_20251015_012122.json
+│   │   ├── integration_test_report_20251015_012635.json
+│   │   ├── integration_test_report_20251015_012858.json
+│   │   ├── integration_test_report_20251015_012940.json
+│   │   ├── integration_test_report_20251015_013604.json
+│   │   ├── integration_test_report_20251015_015210.json
+│   │   ├── integration_test_report_20251015_015705.json
+│   │   ├── integration_test_report_20251015_020128.json
+│   │   ├── integration_test_report_20251015_020810.json
+│   │   ├── integration_test_report_20251015_021211.json
+│   │   ├── integration_test_report_20251015_021747.json
+│   │   ├── integration_test_report_20251015_022406.json
+│   │   ├── integration_test_report_20251015_022641.json
+│   │   ├── integration_test_report_20251015_023357.json
+│   │   ├── integration_test_report_20251015_023441.json
+│   │   ├── integration_test_report_20251015_023649.json
+│   │   ├── integration_test_report_20251015_024538.json
+│   │   ├── integration_test_report_20251015_024720.json
+│   │   ├── integration_test_report_20251015_025412.json
+│   │   ├── integration_test_report_20251015_030101.json
+│   │   ├── integration_test_report_20251015_030749.json
+│   │   ├── integration_test_report_20251015_031609.json
+│   │   ├── integration_test_report_20251015_031624.json
+│   │   ├── integration_test_report_20251015_032214.json
+│   │   ├── integration_test_report_20251015_032742.json
+│   │   ├── integration_test_report_20251015_033302.json
+│   │   ├── integration_test_report_20251015_033735.json
+│   │   ├── integration_test_report_20251015_034321.json
+│   │   ├── integration_test_report_20251015_034840.json
+│   │   ├── integration_test_report_20251015_035357.json
+│   │   ├── integration_test_report_20251015_035958.json
+│   │   ├── integration_test_report_20251015_040634.json
+│   │   ├── integration_test_report_20251015_040650.json
+│   │   ├── integration_test_report_20251015_040855.json
+│   │   ├── integration_test_report_20251015_041420.json
+│   │   ├── integration_test_report_20251015_041652.json
+│   │   ├── integration_test_report_20251015_042059.json
+│   │   ├── integration_test_report_20251015_042716.json
+│   │   ├── integration_test_report_20251015_043310.json
+│   │   ├── integration_test_report_20251015_044056.json
+│   │   ├── integration_test_report_20251015_045605.json
+│   │   ├── integration_test_report_20251015_050001.json
+│   │   ├── integration_test_report_20251015_050437.json
+│   │   ├── integration_test_report_20251015_050621.json
+│   │   ├── integration_test_report_20251015_051152.json
+│   │   ├── integration_test_report_20251015_051817.json
+│   │   ├── integration_test_report_20251015_053738.json
+│   │   ├── integration_test_report_20251015_054305.json
+│   │   ├── integration_test_report_20251015_054510.json
+│   │   ├── integration_test_report_20251015_055345.json
+│   │   ├── integration_test_report_20251015_055915.json
+│   │   ├── integration_test_report_20251015_060519.json
+│   │   ├── integration_test_report_20251015_061727.json
+│   │   ├── integration_test_report_20251015_062219.json
+│   │   ├── integration_test_report_20251015_063004.json
+│   │   ├── integration_test_report_20251015_064046.json
+│   │   ├── integration_test_report_20251015_064729.json
+│   │   ├── integration_test_report_20251015_064833.json
+│   │   ├── integration_test_report_20251015_065624.json
+│   │   ├── integration_test_report_20251015_070630.json
+│   │   ├── integration_test_report_20251015_070842.json
+│   │   ├── integration_test_report_20251015_071410.json
+│   │   ├── integration_test_report_20251015_071856.json
+│   │   ├── integration_test_report_20251015_071942.json
+│   │   ├── integration_test_report_20251015_072604.json
+│   │   ├── integration_test_report_20251015_072904.json
+│   │   ├── integration_test_report_20251015_073621.json
+│   │   ├── integration_test_report_20251015_074041.json
+│   │   ├── integration_test_report_20251015_074529.json
+│   │   ├── integration_test_report_20251015_074707.json
+│   │   ├── integration_test_report_20251015_075408.json
+│   │   ├── integration_test_report_20251015_075435.json
+│   │   ├── integration_test_report_20251015_080056.json
+│   │   ├── integration_test_report_20251015_080853.json
+│   │   ├── integration_test_report_20251015_081110.json
+│   │   ├── integration_test_report_20251015_081401.json
+│   │   ├── integration_test_report_20251015_081837.json
+│   │   ├── integration_test_report_20251015_082322.json
+│   │   ├── integration_test_report_20251015_082555.json
+│   │   ├── integration_test_report_20251015_083241.json
+│   │   ├── integration_test_report_20251015_083552.json
+│   │   ├── integration_test_report_20251015_084452.json
+│   │   ├── integration_test_report_20251015_084839.json
+│   │   ├── integration_test_report_20251015_085300.json
+│   │   ├── integration_test_report_20251015_090436.json
+│   │   └── integration_test_report_20251015_091053.json
+│   ├── db
+│   │   ├── test_async.db
+│   │   ├── test_async.db-journal
+│   │   └── test_sync.db
+│   ├── integration
+│   │   ├── integration_test_report_20251015_180942.json
+│   │   └── integration_test_report_20251015_184016.json
+│   └── tests
+├── requirements_production.txt
+├── scripts
+│   ├── add_account_status.py
+│   ├── admin_coverage_monitor.py
+│   ├── alembic_helpers.sh
+│   ├── analysis
+│   │   ├── analisis_tests_completo.py
+│   │   ├── analyze_backend_structure.py
+│   │   ├── api_coverage_analysis.py
+│   │   └── enhanced_api_coverage_analyzer.py
+│   ├── backend_manager.sh
+│   ├── backup
+│   │   ├── backup-postgres.sh
+│   │   ├── crontab
+│   │   └── Dockerfile
+│   ├── check_railway_tables.py
+│   ├── clean_project.sh
+│   ├── comprehensive_security_testing.py
+│   ├── create_admin_on_startup.py
+│   ├── create_test_user.py
+│   ├── database
+│   │   ├── create_commission_disputes_table.py
+│   │   ├── create_incoming_product_queue_table.py
+│   │   ├── create_schema.py
+│   │   ├── create_superuser.py
+│   │   ├── create_system_settings_migration.py
+│   │   ├── create_system_settings_only.py
+│   │   ├── create_system_settings_table_sync.py
+│   │   ├── create_tables_and_superuser.py
+│   │   ├── fix_alembic_version.py
+│   │   ├── fix_override_get_db.py
+│   │   ├── populate_system_config.py
+│   │   ├── README.md
+│   │   ├── reset_users_final.sql
+│   │   ├── reset_users_simple.sql
+│   │   ├── setup_db.sql
+│   │   └── setup_postgresql_fix.py
+│   ├── debug
+│   │   ├── assistant_dev.py
+│   │   ├── debug_auth_issue.py
+│   │   ├── debug_auth.py
+│   │   ├── debug_jwt.py
+│   │   ├── debug_login.py
+│   │   ├── debug_role_access.py
+│   │   └── README.md
+│   ├── deployment
+│   ├── deploy_migrations_python.sh
+│   ├── deploy_with_migrations.sh
+│   ├── fix_category_mismatch.py
+│   ├── fix_pending_products_auto.py
+│   ├── fix_pending_products_status.py
+│   ├── frontend_manager_old.sh
+│   ├── frontend_manager.sh
+│   ├── init-db.sql
+│   ├── init_production_db.py
+│   ├── init_railway_db.py
+│   ├── init_search_system.py
+│   ├── lighthouse_performance.js
+│   ├── maintenance
+│   │   └── add_deprecation_warnings.py
+│   ├── MAKEFILE_USAGE.md
+│   ├── migrate_pydantic_v2.py
+│   ├── MIGRATION_COMMANDS.md
+│   ├── populate_all_inventory.py
+│   ├── populate_inventory.py
+│   ├── production-entrypoint.sh
+│   ├── protect_superuser.py
+│   ├── railway_startup.sh
+│   ├── README.md
+│   ├── README_SEED_PRODUCTS.md
+│   ├── reorganize_tests.sh
+│   ├── reset_database.py
+│   ├── run_admin_integration_tests.sh
+│   ├── run_migrations.py
+│   ├── run_migrations.sh
+│   ├── run_mvp_tests.sh
+│   ├── run_security_tests.py
+│   ├── run_security_vulnerability_tests.sh
+│   ├── run_tdd_tests.sh
+│   ├── security_audit.py
+│   ├── security_validation.py
+│   ├── seed_products.py
+│   ├── services
+│   │   ├── backend_daemon.sh
+│   │   ├── backend_watchdog.sh
+│   │   ├── frontend_daemon.sh
+│   │   ├── frontend_watchdog.sh
+│   │   ├── log_rotator.sh
+│   │   ├── mestore_control.sh
+│   │   ├── README.md
+│   │   ├── start_backend_simple.py
+│   │   ├── start_services_clean.py
+│   │   └── verify_migrations_secure.sh
+│   ├── setup_real_superuser.py
+│   ├── testing
+│   │   ├── test_frontend_functions.sh
+│   │   ├── test_stats.sh
+│   │   ├── test_vendor_api_endpoints.sh
+│   │   └── test_vendor_orders_quick.py
+│   ├── test_product_complete.py
+│   ├── test_stock_api.sh
+│   ├── twilio_setup.py
+│   ├── update_trending_products.py
+│   ├── user_management
+│   │   ├── add_user_profile_columns_manual.py
+│   │   ├── check_user_credentials.py
+│   │   ├── create_admin_portal_user.py
+│   │   ├── create_admin_simple.py
+│   │   ├── create_admin_user.py
+│   │   ├── create_superuser_final.py
+│   │   ├── create_superuser.py
+│   │   ├── create_superuser_simple.py
+│   │   ├── create_working_admin.py
+│   │   ├── fix_password_hash.py
+│   │   ├── fix_superuser_minimal.py
+│   │   ├── fix_superuser_sqlite.py
+│   │   ├── fix_user_passwords.py
+│   │   ├── README.md
+│   │   ├── setup_project_users.py
+│   │   └── setup_user_credentials.py
+│   ├── validate_constraint_data.py
+│   ├── validate_id_standardization.py
+│   ├── validation
+│   │   ├── corrected_integration_verification.py
+│   │   ├── manual_integration_verification.py
+│   │   ├── README.md
+│   │   ├── validate_fastapi_integration.py
+│   │   ├── validate_user_create_modal.py
+│   │   ├── verify_vendor_account.py
+│   │   └── verify_workflow_setup.py
+│   ├── verify_inventory.py
+│   ├── verify_product_status.py
+│   ├── verify_seed.py
+│   └── verify_users.py
+├── setup.py
+├── sitecustomize.py
+├── structure_overview.txt
+├── temp
+│   ├── 2025-09-20-caveat-the-messages-below-were-generated-by-the-u.txt
+│   ├── cookies.txt
+│   ├── FASE_4_FILE_SUMMARY.txt
+│   ├── forensic_debug.js
+│   ├── manual_testing_checklist.html
+│   ├── requirements.txt
+│   ├── test_user_create_modal.html
+│   └── vite.config.js.tmp
+├── test_async.db-journal
+├── TEST_FIXES_FINAL_REPORT.md
+├── test_output.log
+├── tests
+│   ├── api
+│   │   ├── api_testing_payment_endpoints.py
+│   │   ├── auth
+│   │   ├── .coverage
+│   │   ├── data
+│   │   ├── endpoints
+│   │   ├── __init__.py
+│   │   ├── logs
+│   │   ├── middleware
+│   │   ├── test_admin_auth_integration_fixed.py
+│   │   ├── test_admin_orders_endpoints.py
+│   │   ├── test_admin_vendor_management.py
+│   │   ├── test_api_embeddings.py
+│   │   ├── test_api_id_consistency.py
+│   │   ├── test_comisiones_detalle.py
+│   │   ├── test_comisiones_dispute.py
+│   │   ├── test_comisiones.py
+│   │   ├── test_critical_endpoints_mvp.py
+│   │   ├── test_health.py
+│   │   ├── test_incidentes.py
+│   │   ├── test_inventory_alertas.py
+│   │   ├── test_inventory.py
+│   │   ├── test_inventory_reserva_final.py
+│   │   ├── test_inventory_reserva.py
+│   │   ├── test_inventory_ubicaciones.py
+│   │   ├── test_inventory_ubicacion_put.py
+│   │   ├── test_orders_buyer.py
+│   │   ├── test_pagos_historial.py
+│   │   ├── test_perfil_bancarios.py
+│   │   ├── test_productos_upload.py
+│   │   ├── test_products_bulk_endpoints.py
+│   │   ├── test_shipping_endpoints.py
+│   │   ├── test_user_colombian_fields.py
+│   │   ├── test_user_profile_fields.py
+│   │   ├── test_user_roles_verification.py
+│   │   ├── test_user_schemas_refactored.py
+│   │   ├── test_user_status_fields.py
+│   │   ├── test_vendedor_celular_validation.py
+│   │   ├── test_vendedor_dashboard.py
+│   │   ├── test_vendedores_login.py
+│   │   ├── test_vendedores_registro.py
+│   │   ├── test_vendedores_simple.py
+│   │   ├── test_vendor_registration.py
+│   │   └── v1
+│   ├── API_TESTS_ANALYSIS_AND_FIX_STRATEGY.md
+│   ├── API_TESTS_FIX_SUMMARY_REPORT.md
+│   ├── config
+│   │   ├── .env.test
+│   │   └── .env.testing
+│   ├── conftest.py
+│   ├── core
+│   │   ├── .coverage
+│   │   ├── data
+│   │   ├── __init__.py
+│   │   ├── logs
+│   │   ├── mestore.db
+│   │   ├── test_config.py
+│   │   ├── test_health_check.py
+│   │   ├── test_health.py
+│   │   └── test_logger_loguru.py
+│   ├── .coverage
+│   ├── data
+│   │   ├── chroma
+│   │   ├── .coverage
+│   │   └── logs
+│   ├── database_fixtures.py
+│   ├── database_isolation.py
+│   ├── e2e
+│   │   ├── admin_management
+│   │   ├── admin_management.py
+│   │   ├── app
+│   │   ├── conftest.py
+│   │   ├── .coverage
+│   │   ├── data
+│   │   ├── e2e_admin_results_20250921_140938.json
+│   │   ├── e2e_comprehensive_test.py
+│   │   ├── labels
+│   │   ├── logs
+│   │   ├── mestore.db
+│   │   ├── qr_codes
+│   │   ├── screenshots
+│   │   ├── test_admin_file_upload_e2e_red.py
+│   │   ├── test_admin_media_processing_e2e_red.py
+│   │   ├── test_foundation_simple.py
+│   │   └── uploads
+│   ├── fix_all_api_tests.py
+│   ├── fixtures
+│   │   ├── admin_management
+│   │   ├── admin_test_fixtures_refactored.py
+│   │   ├── comprehensive_fixtures.py
+│   │   ├── conftest_redis_override.py
+│   │   ├── .coverage
+│   │   ├── e2e_file_security_fixtures.py
+│   │   ├── financial
+│   │   ├── logs
+│   │   └── orders
+│   ├── __init__.py
+│   ├── integration
+│   │   ├── admin_management
+│   │   ├── ai
+│   │   ├── api
+│   │   ├── app
+│   │   ├── conftest_admin_workflows_red.py
+│   │   ├── conftest.py
+│   │   ├── database
+│   │   ├── database_isolation_enhanced.py
+│   │   ├── EXECUTIVE_SUMMARY_TDD_AUDIT.md
+│   │   ├── external
+│   │   ├── FORENSIC_ANALYSIS_SESSION_ISOLATION_FIX.md
+│   │   ├── __init__.py
+│   │   ├── INTEGRATION_TESTING_SOLUTION.md
+│   │   ├── integration_test_report_20251016_073927.json
+│   │   ├── INTEGRATION_TESTS_AUDIT_REPORT_2025-10-17.md
+│   │   ├── labels
+│   │   ├── logs
+│   │   ├── mestore.db
+│   │   ├── orders
+│   │   ├── performance_benchmarks_admin_workflows.py
+│   │   ├── qr_codes
+│   │   ├── REFACTORING_RECOMMENDATIONS_TDD_SPECIALIST.md
+│   │   ├── SMS_SECURITY_INTEGRATION_TESTS_REPORT.md
+│   │   ├── system
+│   │   ├── test_admin_approval_processes_red.py
+│   │   ├── test_admin_quality_assessment_red.py
+│   │   ├── test_admin_verification_workflows_red.py
+│   │   ├── test_auth_integration_fixed.py
+│   │   ├── test_chromadb_integration.py
+│   │   ├── test_chromadb.py
+│   │   ├── test_cors_security.py
+│   │   ├── test_database_config.py
+│   │   ├── test_database_fixtures_validation.py
+│   │   ├── test_database_indexes.py
+│   │   ├── test_database_isolation.py
+│   │   ├── test_database_working.py
+│   │   ├── test_embeddings.py
+│   │   ├── test_health_robust.py
+│   │   ├── TEST_ISOLATION_FIX_REPORT.md
+│   │   ├── test_payment_integration.py
+│   │   ├── test_red_validation.py
+│   │   ├── test_runner.py
+│   │   ├── test_sms_security_endpoint.py
+│   │   ├── test_transaction_commission.py
+│   │   ├── test_transaction.py
+│   │   ├── test_transaction_status.py
+│   │   ├── test_webhooks_wompi.py
+│   │   ├── test_wompi_integration_simple.py
+│   │   ├── test_wompi_service_methods.py
+│   │   ├── uploads
+│   │   ├── workflow
+│   │   └── workflows
+│   ├── logs
+│   │   └── reorg_logs
+│   ├── massive_operations
+│   │   ├── admin_endpoints
+│   │   ├── .coverage
+│   │   └── logs
+│   ├── mestore.db
+│   ├── middleware
+│   │   └── __init__.py
+│   ├── migration
+│   ├── migrations
+│   │   ├── auto_db_init.py
+│   │   └── __init__.py
+│   ├── misc
+│   │   ├── .coverage
+│   │   ├── detailed_error_investigation.py
+│   │   ├── labels
+│   │   ├── logs
+│   │   ├── qr_codes
+│   │   ├── test_encoding.py
+│   │   ├── test_extreme_utf8.py
+│   │   ├── test_multiline.py
+│   │   ├── test_qr_manual.py
+│   │   ├── test_utf8.py
+│   │   └── uploads
+│   ├── models
+│   │   ├── .coverage
+│   │   ├── __init__.py
+│   │   ├── logs
+│   │   ├── test_category_model_comprehensive_tdd.py
+│   │   ├── test_model_discovery.py
+│   │   ├── test_models_inventory.py
+│   │   ├── test_models_product_fulfillment.py
+│   │   ├── test_models_product.py
+│   │   ├── test_models_product_status.py
+│   │   ├── test_models_transaction.py
+│   │   ├── test_order.py
+│   │   ├── test_payment.py
+│   │   ├── test_product_model_comprehensive_tdd.py
+│   │   ├── test_storage_model_comprehensive_tdd.py
+│   │   ├── test_system_setting_model_comprehensive_tdd.py
+│   │   └── test_user.py
+│   ├── MODELS_SCHEMAS_SUMMARY.md
+│   ├── MODELS_SCHEMAS_TEST_REPORT.md
+│   ├── performance
+│   │   ├── .coverage
+│   │   ├── __init__.py
+│   │   ├── load_testing_suite.py
+│   │   ├── logs
+│   │   ├── mestore.db
+│   │   ├── performance_benchmarks.py
+│   │   ├── test_benchmark_tools.py
+│   │   ├── test_boundary_negative_scenarios.py
+│   │   ├── test_critical_api_coverage.py
+│   │   ├── test_load_testing_scenarios.py
+│   │   ├── test_performance_monitor.py
+│   │   └── test_query_analysis.py
+│   ├── README_TESTS.md
+│   ├── regression
+│   │   ├── .coverage
+│   │   ├── __init__.py
+│   │   ├── logs
+│   │   └── test_orders_stock_fix.py
+│   ├── reports
+│   │   ├── auth_test_results.json
+│   │   ├── browser_e2e_report.json
+│   │   ├── corrected_integration_verification_report.json
+│   │   ├── .coverage
+│   │   ├── e2e_test_report.json
+│   │   ├── e2e_test_results.log
+│   │   ├── edge_test.txt
+│   │   ├── integration_verification_report.json
+│   │   ├── logs
+│   │   ├── performance_e2e_report.json
+│   │   ├── test_analysis_auth.json
+│   │   ├── test_analysis_base.json
+│   │   ├── test_analysis_embeddings.json
+│   │   ├── test_analysis_logging.json
+│   │   ├── test_analysis_main.json
+│   │   ├── test_analysis_security.json
+│   │   ├── test_browser_flow.html
+│   │   ├── test_escape_check.txt
+│   │   ├── test_frontend.html
+│   │   ├── test_multiple.txt
+│   │   ├── test_simple_login.html
+│   │   ├── test_token.txt
+│   │   ├── test_vendor.json
+│   │   ├── vendor_registration_test.html
+│   │   └── vendor_registration_test_results.json
+│   ├── schemas
+│   │   ├── .coverage
+│   │   ├── logs
+│   │   ├── test_schemas_inventory.py
+│   │   ├── test_schemas_product.py
+│   │   └── test_user.py.before_fix
+│   ├── scripts
+│   │   ├── browser_e2e_tests.py
+│   │   ├── comprehensive_auth_test.py
+│   │   ├── create_test_users.py
+│   │   ├── create_test_users_simple.py
+│   │   ├── create_vendor_testing_account.py
+│   │   ├── e2e_testing_suite.py
+│   │   ├── fix_test_simple.py
+│   │   ├── insert_test_queue_data.py
+│   │   ├── performance_e2e_tests.py
+│   │   ├── quick_vendor_test.py
+│   │   ├── run_integration_tests.py
+│   │   ├── security_penetration_tests.py
+│   │   ├── security_validation_test.py
+│   │   ├── test_ast_js.js
+│   │   ├── test_auth_endpoints.py
+│   │   ├── test_auth_integration.py
+│   │   ├── test_auth_me.sh
+│   │   ├── test-command-fast.sh
+│   │   ├── test-command.sh
+│   │   ├── test_complex.jsx
+│   │   ├── test_cors_frontend.js
+│   │   ├── test_emoji_jsx.jsx
+│   │   ├── test_failure.jsx
+│   │   ├── test-file.js
+│   │   ├── testing_area
+│   │   ├── test_makefile_commands.py
+│   │   ├── test_password_functions.py
+│   │   ├── test_password_verification.py
+│   │   ├── test_pydantic_v2_schemas.py
+│   │   ├── test_quotes.jsx
+│   │   ├── test_react_hooks.jsx
+│   │   ├── test_response_standardization.py
+│   │   ├── test_simple_auth.py
+│   │   ├── test_stdin.jsx
+│   │   ├── test_tsx_validation.tsx
+│   │   ├── test_websocket_auth.py
+│   │   ├── update_test_passwords.py
+│   │   ├── validate_all_endpoints.sh
+│   │   ├── validate_integration_tests.py
+│   │   ├── vendor_registration_test.py
+│   │   └── verify_test.py
+│   ├── security
+│   │   ├── .coverage
+│   │   ├── EXECUTIVE_SUMMARY.md
+│   │   ├── logs
+│   │   ├── README.md
+│   │   ├── SECURITY_TESTS_REPORT.md
+│   │   ├── test_jwt_encryption_standards.py
+│   │   └── test_jwt_security.py
+│   ├── services
+│   │   ├── __init__.py
+│   │   ├── logs
+│   │   ├── test_auth_service.py
+│   │   ├── test_database_reset_service.py
+│   │   ├── test_financial_reports.py
+│   │   ├── test_notification_orders.py
+│   │   ├── test_order_state_service.py
+│   │   ├── test_order_tracking_service.py
+│   │   ├── test_qr_system.py
+│   │   ├── test_rejection_system.py
+│   │   ├── test_storage_contracts.py
+│   │   ├── test_storage_manager.py
+│   │   ├── test_storage.py
+│   │   └── test_storage_relationships.py
+│   ├── tdd_framework.py
+│   ├── tdd_patterns.py
+│   ├── tdd_templates.py
+│   ├── test-reports
+│   │   └── tdd_results.xml
+│   ├── tests
+│   │   ├── logs
+│   │   └── scripts
+│   ├── uncategorized
+│   │   ├── test_alerts.py
+│   │   ├── test_async_client_corrected.py
+│   │   ├── test_async_client_fix.py
+│   │   ├── test_async_final.py
+│   │   ├── test_async_sync_fix_complete.py
+│   │   ├── test_async_sync_fix.py
+│   │   ├── test_base_simple.py
+│   │   ├── test_dependencies.py
+│   │   ├── test_dependencies_simple.py
+│   │   ├── test_environments.py
+│   │   ├── test_final_exceptions.py
+│   │   ├── test_fixtures_validation.py
+│   │   ├── test_inventory_quality_fields.py
+│   │   ├── test_location_assignment.py
+│   │   ├── test_products_bulk_simple.py
+│   │   ├── test_simple.py
+│   │   └── test_verification_async.py
+│   └── unit
+│       ├── admin
+│       ├── admin_management
+│       ├── app
+│       ├── auth
+│       ├── core
+│       ├── data
+│       ├── database
+│       ├── logs
+│       ├── middleware
+│       ├── models
+│       ├── orders
+│       ├── payments
+│       ├── schemas
+│       ├── security
+│       ├── services
+│       ├── test_auth_dependency.py
+│       ├── test_auth.py
+│       ├── test_crud_utils_clean.py
+│       ├── test_database_dependency.py
+│       ├── test_final_success.py
+│       ├── test_ip_detection.py
+│       ├── test_jwt_tokens.py
+│       ├── test_logging_middleware.py
+│       ├── test_password_utils.py
+│       ├── test_rate_limiter.py
+│       ├── test_role_access.py
+│       ├── test_security_headers.py
+│       ├── test_security.py
+│       ├── test_sms_security.py
+│       ├── test_user_agent_validator.py
+│       ├── test_working_utilities.py
+│       └── utils
+├── tests_files.txt
+├── tmp9gc4mj10.db
+├── tmpaqshepvo.db
+├── tmpwlkdwh2i.db
+├── uploads
+│   ├── .gitignore
+│   ├── labels
+│   │   ├── label_MS-20250910210908-0CBC09C0_20250910_210908.png
+│   │   ├── label_MS-20250910210933-AA4E44BA_20250910_210933.png
+│   │   ├── label_MS-20250910210947-8101BD7A_20250910_210947.png
+│   │   ├── label_MS-20250910210947-EF0C321E_20250910_210947.png
+│   │   ├── label_MS-20250910211011-A8286B91_20250910_211012.png
+│   │   ├── label_MS-20250910211012-E333C1DE_20250910_211012.png
+│   │   ├── label_MS-20250910211030-00F3A972_20250910_211031.png
+│   │   ├── label_MS-20250910211030-FCC97117_20250910_211030.png
+│   │   ├── label_MS-20250910211049-16AFC655_20250910_211049.png
+│   │   ├── label_MS-20250910211049-C7CAC824_20250910_211049.png
+│   │   ├── label_MS-20250910211058-B1E97B2D_20250910_211058.png
+│   │   ├── label_MS-20250910211058-D8E0C2E0_20250910_211058.png
+│   │   ├── label_MS-20250910211912-437CBE28_20250910_211912.png
+│   │   ├── label_MS-20250910211912-DC349D91_20250910_211912.png
+│   │   ├── label_MS-20250910212034-E8C41B7E_20250910_212034.png
+│   │   ├── label_MS-20250910212105-531DF5E0_20250910_212105.png
+│   │   ├── label_MS-20250910212121-63350395_20250910_212121.png
+│   │   ├── label_MS-20250910214806-20271CB5_20250910_214806.png
+│   │   ├── label_MS-20250910214806-8840EA79_20250910_214806.png
+│   │   ├── label_MS-20250910215217-CABABBD7_20250910_215218.png
+│   │   ├── label_MS-20250910215217-D92F9CFE_20250910_215217.png
+│   │   ├── label_MS-20250910221454-42F19043_20250910_221454.png
+│   │   ├── label_MS-20250910221454-7B91707F_20250910_221454.png
+│   │   ├── label_MS-20250910222535-801CC21B_20250910_222535.png
+│   │   ├── label_MS-20250910222535-D29BEC9E_20250910_222535.png
+│   │   ├── label_MS-20250910222735-CEACB21C_20250910_222735.png
+│   │   ├── label_MS-20250910222735-F588B2F7_20250910_222735.png
+│   │   ├── label_MS-20250910230356-0771773E_20250910_230356.png
+│   │   ├── label_MS-20250910230356-5C20F987_20250910_230356.png
+│   │   ├── label_MS-20250910230558-7607B568_20250910_230558.png
+│   │   ├── label_MS-20250910230558-96B3FED7_20250910_230558.png
+│   │   ├── label_MS-20250910230634-1253D8C1_20250910_230634.png
+│   │   ├── label_MS-20250910230634-9C2320EE_20250910_230634.png
+│   │   ├── label_MS-20250910230902-72A86598_20250910_230903.png
+│   │   ├── label_MS-20250910230902-7A2A793E_20250910_230902.png
+│   │   ├── label_MS-20250910230916-5B9C157B_20250910_230917.png
+│   │   ├── label_MS-20250910230916-C48A431A_20250910_230916.png
+│   │   ├── label_MS-20250911111138-50B03261_20250911_111139.png
+│   │   ├── label_MS-20250911111139-09B26422_20250911_111139.png
+│   │   ├── label_MS-20250911111357-A7F69B02_20250911_111357.png
+│   │   ├── label_MS-20250911111357-EC76C671_20250911_111357.png
+│   │   ├── label_MS-20250911111839-25F90B50_20250911_111840.png
+│   │   ├── label_MS-20250911111839-BFAF2D01_20250911_111839.png
+│   │   ├── label_MS-20250911112439-77E6CA98_20250911_112439.png
+│   │   ├── label_MS-20250911112439-ADACDEDB_20250911_112439.png
+│   │   ├── label_MS-20250911112609-413B8218_20250911_112609.png
+│   │   ├── label_MS-20250911112609-476C1609_20250911_112609.png
+│   │   ├── label_MS-20250911112807-35AB6F6C_20250911_112807.png
+│   │   ├── label_MS-20250911112807-8010C1E8_20250911_112807.png
+│   │   ├── label_MS-20250911112814-5AAA7695_20250911_112814.png
+│   │   ├── label_MS-20250911112814-D404B538_20250911_112815.png
+│   │   ├── label_MS-20250911113111-B9C5D299_20250911_113112.png
+│   │   ├── label_MS-20250911113112-527D4590_20250911_113112.png
+│   │   ├── label_MS-20250911113329-9EAB5A72_20250911_113329.png
+│   │   ├── label_MS-20250911113329-E8FF9D5D_20250911_113330.png
+│   │   ├── label_MS-20250911113444-61CC9E4B_20250911_113444.png
+│   │   ├── label_MS-20250911113444-70065752_20250911_113444.png
+│   │   ├── label_MS-20250911113529-605C8ADA_20250911_113529.png
+│   │   ├── label_MS-20250911113529-6918C4CB_20250911_113529.png
+│   │   ├── label_MS-20250911113652-53CA605E_20250911_113652.png
+│   │   ├── label_MS-20250911113652-765C30B5_20250911_113652.png
+│   │   ├── label_MS-20250911113729-63F9B53B_20250911_113729.png
+│   │   ├── label_MS-20250911113730-ABA3E985_20250911_113730.png
+│   │   ├── label_MS-20250911113932-437DEEE8_20250911_113932.png
+│   │   ├── label_MS-20250911113932-F15B1318_20250911_113932.png
+│   │   ├── label_MS-20250911115922-48C17661_20250911_115923.png
+│   │   ├── label_MS-20250911115922-F1CFA2C4_20250911_115922.png
+│   │   ├── label_MS-20250911145921-645DE162_20250911_145922.png
+│   │   ├── label_MS-20250911145921-B80CF851_20250911_145921.png
+│   │   ├── label_MS-20250911150140-4A512A26_20250911_150140.png
+│   │   ├── label_MS-20250911150140-86621C71_20250911_150140.png
+│   │   ├── label_MS-20250911150402-B6517294_20250911_150402.png
+│   │   ├── label_MS-20250911150402-FC9D36AA_20250911_150403.png
+│   │   ├── label_MS-20250911150646-29384D0E_20250911_150647.png
+│   │   ├── label_MS-20250911150646-BF761C1F_20250911_150646.png
+│   │   ├── label_MS-20250911152207-AE311E1A_20250911_152207.png
+│   │   ├── label_MS-20250911152207-CA10E438_20250911_152207.png
+│   │   ├── label_MS-20250912013327-5EE950AC_20250912_013327.png
+│   │   ├── label_MS-20250912013327-AF53A559_20250912_013327.png
+│   │   ├── label_MS-20250912015018-4BCE9151_20250912_015018.png
+│   │   ├── label_MS-20250912015018-60BF156E_20250912_015018.png
+│   │   ├── label_MS-20250912031928-96E6F105_20250912_031928.png
+│   │   ├── label_MS-20250912031929-3F463092_20250912_031929.png
+│   │   ├── label_MS-20250912112106-E94EEB40_20250912_112106.png
+│   │   ├── label_MS-20250912112106-ECF2301B_20250912_112106.png
+│   │   ├── label_MS-20250912112139-3D446AB5_20250912_112139.png
+│   │   ├── label_MS-20250912112139-A82B14FF_20250912_112139.png
+│   │   ├── label_MS-20250912114645-78EA6D13_20250912_114645.png
+│   │   ├── label_MS-20250912114645-97184C05_20250912_114645.png
+│   │   ├── label_MS-20250912120826-1C5BBA9B_20250912_120826.png
+│   │   ├── label_MS-20250912120826-F044AFB5_20250912_120826.png
+│   │   ├── label_MS-20250912125646-174094DA_20250912_125646.png
+│   │   ├── label_MS-20250912125646-7C1651A2_20250912_125646.png
+│   │   ├── label_MS-20250912125913-0A088FFC_20250912_125914.png
+│   │   ├── label_MS-20250912125913-C3CBF568_20250912_125913.png
+│   │   ├── label_MS-20250912130556-5C932AFF_20250912_130556.png
+│   │   ├── label_MS-20250912130556-8A24170C_20250912_130556.png
+│   │   ├── label_MS-20250912131736-01ACDA9F_20250912_131737.png
+│   │   ├── label_MS-20250912131736-37C04F37_20250912_131736.png
+│   │   ├── label_MS-20250914134724-908048BB_20250914_134724.png
+│   │   ├── label_MS-20250914134851-3DC744C6_20250914_134851.png
+│   │   ├── label_MS-20250914142246-919B66AB_20250914_142246.png
+│   │   ├── label_MS-20250914155012-FD1CD616_20250914_155012.png
+│   │   ├── label_MS-20250914155033-0794056B_20250914_155033.png
+│   │   ├── label_MS-20250914155033-75D51260_20250914_155033.png
+│   │   ├── label_MS-20250914155408-3CEFEBB9_20250914_155408.png
+│   │   ├── label_MS-20250925013350-EFA55B02_20250925_013351.png
+│   │   ├── label_MS-20250925015539-7F7EB613_20250925_015539.png
+│   │   ├── label_MS-20250925115323-D55512EB_20250925_115323.png
+│   │   ├── label_MS-20250925121525-3D27671A_20250925_121525.png
+│   │   ├── label_MS-20251006135442-00401CAC_20251006_135442.png
+│   │   ├── label_MS-20251006135442-F6468525_20251006_135442.png
+│   │   ├── label_MS-20251014211053-4283C35B_20251014_211054.png
+│   │   ├── label_MS-20251014211335-A985D0EB_20251014_211335.png
+│   │   ├── label_MS-20251014212530-B7AAFEF8_20251014_212530.png
+│   │   ├── label_MS-20251014212805-5C45815B_20251014_212805.png
+│   │   ├── label_MS-20251014213522-CC9D5480_20251014_213522.png
+│   │   ├── label_MS-20251014213812-ADDA3851_20251014_213812.png
+│   │   ├── label_MS-20251014214702-42DD6343_20251014_214703.png
+│   │   ├── label_MS-20251014214845-7DC61976_20251014_214845.png
+│   │   ├── label_MS-20251014215536-7D1A060A_20251014_215536.png
+│   │   ├── label_MS-20251014220224-834642BA_20251014_220224.png
+│   │   ├── label_MS-20251014220913-0FEBA304_20251014_220913.png
+│   │   ├── label_MS-20251014221734-B1AD6C4A_20251014_221734.png
+│   │   ├── label_MS-20251014221749-564A11BD_20251014_221749.png
+│   │   ├── label_MS-20251014222338-5595CA54_20251014_222338.png
+│   │   ├── label_MS-20251014222905-E298754B_20251014_222905.png
+│   │   ├── label_MS-20251014223426-B7552B3A_20251014_223426.png
+│   │   ├── label_MS-20251014223900-42B15333_20251014_223900.png
+│   │   ├── label_MS-20251014224445-7C9CC0A7_20251014_224445.png
+│   │   ├── label_MS-20251014225004-B48299CF_20251014_225004.png
+│   │   ├── label_MS-20251014225521-B99218EA_20251014_225521.png
+│   │   ├── label_MS-20251014230122-A27ACC05_20251014_230122.png
+│   │   ├── label_MS-20251014230759-A82BDA92_20251014_230759.png
+│   │   ├── label_MS-20251014231020-F19D8859_20251014_231020.png
+│   │   ├── label_MS-20251014231544-F688D8FF_20251014_231544.png
+│   │   ├── label_MS-20251014231817-CD0A954C_20251014_231817.png
+│   │   ├── label_MS-20251014232222-3B05ADAB_20251014_232222.png
+│   │   ├── label_MS-20251014232840-8086A436_20251014_232840.png
+│   │   ├── label_MS-20251014233435-AD52DB2D_20251014_233435.png
+│   │   ├── label_MS-20251014234222-7B6955FF_20251014_234222.png
+│   │   ├── label_MS-20251014235729-2D5A602B_20251014_235729.png
+│   │   ├── label_MS-20251015000125-15F5FA24_20251015_000125.png
+│   │   ├── label_MS-20251015000602-6406044A_20251015_000602.png
+│   │   ├── label_MS-20251015000746-97FEB751_20251015_000746.png
+│   │   ├── label_MS-20251015010644-29B8C292_20251015_010644.png
+│   │   ├── label_MS-20251015011852-1DD311C1_20251015_011852.png
+│   │   ├── label_MS-20251015012344-FA1ACB61_20251015_012344.png
+│   │   ├── label_MS-20251015013129-AF6DB6B5_20251015_013129.png
+│   │   ├── label_MS-20251015014210-A001A72E_20251015_014210.png
+│   │   ├── label_MS-20251015014854-46B6735F_20251015_014854.png
+│   │   ├── label_MS-20251015014959-2821A0A2_20251015_014959.png
+│   │   ├── label_MS-20251015015749-2D975EDB_20251015_015749.png
+│   │   ├── label_MS-20251015021006-0677D5F0_20251015_021006.png
+│   │   ├── label_MS-20251015021534-7C25518D_20251015_021534.png
+│   │   ├── label_MS-20251015022022-BD2A3A78_20251015_022022.png
+│   │   ├── label_MS-20251015022108-D4B4523F_20251015_022108.png
+│   │   ├── label_MS-20251015022729-EC27BD5D_20251015_022729.png
+│   │   ├── label_MS-20251015023029-F6650D82_20251015_023029.png
+│   │   ├── label_MS-20251015023746-C3DA49DE_20251015_023746.png
+│   │   ├── label_MS-20251015024205-4F41B965_20251015_024205.png
+│   │   ├── label_MS-20251015024655-1BDFED8F_20251015_024655.png
+│   │   ├── label_MS-20251015024833-D131201D_20251015_024833.png
+│   │   ├── label_MS-20251015025533-43BC6837_20251015_025534.png
+│   │   ├── label_MS-20251015025602-6F3AE1FB_20251015_025602.png
+│   │   ├── label_MS-20251015030220-75D842B8_20251015_030220.png
+│   │   ├── label_MS-20251015031235-73CB030C_20251015_031235.png
+│   │   ├── label_MS-20251015031527-3B7D3919_20251015_031527.png
+│   │   ├── label_MS-20251015032003-3A3A7561_20251015_032003.png
+│   │   ├── label_MS-20251015032448-68B48277_20251015_032448.png
+│   │   ├── label_MS-20251015032721-A56D0364_20251015_032721.png
+│   │   ├── label_MS-20251015033406-9B6B2CE7_20251015_033406.png
+│   │   ├── label_MS-20251015033717-61DD4944_20251015_033717.png
+│   │   ├── label_MS-20251015034617-62AC9CAF_20251015_034617.png
+│   │   ├── label_MS-20251015035003-FB764030_20251015_035003.png
+│   │   ├── label_MS-20251015035425-21C1CB78_20251015_035425.png
+│   │   ├── label_MS-20251015040601-746E28A6_20251015_040601.png
+│   │   ├── label_MS-20251015041217-B2B4301A_20251015_041217.png
+│   │   ├── label_MS-20251015041409-85FDA1A9_20251015_041409.png
+│   │   ├── label_MS-20251015041409-B56681F7_20251015_041409.png
+│   │   ├── label_MS-20251017140518-01EBE1CE_20251017_140518.png
+│   │   ├── label_MS-20251017141058-EDF38F9C_20251017_141058.png
+│   │   ├── label_MS-20251017144758-1149F43B_20251017_144758.png
+│   │   ├── label_MS-20251017144758-24F866BF_20251017_144758.png
+│   │   ├── label_MS-20251017144846-38E46918_20251017_144846.png
+│   │   ├── label_MS-20251017144846-4D5C3FA0_20251017_144846.png
+│   │   ├── label_MS-20251017145524-50076510_20251017_145524.png
+│   │   ├── label_MS-20251017145524-97DBD02A_20251017_145524.png
+│   │   ├── label_MS-20251017145548-00CE7523_20251017_145548.png
+│   │   ├── label_MS-20251017145548-A2C32A45_20251017_145548.png
+│   │   ├── label_MS-20251017145733-D4497A5A_20251017_145734.png
+│   │   ├── label_MS-20251017145733-EC1FE001_20251017_145733.png
+│   │   ├── label_MS-20251017152105-85E9B9B0_20251017_152105.png
+│   │   ├── label_MS-20251018121735-6335DF1E_20251018_121735.png
+│   │   ├── label_MS-20251018121907-911EA86C_20251018_121908.png
+│   │   ├── label_MS-20251018121908-D7674A89_20251018_121908.png
+│   │   ├── label_MS-20251018132003-32A2EBFA_20251018_132003.png
+│   │   ├── label_MS-20251018132136-96F6B607_20251018_132136.png
+│   │   ├── label_MS-20251018132136-DC574181_20251018_132136.png
+│   │   ├── label_MS-20251019140652-6BFE74B3_20251019_140652.png
+│   │   ├── label_MS-20251019140824-2C8A31FD_20251019_140824.png
+│   │   └── label_MS-20251019140824-B245BC99_20251019_140824.png
+│   ├── productos
+│   │   ├── imagenes
+│   │   └── thumbnails
+│   ├── qr_codes
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250910_211012.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250910_211031.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250910_211049.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250910_211058.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250910_211912.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250910_214807.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250910_215218.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250910_221454.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250910_222535.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250910_222735.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250910_230357.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250910_230558.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250910_230635.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250910_230903.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250910_230917.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250911_111139.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250911_111357.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250911_111840.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250911_112439.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250911_112610.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250911_112807.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250911_112815.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250911_113112.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250911_113330.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250911_113444.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250911_113530.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250911_113652.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250911_113730.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250911_113932.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250911_115923.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250911_145922.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250911_150140.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250911_150403.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250911_150647.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250911_152207.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250912_013327.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250912_015018.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250912_031929.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250912_112106.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250912_112139.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250912_114646.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250912_120826.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250912_125646.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250912_125914.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250912_130556.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250912_131737.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20250914_155033.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20251006_135442.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20251015_041409.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20251017_144758.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20251017_144847.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20251017_145524.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20251017_145549.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20251017_145734.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20251018_121908.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20251018_132136.png
+│   │   ├── qr_MS-20250115120000-ABCD1234_20251019_140824.png
+│   │   ├── qr_MS-20250910210908-0CBC09C0_20250910_210908.png
+│   │   ├── qr_MS-20250910210933-AA4E44BA_20250910_210933.png
+│   │   ├── qr_MS-20250910210947-8101BD7A_20250910_210947.png
+│   │   ├── qr_MS-20250910210947-EF0C321E_20250910_210947.png
+│   │   ├── qr_MS-20250910211011-A8286B91_20250910_211012.png
+│   │   ├── qr_MS-20250910211012-E333C1DE_20250910_211012.png
+│   │   ├── qr_MS-20250910211030-00F3A972_20250910_211031.png
+│   │   ├── qr_MS-20250910211030-FCC97117_20250910_211030.png
+│   │   ├── qr_MS-20250910211049-16AFC655_20250910_211049.png
+│   │   ├── qr_MS-20250910211049-C7CAC824_20250910_211049.png
+│   │   ├── qr_MS-20250910211058-B1E97B2D_20250910_211058.png
+│   │   ├── qr_MS-20250910211058-D8E0C2E0_20250910_211058.png
+│   │   ├── qr_MS-20250910211912-437CBE28_20250910_211912.png
+│   │   ├── qr_MS-20250910211912-DC349D91_20250910_211912.png
+│   │   ├── qr_MS-20250910211945-99BD1DE7_20250910_211945.png
+│   │   ├── qr_MS-20250910212007-2461558F_20250910_212007.png
+│   │   ├── qr_MS-20250910212034-E8C41B7E_20250910_212034.png
+│   │   ├── qr_MS-20250910212105-531DF5E0_20250910_212105.png
+│   │   ├── qr_MS-20250910212121-63350395_20250910_212121.png
+│   │   ├── qr_MS-20250910214806-20271CB5_20250910_214806.png
+│   │   ├── qr_MS-20250910214806-8840EA79_20250910_214806.png
+│   │   ├── qr_MS-20250910215217-CABABBD7_20250910_215218.png
+│   │   ├── qr_MS-20250910215217-D92F9CFE_20250910_215217.png
+│   │   ├── qr_MS-20250910221454-42F19043_20250910_221454.png
+│   │   ├── qr_MS-20250910221454-7B91707F_20250910_221454.png
+│   │   ├── qr_MS-20250910222535-801CC21B_20250910_222535.png
+│   │   ├── qr_MS-20250910222535-D29BEC9E_20250910_222535.png
+│   │   ├── qr_MS-20250910222735-CEACB21C_20250910_222735.png
+│   │   ├── qr_MS-20250910222735-F588B2F7_20250910_222735.png
+│   │   ├── qr_MS-20250910230356-0771773E_20250910_230356.png
+│   │   ├── qr_MS-20250910230356-5C20F987_20250910_230356.png
+│   │   ├── qr_MS-20250910230558-7607B568_20250910_230558.png
+│   │   ├── qr_MS-20250910230558-96B3FED7_20250910_230558.png
+│   │   ├── qr_MS-20250910230634-1253D8C1_20250910_230634.png
+│   │   ├── qr_MS-20250910230634-9C2320EE_20250910_230634.png
+│   │   ├── qr_MS-20250910230902-72A86598_20250910_230903.png
+│   │   ├── qr_MS-20250910230902-7A2A793E_20250910_230902.png
+│   │   ├── qr_MS-20250910230916-5B9C157B_20250910_230917.png
+│   │   ├── qr_MS-20250910230916-C48A431A_20250910_230916.png
+│   │   ├── qr_MS-20250911111138-50B03261_20250911_111138.png
+│   │   ├── qr_MS-20250911111139-09B26422_20250911_111139.png
+│   │   ├── qr_MS-20250911111357-A7F69B02_20250911_111357.png
+│   │   ├── qr_MS-20250911111357-EC76C671_20250911_111357.png
+│   │   ├── qr_MS-20250911111839-25F90B50_20250911_111839.png
+│   │   ├── qr_MS-20250911111839-BFAF2D01_20250911_111839.png
+│   │   ├── qr_MS-20250911112439-77E6CA98_20250911_112439.png
+│   │   ├── qr_MS-20250911112439-ADACDEDB_20250911_112439.png
+│   │   ├── qr_MS-20250911112609-413B8218_20250911_112609.png
+│   │   ├── qr_MS-20250911112609-476C1609_20250911_112609.png
+│   │   ├── qr_MS-20250911112807-35AB6F6C_20250911_112807.png
+│   │   ├── qr_MS-20250911112807-8010C1E8_20250911_112807.png
+│   │   ├── qr_MS-20250911112814-5AAA7695_20250911_112814.png
+│   │   ├── qr_MS-20250911112814-D404B538_20250911_112815.png
+│   │   ├── qr_MS-20250911113111-B9C5D299_20250911_113111.png
+│   │   ├── qr_MS-20250911113112-527D4590_20250911_113112.png
+│   │   ├── qr_MS-20250911113329-9EAB5A72_20250911_113329.png
+│   │   ├── qr_MS-20250911113329-E8FF9D5D_20250911_113330.png
+│   │   ├── qr_MS-20250911113444-61CC9E4B_20250911_113444.png
+│   │   ├── qr_MS-20250911113444-70065752_20250911_113444.png
+│   │   ├── qr_MS-20250911113529-605C8ADA_20250911_113529.png
+│   │   ├── qr_MS-20250911113529-6918C4CB_20250911_113529.png
+│   │   ├── qr_MS-20250911113652-53CA605E_20250911_113652.png
+│   │   ├── qr_MS-20250911113652-765C30B5_20250911_113652.png
+│   │   ├── qr_MS-20250911113729-63F9B53B_20250911_113729.png
+│   │   ├── qr_MS-20250911113730-ABA3E985_20250911_113730.png
+│   │   ├── qr_MS-20250911113932-437DEEE8_20250911_113932.png
+│   │   ├── qr_MS-20250911113932-F15B1318_20250911_113932.png
+│   │   ├── qr_MS-20250911115922-48C17661_20250911_115923.png
+│   │   ├── qr_MS-20250911115922-F1CFA2C4_20250911_115922.png
+│   │   ├── qr_MS-20250911145921-645DE162_20250911_145922.png
+│   │   ├── qr_MS-20250911145921-B80CF851_20250911_145921.png
+│   │   ├── qr_MS-20250911150140-4A512A26_20250911_150140.png
+│   │   ├── qr_MS-20250911150140-86621C71_20250911_150140.png
+│   │   ├── qr_MS-20250911150402-B6517294_20250911_150402.png
+│   │   ├── qr_MS-20250911150402-FC9D36AA_20250911_150402.png
+│   │   ├── qr_MS-20250911150646-29384D0E_20250911_150647.png
+│   │   ├── qr_MS-20250911150646-BF761C1F_20250911_150646.png
+│   │   ├── qr_MS-20250911152207-AE311E1A_20250911_152207.png
+│   │   ├── qr_MS-20250911152207-CA10E438_20250911_152207.png
+│   │   ├── qr_MS-20250912013327-5EE950AC_20250912_013327.png
+│   │   ├── qr_MS-20250912013327-AF53A559_20250912_013327.png
+│   │   ├── qr_MS-20250912015018-4BCE9151_20250912_015018.png
+│   │   ├── qr_MS-20250912015018-60BF156E_20250912_015018.png
+│   │   ├── qr_MS-20250912031928-96E6F105_20250912_031928.png
+│   │   ├── qr_MS-20250912031929-3F463092_20250912_031929.png
+│   │   ├── qr_MS-20250912112106-E94EEB40_20250912_112106.png
+│   │   ├── qr_MS-20250912112106-ECF2301B_20250912_112106.png
+│   │   ├── qr_MS-20250912112139-3D446AB5_20250912_112139.png
+│   │   ├── qr_MS-20250912112139-A82B14FF_20250912_112139.png
+│   │   ├── qr_MS-20250912114645-78EA6D13_20250912_114645.png
+│   │   ├── qr_MS-20250912114645-97184C05_20250912_114645.png
+│   │   ├── qr_MS-20250912120826-1C5BBA9B_20250912_120826.png
+│   │   ├── qr_MS-20250912120826-F044AFB5_20250912_120826.png
+│   │   ├── qr_MS-20250912125646-174094DA_20250912_125646.png
+│   │   ├── qr_MS-20250912125646-7C1651A2_20250912_125646.png
+│   │   ├── qr_MS-20250912125913-0A088FFC_20250912_125914.png
+│   │   ├── qr_MS-20250912125913-C3CBF568_20250912_125913.png
+│   │   ├── qr_MS-20250912130556-5C932AFF_20250912_130556.png
+│   │   ├── qr_MS-20250912130556-8A24170C_20250912_130556.png
+│   │   ├── qr_MS-20250912131736-01ACDA9F_20250912_131737.png
+│   │   ├── qr_MS-20250912131736-37C04F37_20250912_131736.png
+│   │   ├── qr_MS-20250914134724-908048BB_20250914_134724.png
+│   │   ├── qr_MS-20250914134851-3DC744C6_20250914_134851.png
+│   │   ├── qr_MS-20250914142246-919B66AB_20250914_142246.png
+│   │   ├── qr_MS-20250914155012-FD1CD616_20250914_155012.png
+│   │   ├── qr_MS-20250914155033-0794056B_20250914_155033.png
+│   │   ├── qr_MS-20250914155033-75D51260_20250914_155033.png
+│   │   ├── qr_MS-20250914155408-3CEFEBB9_20250914_155408.png
+│   │   ├── qr_MS-20250925013350-EFA55B02_20250925_013350.png
+│   │   ├── qr_MS-20250925015539-7F7EB613_20250925_015539.png
+│   │   ├── qr_MS-20250925115323-D55512EB_20250925_115323.png
+│   │   ├── qr_MS-20250925121525-3D27671A_20250925_121525.png
+│   │   ├── qr_MS-20251006131625-BE66174C_20251006_131625.png
+│   │   ├── qr_MS-20251006135308-AC8023B5_20251006_135309.png
+│   │   ├── qr_MS-20251006135442-00401CAC_20251006_135442.png
+│   │   ├── qr_MS-20251006135442-F6468525_20251006_135442.png
+│   │   ├── qr_MS-20251014210934-89B02EED_20251014_210934.png
+│   │   ├── qr_MS-20251014211053-4283C35B_20251014_211054.png
+│   │   ├── qr_MS-20251014211335-A985D0EB_20251014_211335.png
+│   │   ├── qr_MS-20251014212530-B7AAFEF8_20251014_212530.png
+│   │   ├── qr_MS-20251014212805-5C45815B_20251014_212805.png
+│   │   ├── qr_MS-20251014213522-CC9D5480_20251014_213522.png
+│   │   ├── qr_MS-20251014213812-ADDA3851_20251014_213812.png
+│   │   ├── qr_MS-20251014214702-42DD6343_20251014_214703.png
+│   │   ├── qr_MS-20251014214845-7DC61976_20251014_214845.png
+│   │   ├── qr_MS-20251014215536-7D1A060A_20251014_215536.png
+│   │   ├── qr_MS-20251014220224-834642BA_20251014_220224.png
+│   │   ├── qr_MS-20251014220913-0FEBA304_20251014_220913.png
+│   │   ├── qr_MS-20251014221734-B1AD6C4A_20251014_221734.png
+│   │   ├── qr_MS-20251014221749-564A11BD_20251014_221749.png
+│   │   ├── qr_MS-20251014222338-5595CA54_20251014_222338.png
+│   │   ├── qr_MS-20251014222905-E298754B_20251014_222905.png
+│   │   ├── qr_MS-20251014223426-B7552B3A_20251014_223426.png
+│   │   ├── qr_MS-20251014223900-42B15333_20251014_223900.png
+│   │   ├── qr_MS-20251014224445-7C9CC0A7_20251014_224445.png
+│   │   ├── qr_MS-20251014225004-B48299CF_20251014_225004.png
+│   │   ├── qr_MS-20251014225521-B99218EA_20251014_225521.png
+│   │   ├── qr_MS-20251014230122-A27ACC05_20251014_230122.png
+│   │   ├── qr_MS-20251014230759-A82BDA92_20251014_230759.png
+│   │   ├── qr_MS-20251014231020-F19D8859_20251014_231020.png
+│   │   ├── qr_MS-20251014231544-F688D8FF_20251014_231544.png
+│   │   ├── qr_MS-20251014231817-CD0A954C_20251014_231817.png
+│   │   ├── qr_MS-20251014232222-3B05ADAB_20251014_232222.png
+│   │   ├── qr_MS-20251014232840-8086A436_20251014_232840.png
+│   │   ├── qr_MS-20251014233435-AD52DB2D_20251014_233435.png
+│   │   ├── qr_MS-20251014234222-7B6955FF_20251014_234222.png
+│   │   ├── qr_MS-20251014235729-2D5A602B_20251014_235729.png
+│   │   ├── qr_MS-20251015000125-15F5FA24_20251015_000125.png
+│   │   ├── qr_MS-20251015000602-6406044A_20251015_000602.png
+│   │   ├── qr_MS-20251015000746-97FEB751_20251015_000746.png
+│   │   ├── qr_MS-20251015010644-29B8C292_20251015_010644.png
+│   │   ├── qr_MS-20251015011852-1DD311C1_20251015_011852.png
+│   │   ├── qr_MS-20251015012344-FA1ACB61_20251015_012344.png
+│   │   ├── qr_MS-20251015013129-AF6DB6B5_20251015_013129.png
+│   │   ├── qr_MS-20251015014210-A001A72E_20251015_014210.png
+│   │   ├── qr_MS-20251015014854-46B6735F_20251015_014854.png
+│   │   ├── qr_MS-20251015014959-2821A0A2_20251015_014959.png
+│   │   ├── qr_MS-20251015015749-2D975EDB_20251015_015749.png
+│   │   ├── qr_MS-20251015021006-0677D5F0_20251015_021006.png
+│   │   ├── qr_MS-20251015021534-7C25518D_20251015_021534.png
+│   │   ├── qr_MS-20251015022022-BD2A3A78_20251015_022022.png
+│   │   ├── qr_MS-20251015022108-D4B4523F_20251015_022108.png
+│   │   ├── qr_MS-20251015022729-EC27BD5D_20251015_022729.png
+│   │   ├── qr_MS-20251015023029-F6650D82_20251015_023029.png
+│   │   ├── qr_MS-20251015023746-C3DA49DE_20251015_023746.png
+│   │   ├── qr_MS-20251015024205-4F41B965_20251015_024205.png
+│   │   ├── qr_MS-20251015024655-1BDFED8F_20251015_024655.png
+│   │   ├── qr_MS-20251015024833-D131201D_20251015_024833.png
+│   │   ├── qr_MS-20251015025533-43BC6837_20251015_025534.png
+│   │   ├── qr_MS-20251015025602-6F3AE1FB_20251015_025602.png
+│   │   ├── qr_MS-20251015030220-75D842B8_20251015_030220.png
+│   │   ├── qr_MS-20251015031235-73CB030C_20251015_031235.png
+│   │   ├── qr_MS-20251015031527-3B7D3919_20251015_031527.png
+│   │   ├── qr_MS-20251015032003-3A3A7561_20251015_032003.png
+│   │   ├── qr_MS-20251015032448-68B48277_20251015_032448.png
+│   │   ├── qr_MS-20251015032721-A56D0364_20251015_032721.png
+│   │   ├── qr_MS-20251015033406-9B6B2CE7_20251015_033406.png
+│   │   ├── qr_MS-20251015033717-61DD4944_20251015_033717.png
+│   │   ├── qr_MS-20251015034617-62AC9CAF_20251015_034617.png
+│   │   ├── qr_MS-20251015035003-FB764030_20251015_035003.png
+│   │   ├── qr_MS-20251015035425-21C1CB78_20251015_035425.png
+│   │   ├── qr_MS-20251015040601-746E28A6_20251015_040601.png
+│   │   ├── qr_MS-20251015041217-B2B4301A_20251015_041217.png
+│   │   ├── qr_MS-20251015041409-85FDA1A9_20251015_041409.png
+│   │   ├── qr_MS-20251015041409-B56681F7_20251015_041409.png
+│   │   ├── qr_MS-20251017140518-01EBE1CE_20251017_140518.png
+│   │   ├── qr_MS-20251017141058-EDF38F9C_20251017_141058.png
+│   │   ├── qr_MS-20251017144758-1149F43B_20251017_144758.png
+│   │   ├── qr_MS-20251017144758-24F866BF_20251017_144758.png
+│   │   ├── qr_MS-20251017144846-38E46918_20251017_144846.png
+│   │   ├── qr_MS-20251017144846-4D5C3FA0_20251017_144846.png
+│   │   ├── qr_MS-20251017145524-50076510_20251017_145524.png
+│   │   ├── qr_MS-20251017145524-97DBD02A_20251017_145524.png
+│   │   ├── qr_MS-20251017145548-00CE7523_20251017_145548.png
+│   │   ├── qr_MS-20251017145548-A2C32A45_20251017_145548.png
+│   │   ├── qr_MS-20251017145733-D4497A5A_20251017_145734.png
+│   │   ├── qr_MS-20251017145733-EC1FE001_20251017_145733.png
+│   │   ├── qr_MS-20251017152105-85E9B9B0_20251017_152105.png
+│   │   ├── qr_MS-20251018121735-6335DF1E_20251018_121735.png
+│   │   ├── qr_MS-20251018121907-911EA86C_20251018_121908.png
+│   │   ├── qr_MS-20251018121908-D7674A89_20251018_121908.png
+│   │   ├── qr_MS-20251018132003-32A2EBFA_20251018_132003.png
+│   │   ├── qr_MS-20251018132136-96F6B607_20251018_132136.png
+│   │   ├── qr_MS-20251018132136-DC574181_20251018_132136.png
+│   │   ├── qr_MS-20251019140652-6BFE74B3_20251019_140652.png
+│   │   ├── qr_MS-20251019140824-2C8A31FD_20251019_140824.png
+│   │   └── qr_MS-20251019140824-B245BC99_20251019_140824.png
+│   ├── temp
+│   │   └── .gitkeep
+│   └── verification_photos
+├── vite.config.ts
+└── .workspace
+    ├── AGENT_CREATION_REPORT.md
+    ├── AGENT_NOTIFICATIONS_CEO_DIRECTIVE.md
+    ├── AGENT_PROTOCOL.md
+    ├── AGENT_REFERENCE.md
+    ├── alerts
+    │   ├── critical-issues.md
+    │   └── incident-reports
+    ├── BROADCAST_COMPLETION_REPORT.md
+    ├── CEO_DIRECTIVE_INDEX.md
+    ├── changes
+    ├── channels
+    │   ├── backend
+    │   ├── devops
+    │   ├── frontend
+    │   ├── integration
+    │   └── management
+    ├── checklists
+    │   └── USER_MANAGEMENT_IMPLEMENTATION.md
+    ├── checkout-backend-tdd-complete
+    │   ├── CHECKOUT_MAP.md
+    │   ├── COVERAGE_BASELINE.md
+    │   ├── CURRENT_COVERAGE.txt
+    │   ├── EXECUTIVE_SUMMARY_RED_PHASE.md
+    │   ├── FASE_2_RESUMEN_EJECUTIVO.md
+    │   ├── FILE_LIST.txt
+    │   ├── QUICK_REFERENCE_RED_PHASE.md
+    │   └── RED_PHASE_RESULTS.md
+    ├── checkout-deployment
+    │   ├── DEPLOYMENT_REPORT.md
+    │   ├── ENV_CHECKLIST.md
+    │   ├── EXECUTIVE_SUMMARY.md
+    │   ├── FASE_7_COMPLETE.md
+    │   ├── MIGRATION_STATUS.md
+    │   ├── POST_DEPLOYMENT_VERIFICATION.sh
+    │   └── RELEASE_NOTES_v1.0.0.md
+    ├── CLAUDE_CODE_PROTOCOL.md
+    ├── CODE_STANDARDS_QUICK_CHECK.md
+    ├── command-center
+    │   └── agent-recruiter
+    ├── communication-hub
+    │   ├── coordination-protocols.md
+    │   ├── coordination-summary.md
+    │   ├── escalation-conflict-resolution.md
+    │   ├── ready-to-execute-coordination-plan.md
+    │   ├── synchronized-timeline.md
+    │   └── unified-coordination-strategy.md
+    ├── communications
+    │   ├── coordination-channel.json
+    │   ├── COORDINATION_SUMMARY_REPORT.md
+    │   ├── department
+    │   ├── FINAL_INTEGRATION_STRATEGY.md
+    │   ├── MASSIVE_ADMIN_TESTING_COORDINATION.md
+    │   ├── OPERATION_DASHBOARD.md
+    │   └── squad_protocols.md
+    ├── construction-banner
+    │   └── BANNER_DEPLOYMENT_SUMMARY.md
+    ├── context
+    │   ├── architecture
+    │   ├── constraints.md
+    │   ├── glossary.md
+    │   ├── project-brief.md
+    │   └── requirements
+    ├── coordination
+    │   ├── agent-assignments.md
+    │   └── communication-protocols.md
+    ├── core-architecture
+    │   └── database-architect
+    ├── cors-https-fix
+    │   ├── cors-fix-backend-report.md
+    │   ├── DIAGNOSTICO_COMPLETO.md
+    │   ├── FASE_3_COMPLETE.md
+    │   ├── RAILWAY_VARIABLES_REQUERIDAS.md
+    │   └── RESUMEN_EJECUTIVO.md
+    ├── critical_issues
+    │   ├── AGENT_NOTIFICATIONS.md
+    │   ├── CORS_X_CSRF_TOKEN_ISSUE.md
+    │   ├── PREVENTION_ALERT.md
+    │   └── SUMMARY_REPORT.md
+    ├── critical_knowledge
+    │   └── USER_MANAGEMENT_AGENTS_MUST_KNOW.md
+    ├── DB_UNIFICATION_PROTOCOL.md
+    ├── decisions
+    │   ├── agent_report_system-architect-ai_REQ_20250926_011325_1893.md
+    │   ├── agent_report_system-architect-ai_REQ_20250926_011532_0228.md
+    │   ├── agent_report_system-architect-ai_REQ_20250926_014516_8236.md
+    │   ├── agent_report_system-architect-ai_REQ_20250926_014546_4058.md
+    │   ├── evaluation_REQ_20250926_011325_1893.json
+    │   ├── evaluation_REQ_20250926_011532_0228.json
+    │   ├── evaluation_REQ_20250926_014516_8236.json
+    │   └── evaluation_REQ_20250926_014546_4058.json
+    ├── departments
+    │   ├── architecture
+    │   ├── backend
+    │   ├── data-ai
+    │   ├── executive
+    │   ├── frontend
+    │   ├── general
+    │   ├── infrastructure
+    │   ├── integration
+    │   ├── integration-connectivity
+    │   ├── management
+    │   ├── mobile
+    │   ├── security
+    │   └── testing
+    ├── deployment-history
+    │   └── history.log
+    ├── development-engines
+    ├── DEVELOPMENT_PROTOCOL_WITH_AI.md
+    ├── ENHANCED_DELEGATION_SYSTEM.md
+    ├── error_patterns
+    │   └── USER_MANAGEMENT_ERRORS.md
+    ├── EXECUTIVE_IMPLEMENTATION_REPORT.md
+    ├── EXECUTIVE_SUMMARY_CODE_STANDARDIZATION.md
+    ├── EXECUTIVE_SUMMARY_ENHANCED_SYSTEM.md
+    ├── fix-registro
+    │   ├── CHANGELOG.md
+    │   ├── DIAGNOSTICO.md
+    │   ├── EXECUTIVE_SUMMARY.md
+    │   ├── REPORTE_FINAL.md
+    │   └── VERIFICACION_FINAL.md
+    ├── IMPLEMENTATION_GUIDE.md
+    ├── knowledge
+    │   └── troubleshooting
+    ├── logs
+    │   ├── agent_activity_2025-09-20.json
+    │   ├── agent_activity_2025-09-21.json
+    │   ├── agent_activity_2025-09-22.json
+    │   ├── agent_activity_2025-09-23.json
+    │   ├── agent_activity_2025-09-24.json
+    │   ├── agent_activity_2025-09-25.json
+    │   ├── agent_activity_2025-09-26.json
+    │   ├── agent_activity_2025-09-28.json
+    │   ├── agent_activity_2025-10-01.json
+    │   ├── agent_activity_2025-10-02.json
+    │   ├── agent_activity_2025-10-03.json
+    │   ├── agent_activity_2025-10-05.json
+    │   ├── agent_activity_2025-10-06.json
+    │   ├── agent_activity_2025-10-08.json
+    │   ├── agent_activity_2025-10-09.json
+    │   ├── agent_activity_2025-10-11.json
+    │   ├── agent_activity_2025-10-12.json
+    │   ├── agent_activity_2025-10-13.json
+    │   ├── agent_activity_2025-10-16.json
+    │   ├── auto_delegation_2025-09-26.json
+    │   ├── auto_delegation_2025-09-28.json
+    │   ├── auto_delegation_2025-10-03.json
+    │   ├── auto_delegation_2025-10-06.json
+    │   ├── auto_delegation_2025-10-12.json
+    │   ├── claude_code_activity_2025-09-26.json
+    │   └── last_commit_template.txt
+    ├── metrics
+    ├── MISSION_COMPLETED_PRODUCTION_NOTIFICATION.md
+    ├── notifications
+    │   └── production-launch
+    ├── OFFICE_STRUCTURE.md
+    ├── orders-regression-tests
+    │   └── FIX_DOCUMENTATION.md
+    ├── personal-office
+    │   ├── assistants
+    │   ├── MVP_STATUS_REPORT.md
+    │   ├── project-overview.md
+    │   ├── reports
+    │   ├── team-mvp-orchestrator
+    │   └── TODO.md
+    ├── PHASE_1_SECURITY_IMPLEMENTATION.md
+    ├── PHASE_2_EXECUTIVE_SUMMARY.md
+    ├── PHASE_2_TESTING_STRATEGY_DESIGN.md
+    ├── PRODUCTION_STATUS.md
+    ├── project
+    │   ├── alembic
+    │   ├── app
+    │   ├── docker-compose.yml.md
+    │   ├── frontend
+    │   ├── scripts
+    │   └── tests
+    ├── PROTECTED_FILES.md
+    ├── quality-operations
+    │   └── e2e-testing
+    ├── QUICK_START_GUIDE.md
+    ├── README.md
+    ├── reports
+    │   ├── agent_availability_2025-09-20_04-33.json
+    │   ├── agent_availability_2025-09-20_04-34.json
+    │   ├── agent_availability_2025-09-20_04-35.json
+    │   ├── FASE_6_SECURITY_AUTH_TESTS_REPORT.md
+    │   └── testing-issue-user-model-fields-missing.md
+    ├── requests
+    │   ├── activation_database-architect-ai_REQ_20250928_015318_3662.md
+    │   ├── activation_database-architect-ai_REQ_20250928_142634_0250.md
+    │   ├── activation_database-architect-ai_REQ_20251006_132615_7143.md
+    │   ├── activation_system-architect-ai_REQ_20250926_011325_1893.md
+    │   ├── activation_system-architect-ai_REQ_20250926_011532_0228.md
+    │   ├── activation_system-architect-ai_REQ_20250926_014516_8236.md
+    │   ├── activation_system-architect-ai_REQ_20250926_014546_4058.md
+    │   ├── activation_system-architect-ai_REQ_20251003_021913_3137.md
+    │   ├── activation_tdd-specialist_REQ_20251012_015324_7716.md
+    │   ├── claude-code-20250926-004707-6572.json
+    │   ├── claude-code-20250926-004716-0608.json
+    │   ├── claude-code-20250926-005443-7473.json
+    │   ├── claude-code-20250926-005527-4557.json
+    │   ├── delegation_REQ_20250926_011325_1893.json
+    │   ├── delegation_REQ_20250926_011532_0228.json
+    │   ├── delegation_REQ_20250926_014516_8236.json
+    │   ├── delegation_REQ_20250926_014546_4058.json
+    │   ├── delegation_REQ_20250928_015318_3662.json
+    │   ├── delegation_REQ_20250928_142634_0250.json
+    │   ├── delegation_REQ_20251003_021913_3137.json
+    │   ├── delegation_REQ_20251006_132615_7143.json
+    │   ├── delegation_REQ_20251012_015324_7716.json
+    │   ├── interception_report_INTERCEPT_20250926_011325.json
+    │   ├── interception_report_INTERCEPT_20250926_011532.json
+    │   ├── interception_report_INTERCEPT_20250926_014516.json
+    │   ├── interception_report_INTERCEPT_20250926_014546.json
+    │   ├── request_163b57d7.json
+    │   ├── request_20425a97.json
+    │   ├── request_3b6c05a5.json
+    │   ├── request_a32677ff.json
+    │   ├── request_bf32a3ef.json
+    │   ├── request_cc0c9727.json
+    │   ├── request_fa1129d2.json
+    │   └── request_fe76478d.json
+    ├── RESPONSIBLE_AGENTS.md
+    ├── rollback-points
+    ├── scripts
+    │   ├── agent_decision_evaluator.py
+    │   ├── agent_workspace_validator.py
+    │   ├── auto_delegate_to_responsible_agent.py
+    │   ├── check_delegation_status.py
+    │   ├── claude_code_aliases.sh
+    │   ├── claude_code_interceptor.py
+    │   ├── contact_responsible_agent.py
+    │   ├── create_snapshot.py
+    │   ├── daily_compliance_report.py
+    │   ├── distribute_instructions.py
+    │   ├── install_claude_code_protocol.sh
+    │   ├── master_testing_orchestrator.py
+    │   ├── pre_commit_workspace_check.sh
+    │   ├── respond_to_request.py
+    │   ├── rollback.py
+    │   ├── setup_test_command.sh
+    │   ├── squad_coordinator.py
+    │   ├── traceability_manager.py
+    │   ├── verify_agent_availability.py
+    │   └── verify_claude_protocol.py
+    ├── security
+    ├── snapshots
+    │   ├── 20250927_143510_user_management_broken
+    │   ├── 20250927_143822_user_management_before_fix
+    │   ├── 20250927_143844_user_management_fixed_endpoints
+    │   ├── 20250927_144237_protocol_implementation_complete
+    │   ├── 20250927_144449_user_management_before_buttons
+    │   ├── 20250927_144612_user_management_with_buttons
+    │   ├── 20250928_013547_user_buttons_before_enable
+    │   ├── 20250928_013651_user_suspend_delete_fixed
+    │   ├── 20250928_013821_user_management_complete
+    │   ├── 20250928_014004_delete_function_error
+    │   ├── 20250928_014426_csrf_removed_for_frontend
+    │   ├── 20250928_014554_failed_fetch_error
+    │   ├── backend
+    │   ├── database
+    │   └── frontend
+    ├── specialized-domains
+    │   └── payment-systems
+    ├── standards
+    │   ├── coding-standards
+    │   ├── CORS_CONFIGURATION_STANDARDS.md
+    │   └── USER_MANAGEMENT_CONFIG_STANDARDS.md
+    ├── status
+    │   ├── blockers.md
+    │   ├── completed-tasks.md
+    │   ├── daily-reports
+    │   ├── git-status.log
+    │   ├── health-check.md
+    │   └── sprint-status.md
+    ├── SYSTEM_CONFIG.md
+    ├── SYSTEM_RULES.md
+    ├── tasks
+    │   ├── backlog
+    │   ├── dependencies.md
+    │   ├── done
+    │   ├── in-progress
+    │   └── review
+    ├── TECHNICAL_REQUIREMENTS.md
+    ├── templates
+    ├── TODO.md
+    ├── troubleshooting
+    │   └── USER_MANAGEMENT_COMPLETE_GUIDE.md
+    ├── URGENT_BROADCAST_CEO_CODE_STANDARDIZATION.md
+    ├── URGENT_NOTIFICATION_ALL_AGENTS.md
+    ├── vendor-management-implementation.md
+    ├── vendor-management-visual-summary.md
+    ├── verificacion-registro
+    │   ├── ESTADO_ACTUAL.md
+    │   ├── FASE_1_TESTING_RESULTS.md
+    │   ├── FASE_2_AUDITORIA_SEGURIDAD.md
+    │   ├── REPORTE_FINAL.md
+    │   └── tests
+    └── welcome-email-fix
+        ├── DIAGNOSTICO_WELCOME_EMAIL.md
+        ├── FASE_13_DEPLOY_COMPLETE.md
+        └── FASE_15_ANALISIS_COMPLETO.md
+
+383 directories, 2076 files

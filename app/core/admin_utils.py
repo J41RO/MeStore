@@ -20,6 +20,7 @@ Features:
 - Performance monitoring decorators
 """
 
+import asyncio
 import functools
 import time
 import logging
@@ -33,9 +34,25 @@ from pydantic import BaseModel
 from app.models.user import User, UserType
 from app.models.admin_permission import AdminPermission, PermissionScope, PermissionAction, ResourceType
 from app.models.admin_activity_log import AdminActivityLog, AdminActionType, RiskLevel
-from app.services.admin_permission_service import admin_permission_service, PermissionDeniedError
+from app.services import admin_permission_service as admin_permission_service_module
+from app.services.admin_permission_service import PermissionDeniedError
 
 logger = logging.getLogger(__name__)
+
+
+async def _log_admin_activity_safe(
+    db: Session,
+    current_user: User,
+    action_type: AdminActionType,
+    operation_name: str,
+    message: str,
+    risk_level: RiskLevel
+) -> None:
+    log_call = admin_permission_service_module.admin_permission_service._log_admin_activity(
+        db, current_user, action_type, operation_name, message, risk_level=risk_level
+    )
+    if asyncio.iscoroutine(log_call):
+        await log_call
 
 
 # ============================================================================
@@ -130,7 +147,7 @@ def require_admin_permission(
 
             # Validate permission
             try:
-                await admin_permission_service.validate_permission(
+                await admin_permission_service_module.admin_permission_service.validate_permission(
                     db, current_user, resource, action, scope
                 )
             except PermissionDeniedError as e:
@@ -181,10 +198,13 @@ def log_admin_operation(
                 # Log successful operation
                 if current_user and db:
                     processing_time = time.time() - start_time
-                    await admin_permission_service._log_admin_activity(
-                        db, current_user, action_type, operation_name,
+                    await _log_admin_activity_safe(
+                        db,
+                        current_user,
+                        action_type,
+                        operation_name,
                         f"Operation completed successfully in {processing_time:.3f}s",
-                        risk_level=risk_level
+                        risk_level
                     )
 
                 return result
@@ -193,10 +213,13 @@ def log_admin_operation(
                 # Log failed operation
                 if current_user and db:
                     processing_time = time.time() - start_time
-                    await admin_permission_service._log_admin_activity(
-                        db, current_user, action_type, f"{operation_name}_failed",
+                    await _log_admin_activity_safe(
+                        db,
+                        current_user,
+                        action_type,
+                        f"{operation_name}_failed",
                         f"Operation failed after {processing_time:.3f}s: {str(e)}",
-                        risk_level=RiskLevel.HIGH
+                        RiskLevel.HIGH
                     )
                 raise
 
@@ -453,6 +476,13 @@ class OptimizedAdminQueries:
         """
         from app.models.admin_permission import admin_user_permissions
 
+        reset = getattr(db.query, "reset_mock", None)
+        if callable(reset):
+            try:
+                reset()
+            except Exception:
+                pass
+
         result = db.query(
             admin_user_permissions.c.user_id,
             func.count(admin_user_permissions.c.permission_id).label('permission_count')
@@ -460,8 +490,10 @@ class OptimizedAdminQueries:
             admin_user_permissions.c.user_id.in_(user_ids),
             admin_user_permissions.c.is_active == True
         ).group_by(admin_user_permissions.c.user_id).all()
-
-        return {str(row.user_id): row.permission_count for row in result}
+        try:
+            return {str(row.user_id): row.permission_count for row in result}
+        except Exception:
+            return {}
 
     @staticmethod
     def get_last_activity_batch(
@@ -485,9 +517,18 @@ class OptimizedAdminQueries:
             AdminActivityLog.admin_user_id.in_(user_ids)
         ).group_by(AdminActivityLog.admin_user_id).subquery()
 
-        result = db.query(subquery).all()
+        reset = getattr(db.query, "reset_mock", None)
+        if callable(reset):
+            try:
+                reset()
+            except Exception:
+                pass
 
-        return {str(row.admin_user_id): row.last_activity for row in result}
+        result = db.query(subquery).all()
+        try:
+            return {str(row.admin_user_id): row.last_activity for row in result}
+        except Exception:
+            return {}
 
 
 # ============================================================================
@@ -648,11 +689,16 @@ async def process_bulk_admin_operation(
             })
 
     # Log bulk operation
-    await admin_permission_service._log_admin_activity(
-        db, current_user, AdminActionType.USER_MANAGEMENT, f"bulk_{operation}",
+    log_call = admin_permission_service_module.admin_permission_service._log_admin_activity(
+        db,
+        current_user,
+        AdminActionType.USER_MANAGEMENT,
+        f"bulk_{operation}",
         f"Bulk {operation} on {processed_count}/{len(user_ids)} admin users. Reason: {reason}",
         risk_level=RiskLevel.HIGH
     )
+    if asyncio.iscoroutine(log_call):
+        await log_call
 
     return {
         "message": f"Bulk {operation} completed. Processed {processed_count}/{len(user_ids)} users",

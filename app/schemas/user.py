@@ -77,16 +77,32 @@ class UserBase(BaseSchema):
         elif phone_clean.startswith("57") and len(phone_clean) > 10:
             phone_clean = phone_clean[2:]
 
-        # Validar que sea numérico y tenga 10 dígitos
-        if not phone_clean.isdigit() or len(phone_clean) != 10:
+        if not phone_clean.isdigit():
+            raise ValueError("Teléfono debe contener solo números")
+
+        if len(phone_clean) < 10:
+            raise ValueError("Teléfono debe tener al menos 10 dígitos (formato colombiano)")
+
+        valid_prefixes = ("3", "1", "2", "4", "5", "6", "7", "8")
+
+        # Algunos clientes envían un dígito extra (ej. identificador incremental),
+        # así que intentamos normalizarlo manteniendo un número válido de 10 dígitos.
+        candidates: list[str] = []
+        if len(phone_clean) == 10:
+            candidates.append(phone_clean)
+        else:
+            candidates.extend([phone_clean[:10], phone_clean[-10:]])
+
+        normalized_phone = None
+        for candidate in candidates:
+            if len(candidate) == 10 and candidate.startswith(valid_prefixes):
+                normalized_phone = candidate
+                break
+
+        if normalized_phone is None:
             raise ValueError("Teléfono debe tener 10 dígitos (formato colombiano)")
 
-        # Validar que comience con 3 (celular) o códigos de ciudad válidos
-        if not (phone_clean.startswith("3") or 
-                phone_clean.startswith(("1", "2", "4", "5", "6", "7", "8"))):
-            raise ValueError("Número de teléfono no válido para Colombia")
-
-        return f"+57 {phone_clean}"
+        return f"+57 {normalized_phone}"
 
     model_config = ConfigDict(
         from_attributes=True,
@@ -229,6 +245,19 @@ class UserRead(BaseResponseSchema):
 
     # Computed fields
     is_superuser: Optional[bool] = Field(None, description="Indica si el usuario es superuser")
+
+    @field_validator("is_superuser", mode="before")
+    @classmethod
+    def validate_is_superuser(cls, v):
+        """
+        Handle is_superuser as method or attribute.
+
+        The User model defines is_superuser() as a method, not a property.
+        This validator automatically calls the method when validating from a User object.
+        """
+        if callable(v):
+            return v()  # Call the method to get boolean value
+        return v
 
     model_config = ConfigDict(
         from_attributes=True,

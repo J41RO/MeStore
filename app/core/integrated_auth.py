@@ -26,7 +26,7 @@ from app.services.secure_auth_service import SecureAuthService, SecurityAuditLog
 from app.core.auth import AuthService  # Legacy auth service
 from app.models.user import User
 from app.core.security import create_access_token, decode_access_token
-from passlib.context import CryptContext
+from app.utils.password import pwd_context as shared_pwd_context
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ class IntegratedAuthService:
         # Temporarily disable secure auth for production compatibility
         self.migration_enabled = False
         self.audit_logger = SecurityAuditLogger()
-        self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        self.pwd_context = shared_pwd_context
 
     async def _get_secure_auth(self) -> SecureAuthService:
         """Lazy initialization of SecureAuthService"""

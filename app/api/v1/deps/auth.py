@@ -392,12 +392,11 @@ async def get_current_vendor(current_user: UserRead = Depends(get_current_user))
     else:
         user_type_enum = user_type_value
 
-    if user_type_enum not in [UserType.VENDOR, UserType.SUPERUSER]:
+    if user_type_enum not in [UserType.VENDOR, UserType.SUPERUSER, UserType.ADMIN]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Vendor access required - only vendors can perform this operation"
         )
 
     return current_user
-
 

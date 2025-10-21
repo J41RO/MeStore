@@ -9,7 +9,8 @@ from unittest.mock import Mock, patch, AsyncMock
 from app.main import app
 from app.api.v1.deps.auth import get_current_user
 from app.core.auth import get_current_user as get_current_user_core
-from app.database import get_db
+from app.core.database import get_db
+from app.database import get_async_db
 from app.models.user import User
 
 
@@ -19,7 +20,13 @@ client = TestClient(app)
 # Mock database session
 @pytest.fixture
 def mock_db():
-    db = Mock()
+    db = AsyncMock()
+    db.add = Mock()
+    db.flush = AsyncMock()
+    db.commit = AsyncMock()
+    db.refresh = AsyncMock()
+    db.rollback = AsyncMock()
+    db.execute = AsyncMock()
     return db
 
 # Mock current user
@@ -55,6 +62,15 @@ def override_get_db(mock_db):
         return mock_db
     return _override
 
+def override_get_async_db(mock_db):
+    async def _override():
+        yield mock_db
+    return _override
+
+def apply_db_overrides(mock_db):
+    app.dependency_overrides[get_db] = override_get_db(mock_db)
+    app.dependency_overrides[get_async_db] = override_get_async_db(mock_db)
+
 def override_get_current_user(mock_user):
     def _override():
         return mock_user
@@ -71,7 +87,7 @@ class TestAuthenticationEndpoints:
 
     def test_login_success(self, mock_db, mock_user):
         """Test successful login with valid credentials"""
-        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        apply_db_overrides(mock_db)
 
         # Create a real User object instead of Mock for proper serialization
         from app.models.user import User, UserType
@@ -112,7 +128,7 @@ class TestAuthenticationEndpoints:
 
     def test_login_invalid_credentials(self, mock_db):
         """Test login with invalid credentials"""
-        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        apply_db_overrides(mock_db)
 
         with patch('app.core.integrated_auth.integrated_auth_service.authenticate_user') as mock_auth:
             mock_auth.return_value = None
@@ -135,7 +151,7 @@ class TestAuthenticationEndpoints:
 
     def test_register_success(self, mock_db):
         """Test successful user registration"""
-        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        apply_db_overrides(mock_db)
 
         with patch('app.core.integrated_auth.integrated_auth_service.create_user') as mock_create:
             mock_user = Mock()
@@ -160,15 +176,27 @@ class TestAuthenticationEndpoints:
                     with patch('app.core.id_validation.normalize_uuid_string') as mock_normalize:
                         mock_normalize.return_value = "new-user-123"
 
+                        # Configure database mock to simulate no existing email/phone
+                        empty_email_result = Mock()
+                        empty_email_result.scalar_one_or_none.return_value = None
+                        def scalar_none():
+                            return None
+
+                        empty_email_result.scalar_one_or_none = scalar_none
+                        mock_db.execute.return_value = empty_email_result
+                        mock_db.execute.side_effect = None
+
                         response = client.post(
                             "/api/v1/auth/register",
                             json={
                                 "email": "new@example.com",
                                 "password": "newpass123",
-                                "nombre": "New User"  # Changed from "name" to "nombre" per schema
+                                "nombre": "New User",  # Changed from "name" to "nombre" per schema
+                                "telefono": "+573001234567"
                             }
                         )
 
+                        assert mock_db.execute.await_count >= 2
                         assert response.status_code == 201
                         data = response.json()
                         assert "access_token" in data
@@ -178,19 +206,29 @@ class TestAuthenticationEndpoints:
 
     def test_register_duplicate_email(self, mock_db):
         """Test registration with existing email"""
-        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        apply_db_overrides(mock_db)
 
         with patch('app.core.integrated_auth.integrated_auth_service.create_user') as mock_create:
             mock_create.side_effect = ValueError("Email already registered")
+
+            existing_result = Mock()
+            existing_result.scalar_one_or_none.return_value = Mock()
+            def scalar_existing():
+                return Mock()
+
+            existing_result.scalar_one_or_none = scalar_existing
+            mock_db.execute.return_value = existing_result
+            mock_db.execute.side_effect = None
 
             response = client.post(
                 "/api/v1/auth/register",
                 json={
                     "email": "existing@example.com",
                     "password": "pass123",
-                    "name": "Test User"
-                }
-            )
+                                "nombre": "Test User",
+                                "telefono": "+573001234567"
+                            }
+                        )
 
             assert response.status_code == 400  # Validation error for duplicate email
             response_data = response.json()
@@ -214,6 +252,7 @@ class TestAuthenticationEndpoints:
         try:
             # Override database dependency
             app.dependency_overrides[get_db] = get_mock_db
+            app.dependency_overrides[get_async_db] = get_mock_db
 
             # Mock all the security functions more comprehensively
             with patch('app.core.security.decode_refresh_token') as mock_decode:
@@ -241,7 +280,7 @@ class TestAuthenticationEndpoints:
 
     def test_logout_success(self, mock_db, mock_user):
         """Test successful logout"""
-        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        apply_db_overrides(mock_db)
         app.dependency_overrides[get_current_user] = override_get_current_user(mock_user)
 
         # Test logout endpoint - accept various responses since implementation may vary
@@ -265,7 +304,7 @@ class TestPaymentEndpoints:
 
     def test_get_payment_methods_success(self, mock_db, mock_user):
         """Test getting available payment methods"""
-        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        apply_db_overrides(mock_db)
         app.dependency_overrides[get_current_user] = override_get_current_user(mock_user)
 
         # Mock payment methods service
@@ -301,7 +340,7 @@ class TestPaymentEndpoints:
 
     def test_create_payment_intent_invalid_amount(self, mock_db, mock_user):
         """Test payment intent creation with invalid amount"""
-        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        apply_db_overrides(mock_db)
         app.dependency_overrides[get_current_user] = override_get_current_user(mock_user)
 
         response = client.post(
@@ -318,7 +357,7 @@ class TestPaymentEndpoints:
 
     def test_confirm_payment_success(self, mock_db, mock_user):
         """Test successful payment confirmation"""
-        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        apply_db_overrides(mock_db)
         app.dependency_overrides[get_current_user] = override_get_current_user(mock_user)
 
         with patch('app.services.integrated_payment_service.integrated_payment_service.confirm_payment') as mock_confirm:
@@ -344,7 +383,7 @@ class TestPaymentEndpoints:
 
     def test_get_payment_status_success(self, mock_db, mock_user):
         """Test successful payment status retrieval"""
-        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        apply_db_overrides(mock_db)
         app.dependency_overrides[get_current_user] = override_get_current_user(mock_user)
 
         response = client.get(
@@ -359,7 +398,7 @@ class TestPaymentEndpoints:
 
     def test_webhook_payment_success(self, mock_db):
         """Test successful payment webhook processing"""
-        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        apply_db_overrides(mock_db)
 
         with patch('app.services.integrated_payment_service.integrated_payment_service.handle_payment_webhook') as mock_webhook:
             mock_webhook.return_value = {"processed": True, "transaction_id": "txn_123"}
@@ -388,7 +427,9 @@ class TestVendorEndpoints:
 
     def test_get_vendor_profile_success(self, mock_db, mock_user, mock_vendor):
         """Test successful vendor profile retrieval"""
-        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        apply_db_overrides(mock_db)
+        from app.api.v1.endpoints import vendedores as vendedores_endpoints
+        app.dependency_overrides[vendedores_endpoints.get_db] = override_get_async_db(mock_db)
         app.dependency_overrides[get_current_user] = override_get_current_user(mock_user)
 
         # Mock vendor profile service
@@ -414,7 +455,9 @@ class TestVendorEndpoints:
 
     def test_get_vendor_analytics_success(self, mock_db, mock_user, mock_vendor):
         """Test successful vendor analytics retrieval"""
-        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        apply_db_overrides(mock_db)
+        from app.api.v1.endpoints import vendedores as vendedores_endpoints
+        app.dependency_overrides[vendedores_endpoints.get_db] = override_get_async_db(mock_db)
         app.dependency_overrides[get_current_user] = override_get_current_user(mock_user)
 
         # Mock the analytics endpoint
@@ -447,16 +490,18 @@ class TestVendorEndpoints:
 
     def test_get_vendor_products_success(self, mock_db, mock_user, mock_vendor):
         """Test successful vendor products dashboard retrieval"""
-        from unittest.mock import AsyncMock
+        from unittest.mock import AsyncMock, Mock
         from app.api.v1.deps.auth import get_current_vendor
 
-        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        apply_db_overrides(mock_db)
+        from app.api.v1.endpoints import vendedores as vendedores_endpoints
+        app.dependency_overrides[vendedores_endpoints.get_db] = override_get_async_db(mock_db)
         app.dependency_overrides[get_current_user] = override_get_current_user(mock_user)
         app.dependency_overrides[get_current_user_core] = override_get_current_user(mock_user)
         app.dependency_overrides[get_current_vendor] = override_get_current_vendor(mock_vendor)
 
         # Mock the database query results for products dashboard
-        mock_result = AsyncMock()
+        mock_result = Mock()
         mock_result.scalar.return_value = 5  # Total products count
 
         # Mock the database execute method to return an awaitable result
@@ -488,7 +533,11 @@ class TestVendorEndpoints:
         from app.api.v1.deps.auth import get_current_vendor
         from unittest.mock import AsyncMock
 
-        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        apply_db_overrides(mock_db)
+        from app.api.v1.endpoints import vendedores as vendedores_endpoints
+        from app.api.v1.endpoints import products as products_endpoints
+        app.dependency_overrides[vendedores_endpoints.get_db] = override_get_async_db(mock_db)
+        app.dependency_overrides[products_endpoints.get_db] = override_get_async_db(mock_db)
         app.dependency_overrides[get_current_user] = override_get_current_user(mock_user)
         app.dependency_overrides[get_current_vendor] = override_get_current_vendor(mock_vendor)
 
@@ -521,7 +570,7 @@ class TestVendorEndpoints:
 
     def test_unauthorized_access(self, mock_db):
         """Test that endpoints require authentication"""
-        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        apply_db_overrides(mock_db)
 
         # Test without Authorization header using a product endpoint that requires auth
         response = client.get("/api/v1/products/my-products")
@@ -542,7 +591,7 @@ class TestErrorHandling:
 
     def test_validation_errors(self, mock_db, mock_user):
         """Test validation error handling"""
-        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        apply_db_overrides(mock_db)
         app.dependency_overrides[get_current_user] = override_get_current_user(mock_user)
 
         # Test missing required fields
@@ -564,7 +613,7 @@ class TestErrorHandling:
 
     def test_database_errors(self, mock_db, mock_user):
         """Test database error handling - verify endpoints respond properly"""
-        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        apply_db_overrides(mock_db)
         app.dependency_overrides[get_current_user] = override_get_current_user(mock_user)
 
         response = client.get(
@@ -577,7 +626,7 @@ class TestErrorHandling:
 
     def test_rate_limiting(self, mock_db, mock_user):
         """Test rate limiting on critical endpoints"""
-        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        apply_db_overrides(mock_db)
         app.dependency_overrides[get_current_user] = override_get_current_user(mock_user)
 
         # This would test rate limiting if implemented
@@ -604,7 +653,7 @@ class TestMVPEndpointIntegration:
 
     def test_complete_checkout_flow(self, mock_db, mock_user):
         """Test complete checkout flow from payment intent to confirmation"""
-        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        apply_db_overrides(mock_db)
         app.dependency_overrides[get_current_user] = override_get_current_user(mock_user)
 
         # Step 1: Create payment intent
@@ -667,7 +716,7 @@ class TestMVPEndpointIntegration:
 
     def test_vendor_registration_to_analytics_flow(self, mock_db, mock_user):
         """Test vendor registration to analytics access flow"""
-        app.dependency_overrides[get_db] = override_get_db(mock_db)
+        apply_db_overrides(mock_db)
         app.dependency_overrides[get_current_user] = override_get_current_user(mock_user)
         app.dependency_overrides[get_current_user_core] = override_get_current_user(mock_user)
 

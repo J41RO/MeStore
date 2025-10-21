@@ -16,63 +16,127 @@ os.environ["ENVIRONMENT"] = "testing"  # Enable performance optimizations
 os.environ["CORS_ORIGINS"] = (
     "http://localhost:3000,http://localhost:8000,http://test.mestore.local"
 )
+# Forzar uso de base de datos SQLite aislada durante los tests.
+TEST_DATABASE_URL = "sqlite+aiosqlite:///./test_async.db"
+os.environ["DATABASE_URL"] = TEST_DATABASE_URL
+os.environ["ASYNC_DATABASE_URL"] = TEST_DATABASE_URL
 # Disable problematic imports in testing
 os.environ["DISABLE_SEARCH_SERVICE"] = "1"
 os.environ["DISABLE_CHROMA_SERVICE"] = "1"
+import pytest
+import pytest_asyncio
 from typing import AsyncGenerator, Generator
 from sqlalchemy.ext.asyncio import AsyncSession
 from unittest.mock import AsyncMock
-
-import pytest
 from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
 
 from app.main import app
 
 
-@pytest.fixture(scope="module")
-def client() -> TestClient:
+@pytest.fixture(scope="function")
+def client() -> Generator[TestClient, None, None]:
     """
     Fixture para TestClient de FastAPI.
 
-    Scope: module - Un cliente por módulo de tests.
+    Scope: function - Cliente nuevo por test con base de datos aislada.
     Returns: TestClient configurado con la app FastAPI principal.
     """
+    async def setup_db():
+        async with async_test_engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+
+    asyncio.run(setup_db())
+
+    async def override_get_db():
+        async with AsyncTestingSessionLocal() as session:
+            try:
+                yield session
+            except Exception:
+                await session.rollback()
+                raise
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_async_db] = override_get_db
+
     # Headers con User-Agent válido para evitar bloqueo de middleware
     headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
-    return TestClient(app, headers=headers)
+    try:
+        with TestClient(app, headers=headers) as test_client:
+            yield test_client
+    finally:
+        app.dependency_overrides.clear()
+        async def teardown_db():
+            async with async_test_engine.begin() as conn:
+                await conn.run_sync(Base.metadata.drop_all)
+        asyncio.run(teardown_db())
 
 
-@pytest.fixture(scope="function")
+@pytest_asyncio.fixture(scope="function")
 async def async_client(async_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """
     Fixture async para AsyncClient cuando se requieren operaciones async.
 
     Scope: function - Nuevo cliente por test function.
     Yields: AsyncClient para operaciones async.
+
+    Fixed to prevent event loop hanging issues by:
+    - Storing original dependency overrides
+    - Adding explicit timeout
+    - Ensuring proper cleanup with small delay
     """
     async def get_test_db() -> AsyncGenerator[AsyncSession, None]:
         """Override de get_db para testing"""
-        try:
-            yield async_session
-        finally:
-            pass
+        yield async_session
+
+    # Store original overrides to restore later
+    original_overrides = app.dependency_overrides.copy()
 
     # Override de la dependencia get_db Y get_async_db ANTES de crear el cliente
     app.dependency_overrides[get_db] = get_test_db
     app.dependency_overrides[get_async_db] = get_test_db
 
     try:
-            # Headers con User-Agent válido para evitar bloqueo de middleware
+        # Headers con User-Agent válido para evitar bloqueo de middleware
         headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"}
         transport = ASGITransport(app=app)
         async with AsyncClient(
-            transport=transport, base_url="http://testserver", headers=headers
+            transport=transport,
+            base_url="http://testserver",
+            headers=headers,
+            timeout=10.0  # Explicit timeout to prevent hanging
         ) as ac:
             yield ac
+            # Allow pending tasks to complete before cleanup
+            await asyncio.sleep(0.001)
     finally:
-        # Limpiar override después del test
+        # Restore original dependency state
         app.dependency_overrides.clear()
+        app.dependency_overrides.update(original_overrides)
+
+
+@pytest.fixture(scope="function")
+def event_loop():
+    """
+    Create a new event loop for each test function to prevent hanging.
+
+    This fixture ensures each test gets a fresh event loop, preventing
+    event loop conflicts and hanging tests.
+    """
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    yield loop
+    # Cleanup: cancel all pending tasks and close loop
+    try:
+        pending = asyncio.all_tasks(loop)
+        for task in pending:
+            task.cancel()
+        if pending:
+            loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+    except Exception:
+        pass
+    finally:
+        loop.close()
 
 
 @pytest.fixture(scope="session")
@@ -163,8 +227,9 @@ from app.models.payout_request import PayoutRequest
 from app.models.payout_history import PayoutHistory
 from app.models.user import User
 from app.models.product import Product
+from app.models.order import Order
 
-# Configuración de base de datos de testing
+# Configuración de base de datos de testing - Using in-memory SQLite for faster tests
 SQLALCHEMY_TEST_DATABASE_URL = "sqlite:///:memory:"
 
 # Engine de testing con configuración específica para SQLite en memoria
@@ -181,9 +246,15 @@ test_engine = create_engine(
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
 
 
-# Engine async para testing
+# Engine async para testing - Using in-memory SQLite for faster tests
 async_test_engine = create_async_engine(
-    "sqlite+aiosqlite:///:memory:", echo=False, pool_pre_ping=True
+    "sqlite+aiosqlite:///:memory:",
+    echo=False,
+    pool_pre_ping=True,
+    connect_args={
+        "check_same_thread": False
+    },
+    poolclass=StaticPool,
 )
 
 # SessionLocal async para testing
@@ -216,7 +287,7 @@ def test_db_session() -> Generator[Session, None, None]:
         Base.metadata.drop_all(bind=test_engine)
 
 
-@pytest.fixture(scope="function")
+@pytest_asyncio.fixture(scope="function")
 async def async_session() -> AsyncGenerator[AsyncSession, None]:
     """
     Fixture para sesión async de base de datos de testing.
@@ -238,6 +309,16 @@ async def async_session() -> AsyncGenerator[AsyncSession, None]:
     # Limpiar tablas después del test
     async with async_test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
+
+
+@pytest_asyncio.fixture(scope="function")
+async def async_db_session(async_session: AsyncSession) -> AsyncGenerator[AsyncSession, None]:
+    """
+    Alias explícito para tests que esperan fixture async_db_session.
+
+    Reutiliza la sesión async de testing para compatibilidad con suites legadas.
+    """
+    yield async_session
 
 
 @pytest.fixture(scope="function")
@@ -289,7 +370,7 @@ def test_db_url() -> str:
     return SQLALCHEMY_TEST_DATABASE_URL
 
 
-@pytest.fixture(autouse=True)
+@pytest_asyncio.fixture(autouse=True)
 async def mock_redis_for_testing(monkeypatch):
     """Mock Redis para tests sin autenticación"""
     mock_redis = AsyncMock()
@@ -324,7 +405,7 @@ def sample_product_data():
 
 # === USER FIXTURES FOR TESTING ===
 
-@pytest.fixture(scope="function")
+@pytest_asyncio.fixture(scope="function")
 async def test_vendor_user(async_session: AsyncSession) -> User:
     """Fixture para usuario vendor de testing."""
     from app.models.user import User, UserType
@@ -348,7 +429,7 @@ async def test_vendor_user(async_session: AsyncSession) -> User:
     return vendor
 
 
-@pytest.fixture(scope="function")
+@pytest_asyncio.fixture(scope="function")
 async def test_admin_user(async_session: AsyncSession) -> User:
     """Fixture para usuario admin de testing."""
     from app.models.user import User, UserType
@@ -372,7 +453,7 @@ async def test_admin_user(async_session: AsyncSession) -> User:
     return admin
 
 
-@pytest.fixture(scope="function")
+@pytest_asyncio.fixture(scope="function")
 async def test_buyer_user(async_session: AsyncSession) -> User:
     """Fixture para usuario buyer de testing."""
     from app.models.user import User, UserType
@@ -396,9 +477,15 @@ async def test_buyer_user(async_session: AsyncSession) -> User:
     return buyer
 
 
+@pytest_asyncio.fixture(scope="function")
+async def test_buyer(test_buyer_user: User) -> User:
+    """Compat fixture que reutiliza test_buyer_user para pruebas legadas."""
+    return test_buyer_user
+
+
 # === AUTHENTICATION TEST FIXTURES ===
 
-@pytest.fixture(scope="function")
+@pytest_asyncio.fixture(scope="function")
 async def auth_token_vendor(test_vendor_user: User) -> str:
     """Generate valid JWT token for vendor user"""
     from app.core.security import create_access_token
@@ -726,7 +813,7 @@ def mock_sms_service_success(monkeypatch):
     )
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def redis_service_with_storage(monkeypatch):
     """
     Mock RedisService with persistent in-memory storage for SMS rate limiting tests.

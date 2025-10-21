@@ -559,7 +559,12 @@ async def create_product(
             )
 
         # Create product instance
-        product_dict = product_data.model_dump()
+        product_dict = product_data.model_dump(exclude_none=True)
+        # Remove frontend alias fields that don't exist in ORM model
+        product_dict.pop("price", None)
+        product_dict.pop("category", None)
+        product_dict.pop("stock_quantity", None)
+        product_dict.pop("category_id", None)
         product_dict["vendedor_id"] = current_vendor.id
         product_dict["created_by_id"] = current_vendor.id
 

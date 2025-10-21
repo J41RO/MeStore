@@ -27,7 +27,6 @@ Este módulo contiene:
 """
 
 from sqlalchemy import Column, String, ForeignKey, DateTime, Text, Enum as SQLEnum, Integer, Boolean
-# UUID import removed for SQLite compatibility
 from sqlalchemy.orm import relationship, validates
 from sqlalchemy.sql import func
 from enum import Enum
@@ -36,6 +35,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 from .base import BaseModel
+from app.core.types import UUID
 
 
 def now_utc() -> datetime:
@@ -128,7 +128,7 @@ class IncomingProductQueue(BaseModel):
     
     # Relación con Product existente
     product_id = Column(
-        String(36),
+        UUID,
         ForeignKey('products.id'),
         nullable=False,
         index=True,
@@ -137,7 +137,7 @@ class IncomingProductQueue(BaseModel):
     
     # Vendor que envía el producto
     vendor_id = Column(
-        String(36),
+        UUID,
         ForeignKey('users.id'),
         nullable=False,
         index=True,
@@ -178,7 +178,7 @@ class IncomingProductQueue(BaseModel):
     
     # Asignación de tarea
     assigned_to = Column(
-        String(36),
+        UUID,
         ForeignKey('users.id'),
         nullable=True,
         index=True,

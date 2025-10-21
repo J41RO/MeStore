@@ -65,11 +65,14 @@ def _get_bcrypt_rounds():
         # Production: Full security
         return 12
 
-# Configure bcrypt with environment-appropriate rounds
+# Configure bcrypt with environment-appropriate rounds.
+# Default to bcrypt ($2b$ prefix) while still accepting legacy bcrypt_sha256 hashes.
 pwd_context = CryptContext(
-    schemes=["bcrypt"],
+    schemes=["bcrypt", "bcrypt_sha256"],
+    default="bcrypt",
     deprecated="auto",
-    bcrypt__rounds=_get_bcrypt_rounds()
+    bcrypt__rounds=_get_bcrypt_rounds(),
+    bcrypt_sha256__rounds=_get_bcrypt_rounds(),
 )
 
 # CORRECCIÓN CRÍTICA: ThreadPoolExecutor global para evitar RuntimeError

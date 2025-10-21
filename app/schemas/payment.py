@@ -162,7 +162,7 @@ class CreatePaymentIntentRequest(BaseModel):
     amount: int = Field(..., gt=0, description="Payment amount in cents")
     currency: str = Field(default="COP", description="Currency code")
     description: Optional[str] = Field(None, description="Payment description")
-    order_id: Optional[int] = Field(None, description="Associated order ID")
+    order_id: Optional[str] = Field(None, description="Associated order identifier (UUID or numeric)")
 
 
 class PaymentIntentResponse(BaseModel):
@@ -343,7 +343,7 @@ class WebhookProcessingResult(BaseModel):
     """Internal result of webhook processing"""
     success: bool = Field(..., description="Whether processing succeeded")
     event_id: str = Field(..., description="Webhook event ID")
-    order_id: Optional[int] = Field(None, description="Associated order ID")
+    order_id: Optional[str] = Field(None, description="Associated order identifier (UUID or numeric)")
     transaction_id: Optional[str] = Field(None, description="Wompi transaction ID")
     status: str = Field(..., description="Processing status")
     message: Optional[str] = Field(None, description="Processing message or error")

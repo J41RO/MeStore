@@ -315,7 +315,7 @@ class TestQualityChecklistWorkflowRed:
                 # Mock workflow creation and execution - should fail
                 with patch('app.services.product_verification_workflow.ProductVerificationWorkflow') as mock_workflow_class:
                     mock_workflow = Mock()
-                    mock_workflow.execute_step.return_value = False  # Workflow execution fails
+                    mock_workflow.execute_step = AsyncMock(return_value=False)  # Workflow execution fails
                     mock_workflow.get_workflow_progress.return_value = {}
                     mock_workflow_class.return_value = mock_workflow
 
@@ -643,7 +643,7 @@ async def mock_admin_user():
 async def mock_verification_workflow():
     """Mock ProductVerificationWorkflow for RED phase testing"""
     workflow = Mock(spec=ProductVerificationWorkflow)
-    workflow.execute_step = Mock(return_value=False)  # Fail by default in RED phase
+    workflow.execute_step = AsyncMock(return_value=False)  # Fail by default in RED phase
     workflow.get_workflow_progress = Mock(return_value={})
     workflow.get_current_step = Mock(return_value=VerificationStep.INITIAL_INSPECTION)
     return workflow

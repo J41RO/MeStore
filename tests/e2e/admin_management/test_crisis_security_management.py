@@ -11,6 +11,7 @@ scenarios that require immediate administrative intervention in Colombian contex
 """
 
 import pytest
+import pytest_asyncio
 import asyncio
 from datetime import datetime, timedelta
 from typing import Dict, List, Any
@@ -29,16 +30,16 @@ from tests.e2e.admin_management.fixtures.vendor_lifecycle_fixtures import Vendor
 from tests.e2e.admin_management.utils.colombian_timezone_utils import ColombianTimeManager, BusinessRulesValidator
 from tests.e2e.admin_management.utils.business_rules_validator import ComprehensiveBusinessRulesValidator
 
-pytestmark = pytest.mark.e2e
+pytestmark = [pytest.mark.e2e, pytest.mark.asyncio]
 
 
 class TestCrisisSecurityManagementWorkflows:
     """Test suite for crisis management and security incident response workflows."""
 
-    @pytest.fixture(autouse=True)
-    async def setup_test_environment(self, db_session: AsyncSession):
+    @pytest_asyncio.fixture(autouse=True)
+    async def setup_test_environment(self, async_session: AsyncSession):
         """Set up test environment with crisis management context."""
-        self.db = db_session
+        self.db = async_session
         self.client = TestClient(app)
         self.validator = ComprehensiveBusinessRulesValidator()
 
@@ -743,12 +744,6 @@ class TestCrisisSecurityManagementWorkflows:
         assert net_financial_impact < fraud_analysis["financial_impact"]["estimated_customer_losses"], "Financial mitigation should be effective"
 
         return crisis_resolution_summary
-
-    @pytest.fixture
-    async def db_session(self, async_session):
-        """Database session fixture - delegate to proper async session from conftest."""
-        return async_session
-
 
 # Integration test for crisis management workflows
 @pytest.mark.asyncio

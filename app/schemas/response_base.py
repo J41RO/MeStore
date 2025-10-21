@@ -103,17 +103,23 @@ class ErrorResponse(StandardResponse[None]):
     """Standard error response with error details."""
 
     status: str = Field(default="error", description="Error status")
+    error: str = Field(..., description="Short error identifier for quick client checks")
     error_code: str = Field(..., description="Specific error code for client handling")
     error_message: str = Field(..., description="Human-readable error message")
+    detail: Optional[str] = Field(None, description="Primary error detail message")
     details: Optional[List[ErrorDetail]] = Field(None, description="Detailed error information")
+    status_code: Optional[int] = Field(None, description="HTTP status code associated with the error")
+    path: Optional[str] = Field(None, description="Request path where the error occurred")
     request_id: Optional[str] = Field(None, description="Request ID for tracking")
 
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
                 "status": "error",
+                "error": "ValidationError",
                 "error_code": "VALIDATION_ERROR",
                 "error_message": "Invalid input data provided",
+                "detail": "email: Invalid email format",
                 "details": [
                     {
                         "field": "email",
@@ -121,6 +127,8 @@ class ErrorResponse(StandardResponse[None]):
                         "error_type": "validation_error"
                     }
                 ],
+                "status_code": 422,
+                "path": "/api/v1/auth/register",
                 "message": "Request validation failed",
                 "timestamp": "2025-09-17T12:00:00Z",
                 "version": "1.0.0",
@@ -133,14 +141,17 @@ class ErrorResponse(StandardResponse[None]):
 class ValidationErrorResponse(ErrorResponse):
     """Specialized error response for validation errors."""
 
+    error: str = Field(default="ValidationError", description="Validation error identifier")
     error_code: str = Field(default="VALIDATION_ERROR", description="Validation error code")
 
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
                 "status": "error",
+                "error": "ValidationError",
                 "error_code": "VALIDATION_ERROR",
                 "error_message": "Input validation failed",
+                "detail": "email: field required",
                 "details": [
                     {
                         "field": "email",
@@ -281,15 +292,24 @@ def create_error_response(
     error_message: str,
     details: Optional[List[ErrorDetail]] = None,
     message: Optional[str] = None,
-    request_id: Optional[str] = None
+    request_id: Optional[str] = None,
+    *,
+    error: Optional[str] = None,
+    detail: Optional[str] = None,
+    status_code: Optional[int] = None,
+    path: Optional[str] = None,
 ) -> ErrorResponse:
     """Create a standardized error response."""
     return ErrorResponse(
+        error=error or error_code,
         error_code=error_code,
         error_message=error_message,
+        detail=detail or error_message,
         details=details or [],
         message=message or "Operation failed",
-        request_id=request_id
+        request_id=request_id,
+        status_code=status_code,
+        path=path
     )
 
 
@@ -321,11 +341,29 @@ def create_paginated_response(
 
 def create_validation_error_response(
     validation_errors: List[ErrorDetail],
-    message: Optional[str] = None
+    message: Optional[str] = None,
+    *,
+    request_id: Optional[str] = None,
+    status_code: int = 422,
+    path: Optional[str] = None,
+    error: Optional[str] = None,
+    detail: Optional[str] = None,
 ) -> ValidationErrorResponse:
     """Create a standardized validation error response."""
+    default_detail = detail or "; ".join(
+        f"{error.field or 'field'}: {error.message}" for error in validation_errors
+    )
+
+    if not default_detail:
+        default_detail = "Request validation failed"
+
     return ValidationErrorResponse(
+        error=error or "ValidationError",
         error_message=message or "Input validation failed",
+        detail=default_detail,
         details=validation_errors,
-        message="Request validation failed"
+        message="Request validation failed",
+        request_id=request_id,
+        status_code=status_code,
+        path=path
     )

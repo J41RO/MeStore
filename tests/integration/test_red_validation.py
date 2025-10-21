@@ -10,6 +10,7 @@ Phase: RED (Test-Driven Development)
 Purpose: Validate RED test methodology
 """
 
+import asyncio
 import pytest
 import uuid
 from unittest.mock import Mock, patch, AsyncMock
@@ -97,7 +98,7 @@ class TestRedPhaseValidation:
             )
 
             # This should fail due to missing implementation
-            success = workflow.execute_step(step, result)
+            success = asyncio.run(workflow.execute_step(step, result))
 
             if not success:
                 raise Exception("Workflow execution failed as expected")

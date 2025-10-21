@@ -359,7 +359,7 @@ def sample_permissions(admin_mock_factory):
         admin_mock_factory.create_permission_mock(
             resource=ResourceType.PRODUCTS,
             action=PermissionAction.READ,
-            scope=PermissionScope.OWN
+            scope=PermissionScope.USER
         )
     ]
 

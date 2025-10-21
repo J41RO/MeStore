@@ -1,3 +1,4 @@
+import inspect
 from enum import Enum
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
@@ -56,6 +57,24 @@ class ProductVerificationWorkflow:
             VerificationStep.FINAL_APPROVAL,
             VerificationStep.COMPLETED
         ]
+
+    async def _commit(self) -> None:
+        """Commit helper compatible with sync and async sessions."""
+        commit = getattr(self.db, "commit", None)
+        if commit is None:
+            return
+        result = commit()
+        if inspect.isawaitable(result):
+            await result
+
+    async def _rollback(self) -> None:
+        """Rollback helper compatible with sync and async sessions."""
+        rollback = getattr(self.db, "rollback", None)
+        if rollback is None:
+            return
+        result = rollback()
+        if inspect.isawaitable(result):
+            await result
     
     def get_current_step(self) -> VerificationStep:
         """Determinar paso actual basado en verification_status"""
@@ -76,7 +95,7 @@ class ProductVerificationWorkflow:
         else:
             return VerificationStep.INITIAL_INSPECTION
     
-    def execute_step(self, step: VerificationStep, result: StepResult) -> bool:
+    async def execute_step(self, step: VerificationStep, result: StepResult) -> bool:
         """Ejecutar paso específico y actualizar estado"""
         try:
             # Validar que es el paso correcto
@@ -113,12 +132,12 @@ class ProductVerificationWorkflow:
             
             # Incrementar intentos de verificación
             self.queue_item.verification_attempts = (self.queue_item.verification_attempts or 0) + 1
-            
-            self.db.commit()
+
+            await self._commit()
             return True
-            
-        except Exception as e:
-            self.db.rollback()
+
+        except Exception:
+            await self._rollback()
             return False
     
     def _advance_to_next_state(self, current_step: VerificationStep):
@@ -265,14 +284,14 @@ class ProductVerificationWorkflow:
             if success:
                 # Incrementar intentos de verificación
                 self.queue_item.verification_attempts = (self.queue_item.verification_attempts or 0) + 1
-                self.db.commit()
+                await self._commit()
                 return True
             else:
-                self.db.rollback()
+                await self._rollback()
                 return False
-                
+
         except Exception as e:
-            self.db.rollback()
+            await self._rollback()
             print(f"Error rechazando producto: {e}")
             return False
     
@@ -321,11 +340,11 @@ class ProductVerificationWorkflow:
                     channels
                 )
             
-            self.db.commit()
+            await self._commit()
             return True
             
         except Exception as e:
-            self.db.rollback()
+            await self._rollback()
             print(f"Error aprobando producto: {e}")
             return False
     
@@ -361,7 +380,7 @@ class ProductVerificationWorkflow:
                 else:
                     self.queue_item.verification_notes = location_info
                 
-                self.db.commit()
+                await self._commit()
                 
                 return {
                     "success": True,
@@ -376,7 +395,7 @@ class ProductVerificationWorkflow:
                 }
                 
         except Exception as e:
-            self.db.rollback()
+            await self._rollback()
             return {
                 "success": False,
                 "message": f"Error en asignación automática: {str(e)}"
@@ -463,8 +482,8 @@ class ProductVerificationWorkflow:
             
             # Actualizar estado final
             self.queue_item.verification_status = "COMPLETED_WITH_QR"
-            
-            self.db.commit()
+
+            await self._commit()
             
             return {
                 "success": True,
@@ -475,7 +494,7 @@ class ProductVerificationWorkflow:
             }
             
         except Exception as e:
-            self.db.rollback()
+            await self._rollback()
             return {
                 "success": False,
                 "message": f"Error generando QR: {str(e)}"
@@ -518,8 +537,8 @@ class ProductVerificationWorkflow:
                 "qr_regeneration_date": datetime.utcnow().isoformat(),
                 "regenerated_by": inspector_user_id
             })
-            
-            self.db.commit()
+
+            await self._commit()
             
             return {
                 "success": True,
@@ -528,5 +547,5 @@ class ProductVerificationWorkflow:
             }
             
         except Exception as e:
-            self.db.rollback()
+            await self._rollback()
             return {"success": False, "message": f"Error regenerando QR: {str(e)}"}

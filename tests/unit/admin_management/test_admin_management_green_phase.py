@@ -29,6 +29,7 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Any
 from unittest.mock import Mock, patch, AsyncMock, MagicMock
 from fastapi import HTTPException, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 # Import actual models and schemas for testing
@@ -329,7 +330,7 @@ class TestGetAdminUserGreen:
         target_admin.to_enterprise_dict.return_value = {
             'id': target_admin_id,
             'email': 'target@admin.com',
-            'nome': 'Target',
+            'nombre': 'Target',
             'apellido': 'Admin',
             'full_name': 'Target Admin',
             'user_type': 'ADMIN',
@@ -357,21 +358,26 @@ class TestGetAdminUserGreen:
 
             # Mock database operations
             with patch.object(db_session, 'query') as mock_query:
-                # Mock finding the target admin
-                mock_query.return_value.filter.return_value.first.return_value = target_admin
+                admin_query = Mock()
+                admin_filter = Mock()
+                admin_filter.first.return_value = target_admin
+                admin_query.filter.return_value = admin_filter
 
-                # Mock additional queries for permissions and activity
-                def query_side_effect(model_or_func):
-                    mock_result = Mock()
-                    if hasattr(model_or_func, 'scalar'):
-                        mock_result.scalar.return_value = 5
-                        return mock_result
-                    mock_result.filter.return_value = mock_result
-                    mock_result.order_by.return_value = mock_result
-                    mock_result.first.return_value = [datetime.utcnow()]
-                    return mock_result
+                permission_query = Mock()
+                permission_query.scalar.return_value = 5
+                permission_query.select_from.return_value = permission_query
+                permission_query.filter.return_value = permission_query
 
-                mock_query.side_effect = query_side_effect
+                activity_query = Mock()
+                activity_query.filter.return_value = activity_query
+                activity_query.order_by.return_value = activity_query
+                activity_query.first.return_value = [datetime.utcnow()]
+
+                mock_query.side_effect = [
+                    admin_query,
+                    permission_query,
+                    activity_query
+                ]
 
                 with patch.object(db_session, 'commit') as mock_commit:
                     mock_commit.return_value = None

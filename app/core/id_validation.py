@@ -20,6 +20,8 @@ from fastapi import HTTPException, status, Path
 from pydantic import field_validator, BaseModel
 import re
 
+UUID_HEX_OR_HYPHEN_PATTERN = r"^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$"
+
 
 class IDValidationError(Exception):
     """Custom exception for ID validation errors."""
@@ -57,16 +59,17 @@ class IDValidator:
             return False
 
         try:
-            # Convert to string if not already
             str_value = str(value).strip()
+            length = len(str_value)
 
-            # Check basic format (36 characters with hyphens)
-            if len(str_value) != 36:
-                return False
+            if length == 36:
+                uuid.UUID(str_value)
+                return True
+            if length == 32:
+                uuid.UUID(hex=str_value)
+                return True
 
-            # Validate UUID format
-            uuid.UUID(str_value)
-            return True
+            return False
         except (ValueError, TypeError, AttributeError):
             return False
 
@@ -96,19 +99,21 @@ class IDValidator:
             # Convert to string and normalize
             str_value = str(value).strip().lower()
 
-            # Validate length
-            if len(str_value) != 36:
-                raise IDValidationError(
-                    f"Invalid {field_name} format: must be 36 characters (UUID format)",
-                    field_name=field_name,
-                    status_code=400
-                )
+            length = len(str_value)
 
-            # Validate UUID format and create UUID object to ensure validity
-            uuid_obj = uuid.UUID(str_value)
+            if length == 36:
+                uuid_obj = uuid.UUID(str_value)
+                return str(uuid_obj)
 
-            # Return normalized string format
-            return str(uuid_obj)
+            if length == 32:
+                uuid_obj = uuid.UUID(hex=str_value)
+                return str(uuid_obj)
+
+            raise IDValidationError(
+                f"Invalid {field_name} format: must be 32 or 36 characters (UUID format)",
+                field_name=field_name,
+                status_code=400
+            )
 
         except ValueError as e:
             raise IDValidationError(
@@ -162,9 +167,9 @@ class IDValidator:
             value: str = Path(
                 ...,
                 description=description,
-                min_length=36,
+                min_length=32,
                 max_length=36,
-                regex=r"^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+                regex=UUID_HEX_OR_HYPHEN_PATTERN
             )
         ) -> str:
             try:
@@ -183,9 +188,9 @@ def validate_user_id(
     user_id: str = Path(
         ...,
         description="User UUID identifier",
-        min_length=36,
+        min_length=32,
         max_length=36,
-        regex=r"^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+        regex=UUID_HEX_OR_HYPHEN_PATTERN
     )
 ) -> str:
     """Validate user ID path parameter."""
@@ -199,9 +204,9 @@ def validate_product_id(
     product_id: str = Path(
         ...,
         description="Product UUID identifier",
-        min_length=36,
+        min_length=32,
         max_length=36,
-        regex=r"^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+        regex=UUID_HEX_OR_HYPHEN_PATTERN
     )
 ) -> str:
     """Validate product ID path parameter."""
@@ -215,9 +220,9 @@ def validate_order_id(
     order_id: str = Path(
         ...,
         description="Order UUID identifier",
-        min_length=36,
+        min_length=32,
         max_length=36,
-        regex=r"^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+        regex=UUID_HEX_OR_HYPHEN_PATTERN
     )
 ) -> str:
     """Validate order ID path parameter."""
@@ -231,9 +236,9 @@ def validate_vendor_id(
     vendor_id: str = Path(
         ...,
         description="Vendor UUID identifier",
-        min_length=36,
+        min_length=32,
         max_length=36,
-        regex=r"^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+        regex=UUID_HEX_OR_HYPHEN_PATTERN
     )
 ) -> str:
     """Validate vendor ID path parameter."""
@@ -247,9 +252,9 @@ def validate_commission_id(
     commission_id: str = Path(
         ...,
         description="Commission UUID identifier",
-        min_length=36,
+        min_length=32,
         max_length=36,
-        regex=r"^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+        regex=UUID_HEX_OR_HYPHEN_PATTERN
     )
 ) -> str:
     """Validate commission ID path parameter."""
@@ -263,9 +268,9 @@ def validate_category_id(
     category_id: str = Path(
         ...,
         description="Category UUID identifier",
-        min_length=36,
+        min_length=32,
         max_length=36,
-        regex=r"^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+        regex=UUID_HEX_OR_HYPHEN_PATTERN
     )
 ) -> str:
     """Validate category ID path parameter."""
@@ -385,13 +390,18 @@ def normalize_uuid_string(value: Union[str, UUID, None]) -> Optional[str]:
 
     try:
         if isinstance(value, UUID):
-            return str(value).lower()
+            normalized = value
+        else:
+            str_value = str(value).strip().lower()
+            if not IDValidator.is_valid_uuid_string(str_value):
+                return None
 
-        str_value = str(value).strip().lower()
-        if IDValidator.is_valid_uuid_string(str_value):
-            return str_value
+            if len(str_value) == 36:
+                normalized = uuid.UUID(str_value)
+            else:
+                normalized = uuid.UUID(hex=str_value)
 
-        return None
+        return str(normalized)
     except:
         return None
 

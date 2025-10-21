@@ -42,7 +42,8 @@ class TestWebhookHandler:
     def webhook_handler(self, mock_db):
         """Create WebhookHandler instance"""
         with patch('app.services.payments.webhook_handler.WompiService') as mock_wompi_class, \
-             patch('app.services.payments.webhook_handler.PaymentProcessor') as mock_processor_class:
+             patch('app.services.payments.webhook_handler.PaymentProcessor') as mock_processor_class, \
+             patch('app.services.payments.webhook_handler.PaymentCommissionService') as mock_commission_class:
 
             mock_wompi_instance = AsyncMock()
             mock_wompi_instance.validate_webhook_signature = Mock(return_value=True)
@@ -51,9 +52,14 @@ class TestWebhookHandler:
             mock_processor_instance = AsyncMock()
             mock_processor_class.return_value = mock_processor_instance
 
+            mock_commission_instance = AsyncMock()
+            mock_commission_instance.process_payment_approval = AsyncMock(return_value={"success": True, "commission_id": "test_commission"})
+            mock_commission_class.return_value = mock_commission_instance
+
             handler = WebhookHandler(mock_db)
             handler.wompi = mock_wompi_instance
             handler.payment_processor = mock_processor_instance
+            handler.commission_service = mock_commission_instance
             return handler
 
     @pytest.fixture
@@ -84,15 +90,18 @@ class TestWebhookHandler:
         }
 
     @pytest.mark.asyncio
-    async def test_process_webhook_success(self, webhook_handler, mock_db, sample_webhook_event_data):
+    async def test_process_webhook_success(self, webhook_handler, mock_db, sample_webhook_event_data, sample_transaction):
         """Test successful webhook processing"""
         payload = json.dumps(sample_webhook_event_data)
         signature = "valid_signature"
 
-        # Mock no existing event
-        mock_result = Mock()
-        mock_result.scalar_one_or_none.return_value = None
-        mock_db.execute.return_value = mock_result
+        # Mock database calls:
+        # 1. Check for existing event (returns None - no existing event)
+        # 2. Find transaction by gateway_transaction_id (returns sample_transaction)
+        mock_db.execute.side_effect = [
+            Mock(scalar_one_or_none=Mock(return_value=None)),  # No existing webhook event
+            Mock(scalar_one_or_none=Mock(return_value=sample_transaction))  # Found transaction
+        ]
 
         # Mock successful event processing
         webhook_handler.payment_processor.update_transaction_status.return_value = Mock()
@@ -524,7 +533,8 @@ class TestWebhookHandlerEdgeCases:
     def webhook_handler(self, mock_db):
         """Create WebhookHandler instance"""
         with patch('app.services.payments.webhook_handler.WompiService') as mock_wompi_class, \
-             patch('app.services.payments.webhook_handler.PaymentProcessor') as mock_processor_class:
+             patch('app.services.payments.webhook_handler.PaymentProcessor') as mock_processor_class, \
+             patch('app.services.payments.webhook_handler.PaymentCommissionService') as mock_commission_class:
 
             mock_wompi_instance = AsyncMock()
             mock_wompi_class.return_value = mock_wompi_instance
@@ -532,9 +542,14 @@ class TestWebhookHandlerEdgeCases:
             mock_processor_instance = AsyncMock()
             mock_processor_class.return_value = mock_processor_instance
 
+            mock_commission_instance = AsyncMock()
+            mock_commission_instance.process_payment_approval = AsyncMock(return_value={"success": True, "commission_id": "test_commission"})
+            mock_commission_class.return_value = mock_commission_instance
+
             handler = WebhookHandler(mock_db)
             handler.wompi = mock_wompi_instance
             handler.payment_processor = mock_processor_instance
+            handler.commission_service = mock_commission_instance
             return handler
 
     @pytest.fixture
@@ -611,12 +626,21 @@ class TestWebhookHandlerEdgeCases:
 
         webhook_handler.wompi.validate_webhook_signature.return_value = True
 
-        # First call - no existing event
-        # Second call - event already exists
+        # Create mock transaction
+        sample_transaction = Mock()
+        sample_transaction.id = 123
+
+        # Mock database calls for both webhook processing attempts:
+        # First call: check existing event (None), find transaction (found)
+        # Second call: check existing event (found existing)
         mock_db.execute.side_effect = [
-            Mock(scalar_one_or_none=Mock(return_value=None)),
-            Mock(scalar_one_or_none=Mock(return_value=Mock()))  # Existing event
+            Mock(scalar_one_or_none=Mock(return_value=None)),  # First call - no existing event
+            Mock(scalar_one_or_none=Mock(return_value=sample_transaction)),  # First call - found transaction
+            Mock(scalar_one_or_none=Mock(return_value=Mock()))  # Second call - existing event found
         ]
+
+        # Mock successful transaction update
+        webhook_handler.payment_processor.update_transaction_status.return_value = Mock()
 
         # Process the same webhook twice
         result1 = await webhook_handler.process_webhook(payload, signature, event_data)

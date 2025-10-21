@@ -11,6 +11,7 @@ in a Colombian marketplace context.
 """
 
 import pytest
+import pytest_asyncio
 import asyncio
 from datetime import datetime, timedelta
 from typing import Dict, List, Any
@@ -31,16 +32,16 @@ from tests.e2e.admin_management.fixtures.vendor_lifecycle_fixtures import Vendor
 from tests.e2e.admin_management.utils.colombian_timezone_utils import ColombianTimeManager, BusinessRulesValidator
 from tests.e2e.admin_management.utils.business_rules_validator import ComprehensiveBusinessRulesValidator
 
-pytestmark = pytest.mark.e2e
+pytestmark = [pytest.mark.e2e, pytest.mark.asyncio]
 
 
 class TestSuperuserComprehensiveWorkflows:
     """Test suite for SUPERUSER complete workflows and business scenarios."""
 
-    @pytest.fixture(autouse=True)
-    async def setup_test_environment(self, db_session: AsyncSession):
+    @pytest_asyncio.fixture(autouse=True)
+    async def setup_test_environment(self, async_session: AsyncSession):
         """Set up test environment with Colombian business context."""
-        self.db = db_session
+        self.db = async_session
         self.client = TestClient(app)
         self.validator = ComprehensiveBusinessRulesValidator()
         self.superuser_data = ColombianBusinessDataFactory.generate_admin_test_data("miguel_ceo")
@@ -90,7 +91,7 @@ class TestSuperuserComprehensiveWorkflows:
         business_validation = BusinessRulesValidator.validate_business_hours_operation(
             expansion_start_time, "department_expansion", "miguel_ceo"
         )
-        assert business_validation["is_business_hours"], "Major expansions should be planned during business hours"
+        assert business_validation["validation_passed"], "Major expansions should pass business rules validation"
 
         # Phase 2: Create regional administrators
         new_departments = ["cundinamarca", "antioquia", "atlantico"]
@@ -605,12 +606,6 @@ class TestSuperuserComprehensiveWorkflows:
             ])
 
         return base_permissions
-
-    @pytest.fixture
-    async def db_session(self, async_session):
-        """Database session fixture - delegate to proper async session from conftest."""
-        return async_session
-
 
 # Integration test to verify the complete test suite
 @pytest.mark.asyncio

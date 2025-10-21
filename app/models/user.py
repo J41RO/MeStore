@@ -41,7 +41,7 @@ from app.core.types import UUID, generate_uuid
 from sqlalchemy.sql import func
 from enum import Enum as PyEnum
 from sqlalchemy import Enum
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, synonym
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -378,6 +378,9 @@ class User(BaseModel):
         index=True,
         comment="Cédula de ciudadanía colombiana (opcional, única)"
     )
+
+    # Backward compatibility alias expected by legacy integration fixtures
+    documento = synonym("cedula")
 
     telefono = Column(
         String(20),
@@ -821,6 +824,10 @@ class User(BaseModel):
 
     def __init__(self, **kwargs):
         """Constructor personalizado para aplicar defaults correctamente."""
+        # Normalizar email a minúsculas para garantizar case-insensitive
+        if 'email' in kwargs and kwargs['email']:
+            kwargs['email'] = kwargs['email'].lower().strip()
+
         # Aplicar defaults explícitos para campos de estado
         if 'is_verified' not in kwargs:
             kwargs['is_verified'] = False
@@ -832,7 +839,7 @@ class User(BaseModel):
             kwargs['phone_verified'] = False
         if 'otp_attempts' not in kwargs:
             kwargs['otp_attempts'] = 0
-            
+
         # Llamar al constructor padre
         super().__init__(**kwargs)
 

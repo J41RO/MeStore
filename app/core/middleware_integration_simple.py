@@ -47,6 +47,9 @@ def setup_application_middleware(app: FastAPI):
             ]
             # Combine all origins and remove duplicates
             allowed_origins = list(set(base_origins + localhost_origins + production_origins))
+        elif settings.ENVIRONMENT == "testing":
+            testing_origins = settings.get_cors_origins_for_environment()
+            allowed_origins = list(set(testing_origins + production_origins))
         else:
             # Production: combine base_origins with production origins
             allowed_origins = list(set(base_origins + production_origins))

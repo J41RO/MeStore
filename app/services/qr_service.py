@@ -30,6 +30,9 @@ class QRService:
         """Crear directorios necesarios si no existen"""
         os.makedirs(self.qr_directory, exist_ok=True)
         os.makedirs(self.label_directory, exist_ok=True)
+        # Legacy paths used by manual scripts/tests
+        os.makedirs("qr_codes", exist_ok=True)
+        os.makedirs("labels", exist_ok=True)
     
     def generate_internal_tracking_id(self, tracking_number: str) -> str:
         """Generar ID interno único para tracking"""

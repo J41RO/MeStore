@@ -5,7 +5,14 @@ Test authentication endpoints with fixed passwords
 
 import asyncio
 import json
+import os
+
 import aiohttp
+import pytest
+
+# Este script realiza peticiones reales contra un servidor en localhost.
+# Lo excluimos de la suite automatizada porque requiere un backend levantado manualmente.
+pytestmark = pytest.mark.skip(reason="Script interactivo de verificación manual; se omite en pytest.")
 
 async def test_login(email, password):
     """Test login endpoint with given credentials"""

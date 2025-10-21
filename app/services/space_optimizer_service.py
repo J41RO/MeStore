@@ -24,6 +24,7 @@ class OptimizationGoal(str, Enum):
     MAXIMIZE_CAPACITY = "maximize_capacity"
     MINIMIZE_ACCESS_TIME = "minimize_access_time"
     BALANCE_WORKLOAD = "balance_workload"
+    BALANCE_UTILIZATION = "balance_utilization"
     CATEGORY_GROUPING = "category_grouping"
     SIZE_EFFICIENCY = "size_efficiency"
 
@@ -523,7 +524,10 @@ class SpaceOptimizerService:
         
         if goal == OptimizationGoal.MAXIMIZE_CAPACITY:
             return avg_util - (variance * 0.5)
-        elif goal == OptimizationGoal.BALANCE_WORKLOAD:
+        elif goal in (
+            OptimizationGoal.BALANCE_WORKLOAD,
+            OptimizationGoal.BALANCE_UTILIZATION,
+        ):
             return 100 - variance
         else:
             return avg_util * 0.7 + (100 - variance) * 0.3
