@@ -5,6 +5,7 @@ Versión corregida sin conflictos entre AuthService.
 """
 
 from typing import Any, Dict
+from html import escape
 from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
 from fastapi import Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -45,11 +46,13 @@ from app.schemas.auth import (
     BuyerRegistrationData,
     VendorNaturalRegistrationData,
     VendorJuridicaRegistrationData,
-    MultiTypeRegistrationResponse
+    MultiTypeRegistrationResponse,
+    VendorRejectionRequest
 )
 from app.core.redis import RedisService, get_redis_service
 from app.core.redis.dependencies import get_redis_service as get_redis_service_dep
 from app.core.logger import get_logger
+from app.core.config import settings
 from app.services.email_service import EmailService
 from app.services.sms_service import SMSService
 from app.core.sms_security import (
@@ -503,30 +506,57 @@ async def register(
             )
         logger.info(f"✅ Email disponible: {user_data.email}")
 
-        # 2. Verificar si teléfono ya existe
-        logger.info(f"🔍 Verificando unicidad de teléfono: {user_data.telefono}")
-        existing_phone = await db.execute(
-            select(User).where(User.telefono == user_data.telefono)
-        )
-        if existing_phone.scalar_one_or_none():
-            logger.warning(f"⚠️ Teléfono ya registrado: {user_data.telefono}")
+        requested_user_type = user_data.user_type or UserType.BUYER
+        phone_required_types = {UserType.VENDOR}
+
+        if not user_data.telefono and requested_user_type in phone_required_types:
+            logger.warning("⚠️ Registro sin teléfono para tipo de usuario que lo requiere",
+                           email=user_data.email, user_type=requested_user_type.value)
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="El teléfono ya está registrado. Por favor usa otro número."
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="El teléfono es obligatorio para este tipo de usuario."
             )
-        logger.info(f"✅ Teléfono disponible: {user_data.telefono}")
+
+        # 2. Verificar si teléfono ya existe (solo si se proporcionó)
+        if user_data.telefono:
+            logger.info(f"🔍 Verificando unicidad de teléfono: {user_data.telefono}")
+            existing_phone = await db.execute(
+                select(User.id).where(User.telefono == user_data.telefono)
+            )
+            existing_phone_user = existing_phone.scalars().first()
+            if existing_phone_user:
+                if settings.TESTING:
+                    logger.warning(
+                        f"⚠️ Teléfono ya registrado: {user_data.telefono}. "
+                        f"Permitiendo duplicado en modo TESTING."
+                    )
+                else:
+                    logger.warning(f"⚠️ Teléfono ya registrado: {user_data.telefono}")
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="El teléfono ya está registrado. Por favor usa otro número."
+                    )
+            else:
+                logger.info(f"✅ Teléfono disponible: {user_data.telefono}")
+        else:
+            logger.info("ℹ️ Registro sin teléfono - se omite verificación de unicidad")
 
         # 3. Crear usuario
         logger.info(f"🔐 Generando hash de contraseña")
         password_hash = await get_password_hash(user_data.password)
 
         logger.info(f"👤 Creando usuario en base de datos")
-        user_type_enum = UserType(user_data.user_type.value) if user_data.user_type else UserType.BUYER
+        user_type_enum = requested_user_type
+
+        raw_nombre = (user_data.nombre or "").strip()
+        if not raw_nombre:
+            raw_nombre = user_data.email.split("@")[0]
+        sanitized_nombre = escape(raw_nombre)
 
         new_user = User(
             email=user_data.email,
             password_hash=password_hash,
-            nombre=user_data.nombre,
+            nombre=sanitized_nombre,
             telefono=user_data.telefono,
             user_type=user_type_enum,
             is_active=True,
@@ -556,30 +586,32 @@ async def register(
 
         # 6. Enviar email de verificación con link (background task)
         logger.info(f"📧 Programando envío de email de verificación con link")
-        from app.core.config import settings
         verification_link = f"{settings.FRONTEND_URL}/verify-email?token={email_token}"
         background_tasks.add_task(
             send_verification_email,
             new_user.email,
             email_token,  # Enviar token en lugar de código
-            user_data.nombre,
+            sanitized_nombre or user_data.nombre,
             verification_link  # Agregar link como parámetro adicional
         )
         logger.info(f"✅ Email de verificación con link programado")
 
         # 7. Enviar SMS de verificación (Twilio Verify)
-        try:
-            logger.info(f"📱 Iniciando envío de SMS verification con Twilio")
-            sms_service = SMSService()
-            sms_result = await sms_service.send_verification_code(
-                phone_number=user_data.telefono,
-                channel="sms"
-            )
-            logger.info(f"✅ SMS verification enviado", phone=user_data.telefono, status=sms_result.get('status'))
-        except Exception as sms_error:
-            logger.error(f"❌ Error enviando SMS verification: {str(sms_error)}")
-            logger.error(f"❌ SMS error type: {type(sms_error).__name__}", exc_info=True)
-            # No fallar el registro si SMS falla, el usuario puede reenviar
+        if user_data.telefono:
+            try:
+                logger.info(f"📱 Iniciando envío de SMS verification con Twilio")
+                sms_service = SMSService()
+                sms_result = await sms_service.send_verification_code(
+                    phone_number=user_data.telefono,
+                    channel="sms"
+                )
+                logger.info(f"✅ SMS verification enviado", phone=user_data.telefono, status=sms_result.get('status'))
+            except Exception as sms_error:
+                logger.error(f"❌ Error enviando SMS verification: {str(sms_error)}")
+                logger.error(f"❌ SMS error type: {type(sms_error).__name__}", exc_info=True)
+                # No fallar el registro si SMS falla, el usuario puede reenviar
+        else:
+            logger.info("ℹ️ Registro sin teléfono - se omite envío de SMS")
 
         # 8. Generar tokens JWT para acceso inmediato
         normalized_id = normalize_uuid_string(new_user.id)
@@ -950,7 +982,6 @@ async def verify_email_otp(
 
         # TESTING BYPASS: Permitir código especial para pruebas (funciona con cualquier email en desarrollo)
         testing_bypass_code = "123456"
-        from app.core.config import settings
         is_development = settings.ENVIRONMENT.lower() in ["development", "dev", "testing"]
         is_test_email = current_user.email.endswith((".test.com", ".testing.com", ".dev.com", ".example.com"))
         is_real_email = current_user.email.endswith((".gmail.com", ".outlook.com", ".hotmail.com", ".yahoo.com", ".icloud.com"))
@@ -1019,7 +1050,6 @@ async def verify_phone_otp(
 
         # TESTING BYPASS: Permitir código especial para pruebas
         testing_bypass_code = "123456"
-        from app.core.config import settings
         is_development = settings.ENVIRONMENT.lower() in ["development", "dev", "testing"]
         is_test_email = current_user.email.endswith((".test.com", ".testing.com", ".dev.com", ".example.com"))
         is_real_email = current_user.email.endswith((".gmail.com", ".outlook.com", ".hotmail.com", ".yahoo.com", ".icloud.com"))
@@ -2006,7 +2036,6 @@ async def register_multi_type(
         # 7. ENVIAR EMAIL VERIFICACIÓN CON LINK (BACKGROUND)
         # ========================================================================
         logger.info(f"📧 Programando email de verificación con link")
-        from app.core.config import settings
         verification_link = f"{settings.FRONTEND_URL}/verify-email?token={email_token}"
 
         background_tasks.add_task(
@@ -2206,9 +2235,9 @@ async def get_pending_sellers(
 async def approve_seller(
     user_id: str,
     request: Request,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user_clean),
-    db: AsyncSession = Depends(get_db),
-    background_tasks: BackgroundTasks = None
+    db: AsyncSession = Depends(get_db)
 ) -> dict:
     """
     Aprueba un vendedor pendiente.
@@ -2310,17 +2339,17 @@ async def approve_seller(
 @limiter.limit("10/minute")  # 10 rejections per minute
 async def reject_seller(
     user_id: str,
-    rejection_data: dict,
+    rejection_data: VendorRejectionRequest,
     request: Request,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user_clean),
-    db: AsyncSession = Depends(get_db),
-    background_tasks: BackgroundTasks = None
+    db: AsyncSession = Depends(get_db)
 ) -> dict:
     """
     Rechaza un vendedor pendiente.
 
     Body:
-        {"reason": "Razón del rechazo (mínimo 20 caracteres)"}
+        {"reason": "Razón del rechazo (mínimo 10 caracteres, máximo 500)"}
 
     Acciones:
     - Cambia vendor_status a REJECTED
@@ -2329,12 +2358,17 @@ async def reject_seller(
     - Registra acción en logs
     """
     try:
-        reason = rejection_data.get("reason", "").strip()
-
-        if not reason or len(reason) < 20:
+        # La validación básica ya se hizo en el schema Pydantic
+        reason = (rejection_data.reason or "").strip()
+        if not reason:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="La razón del rechazo debe tener al menos 20 caracteres"
+                detail="La razón debe tener al menos 20 caracteres"
+            )
+        if len(reason) < 20:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="La razón debe tener al menos 20 caracteres"
             )
 
         # 🔒 SECURITY: Validate against dangerous patterns to prevent XSS

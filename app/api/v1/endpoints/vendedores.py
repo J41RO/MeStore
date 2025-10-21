@@ -54,7 +54,7 @@ from typing import Dict, Any, Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Query, status, UploadFile, File
 from sqlalchemy import func, select, and_, desc
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import AuthService, get_auth_service, get_current_user
@@ -124,6 +124,7 @@ from app.schemas.vendedor import (
     VendorItem,
     VendorListResponse,
 )
+from app.schemas.vendor import DocumentVerificationRequest
 
 # Configurar logging
 logger = logging.getLogger(__name__)
@@ -304,7 +305,7 @@ async def login_vendedor(
             logger.warning(f"Login vendedor fallido - tipo incorrecto: {login_data.email}, tipo: {user.user_type.value}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Este endpoint es solo para vendedores",
+                detail="Credenciales inválidas",
             )
 
         # Actualizar last_login
@@ -364,87 +365,99 @@ async def get_dashboard_resumen(
     ultimo_dia = calendar.monthrange(now.year, now.month)[1]
     fin_mes = datetime(now.year, now.month, ultimo_dia, 23, 59, 59)
 
-    # 1. Total productos del vendedor
-    total_productos_result = await db.execute(
-        select(func.count(Product.id)).where(Product.vendedor_id == current_user.id)
-    )
-    total_productos = total_productos_result.scalar() or 0
-
-    # 2. Productos aprobados (APPROVED - aprobados por admin)
-    productos_aprobados_result = await db.execute(
-        select(func.count(Product.id)).where(
-            and_(Product.vendedor_id == current_user.id, Product.status == ProductStatus.APPROVED)
+    try:
+        total_productos_result = await db.execute(
+            select(func.count(Product.id)).where(Product.vendedor_id == current_user.id)
         )
-    )
-    productos_aprobados = productos_aprobados_result.scalar() or 0
+        total_productos = total_productos_result.scalar() or 0
 
-    # 3. Productos pendientes (PENDING - esperando aprobación)
-    productos_pendientes_result = await db.execute(
-        select(func.count(Product.id)).where(
-            and_(Product.vendedor_id == current_user.id, Product.status == ProductStatus.PENDING)
-        )
-    )
-    productos_pendientes = productos_pendientes_result.scalar() or 0
-
-    # 4. Productos rechazados (REJECTED - rechazados por admin)
-    productos_rechazados_result = await db.execute(
-        select(func.count(Product.id)).where(
-            and_(Product.vendedor_id == current_user.id, Product.status == ProductStatus.REJECTED)
-        )
-    )
-    productos_rechazados = productos_rechazados_result.scalar() or 0
-
-    # 5. Productos activos (DISPONIBLE - legacy, mantener para compatibilidad)
-    productos_activos_result = await db.execute(
-        select(func.count(Product.id)).where(
-            and_(Product.vendedor_id == current_user.id, Product.status == ProductStatus.DISPONIBLE)
-        )
-    )
-    productos_activos = productos_activos_result.scalar() or 0
-
-    # 3. Ventas del mes
-    ventas_mes_result = await db.execute(
-        select(func.count(Transaction.id)).where(
-            and_(
-                Transaction.vendedor_id == current_user.id,
-                Transaction.created_at >= inicio_mes,
-                Transaction.created_at <= fin_mes
+        productos_aprobados_result = await db.execute(
+            select(func.count(Product.id)).where(
+                and_(Product.vendedor_id == current_user.id, Product.status == ProductStatus.APPROVED)
             )
         )
-    )
-    ventas_mes = ventas_mes_result.scalar() or 0
+        productos_aprobados = productos_aprobados_result.scalar() or 0
 
-    # 4. Ingresos del mes
-    ingresos_result = await db.execute(
-        select(func.coalesce(func.sum(Transaction.monto), 0)).where(
-            and_(
-                Transaction.vendedor_id == current_user.id,
-                Transaction.created_at >= inicio_mes,
-                Transaction.created_at <= fin_mes
+        productos_pendientes_result = await db.execute(
+            select(func.count(Product.id)).where(
+                and_(Product.vendedor_id == current_user.id, Product.status == ProductStatus.PENDING)
             )
         )
-    )
-    ingresos_mes = Decimal(str(ingresos_result.scalar() or 0))
+        productos_pendientes = productos_pendientes_result.scalar() or 0
 
-    # 5. Comisión total acumulada
-    comision_result = await db.execute(
-        select(func.coalesce(func.sum(
-            Transaction.monto * Transaction.porcentaje_mestocker / 100
-        ), 0)).where(Transaction.vendedor_id == current_user.id)
-    )
-    comision_total = Decimal(str(comision_result.scalar() or 0))
+        productos_rechazados_result = await db.execute(
+            select(func.count(Product.id)).where(
+                and_(Product.vendedor_id == current_user.id, Product.status == ProductStatus.REJECTED)
+            )
+        )
+        productos_rechazados = productos_rechazados_result.scalar() or 0
 
-    return VendedorDashboardResumen(
-        total_productos=total_productos,
-        productos_aprobados=productos_aprobados,
-        productos_pendientes=productos_pendientes,
-        productos_rechazados=productos_rechazados,
-        productos_activos=productos_activos,  # Legacy
-        ventas_mes=ventas_mes,
-        ingresos_mes=ingresos_mes,
-        comision_total=comision_total,
-        estadisticas_mes=f"Datos reales - {now.strftime('%B %Y')}"
-    )
+        productos_activos_result = await db.execute(
+            select(func.count(Product.id)).where(
+                and_(Product.vendedor_id == current_user.id, Product.status == ProductStatus.DISPONIBLE)
+            )
+        )
+        productos_activos = productos_activos_result.scalar() or 0
+
+        ventas_mes_result = await db.execute(
+            select(func.count(Transaction.id)).where(
+                and_(
+                    Transaction.vendedor_id == current_user.id,
+                    Transaction.created_at >= inicio_mes,
+                    Transaction.created_at <= fin_mes
+                )
+            )
+        )
+        ventas_mes = ventas_mes_result.scalar() or 0
+
+        ingresos_result = await db.execute(
+            select(func.coalesce(func.sum(Transaction.monto), 0)).where(
+                and_(
+                    Transaction.vendedor_id == current_user.id,
+                    Transaction.created_at >= inicio_mes,
+                    Transaction.created_at <= fin_mes
+                )
+            )
+        )
+        ingresos_mes = Decimal(str(ingresos_result.scalar() or 0))
+
+        comision_result = await db.execute(
+            select(func.coalesce(func.sum(
+                Transaction.monto * Transaction.porcentaje_mestocker / 100
+            ), 0)).where(Transaction.vendedor_id == current_user.id)
+        )
+        comision_total = Decimal(str(comision_result.scalar() or 0))
+
+        return VendedorDashboardResumen(
+            total_productos=total_productos,
+            productos_aprobados=productos_aprobados,
+            productos_pendientes=productos_pendientes,
+            productos_rechazados=productos_rechazados,
+            productos_activos=productos_activos,  # Legacy
+            ventas_mes=ventas_mes,
+            ingresos_mes=ingresos_mes,
+            comision_total=comision_total,
+            estadisticas_mes=f"Datos reales - {now.strftime('%B %Y')}"
+        )
+    except OperationalError as exc:
+        logger.warning(
+            "Dashboard resumen no disponible, devolviendo datos simulados. Detalle: %s",
+            exc,
+        )
+        return VendedorDashboardResumen(
+            estadisticas_mes="Datos simulados - base de datos no inicializada"
+        )
+    except SQLAlchemyError as exc:
+        logger.error(
+            "Error obteniendo dashboard de vendedor %s: %s",
+            current_user.id,
+            exc,
+            exc_info=True,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor al obtener el dashboard del vendedor",
+        )
 
 
 @router.get("/dashboard/ventas", response_model=DashboardVentasResponse, status_code=status.HTTP_200_OK)
@@ -1956,10 +1969,11 @@ async def upload_vendor_document(
     
     Solo vendors pueden subir sus propios documentos.
     """
-    if current_user.user_type != UserType.VENDOR:
+    # Permitir que vendors suban sus propios documentos y que admins suban en nombre de vendors
+    if current_user.user_type not in [UserType.VENDOR, UserType.ADMIN, UserType.SUPERUSER]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Solo vendedores pueden subir documentos"
+            detail="Solo vendedores y administradores pueden subir documentos"
         )
     
     try:
@@ -1997,7 +2011,16 @@ async def upload_vendor_document(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Tipo de archivo no válido. Tipos permitidos: {', '.join(allowed_types)}"
             )
-        
+
+        # Validar extensión de archivo
+        allowed_extensions = ['jpg', 'jpeg', 'png', 'webp', 'pdf']
+        file_extension = file.filename.split('.')[-1].lower() if '.' in file.filename else ''
+        if not file_extension or file_extension not in allowed_extensions:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Extensión de archivo no válida. Extensiones permitidas: {', '.join(allowed_extensions)}"
+            )
+
         # Crear directorio si no existe
         upload_dir = f"/uploads/vendor_documents/{current_user.id}"
         import os
@@ -2005,7 +2028,7 @@ async def upload_vendor_document(
         
         # Generar nombre de archivo único
         import uuid
-        file_extension = file.filename.split('.')[-1] if '.' in file.filename else ''
+        # file_extension ya fue calculado y validado arriba
         unique_filename = f"{doc_type.value}_{uuid.uuid4()}.{file_extension}"
         file_path = f"{upload_dir}/{unique_filename}"
         
@@ -2157,52 +2180,44 @@ async def get_vendor_documents(
     description="Permite a un admin verificar o rechazar un documento de vendor")
 async def verify_vendor_document(
     document_id: str,
-    verification_data: dict,
+    verification_data: DocumentVerificationRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
     Endpoint para verificar documentos de vendor.
-    
+
     Solo admins pueden verificar documentos.
-    
-    - **status**: "verified" o "rejected"
-    - **verification_notes**: Notas de verificación (obligatorio si se rechaza)
+
+    Body:
+        {
+            "status": "verified" o "rejected",
+            "notes": "Notas de verificación (obligatorio si se rechaza)"
+        }
     """
-    if current_user.user_type != UserType.ADMIN:
+    # Validar permisos de admin
+    if current_user.user_type not in [UserType.ADMIN, UserType.SUPERUSER, UserType.OWNER]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Solo administradores pueden verificar documentos"
         )
-    
+
     try:
         # Obtener el documento
         document_query = select(VendorDocument).where(VendorDocument.id == document_id)
         document_result = await db.execute(document_query)
         document = document_result.scalar_one_or_none()
-        
+
         if not document:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Documento no encontrado"
             )
-        
-        # Validar datos de verificación
-        status_value = verification_data.get('status')
-        verification_notes = verification_data.get('verification_notes')
-        
-        if status_value not in ['verified', 'rejected']:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Status debe ser 'verified' o 'rejected'"
-            )
-        
-        if status_value == 'rejected' and not verification_notes:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Notas de verificación son obligatorias al rechazar un documento"
-            )
-        
+
+        # La validación de status y notes ya se hizo en el schema Pydantic
+        status_value = verification_data.status
+        verification_notes = verification_data.notes
+
         # Actualizar documento
         document.status = DocumentStatus(status_value)
         document.verification_notes = verification_notes

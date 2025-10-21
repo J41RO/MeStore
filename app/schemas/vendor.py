@@ -279,3 +279,64 @@ class VendorRegistrationError(BaseModel):
             }
         }
     )
+
+
+class DocumentVerificationRequest(BaseModel):
+    """
+    Schema para request de verificación de documentos por admin.
+    
+    Usado por el endpoint PATCH /{vendor_id}/documents/{document_id}/verify
+    para que el admin apruebe o rechace documentos individuales.
+    """
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "status": "verified",
+                "notes": "Documento válido y legible"
+            }
+        }
+    )
+    
+    status: str = Field(
+        ...,
+        description="Estado del documento: 'verified' o 'rejected'"
+    )
+    
+    notes: Optional[str] = Field(
+        default="",
+        max_length=500,
+        description="Notas de verificación (obligatorias si se rechaza)"
+    )
+    
+    @field_validator('status')
+    @classmethod
+    def validate_status(cls, v: str) -> str:
+        """Valida que el estado sea válido."""
+        allowed_statuses = ['verified', 'rejected']
+        v_lower = v.lower()
+        
+        if v_lower not in allowed_statuses:
+            raise ValueError(
+                f"Estado inválido. Estados permitidos: {', '.join(allowed_statuses)}"
+            )
+        
+        return v_lower
+    
+    @field_validator('notes')
+    @classmethod
+    def validate_notes_if_rejected(cls, v: Optional[str], info) -> str:
+        """Valida que las notas sean obligatorias al rechazar."""
+        # Acceder al valor de status desde info.data
+        status = info.data.get('status', '').lower()
+        
+        if status == 'rejected':
+            if not v or v.strip() == "":
+                raise ValueError(
+                    "Las notas son obligatorias al rechazar un documento"
+                )
+            if len(v.strip()) < 10:
+                raise ValueError(
+                    "Las notas deben tener al menos 10 caracteres al rechazar"
+                )
+        
+        return v.strip() if v else ""

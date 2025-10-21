@@ -3,12 +3,13 @@ Schemas de autenticación para endpoints JWT.
 
 Contiene los modelos Pydantic para request/response de autenticación:
 - LoginRequest: Datos de entrada para login
-- TokenResponse: Respuesta con tokens JWT  
+- TokenResponse: Respuesta con tokens JWT
 - RefreshTokenRequest: Request para refresh de token
 """
 
+import re
 from typing import Optional, Dict, Any
-from pydantic import BaseModel, EmailStr, Field, field_validator, ConfigDict
+from pydantic import AliasChoices, BaseModel, EmailStr, Field, field_validator, ConfigDict
 from app.models.user import UserType
 
 
@@ -35,7 +36,7 @@ class RegisterRequest(BaseModel):
                 "email": "nuevousuario@ejemplo.com",
                 "password": "mi_password_seguro",
                 "nombre": "Juan Carlos",
-                "telefono": "+573001234567",
+                "celular": "3001234567",
                 "user_type": "VENDOR"
             }
         }
@@ -43,9 +44,46 @@ class RegisterRequest(BaseModel):
 
     email: EmailStr = Field(..., description="Email del usuario")
     password: str = Field(..., min_length=6, description="Contraseña del usuario")
-    nombre: str = Field(..., min_length=2, description="Nombre del usuario")
-    telefono: str = Field(..., pattern=r'^\+[1-9]\d{1,14}$', description="Teléfono en formato internacional E.164 (+573001234567)")
+    nombre: Optional[str] = Field(None, min_length=2, description="Nombre del usuario")
+    telefono: Optional[str] = Field(
+        default=None,
+        description="Teléfono en formato internacional E.164 (+573001234567)",
+        validation_alias=AliasChoices("telefono", "celular"),
+        serialization_alias="telefono"
+    )
     user_type: Optional[UserType] = Field(UserType.BUYER, description="Tipo de usuario")
+
+    @field_validator("telefono")
+    @classmethod
+    def normalize_telefono(cls, value: str) -> str:
+        """Normaliza números locales (celular) al formato E.164."""
+        if value is None:
+            return None
+
+        raw_value = value.strip()
+        if not raw_value:
+            return None
+
+        if raw_value.startswith("+"):
+            normalized = f"+{re.sub(r'[^0-9]', '', raw_value)}"
+        else:
+            digits = re.sub(r"[^0-9]", "", raw_value)
+            if not digits:
+                raise ValueError("El teléfono debe contener dígitos")
+
+            if digits.startswith("57") and len(digits) >= 10:
+                normalized = f"+{digits}"
+            elif len(digits) == 10:
+                # Asumimos números locales de Colombia cuando no se especifica indicativo
+                normalized = f"+57{digits}"
+            else:
+                normalized = f"+{digits}"
+
+        if not re.fullmatch(r"\+[1-9]\d{7,14}", normalized):
+            raise ValueError("El teléfono debe estar en formato internacional válido (E.164)")
+
+        return normalized
+
 
 
 class TokenResponse(BaseModel):
@@ -686,3 +724,33 @@ class MultiTypeRegistrationResponse(BaseModel):
     vendor_status: Optional[str] = Field(None, description="Estado del vendor: draft, pending_documents, etc.")
     requires_approval: bool = Field(..., description="Si requiere aprobación administrativa")
     next_steps: list[str] = Field(..., description="Pasos siguientes para activar la cuenta")
+
+
+class VendorRejectionRequest(BaseModel):
+    """
+    Esquema para request de rechazo de vendedor.
+    
+    Usado por el endpoint POST /admin/reject-seller/{user_id}
+    para validar la razón del rechazo.
+    """
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "reason": "Los documentos proporcionados no cumplen con los requisitos mínimos de verificación"
+            }
+        }
+    )
+    
+    reason: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Razón del rechazo (mínimo 20 caracteres, máximo 500)"
+    )
+    
+    @field_validator('reason')
+    @classmethod
+    def validate_reason(cls, v: str) -> str:
+        """Valida que la razón no esté vacía y tenga contenido significativo."""
+        if v is None:
+            return None
+        return v.strip()
