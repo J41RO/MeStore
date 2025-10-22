@@ -1,6 +1,11 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from app.services.sms_service import SMSService
+from app.core.database import get_db
+from app.models.user import User
+from datetime import datetime
 import logging
 
 router = APIRouter()
@@ -155,3 +160,97 @@ async def verify_code(data: VerificationCheck):
     except Exception as e:
         logger.error(f'❌ Error verifying code: {str(e)}')
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get('/debug/otp-status', tags=['Test', 'Debug'])
+async def debug_otp_status(
+    phone: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    🔍 ENDPOINT DE DIAGNÓSTICO - Ver estado del OTP de un usuario
+    
+    Uso: GET /api/v1/test/debug/otp-status?phone=+17379771943
+    
+    Returns información completa del estado de verificación OTP.
+    """
+    try:
+        logger.info(f'🔍 Diagnosticando OTP para {phone}')
+        
+        # Buscar usuario por teléfono
+        result = await db.execute(
+            select(User).where(User.telefono == phone)
+        )
+        user = result.scalar_one_or_none()
+        
+        if not user:
+            return {
+                'success': False,
+                'message': f'No se encontró usuario con teléfono {phone}',
+                'phone_searched': phone,
+                'suggestion': 'Verifica que el número esté en formato E.164 (+1234567890)'
+            }
+        
+        # Calcular tiempo restante si hay código activo
+        time_remaining = None
+        is_expired = False
+        
+        if user.otp_expires_at:
+            now = datetime.utcnow()
+            expires = user.otp_expires_at.replace(tzinfo=None)
+            
+            if now < expires:
+                remaining = expires - now
+                time_remaining = {
+                    'minutes': remaining.seconds // 60,
+                    'seconds': remaining.seconds % 60,
+                    'total_seconds': remaining.seconds
+                }
+            else:
+                is_expired = True
+                expired_ago = now - expires
+                time_remaining = {
+                    'expired_ago_minutes': expired_ago.seconds // 60,
+                    'expired_ago_seconds': expired_ago.seconds % 60
+                }
+        
+        # Construir respuesta de diagnóstico
+        return {
+            'success': True,
+            'message': 'Información de OTP encontrada',
+            'user_info': {
+                'nombre': user.nombre,
+                'apellido': user.apellido,
+                'email': user.email,
+                'telefono': user.telefono,
+                'user_type': user.user_type
+            },
+            'otp_status': {
+                'code_in_database': user.otp_secret,
+                'code_type': user.otp_type,
+                'expires_at': user.otp_expires_at.isoformat() if user.otp_expires_at else None,
+                'is_expired': is_expired,
+                'time_remaining': time_remaining,
+                'failed_attempts': user.otp_attempts,
+                'max_attempts': 5,
+                'is_blocked': user.otp_attempts >= 5,
+                'last_sent_at': user.last_otp_sent.isoformat() if user.last_otp_sent else None
+            },
+            'verification_status': {
+                'email_verified': user.email_verified,
+                'phone_verified': user.phone_verified,
+                'account_status': user.account_status,
+                'is_active': user.is_active
+            },
+            'diagnosis': {
+                'can_verify': user.otp_secret is not None and not is_expired and user.otp_attempts < 5,
+                'issues': []
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f'❌ Error en diagnóstico OTP: {str(e)}', exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f'Error en diagnóstico: {str(e)}'
+        )
