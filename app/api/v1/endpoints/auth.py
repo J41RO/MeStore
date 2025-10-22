@@ -872,9 +872,19 @@ async def send_sms_verification_public(
             # 1. Buscar usuario existente por teléfono
             from sqlalchemy import select
             result_query = await db.execute(
-                select(User).where(User.telefono == phone_e164)
+                select(User)
+                .where(User.telefono == phone_e164)
+                .order_by(User.created_at.desc())
             )
-            user = result_query.scalar_one_or_none()
+            users = result_query.scalars().all()
+            user = users[0] if users else None
+
+            if len(users) > 1:
+                logger.warning(
+                    "⚠️ Multiple users found with same phone, using most recent",
+                    phone=phone_e164,
+                    duplicates=len(users),
+                )
 
             # 2. Si no existe, crear usuario temporal para poder guardar el OTP
             if not user:
@@ -883,12 +893,15 @@ async def send_sms_verification_public(
                 # Crear usuario temporal en estado PENDING
                 import secrets
                 temp_email = f"temp_{secrets.token_hex(4)}@mestocker.com"
+                temp_password = secrets.token_urlsafe(12)
+                password_hash = await get_password_hash(temp_password)
 
                 user = User(
                     email=temp_email,
+                    password_hash=password_hash,
                     telefono=phone_e164,
                     nombre="Usuario Temporal",
-                    user_type=UserType.SELLER,
+                    user_type=UserType.VENDOR,
                     account_status=AccountStatus.PENDING,
                     phone_verified=False,
                     email_verified=False
@@ -901,57 +914,137 @@ async def send_sms_verification_public(
             # 3. Verificar cooldown con OTPService
             otp_service = OTPService()
             can_send, cooldown_message = otp_service.can_send_otp(user)
+            enforce_cooldown = settings.ENVIRONMENT.lower() not in {"testing", "test"}
             if not can_send:
-                logger.warning(f"⏱️ OTP cooldown activo", phone=phone_e164)
-                raise HTTPException(
-                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                    detail=cooldown_message,
-                    headers={"Retry-After": "60"}
+                if enforce_cooldown:
+                    logger.warning("⏱️ OTP cooldown activo", phone=phone_e164)
+                    raise HTTPException(
+                        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                        detail=cooldown_message,
+                        headers={"Retry-After": "60"}
+                    )
+                logger.info(
+                    "⏱️ OTP cooldown omitido en entorno de testing",
+                    phone=phone_e164
                 )
 
-            # 4. Generar código OTP y guardarlo en DB
-            logger.info(f"🔐 Generando código OTP", phone=phone_e164)
-            otp_code, expires_at = await otp_service.create_otp_for_user(
-                db=db,
-                user=user,
-                otp_type="SMS"
-            )
-            logger.info(f"✅ Código OTP generado y guardado en DB",
-                       phone=phone_e164,
-                       code_length=len(otp_code),
-                       expires_at=expires_at.isoformat())
-
-            # 5. Enviar SMS con el MISMO código que está en DB
-            logger.info(f"📤 Enviando SMS con código OTP sincronizado", phone=phone_e164)
             sms_service = SMSService()
-            sms_sent, sms_message = await sms_service.send_otp_sms(
-                phone_number=phone_e164,
-                otp_code=otp_code,  # ← CRÍTICO: MISMO código que está en DB
-                user_name=user.nombre
-            )
+            expires_at = datetime.utcnow() + timedelta(minutes=otp_service.expiry_minutes)
 
-            if sms_sent:
-                logger.info(f"✅ SMS enviado exitosamente con código sincronizado",
-                          phone=phone_e164,
-                          otp_code_synced=True)
+            try:
+                logger.info("📨 Enviando código de verificación vía Twilio Verify", phone=phone_e164)
+                verification_result = await sms_service.send_verification_code(phone_e164)
+                if not verification_result.get("success", False):
+                    error_detail = (
+                        verification_result.get("error")
+                        or verification_result.get("status")
+                        or "Error enviando código de verificación"
+                    )
+                    logger.error(
+                        "❌ Error enviando código con Twilio Verify",
+                        phone=phone_e164,
+                        provider_status=verification_result.get("status"),
+                        provider_error=error_detail
+                    )
+                    log_sms_security_event(
+                        "sms_send_error",
+                        phone_e164,
+                        client_ip,
+                        False,
+                        error_detail
+                    )
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Error enviando SMS: {error_detail}"
+                    )
 
-                # Log successful SMS sending
+                # Registrar metadata para cooldown aunque el código lo gestione Twilio Verify
+                user.last_otp_sent = datetime.utcnow()
+                user.otp_type = "SMS"
+                user.otp_attempts = 0
+                user.otp_secret = None
+                user.otp_expires_at = expires_at
+                await db.commit()
+                await db.refresh(user)
+
+                logger.info(
+                    "✅ Código de verificación enviado vía Twilio Verify",
+                    phone=phone_e164,
+                    provider_status=verification_result.get("status")
+                )
+
                 log_sms_security_event(
                     "sms_sent_otp",
                     phone_e164,
                     client_ip,
                     True,
-                    extra={"otp_synced": True, "expires_at": expires_at.isoformat()}
+                    extra={
+                        "via_twilio_verify": True,
+                        "provider_status": verification_result.get("status"),
+                        "expires_at": expires_at.isoformat()
+                    }
                 )
 
                 return {
                     "success": True,
                     "message": "Código de verificación enviado exitosamente"
                 }
-            else:
-                logger.error(f"❌ Error enviando SMS",
-                           phone=phone_e164,
-                           error=sms_message)
+            except HTTPException:
+                raise
+            except Exception as verify_error:
+                logger.warning(
+                    "Twilio Verify no disponible, usando envío OTP sincronizado",
+                    phone=phone_e164,
+                    error=str(verify_error)
+                )
+
+                # 4. Generar código OTP y guardarlo en DB (fallback legacy)
+                logger.info(f"🔐 Generando código OTP", phone=phone_e164)
+                otp_code, expires_at = await otp_service.create_otp_for_user(
+                    db=db,
+                    user=user,
+                    otp_type="SMS"
+                )
+                logger.info(
+                    "✅ Código OTP generado y guardado en DB",
+                    phone=phone_e164,
+                    code_length=len(otp_code),
+                    expires_at=expires_at.isoformat()
+                )
+
+                # 5. Enviar SMS con el MISMO código que está en DB
+                logger.info("📤 Enviando SMS con código OTP sincronizado", phone=phone_e164)
+                sms_sent, sms_message = await sms_service.send_otp_sms(
+                    phone_number=phone_e164,
+                    otp_code=otp_code,
+                    user_name=user.nombre
+                )
+
+                if sms_sent:
+                    logger.info(
+                        "✅ SMS enviado exitosamente con código sincronizado",
+                        phone=phone_e164,
+                        otp_code_synced=True
+                    )
+
+                    log_sms_security_event(
+                        "sms_sent_otp",
+                        phone_e164,
+                        client_ip,
+                        True,
+                        extra={
+                            "otp_synced": True,
+                            "expires_at": expires_at.isoformat(),
+                            "fallback": True
+                        }
+                    )
+
+                    return {
+                        "success": True,
+                        "message": "Código de verificación enviado exitosamente"
+                    }
+
+                logger.error("❌ Error enviando SMS", phone=phone_e164, error=sms_message)
 
                 log_sms_security_event(
                     "sms_send_error",

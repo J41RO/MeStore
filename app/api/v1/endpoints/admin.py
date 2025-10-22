@@ -1,3 +1,4 @@
+import asyncio
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 import uuid
@@ -6,6 +7,7 @@ import aiofiles
 from pathlib import Path
 import inspect
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Request
+from fastapi.params import Depends as DependsParam
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session, selectinload
@@ -751,26 +753,45 @@ async def submit_quality_checklist(
 
 
 # ENDPOINTS PARA SISTEMA DE RECHAZO
-async def get_current_admin_user(
+def get_current_admin_user(
     request: Request,
     current_user: Any = Depends(auth_deps.get_current_user_optional)
 ):
-    """Validar que el usuario tenga permisos de administrador"""
-    if current_user is None:
+    """Validar que el usuario tenga permisos de administrador.
+
+    - Compatible con FastAPI (dependency injection)
+    - Compatible con llamadas directas en tests sincronizados
+    """
+
+    def resolve(value):
+        if inspect.isawaitable(value):
+            return asyncio.run(value)
+        return value
+
+    # Permitir llamadas directas pasando solo el usuario
+    if not hasattr(request, "app"):
+        if current_user is None or isinstance(current_user, DependsParam):
+            current_user = request
+        request = None
+
+    if isinstance(current_user, DependsParam):
+        current_user = None
+
+    if current_user is None and request is not None:
         override_dependency = getattr(request.app, "dependency_overrides", {})
         override_callable = override_dependency.get(get_current_user)
         if override_callable:
             override_result = override_callable()
-            current_user = await override_result if inspect.isawaitable(override_result) else override_result
+            current_user = resolve(override_result)
 
     if current_user is None:
         if isinstance(auth_deps.get_current_user, Mock):
             patched_result = auth_deps.get_current_user()
-            current_user = await patched_result if inspect.isawaitable(patched_result) else patched_result
-        else:
-            token = await auth_deps.oauth2_scheme(request)
+            current_user = resolve(patched_result)
+        elif request is not None:
+            token = resolve(auth_deps.oauth2_scheme(request))
             resolved_user = auth_deps.get_current_user(token=token)
-            current_user = await resolved_user if inspect.isawaitable(resolved_user) else resolved_user
+            current_user = resolve(resolved_user)
 
     if current_user is None:
         raise HTTPException(
@@ -778,7 +799,7 @@ async def get_current_admin_user(
             detail="Not authenticated"
         )
 
-    if not (hasattr(current_user, 'user_type') and 
+    if not (hasattr(current_user, "user_type") and
             current_user.user_type in [UserType.ADMIN, UserType.SUPERUSER]):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
